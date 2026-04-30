@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
-"POT-Creation-Date: 2026-01-21 13:46+0000\n"
+"POT-Creation-Date: 2026-04-30 11:04+0000\n"
 "PO-Revision-Date: 2014-12-15 12:00-0500\n"
 "Last-Translator: Copied by Zanata <copied-by-zanata@zanata.org>\n"
 "Language-Team: Latvian (http://www.transifex.com/projects/p/sssd/language/"
@@ -208,7 +208,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:136 sssd.conf.5.xml:173 sssd.conf.5.xml:358
 #: sssd.conf.5.xml:720 sssd.conf.5.xml:735 sssd.conf.5.xml:958
-#: sssd.conf.5.xml:1076 sssd.conf.5.xml:2204 sssd-ldap.5.xml:1143
+#: sssd.conf.5.xml:1076 sssd.conf.5.xml:2236 sssd-ldap.5.xml:1143
 #: sssd-ldap.5.xml:1246 sssd-ldap.5.xml:1315 sssd-ldap.5.xml:1822
 #: sssd-ldap.5.xml:1887 sssd-ipa.5.xml:336 sssd-ad.5.xml:252 sssd-ad.5.xml:367
 #: sssd-ad.5.xml:1201 sssd-ad.5.xml:1369 sssd-krb5.5.xml:358
@@ -229,7 +229,7 @@ msgstr ""
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:149 sssd.conf.5.xml:658 sssd.conf.5.xml:955
-#: sssd.conf.5.xml:2107 sssd.conf.5.xml:2174 sssd.conf.5.xml:4256
+#: sssd.conf.5.xml:2139 sssd.conf.5.xml:2206 sssd.conf.5.xml:4288
 #: sssd-ldap.5.xml:363 sssd-ldap.5.xml:989 sssd-ldap.5.xml:1008
 #: sssd-ldap.5.xml:1218 sssd-ldap.5.xml:1671 sssd-ldap.5.xml:1911
 #: sssd-ipa.5.xml:152 sssd-ipa.5.xml:696 sssd-ad.5.xml:1107 sssd-krb5.5.xml:268
@@ -297,7 +297,7 @@ msgstr ""
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:196 sssd.conf.5.xml:1296 sssd.conf.5.xml:1773
-#: sssd.conf.5.xml:4272 sssd-ldap.5.xml:835 include/ldap_id_mapping.xml:270
+#: sssd.conf.5.xml:4304 sssd-ldap.5.xml:835 include/ldap_id_mapping.xml:270
 msgid "Default: 10"
 msgstr "Noklusējuma: 10"
 
@@ -373,7 +373,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:266 sssd.conf.5.xml:798 sssd.conf.5.xml:3728
+#: sssd.conf.5.xml:266 sssd.conf.5.xml:798 sssd.conf.5.xml:3760
 #: include/failover.xml:100
 msgid "Default: 3"
 msgstr ""
@@ -395,7 +395,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:287 sssd.conf.5.xml:3560
+#: sssd.conf.5.xml:287 sssd.conf.5.xml:3592
 msgid "re_expression (string)"
 msgstr ""
 
@@ -415,12 +415,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:304 sssd.conf.5.xml:3617
+#: sssd.conf.5.xml:304 sssd.conf.5.xml:3649
 msgid "full_name_format (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:307 sssd.conf.5.xml:3620
+#: sssd.conf.5.xml:307 sssd.conf.5.xml:3652
 msgid ""
 "A <citerefentry> <refentrytitle>printf</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry>-compatible format that describes how to compose a "
@@ -428,39 +428,39 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:318 sssd.conf.5.xml:3631
+#: sssd.conf.5.xml:318 sssd.conf.5.xml:3663
 msgid "%1$s"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:319 sssd.conf.5.xml:3632
+#: sssd.conf.5.xml:319 sssd.conf.5.xml:3664
 msgid "user name"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:322 sssd.conf.5.xml:3635
+#: sssd.conf.5.xml:322 sssd.conf.5.xml:3667
 msgid "%2$s"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:325 sssd.conf.5.xml:3638
+#: sssd.conf.5.xml:325 sssd.conf.5.xml:3670
 msgid "domain name as specified in the SSSD config file."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:331 sssd.conf.5.xml:3644
+#: sssd.conf.5.xml:331 sssd.conf.5.xml:3676
 msgid "%3$s"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:334 sssd.conf.5.xml:3647
+#: sssd.conf.5.xml:334 sssd.conf.5.xml:3679
 msgid ""
 "domain flat name. Mostly usable for Active Directory domains, both directly "
 "configured or discovered via IPA trusts."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:315 sssd.conf.5.xml:3628
+#: sssd.conf.5.xml:315 sssd.conf.5.xml:3660
 msgid ""
 "The following expansions are supported: <placeholder type=\"variablelist\" "
 "id=\"0\"/>"
@@ -610,11 +610,11 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:472 sssd-ldap.5.xml:947 sssd-ldap.5.xml:959
-#: sssd-ldap.5.xml:1052 sssd-ad.5.xml:921 sssd-ad.5.xml:996 sssd-krb5.5.xml:468
-#: sssd-ldap-attributes.5.xml:470 sssd-ldap-attributes.5.xml:978
-#: include/ldap_id_mapping.xml:211 include/ldap_id_mapping.xml:222
-#: include/krb5_options.xml:148
+#: sssd.conf.5.xml:472 sssd.conf.5.xml:2104 sssd-ldap.5.xml:947
+#: sssd-ldap.5.xml:959 sssd-ldap.5.xml:1052 sssd-ad.5.xml:921 sssd-ad.5.xml:996
+#: sssd-krb5.5.xml:468 sssd-ldap-attributes.5.xml:470
+#: sssd-ldap-attributes.5.xml:978 include/ldap_id_mapping.xml:211
+#: include/ldap_id_mapping.xml:222 include/krb5_options.xml:148
 msgid "Default: not set"
 msgstr ""
 
@@ -882,7 +882,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:706 sssd.conf.5.xml:1797 sssd.conf.5.xml:4322
+#: sssd.conf.5.xml:706 sssd.conf.5.xml:1797 sssd.conf.5.xml:4354
 #: sssd-ad.5.xml:187 sssd-ad.5.xml:328 sssd-ad.5.xml:342
 msgid "Default: Not set"
 msgstr ""
@@ -1172,7 +1172,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:943 sssd.conf.5.xml:1220 sssd.conf.5.xml:2328
+#: sssd.conf.5.xml:943 sssd.conf.5.xml:1220 sssd.conf.5.xml:2360
 #: sssd-ldap.5.xml:382
 msgid "Default: 300"
 msgstr "Noklusējuma: 300"
@@ -1250,7 +1250,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1012 sssd.conf.5.xml:2128
+#: sssd.conf.5.xml:1012 sssd.conf.5.xml:2160
 msgid "Default: 50"
 msgstr ""
 
@@ -1268,7 +1268,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1026 sssd.conf.5.xml:1785 sssd.conf.5.xml:2152
+#: sssd.conf.5.xml:1026 sssd.conf.5.xml:1785 sssd.conf.5.xml:2184
 msgid "Default: 15"
 msgstr "Noklusējuma: 15"
 
@@ -1544,7 +1544,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1246 sssd.conf.5.xml:2984 sssd-ldap.5.xml:614
+#: sssd.conf.5.xml:1246 sssd.conf.5.xml:3016 sssd-ldap.5.xml:614
 msgid "Default: 8"
 msgstr ""
 
@@ -1572,7 +1572,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1271 sssd.conf.5.xml:1323 sssd.conf.5.xml:3749
+#: sssd.conf.5.xml:1271 sssd.conf.5.xml:1323 sssd.conf.5.xml:3781
 #: sssd-ldap.5.xml:539 sssd-ldap.5.xml:591 include/failover.xml:116
 #: include/krb5_options.xml:11
 msgid "Default: 6"
@@ -1886,7 +1886,7 @@ msgid "pam_pwd_expiration_warning (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1559 sssd.conf.5.xml:3008
+#: sssd.conf.5.xml:1559 sssd.conf.5.xml:3040
 msgid "Display a warning N days before the password expires."
 msgstr ""
 
@@ -1899,7 +1899,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1568 sssd.conf.5.xml:3011
+#: sssd.conf.5.xml:1568 sssd.conf.5.xml:3043
 msgid ""
 "If zero is set, then this filter is not applied, i.e. if the expiration "
 "warning was received from backend server, it will automatically be displayed."
@@ -1913,7 +1913,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1578 sssd.conf.5.xml:4015 sssd-ldap.5.xml:672 sssd.8.xml:79
+#: sssd.conf.5.xml:1578 sssd.conf.5.xml:4047 sssd-ldap.5.xml:672 sssd.8.xml:79
 msgid "Default: 0"
 msgstr ""
 
@@ -1976,7 +1976,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1638 sssd.conf.5.xml:1663 sssd.conf.5.xml:1682
-#: sssd.conf.5.xml:1919 sssd.conf.5.xml:2746 sssd.conf.5.xml:3944
+#: sssd.conf.5.xml:1919 sssd.conf.5.xml:2778 sssd.conf.5.xml:3976
 #: sssd-ldap.5.xml:1279
 msgid "Default: none"
 msgstr ""
@@ -2086,12 +2086,12 @@ msgid "The path to the certificate database."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1729 sssd.conf.5.xml:2254 sssd.conf.5.xml:4436
+#: sssd.conf.5.xml:1729 sssd.conf.5.xml:2286 sssd.conf.5.xml:4468
 msgid "Default:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:1731 sssd.conf.5.xml:2256
+#: sssd.conf.5.xml:1731 sssd.conf.5.xml:2288
 msgid ""
 "/etc/sssd/pki/sssd_auth_ca_db.pem (path to a file with trusted CA "
 "certificates in PEM format)"
@@ -2354,7 +2354,7 @@ msgid "Default: no_session"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:1956 sssd.conf.5.xml:4375
+#: sssd.conf.5.xml:1956 sssd.conf.5.xml:4407
 msgid "pam_gssapi_services"
 msgstr ""
 
@@ -2388,7 +2388,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:1974 sssd.conf.5.xml:3938
+#: sssd.conf.5.xml:1974 sssd.conf.5.xml:3970
 msgid "Example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 
@@ -2398,7 +2398,7 @@ msgid "Default: - (GSSAPI authentication is disabled)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:1985 sssd.conf.5.xml:4376
+#: sssd.conf.5.xml:1985 sssd.conf.5.xml:4408
 msgid "pam_gssapi_check_upn"
 msgstr ""
 
@@ -2512,13 +2512,54 @@ msgstr ""
 msgid "Default: not set (use of authentication indicators is not required)"
 msgstr ""
 
-#. type: Content of: <reference><refentry><refsect1><refsect2><title>
+#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
+#: sssd.conf.5.xml:2077
+msgid "pam_gssapi_indicators_apply"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2080
+msgid ""
+"Comma separated list of triples to assign additional information from the "
+"Kerberos ticket, e.g. a SID from the PAC, to authentication indicators."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:2086
+#, fuzzy
+#| msgid "The two mechanisms currently supported are:"
+msgid "Currently supported is:"
+msgstr "Divi pašlaik atbalstītie mehānismi ir:"
+
+#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
+#: sssd.conf.5.xml:2089
+msgid "SID:S-1-5-[domain]-[RID]:[authentication indicator]"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
+#: sssd.conf.5.xml:2100
+#, no-wrap
+msgid ""
+"pam_gssapi_indicators_apply = SID:S-1-5-12345-23456-34567-4321:pkinit\n"
+"                            "
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
+#: sssd.conf.5.xml:2094
+msgid ""
+"Example: To assign a SID, which is e.g. set by Active Directory's "
+"Authentication Mechanism Assurance (AMA) if the AD user used a Smartcard for "
+"authentication, to the 'pkinit' authentication indicator use: <placeholder "
+"type=\"programlisting\" id=\"0\"/>"
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><refsect2><title>
+#: sssd.conf.5.xml:2112
 msgid "SUDO configuration options"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:2082
+#: sssd.conf.5.xml:2114
 msgid ""
 "These options can be used to configure the sudo service.  The detailed "
 "instructions for configuration of <citerefentry> <refentrytitle>sudo</"
@@ -2529,24 +2570,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2099
+#: sssd.conf.5.xml:2131
 msgid "sudo_timed (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2102
+#: sssd.conf.5.xml:2134
 msgid ""
 "Whether or not to evaluate the sudoNotBefore and sudoNotAfter attributes "
 "that implement time-dependent sudoers entries."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2114
+#: sssd.conf.5.xml:2146
 msgid "sudo_threshold (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2117
+#: sssd.conf.5.xml:2149
 msgid ""
 "Maximum number of expired rules that can be refreshed at once. If number of "
 "expired rules is below threshold, those rules are refreshed with "
@@ -2556,22 +2597,22 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd.conf.5.xml:2136
+#: sssd.conf.5.xml:2168
 msgid "AUTOFS configuration options"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:2138
+#: sssd.conf.5.xml:2170
 msgid "These options can be used to configure the autofs service."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2142
+#: sssd.conf.5.xml:2174
 msgid "autofs_negative_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2145
+#: sssd.conf.5.xml:2177
 msgid ""
 "Specifies for how many seconds should the autofs responder negative cache "
 "hits (that is, queries for invalid map entries, like nonexistent ones) "
@@ -2579,51 +2620,51 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd.conf.5.xml:2161
+#: sssd.conf.5.xml:2193
 msgid "SSH configuration options"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:2163
+#: sssd.conf.5.xml:2195
 msgid "These options can be used to configure the SSH service."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2167
+#: sssd.conf.5.xml:2199
 msgid "ssh_hash_known_hosts (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2170
+#: sssd.conf.5.xml:2202
 msgid ""
 "Whether or not to hash host names and addresses in the managed known_hosts "
 "file."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2179
+#: sssd.conf.5.xml:2211
 msgid "ssh_known_hosts_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2182
+#: sssd.conf.5.xml:2214
 msgid ""
 "How many seconds to keep a host in the managed known_hosts file after its "
 "host keys were requested."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2186
+#: sssd.conf.5.xml:2218
 msgid "Default: 180"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2191
+#: sssd.conf.5.xml:2223
 msgid "ssh_use_certificate_keys (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2194
+#: sssd.conf.5.xml:2226
 msgid ""
 "If set to true the <command>sss_ssh_authorizedkeys</command> will return ssh "
 "keys derived from the public key of X.509 certificates stored in the user "
@@ -2632,12 +2673,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2209
+#: sssd.conf.5.xml:2241
 msgid "ssh_use_certificate_matching_rules (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2212
+#: sssd.conf.5.xml:2244
 msgid ""
 "By default the ssh responder will use all available certificate matching "
 "rules to filter the certificates so that ssh keys are only derived from the "
@@ -2647,7 +2688,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2221
+#: sssd.conf.5.xml:2253
 msgid ""
 "There are two special key words 'all_rules' and 'no_rules' which will enable "
 "all or no rules, respectively. The latter means that no certificates will be "
@@ -2655,7 +2696,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2228
+#: sssd.conf.5.xml:2260
 msgid ""
 "If no rules are configured using 'all_rules' will enable a default rule "
 "which enables all certificates suitable for client authentication.  This is "
@@ -2664,38 +2705,38 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2235
+#: sssd.conf.5.xml:2267
 msgid ""
 "A non-existing rule name is considered an error.  If as a result no rule is "
 "selected all certificates will be ignored."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2240
+#: sssd.conf.5.xml:2272
 msgid ""
 "Default: not set, equivalent to 'all_rules', all found rules or the default "
 "rule are used"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2246
+#: sssd.conf.5.xml:2278
 msgid "ca_db (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2249
+#: sssd.conf.5.xml:2281
 msgid ""
 "Path to a storage of trusted CA certificates. The option is used to validate "
 "user certificates before deriving public ssh keys from them."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd.conf.5.xml:2269
+#: sssd.conf.5.xml:2301
 msgid "PAC responder configuration options"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:2271
+#: sssd.conf.5.xml:2303
 msgid ""
 "The PAC responder works together with the authorization data plugin for MIT "
 "Kerberos sssd_pac_plugin.so and a sub-domain provider. The plugin sends the "
@@ -2706,7 +2747,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:2280
+#: sssd.conf.5.xml:2312
 msgid ""
 "If the remote user does not exist in the cache, it is created. The UID is "
 "determined with the help of the SID, trusted domains will have UPGs and the "
@@ -2717,24 +2758,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:2288
+#: sssd.conf.5.xml:2320
 msgid ""
 "If there are SIDs of groups from domains sssd knows about, the user will be "
 "added to those groups."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:2294
+#: sssd.conf.5.xml:2326
 msgid "These options can be used to configure the PAC responder."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2298 sssd-ifp.5.xml:66
+#: sssd.conf.5.xml:2330 sssd-ifp.5.xml:66
 msgid "allowed_uids (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2301
+#: sssd.conf.5.xml:2333
 msgid ""
 "Specifies the comma-separated list of UID values or user names that are "
 "allowed to access the PAC responder. User names are resolved to UIDs at "
@@ -2742,12 +2783,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2307
+#: sssd.conf.5.xml:2339
 msgid "Default: 0 (only the root user is allowed to access the PAC responder)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2311
+#: sssd.conf.5.xml:2343
 msgid ""
 "Please note that although the UID 0 is used as the default it will be "
 "overwritten with this option. If you still want to allow the root user to "
@@ -2756,24 +2797,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2320
+#: sssd.conf.5.xml:2352
 msgid "pac_lifetime (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2323
+#: sssd.conf.5.xml:2355
 msgid ""
 "Lifetime of the PAC entry in seconds. As long as the PAC is valid the PAC "
 "data can be used to determine the group memberships of a user."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2333
+#: sssd.conf.5.xml:2365
 msgid "pac_check (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2336
+#: sssd.conf.5.xml:2368
 msgid ""
 "Apply additional checks on the PAC of the Kerberos ticket which is available "
 "in Active Directory and FreeIPA domains, if configured. Please note that "
@@ -2784,7 +2825,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2346
+#: sssd.conf.5.xml:2378
 msgid ""
 "Please note that the checks listed below only apply to PACs issued by Active "
 "Directory or recent versions of FreeIPA. PACs issued e.g. by a plain MIT "
@@ -2792,24 +2833,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2357
+#: sssd.conf.5.xml:2389
 msgid "no_check"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2359
+#: sssd.conf.5.xml:2391
 msgid ""
 "The PAC must not be present and even if it is present no additional checks "
 "will be done."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2365
+#: sssd.conf.5.xml:2397
 msgid "pac_present"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2367
+#: sssd.conf.5.xml:2399
 msgid ""
 "The PAC must be present in the service ticket which SSSD will request with "
 "the help of the user's TGT. If the PAC is not available the authentication "
@@ -2817,24 +2858,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2375
+#: sssd.conf.5.xml:2407
 msgid "check_upn"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2377
+#: sssd.conf.5.xml:2409
 msgid ""
 "If the PAC is present check if the user principal name (UPN) information is "
 "consistent."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2383
+#: sssd.conf.5.xml:2415
 msgid "check_upn_allow_missing"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2385
+#: sssd.conf.5.xml:2417
 msgid ""
 "This option should be used together with 'check_upn' and handles the case "
 "where a UPN is set on the server-side but is not read by SSSD. The typical "
@@ -2846,7 +2887,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2397
+#: sssd.conf.5.xml:2429
 msgid ""
 "Currently this option is set by default to avoid regressions in such "
 "environments. A log message will be added to the system log and SSSD's debug "
@@ -2857,60 +2898,60 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2411
+#: sssd.conf.5.xml:2443
 msgid "upn_dns_info_present"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2413
+#: sssd.conf.5.xml:2445
 msgid "The PAC must contain the UPN-DNS-INFO buffer, implies 'check_upn'."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2418
+#: sssd.conf.5.xml:2450
 msgid "check_upn_dns_info_ex"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2420
+#: sssd.conf.5.xml:2452
 msgid ""
 "If the PAC is present and the extension to the UPN-DNS-INFO buffer is "
 "available check if the information in the extension is consistent."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2427
+#: sssd.conf.5.xml:2459
 msgid "upn_dns_info_ex_present"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2429
+#: sssd.conf.5.xml:2461
 msgid ""
 "The PAC must contain the extension of the UPN-DNS-INFO buffer, implies "
 "'check_upn_dns_info_ex', 'upn_dns_info_present' and 'check_upn'."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2353
+#: sssd.conf.5.xml:2385
 msgid ""
 "The following options can be used alone or in a comma-separated list: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2439
+#: sssd.conf.5.xml:2471
 msgid ""
 "Default: no_check (AD and IPA provider 'check_upn, check_upn_allow_missing, "
 "check_upn_dns_info_ex')"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd.conf.5.xml:2448
+#: sssd.conf.5.xml:2480
 msgid "Session recording configuration options"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:2450
+#: sssd.conf.5.xml:2482
 msgid ""
 "Session recording works in conjunction with <citerefentry> "
 "<refentrytitle>tlog-rec-session</refentrytitle> <manvolnum>8</manvolnum> </"
@@ -2920,66 +2961,66 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:2463
+#: sssd.conf.5.xml:2495
 msgid "These options can be used to configure session recording."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2467 sssd-session-recording.5.xml:64
+#: sssd.conf.5.xml:2499 sssd-session-recording.5.xml:64
 msgid "scope (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2474 sssd-session-recording.5.xml:71
+#: sssd.conf.5.xml:2506 sssd-session-recording.5.xml:71
 msgid "\"none\""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2477 sssd-session-recording.5.xml:74
+#: sssd.conf.5.xml:2509 sssd-session-recording.5.xml:74
 msgid "No users are recorded."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2482 sssd-session-recording.5.xml:79
+#: sssd.conf.5.xml:2514 sssd-session-recording.5.xml:79
 msgid "\"some\""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2485 sssd-session-recording.5.xml:82
+#: sssd.conf.5.xml:2517 sssd-session-recording.5.xml:82
 msgid ""
 "Users/groups specified by <replaceable>users</replaceable> and "
 "<replaceable>groups</replaceable> options are recorded."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2494 sssd-session-recording.5.xml:91
+#: sssd.conf.5.xml:2526 sssd-session-recording.5.xml:91
 msgid "\"all\""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2497 sssd-session-recording.5.xml:94
+#: sssd.conf.5.xml:2529 sssd-session-recording.5.xml:94
 msgid "All users are recorded."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2470 sssd-session-recording.5.xml:67
+#: sssd.conf.5.xml:2502 sssd-session-recording.5.xml:67
 msgid ""
 "One of the following strings specifying the scope of session recording: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2504 sssd-session-recording.5.xml:101
+#: sssd.conf.5.xml:2536 sssd-session-recording.5.xml:101
 msgid "Default: \"none\""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2509 sssd-session-recording.5.xml:106
+#: sssd.conf.5.xml:2541 sssd-session-recording.5.xml:106
 msgid "users (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2512 sssd-session-recording.5.xml:109
+#: sssd.conf.5.xml:2544 sssd-session-recording.5.xml:109
 msgid ""
 "A comma-separated list of users which should have session recording enabled. "
 "Matches user names as returned by NSS. I.e. after the possible space "
@@ -2987,17 +3028,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2518 sssd-session-recording.5.xml:115
+#: sssd.conf.5.xml:2550 sssd-session-recording.5.xml:115
 msgid "Default: Empty. Matches no users."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2523 sssd-session-recording.5.xml:120
+#: sssd.conf.5.xml:2555 sssd-session-recording.5.xml:120
 msgid "groups (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2526 sssd-session-recording.5.xml:123
+#: sssd.conf.5.xml:2558 sssd-session-recording.5.xml:123
 msgid ""
 "A comma-separated list of groups, members of which should have session "
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
@@ -3005,7 +3046,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2532 sssd.conf.5.xml:2564 sssd-session-recording.5.xml:129
+#: sssd.conf.5.xml:2564 sssd.conf.5.xml:2596 sssd-session-recording.5.xml:129
 #: sssd-session-recording.5.xml:161
 msgid ""
 "NOTE: using this option (having it set to anything) has a considerable "
@@ -3014,57 +3055,57 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2539 sssd-session-recording.5.xml:136
+#: sssd.conf.5.xml:2571 sssd-session-recording.5.xml:136
 msgid "Default: Empty. Matches no groups."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2544 sssd-session-recording.5.xml:141
+#: sssd.conf.5.xml:2576 sssd-session-recording.5.xml:141
 msgid "exclude_users (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2547 sssd-session-recording.5.xml:144
+#: sssd.conf.5.xml:2579 sssd-session-recording.5.xml:144
 msgid ""
 "A comma-separated list of users to be excluded from recording, only "
 "applicable with 'scope=all'."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2551 sssd-session-recording.5.xml:148
+#: sssd.conf.5.xml:2583 sssd-session-recording.5.xml:148
 msgid "Default: Empty. No users excluded."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2556 sssd-session-recording.5.xml:153
+#: sssd.conf.5.xml:2588 sssd-session-recording.5.xml:153
 msgid "exclude_groups (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2559 sssd-session-recording.5.xml:156
+#: sssd.conf.5.xml:2591 sssd-session-recording.5.xml:156
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording. Only applicable with 'scope=all'."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2571 sssd-session-recording.5.xml:168
+#: sssd.conf.5.xml:2603 sssd-session-recording.5.xml:168
 msgid "Default: Empty. No groups excluded."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:2581
+#: sssd.conf.5.xml:2613
 msgid "DOMAIN SECTIONS"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
-#: sssd.conf.5.xml:2588 sssd.conf.5.xml:4066 sssd.conf.5.xml:4067
-#: sssd.conf.5.xml:4070
+#: sssd.conf.5.xml:2620 sssd.conf.5.xml:4098 sssd.conf.5.xml:4099
+#: sssd.conf.5.xml:4102
 msgid "enabled"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2591
+#: sssd.conf.5.xml:2623
 msgid ""
 "Explicitly enable or disable the domain. If <quote>true</quote>, the domain "
 "is always <quote>enabled</quote>. If <quote>false</quote>, the domain is "
@@ -3074,12 +3115,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2603
+#: sssd.conf.5.xml:2635
 msgid "domain_type (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2606
+#: sssd.conf.5.xml:2638
 msgid ""
 "Specifies whether the domain is meant to be used by POSIX-aware clients such "
 "as the Name Service Switch or by applications that do not need POSIX data to "
@@ -3088,14 +3129,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2614
+#: sssd.conf.5.xml:2646
 msgid ""
 "Allowed values for this option are <quote>posix</quote> and "
 "<quote>application</quote>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2618
+#: sssd.conf.5.xml:2650
 msgid ""
 "POSIX domains are reachable by all services. Application domains are only "
 "reachable from the InfoPipe responder (see <citerefentry> "
@@ -3104,38 +3145,38 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2626
+#: sssd.conf.5.xml:2658
 msgid ""
 "NOTE: The application domains are currently well tested with "
 "<quote>id_provider=ldap</quote> only."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2630
+#: sssd.conf.5.xml:2662
 msgid ""
 "For an easy way to configure a non-POSIX domains, please see the "
 "<quote>Application domains</quote> section."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2634
+#: sssd.conf.5.xml:2666
 msgid "Default: posix"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2640
+#: sssd.conf.5.xml:2672
 msgid "min_id,max_id (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2643
+#: sssd.conf.5.xml:2675
 msgid ""
 "UID and GID limits for the domain. If a domain contains an entry that is "
 "outside these limits, it is ignored."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2648
+#: sssd.conf.5.xml:2680
 msgid ""
 "For users, this affects the primary GID limit. The user will not be returned "
 "to NSS if either the UID or the primary GID is outside the range. For non-"
@@ -3144,24 +3185,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2655
+#: sssd.conf.5.xml:2687
 msgid ""
 "These ID limits affect even saving entries to cache, not only returning them "
 "by name or ID."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2659
+#: sssd.conf.5.xml:2691
 msgid "Default: 1 for min_id, 0 (no limit) for max_id"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2665
+#: sssd.conf.5.xml:2697
 msgid "enumerate (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2668
+#: sssd.conf.5.xml:2700
 msgid ""
 "Determines if a domain can be enumerated, that is, whether the domain can "
 "list all the users and group it contains. Note that it is not required to "
@@ -3170,29 +3211,29 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2676
+#: sssd.conf.5.xml:2708
 msgid "TRUE = Users and groups are enumerated"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2679
+#: sssd.conf.5.xml:2711
 msgid "FALSE = No enumerations for this domain"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2682 sssd.conf.5.xml:2963 sssd.conf.5.xml:3140
+#: sssd.conf.5.xml:2714 sssd.conf.5.xml:2995 sssd.conf.5.xml:3172
 msgid "Default: FALSE"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2685
+#: sssd.conf.5.xml:2717
 msgid ""
 "Enumerating a domain requires SSSD to download and store ALL user and group "
 "entries from the remote server."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2690
+#: sssd.conf.5.xml:2722
 msgid ""
 "Note: Enabling enumeration has a moderate performance impact on SSSD while "
 "enumeration is running. It may take up to several minutes after SSSD startup "
@@ -3206,14 +3247,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2705
+#: sssd.conf.5.xml:2737
 msgid ""
 "While the first enumeration is running, requests for the complete user or "
 "group lists may return no results until it completes."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2710
+#: sssd.conf.5.xml:2742
 msgid ""
 "Further, enabling enumeration may increase the time necessary to detect "
 "network disconnection, as longer timeouts are required to ensure that "
@@ -3222,39 +3263,39 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2718
+#: sssd.conf.5.xml:2750
 msgid ""
 "For the reasons cited above, enabling enumeration is not recommended, "
 "especially in large environments."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2726
+#: sssd.conf.5.xml:2758
 msgid "subdomain_enumerate (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2733
+#: sssd.conf.5.xml:2765
 msgid "all"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2734
+#: sssd.conf.5.xml:2766
 msgid "All discovered trusted domains will be enumerated"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2737
+#: sssd.conf.5.xml:2769
 msgid "none"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2738
+#: sssd.conf.5.xml:2770
 msgid "No discovered trusted domains will be enumerated"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2729
+#: sssd.conf.5.xml:2761
 msgid ""
 "Whether any of autodetected trusted domains should be enumerated. The "
 "supported values are: <placeholder type=\"variablelist\" id=\"0\"/> "
@@ -3263,19 +3304,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2752
+#: sssd.conf.5.xml:2784
 msgid "entry_cache_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2755
+#: sssd.conf.5.xml:2787
 msgid ""
 "How many seconds should nss_sss consider entries valid before asking the "
 "backend again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2759
+#: sssd.conf.5.xml:2791
 msgid ""
 "The cache expiration timestamps are stored as attributes of individual "
 "objects in the cache. Therefore, changing the cache timeout only has effect "
@@ -3286,139 +3327,139 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2772
+#: sssd.conf.5.xml:2804
 msgid "Default: 5400"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2778
+#: sssd.conf.5.xml:2810
 msgid "entry_cache_user_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2781
+#: sssd.conf.5.xml:2813
 msgid ""
 "How many seconds should nss_sss consider user entries valid before asking "
 "the backend again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2785 sssd.conf.5.xml:2798 sssd.conf.5.xml:2811
-#: sssd.conf.5.xml:2824 sssd.conf.5.xml:2838 sssd.conf.5.xml:2851
-#: sssd.conf.5.xml:2865 sssd.conf.5.xml:2879 sssd.conf.5.xml:2892
+#: sssd.conf.5.xml:2817 sssd.conf.5.xml:2830 sssd.conf.5.xml:2843
+#: sssd.conf.5.xml:2856 sssd.conf.5.xml:2870 sssd.conf.5.xml:2883
+#: sssd.conf.5.xml:2897 sssd.conf.5.xml:2911 sssd.conf.5.xml:2924
 msgid "Default: entry_cache_timeout"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2791
+#: sssd.conf.5.xml:2823
 msgid "entry_cache_group_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2794
+#: sssd.conf.5.xml:2826
 msgid ""
 "How many seconds should nss_sss consider group entries valid before asking "
 "the backend again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2804
+#: sssd.conf.5.xml:2836
 msgid "entry_cache_netgroup_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2807
+#: sssd.conf.5.xml:2839
 msgid ""
 "How many seconds should nss_sss consider netgroup entries valid before "
 "asking the backend again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2817
+#: sssd.conf.5.xml:2849
 msgid "entry_cache_service_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2820
+#: sssd.conf.5.xml:2852
 msgid ""
 "How many seconds should nss_sss consider service entries valid before asking "
 "the backend again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2830
+#: sssd.conf.5.xml:2862
 msgid "entry_cache_resolver_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2833
+#: sssd.conf.5.xml:2865
 msgid ""
 "How many seconds should nss_sss consider hosts and networks entries valid "
 "before asking the backend again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2844
+#: sssd.conf.5.xml:2876
 msgid "entry_cache_sudo_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2847
+#: sssd.conf.5.xml:2879
 msgid ""
 "How many seconds should sudo consider rules valid before asking the backend "
 "again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2857
+#: sssd.conf.5.xml:2889
 msgid "entry_cache_autofs_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2860
+#: sssd.conf.5.xml:2892
 msgid ""
 "How many seconds should the autofs service consider automounter maps valid "
 "before asking the backend again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2871
+#: sssd.conf.5.xml:2903
 msgid "entry_cache_ssh_host_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2874
+#: sssd.conf.5.xml:2906
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2885
+#: sssd.conf.5.xml:2917
 msgid "entry_cache_computer_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2888
+#: sssd.conf.5.xml:2920
 msgid ""
 "How many seconds to keep the local computer entry before asking the backend "
 "again"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2898
+#: sssd.conf.5.xml:2930
 msgid "refresh_expired_interval (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2901
+#: sssd.conf.5.xml:2933
 msgid ""
 "Specifies how many seconds SSSD has to wait before triggering a background "
 "refresh task which will refresh all expired or nearly expired records."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2906
+#: sssd.conf.5.xml:2938
 msgid ""
 "The background refresh will process users, groups and netgroups in the "
 "cache. For users who have performed the initgroups (get group membership for "
@@ -3427,17 +3468,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2914
+#: sssd.conf.5.xml:2946
 msgid "This option is automatically inherited for all trusted domains."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2918
+#: sssd.conf.5.xml:2950
 msgid "You can consider setting this value to 3/4 * entry_cache_timeout."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2922
+#: sssd.conf.5.xml:2954
 msgid ""
 "Cache entry will be refreshed by background task when 2/3 of cache timeout "
 "has already passed.  If there are existing cached entries, the background "
@@ -3449,18 +3490,18 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2935 sssd-ldap.5.xml:411 sssd-ldap.5.xml:1808
+#: sssd.conf.5.xml:2967 sssd-ldap.5.xml:411 sssd-ldap.5.xml:1808
 #: sssd-ipa.5.xml:245
 msgid "Default: 0 (disabled)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2941
+#: sssd.conf.5.xml:2973
 msgid "cache_credentials (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2944
+#: sssd.conf.5.xml:2976
 msgid ""
 "Determines if user credentials are also cached in the local LDB cache. The "
 "cached credentials refer to passwords, which includes the first (long term) "
@@ -3471,7 +3512,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2955
+#: sssd.conf.5.xml:2987
 msgid ""
 "Take a note that while credentials are stored as a salted SHA512 hash, this "
 "still potentially poses some security risk in case an attacker manages to "
@@ -3480,12 +3521,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2969
+#: sssd.conf.5.xml:3001
 msgid "cache_credentials_minimal_first_factor_length (int)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2972
+#: sssd.conf.5.xml:3004
 msgid ""
 "If 2-Factor-Authentication (2FA) is used and credentials should be saved "
 "this value determines the minimal length the first authentication factor "
@@ -3493,19 +3534,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2979
+#: sssd.conf.5.xml:3011
 msgid ""
 "This should avoid that the short PINs of a PIN based 2FA scheme are saved in "
 "the cache which would make them easy targets for brute-force attacks."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:2990
+#: sssd.conf.5.xml:3022
 msgid "account_cache_expiration (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:2993
+#: sssd.conf.5.xml:3025
 msgid ""
 "Number of days entries are left in cache after last successful login before "
 "being removed during a cleanup of the cache. 0 means keep forever.  The "
@@ -3514,17 +3555,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3000
+#: sssd.conf.5.xml:3032
 msgid "Default: 0 (unlimited)"
 msgstr "Noklusējuma: 0 (neierobežots)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3005
+#: sssd.conf.5.xml:3037
 msgid "pwd_expiration_warning (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3016
+#: sssd.conf.5.xml:3048
 msgid ""
 "Please note that the backend server has to provide information about the "
 "expiration time of the password.  If this information is missing, sssd "
@@ -3533,28 +3574,28 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3023
+#: sssd.conf.5.xml:3055
 msgid "Default: 7 (Kerberos), 0 (LDAP)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3029
+#: sssd.conf.5.xml:3061
 msgid "id_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3032
+#: sssd.conf.5.xml:3064
 msgid ""
 "The identification provider used for the domain.  Supported ID providers are:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3036
+#: sssd.conf.5.xml:3068
 msgid "<quote>proxy</quote>: Support a legacy NSS provider."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3039
+#: sssd.conf.5.xml:3071
 msgid ""
 "<quote>files</quote>: FILES provider. See <citerefentry> <refentrytitle>sssd-"
 "files</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> for more "
@@ -3562,7 +3603,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3047
+#: sssd.conf.5.xml:3079
 msgid ""
 "<quote>ldap</quote>: LDAP provider. See <citerefentry> <refentrytitle>sssd-"
 "ldap</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> for more "
@@ -3570,8 +3611,8 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3055 sssd.conf.5.xml:3166 sssd.conf.5.xml:3217
-#: sssd.conf.5.xml:3280
+#: sssd.conf.5.xml:3087 sssd.conf.5.xml:3198 sssd.conf.5.xml:3249
+#: sssd.conf.5.xml:3312
 msgid ""
 "<quote>ipa</quote>: FreeIPA and Red Hat Identity Management provider. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -3579,8 +3620,8 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3064 sssd.conf.5.xml:3175 sssd.conf.5.xml:3226
-#: sssd.conf.5.xml:3289
+#: sssd.conf.5.xml:3096 sssd.conf.5.xml:3207 sssd.conf.5.xml:3258
+#: sssd.conf.5.xml:3321
 msgid ""
 "<quote>ad</quote>: Active Directory provider. See <citerefentry> "
 "<refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -3588,19 +3629,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3075
+#: sssd.conf.5.xml:3107
 msgid "use_fully_qualified_names (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3078
+#: sssd.conf.5.xml:3110
 msgid ""
 "Use the full name and domain (as formatted by the domain's full_name_format) "
 "as the user's login name reported to NSS."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3083
+#: sssd.conf.5.xml:3115
 msgid ""
 "If set to TRUE, all requests to this domain must use fully qualified names. "
 "For example, if used in EXAMPLE domain that contains a \"test\" user, "
@@ -3609,7 +3650,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3091
+#: sssd.conf.5.xml:3123
 msgid ""
 "NOTE: This option has no effect on netgroup lookups due to their tendency to "
 "include nested netgroups without qualified names. For netgroups, all domains "
@@ -3617,24 +3658,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3098
+#: sssd.conf.5.xml:3130
 msgid ""
 "Default: FALSE (TRUE for trusted domain/sub-domains or if "
 "default_domain_suffix is used)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3105
+#: sssd.conf.5.xml:3137
 msgid "ignore_group_members (bool)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3108
+#: sssd.conf.5.xml:3140
 msgid "Do not return group members for group lookups."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3111
+#: sssd.conf.5.xml:3143
 msgid ""
 "If set to TRUE, the group membership attribute is not requested from the "
 "ldap server, and group members are not returned when processing group lookup "
@@ -3646,7 +3687,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3129
+#: sssd.conf.5.xml:3161
 msgid ""
 "Enabling this option can also make access provider checks for group "
 "membership significantly faster, especially for groups containing many "
@@ -3654,7 +3695,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3135 sssd.conf.5.xml:3860 sssd-ldap.5.xml:377
+#: sssd.conf.5.xml:3167 sssd.conf.5.xml:3892 sssd-ldap.5.xml:377
 #: sssd-ldap.5.xml:406 sssd-ldap.5.xml:459 sssd-ldap.5.xml:534
 #: sssd-ldap.5.xml:555 sssd-ldap.5.xml:586 sssd-ldap.5.xml:609
 #: sssd-ldap.5.xml:648 sssd-ldap.5.xml:667 sssd-ldap.5.xml:691
@@ -3665,19 +3706,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3145
+#: sssd.conf.5.xml:3177
 msgid "auth_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3148
+#: sssd.conf.5.xml:3180
 msgid ""
 "The authentication provider used for the domain.  Supported auth providers "
 "are:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3152 sssd.conf.5.xml:3210
+#: sssd.conf.5.xml:3184 sssd.conf.5.xml:3242
 msgid ""
 "<quote>ldap</quote> for native LDAP authentication. See <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -3685,7 +3726,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3159
+#: sssd.conf.5.xml:3191
 msgid ""
 "<quote>krb5</quote> for Kerberos authentication. See <citerefentry> "
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -3693,30 +3734,30 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3183
+#: sssd.conf.5.xml:3215
 msgid ""
 "<quote>proxy</quote> for relaying authentication to some other PAM target."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3186
+#: sssd.conf.5.xml:3218
 msgid "<quote>none</quote> disables authentication explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3189
+#: sssd.conf.5.xml:3221
 msgid ""
 "Default: <quote>id_provider</quote> is used if it is set and can handle "
 "authentication requests."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3195
+#: sssd.conf.5.xml:3227
 msgid "access_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3198
+#: sssd.conf.5.xml:3230
 msgid ""
 "The access control provider used for the domain.  There are two built-in "
 "access providers (in addition to any included in installed backends)  "
@@ -3724,17 +3765,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3204
+#: sssd.conf.5.xml:3236
 msgid "<quote>permit</quote> always allow access."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3207
+#: sssd.conf.5.xml:3239
 msgid "<quote>deny</quote> always deny access."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3234
+#: sssd.conf.5.xml:3266
 msgid ""
 "<quote>simple</quote> access control based on access or deny lists. See "
 "<citerefentry> <refentrytitle>sssd-simple</refentrytitle> <manvolnum>5</"
@@ -3743,7 +3784,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3241
+#: sssd.conf.5.xml:3273
 msgid ""
 "<quote>krb5</quote>: .k5login based access control.  See <citerefentry> "
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum></"
@@ -3751,29 +3792,29 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3248
+#: sssd.conf.5.xml:3280
 msgid "<quote>proxy</quote> for relaying access control to another PAM module."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3251
+#: sssd.conf.5.xml:3283
 msgid "Default: <quote>permit</quote>"
 msgstr "Noklusējuma: <quote>atļaut</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3256
+#: sssd.conf.5.xml:3288
 msgid "chpass_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3259
+#: sssd.conf.5.xml:3291
 msgid ""
 "The provider which should handle change password operations for the domain.  "
 "Supported change password providers are:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3264
+#: sssd.conf.5.xml:3296
 msgid ""
 "<quote>ldap</quote> to change a password stored in a LDAP server. See "
 "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
@@ -3781,7 +3822,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3272
+#: sssd.conf.5.xml:3304
 msgid ""
 "<quote>krb5</quote> to change the Kerberos password. See <citerefentry> "
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -3789,35 +3830,35 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3297
+#: sssd.conf.5.xml:3329
 msgid ""
 "<quote>proxy</quote> for relaying password changes to some other PAM target."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3301
+#: sssd.conf.5.xml:3333
 msgid "<quote>none</quote> disallows password changes explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3304
+#: sssd.conf.5.xml:3336
 msgid ""
 "Default: <quote>auth_provider</quote> is used if it is set and can handle "
 "change password requests."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3311
+#: sssd.conf.5.xml:3343
 msgid "sudo_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3314
+#: sssd.conf.5.xml:3346
 msgid "The SUDO provider used for the domain.  Supported SUDO providers are:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3318
+#: sssd.conf.5.xml:3350
 msgid ""
 "<quote>ldap</quote> for rules stored in LDAP. See <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -3825,32 +3866,32 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3326
+#: sssd.conf.5.xml:3358
 msgid ""
 "<quote>ipa</quote> the same as <quote>ldap</quote> but with IPA default "
 "settings."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3330
+#: sssd.conf.5.xml:3362
 msgid ""
 "<quote>ad</quote> the same as <quote>ldap</quote> but with AD default "
 "settings."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3334
+#: sssd.conf.5.xml:3366
 msgid "<quote>none</quote> disables SUDO explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3337 sssd.conf.5.xml:3423 sssd.conf.5.xml:3492
-#: sssd.conf.5.xml:3517 sssd.conf.5.xml:3553
+#: sssd.conf.5.xml:3369 sssd.conf.5.xml:3455 sssd.conf.5.xml:3524
+#: sssd.conf.5.xml:3549 sssd.conf.5.xml:3585
 msgid "Default: The value of <quote>id_provider</quote> is used if it is set."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3341
+#: sssd.conf.5.xml:3373
 msgid ""
 "The detailed instructions for configuration of sudo_provider are in the "
 "manual page <citerefentry> <refentrytitle>sssd-sudo</refentrytitle> "
@@ -3861,7 +3902,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3356
+#: sssd.conf.5.xml:3388
 msgid ""
 "<emphasis>NOTE:</emphasis> Sudo rules are periodically downloaded in the "
 "background unless the sudo provider is explicitly disabled. Set "
@@ -3870,12 +3911,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3366
+#: sssd.conf.5.xml:3398
 msgid "selinux_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3369
+#: sssd.conf.5.xml:3401
 msgid ""
 "The provider which should handle loading of selinux settings. Note that this "
 "provider will be called right after access provider ends.  Supported selinux "
@@ -3883,7 +3924,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3375
+#: sssd.conf.5.xml:3407
 msgid ""
 "<quote>ipa</quote> to load selinux settings from an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -3891,31 +3932,31 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3383
+#: sssd.conf.5.xml:3415
 msgid "<quote>none</quote> disallows fetching selinux settings explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3386
+#: sssd.conf.5.xml:3418
 msgid ""
 "Default: <quote>id_provider</quote> is used if it is set and can handle "
 "selinux loading requests."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3392
+#: sssd.conf.5.xml:3424
 msgid "subdomains_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3395
+#: sssd.conf.5.xml:3427
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider.  Supported subdomain providers are:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3401
+#: sssd.conf.5.xml:3433
 msgid ""
 "<quote>ipa</quote> to load a list of subdomains from an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -3923,7 +3964,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3410
+#: sssd.conf.5.xml:3442
 msgid ""
 "<quote>ad</quote> to load a list of subdomains from an Active Directory "
 "server. See <citerefentry> <refentrytitle>sssd-ad</refentrytitle> "
@@ -3932,17 +3973,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3419
+#: sssd.conf.5.xml:3451
 msgid "<quote>none</quote> disallows fetching subdomains explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3429
+#: sssd.conf.5.xml:3461
 msgid "session_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3432
+#: sssd.conf.5.xml:3464
 msgid ""
 "The provider which configures and manages user session related tasks. The "
 "only user session task currently provided is the integration with Fleet "
@@ -3950,43 +3991,43 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3439
+#: sssd.conf.5.xml:3471
 msgid "<quote>ipa</quote> to allow performing user session related tasks."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3443
+#: sssd.conf.5.xml:3475
 msgid ""
 "<quote>none</quote> does not perform any kind of user session related tasks."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3447
+#: sssd.conf.5.xml:3479
 #, fuzzy
 #| msgid "Default: <quote>permit</quote>"
 msgid "Default: <quote>none</quote>."
 msgstr "Noklusējuma: <quote>atļaut</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3450
+#: sssd.conf.5.xml:3482
 msgid ""
 "<emphasis>NOTE:</emphasis> In order to have this feature working as expected "
 "SSSD must be running as \"root\" and not as the unprivileged user."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3458
+#: sssd.conf.5.xml:3490
 msgid "autofs_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3461
+#: sssd.conf.5.xml:3493
 msgid ""
 "The autofs provider used for the domain.  Supported autofs providers are:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3465
+#: sssd.conf.5.xml:3497
 msgid ""
 "<quote>ldap</quote> to load maps stored in LDAP. See <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -3994,7 +4035,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3472
+#: sssd.conf.5.xml:3504
 msgid ""
 "<quote>ipa</quote> to load maps stored in an IPA server. See <citerefentry> "
 "<refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4002,7 +4043,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3480
+#: sssd.conf.5.xml:3512
 msgid ""
 "<quote>ad</quote> to load maps stored in an AD server. See <citerefentry> "
 "<refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -4010,24 +4051,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3489
+#: sssd.conf.5.xml:3521
 msgid "<quote>none</quote> disables autofs explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3499
+#: sssd.conf.5.xml:3531
 msgid "hostid_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3502
+#: sssd.conf.5.xml:3534
 msgid ""
 "The provider used for retrieving host identity information.  Supported "
 "hostid providers are:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3506
+#: sssd.conf.5.xml:3538
 msgid ""
 "<quote>ipa</quote> to load host identity stored in an IPA server. See "
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
@@ -4035,31 +4076,31 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3514
+#: sssd.conf.5.xml:3546
 msgid "<quote>none</quote> disables hostid explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3524
+#: sssd.conf.5.xml:3556
 msgid "resolver_provider (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3527
+#: sssd.conf.5.xml:3559
 msgid ""
 "The provider which should handle hosts and networks lookups. Supported "
 "resolver providers are:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3531
+#: sssd.conf.5.xml:3563
 msgid ""
 "<quote>proxy</quote> to forward lookups to another NSS library. See "
 "<quote>proxy_resolver_lib_name</quote>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3535
+#: sssd.conf.5.xml:3567
 msgid ""
 "<quote>ldap</quote> to fetch hosts and networks stored in LDAP. See "
 "<citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
@@ -4067,7 +4108,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3542
+#: sssd.conf.5.xml:3574
 msgid ""
 "<quote>ad</quote> to fetch hosts and networks stored in AD. See "
 "<citerefentry> <refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</"
@@ -4076,12 +4117,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3550
+#: sssd.conf.5.xml:3582
 msgid "<quote>none</quote> disallows fetching hosts and networks explicitly."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3563
+#: sssd.conf.5.xml:3595
 msgid ""
 "Regular expression for this domain that describes how to parse the string "
 "containing user name and domain into these components.  The \"domain\" can "
@@ -4091,24 +4132,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3572
+#: sssd.conf.5.xml:3604
 msgid ""
 "Default: <quote>^((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]*)|(?P&lt;name&gt;"
 "[^@]+))$</quote> which allows two different styles for user names:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:3577 sssd.conf.5.xml:3591
+#: sssd.conf.5.xml:3609 sssd.conf.5.xml:3623
 msgid "username"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:3580 sssd.conf.5.xml:3594
+#: sssd.conf.5.xml:3612 sssd.conf.5.xml:3626
 msgid "username@domain.name"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3585
+#: sssd.conf.5.xml:3617
 msgid ""
 "Default for the AD and IPA provider: <quote>^(((?P&lt;domain&gt;[^\\\\]+)\\\\"
 "(?P&lt;name&gt;.+))|((?P&lt;name&gt;.+)@(?P&lt;domain&gt;[^@]+))|((?"
@@ -4117,19 +4158,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:3597
+#: sssd.conf.5.xml:3629
 msgid "domain\\username"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3600
+#: sssd.conf.5.xml:3632
 msgid ""
 "While the first two correspond to the general default the third one is "
 "introduced to allow easy integration of users from Windows domains."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3605
+#: sssd.conf.5.xml:3637
 msgid ""
 "The default re_expression uses the <quote>@</quote> character as a separator "
 "between the name and the domain. As a result of this setting the default "
@@ -4139,93 +4180,93 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3657
+#: sssd.conf.5.xml:3689
 msgid "Default: <quote>%1$s@%2$s</quote>."
 msgstr "Noklusējuma: <quote>%1$s@%2$s</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3663
+#: sssd.conf.5.xml:3695
 msgid "lookup_family_order (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3666
+#: sssd.conf.5.xml:3698
 msgid ""
 "Provides the ability to select preferred address family to use when "
 "performing DNS lookups."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3670
+#: sssd.conf.5.xml:3702
 msgid "Supported values:"
 msgstr "Atbalstītās vērtības:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3673
+#: sssd.conf.5.xml:3705
 msgid "ipv4_first: Try looking up IPv4 address, if that fails, try IPv6"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3676
+#: sssd.conf.5.xml:3708
 msgid "ipv4_only: Only attempt to resolve hostnames to IPv4 addresses."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3679
+#: sssd.conf.5.xml:3711
 msgid "ipv6_first: Try looking up IPv6 address, if that fails, try IPv4"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3682
+#: sssd.conf.5.xml:3714
 msgid "ipv6_only: Only attempt to resolve hostnames to IPv6 addresses."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3685
+#: sssd.conf.5.xml:3717
 msgid "Default: ipv4_first"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3691
+#: sssd.conf.5.xml:3723
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "dns_resolver_server_timeout (integer)"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3694
+#: sssd.conf.5.xml:3726
 msgid ""
 "Defines the amount of time (in milliseconds)  SSSD would try to talk to DNS "
 "server before trying next DNS server."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3699
+#: sssd.conf.5.xml:3731
 msgid ""
 "The AD provider will use this option for the CLDAP ping timeouts as well."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3703 sssd.conf.5.xml:3723 sssd.conf.5.xml:3744
+#: sssd.conf.5.xml:3735 sssd.conf.5.xml:3755 sssd.conf.5.xml:3776
 msgid ""
 "Please see the section <quote>FAILOVER</quote> for more information about "
 "the service resolution."
 msgstr ""
 
 #. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3708 sssd-ldap.5.xml:710 include/failover.xml:84
+#: sssd.conf.5.xml:3740 sssd-ldap.5.xml:710 include/failover.xml:84
 msgid "Default: 1000"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3714
+#: sssd.conf.5.xml:3746
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "dns_resolver_op_timeout (integer)"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3717
+#: sssd.conf.5.xml:3749
 msgid ""
 "Defines the amount of time (in seconds) to wait to resolve single DNS query "
 "(e.g. resolution of a hostname or an SRV record)  before trying the next "
@@ -4233,12 +4274,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3734
+#: sssd.conf.5.xml:3766
 msgid "dns_resolver_timeout (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3737
+#: sssd.conf.5.xml:3769
 msgid ""
 "Defines the amount of time (in seconds) to wait for a reply from the "
 "internal fail over service before assuming that the service is unreachable. "
@@ -4247,14 +4288,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3755
+#: sssd.conf.5.xml:3787
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "dns_resolver_use_search_list (bool)"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3758
+#: sssd.conf.5.xml:3790
 msgid ""
 "Normally, the DNS resolver searches the domain list defined in the "
 "\"search\" directive from the resolv.conf file. This can lead to delays in "
@@ -4262,7 +4303,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3764
+#: sssd.conf.5.xml:3796
 msgid ""
 "If fully qualified domain names (or _srv_) are used in the SSSD "
 "configuration, setting this option to FALSE can prevent unnecessary DNS "
@@ -4270,38 +4311,38 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3770
+#: sssd.conf.5.xml:3802
 #, fuzzy
 #| msgid "Default: 6"
 msgid "Default: TRUE"
 msgstr "Noklusējuma: 6"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3776
+#: sssd.conf.5.xml:3808
 msgid "dns_discovery_domain (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3779
+#: sssd.conf.5.xml:3811
 msgid ""
 "If service discovery is used in the back end, specifies the domain part of "
 "the service discovery DNS query."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3783
+#: sssd.conf.5.xml:3815
 msgid "Default: Use the domain part of machine's hostname"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3789
+#: sssd.conf.5.xml:3821
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "failover_primary_timeout (integer)"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3792
+#: sssd.conf.5.xml:3824
 msgid ""
 "When no primary server is available, SSSD fails over to a backup server. "
 "This option defines the number of seconds SSSD waits before attempting to "
@@ -4309,59 +4350,59 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3799
+#: sssd.conf.5.xml:3831
 msgid "Note: The minimum value is 31."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3802
+#: sssd.conf.5.xml:3834
 #, fuzzy
 #| msgid "Default: 1"
 msgid "Default: 31"
 msgstr "Noklusējuma: 1"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3808
+#: sssd.conf.5.xml:3840
 msgid "override_gid (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3811
+#: sssd.conf.5.xml:3843
 msgid "Override the primary GID value with the one specified."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3817
+#: sssd.conf.5.xml:3849
 msgid "case_sensitive (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3824
+#: sssd.conf.5.xml:3856
 msgid "True"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3827
+#: sssd.conf.5.xml:3859
 msgid "Case sensitive. This value is invalid for AD provider."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3833
+#: sssd.conf.5.xml:3865
 msgid "False"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3835
+#: sssd.conf.5.xml:3867
 msgid "Case insensitive."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3839
+#: sssd.conf.5.xml:3871
 msgid "Preserving"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3842
+#: sssd.conf.5.xml:3874
 msgid ""
 "Same as False (case insensitive), but does not lowercase names in the result "
 "of NSS operations. Note that name aliases (and in case of services also "
@@ -4369,31 +4410,31 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3850
+#: sssd.conf.5.xml:3882
 msgid ""
 "If you want to set this value for trusted domain with IPA provider, you need "
 "to set it on both the client and SSSD on the server."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3820
+#: sssd.conf.5.xml:3852
 msgid ""
 "Treat user and group names as case sensitive.  Possible option values are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3865
+#: sssd.conf.5.xml:3897
 msgid "Default: True (False for AD provider)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3871
+#: sssd.conf.5.xml:3903
 msgid "subdomain_inherit (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3874
+#: sssd.conf.5.xml:3906
 msgid ""
 "Specifies a list of configuration parameters that should be inherited by a "
 "subdomain. Please note that only selected parameters can be inherited.  "
@@ -4401,114 +4442,114 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3880
+#: sssd.conf.5.xml:3912
 msgid "ldap_search_timeout"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3883
+#: sssd.conf.5.xml:3915
 msgid "ldap_network_timeout"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3886
+#: sssd.conf.5.xml:3918
 msgid "ldap_opt_timeout"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3889
+#: sssd.conf.5.xml:3921
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "ldap_offline_timeout"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3892
+#: sssd.conf.5.xml:3924
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "ldap_enumeration_refresh_timeout"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3895
+#: sssd.conf.5.xml:3927
 msgid "ldap_enumeration_refresh_offset"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3898
+#: sssd.conf.5.xml:3930
 msgid "ldap_purge_cache_timeout"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3901
+#: sssd.conf.5.xml:3933
 msgid "ldap_purge_cache_offset"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3904
+#: sssd.conf.5.xml:3936
 msgid ""
 "ldap_krb5_keytab (the value of krb5_keytab will be used if ldap_krb5_keytab "
 "is not set explicitly)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3908
+#: sssd.conf.5.xml:3940
 msgid "ldap_krb5_ticket_lifetime"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3911
+#: sssd.conf.5.xml:3943
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "ldap_enumeration_search_timeout"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3914
+#: sssd.conf.5.xml:3946
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "ldap_connection_expire_timeout"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3917
+#: sssd.conf.5.xml:3949
 #, fuzzy
 #| msgid "timeout (integer)"
 msgid "ldap_connection_expire_offset"
 msgstr "noildze (vesels skaitlis)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3920
+#: sssd.conf.5.xml:3952
 msgid "ldap_connection_idle_timeout"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3923 sssd-ldap.5.xml:451
+#: sssd.conf.5.xml:3955 sssd-ldap.5.xml:451
 msgid "ldap_use_tokengroups"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3926
+#: sssd.conf.5.xml:3958
 msgid "ldap_user_principal"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3929
+#: sssd.conf.5.xml:3961
 msgid "ignore_group_members"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3932
+#: sssd.conf.5.xml:3964
 msgid "auto_private_groups"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3935
+#: sssd.conf.5.xml:3967
 msgid "case_sensitive"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd.conf.5.xml:3940
+#: sssd.conf.5.xml:3972
 #, no-wrap
 msgid ""
 "subdomain_inherit = ldap_purge_cache_timeout\n"
@@ -4516,27 +4557,27 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3947
+#: sssd.conf.5.xml:3979
 msgid "Note: This option only works with the IPA and AD provider."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3954
+#: sssd.conf.5.xml:3986
 msgid "subdomain_homedir (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3965
+#: sssd.conf.5.xml:3997
 msgid "%F"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3966
+#: sssd.conf.5.xml:3998
 msgid "flat (NetBIOS) name of a subdomain."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3957
+#: sssd.conf.5.xml:3989
 msgid ""
 "Use this homedir as default value for all subdomains within this domain in "
 "IPA AD trust.  See <emphasis>override_homedir</emphasis> for info about "
@@ -4546,34 +4587,34 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3971
+#: sssd.conf.5.xml:4003
 msgid ""
 "The value can be overridden by <emphasis>override_homedir</emphasis> option."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3975
+#: sssd.conf.5.xml:4007
 msgid "Default: <filename>/home/%d/%u</filename>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3980
+#: sssd.conf.5.xml:4012
 msgid "realmd_tags (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3983
+#: sssd.conf.5.xml:4015
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:3989
+#: sssd.conf.5.xml:4021
 msgid "cached_auth_timeout (int)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:3992
+#: sssd.conf.5.xml:4024
 msgid ""
 "Specifies time in seconds since last successful online authentication for "
 "which user will be authenticated using cached credentials while SSSD is in "
@@ -4582,19 +4623,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4000
+#: sssd.conf.5.xml:4032
 msgid ""
 "This option's value is inherited by all trusted domains. At the moment it is "
 "not possible to set a different value per trusted domain."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4005
+#: sssd.conf.5.xml:4037
 msgid "Special value 0 implies that this feature is disabled."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4009
+#: sssd.conf.5.xml:4041
 msgid ""
 "Please note that if <quote>cached_auth_timeout</quote> is longer than "
 "<quote>pam_id_timeout</quote> then the back end could be called to handle "
@@ -4602,12 +4643,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4020
+#: sssd.conf.5.xml:4052
 msgid "local_auth_policy (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4023
+#: sssd.conf.5.xml:4055
 msgid ""
 "Local authentication methods policy. Some backends (i.e. LDAP, proxy "
 "provider) only support a password based authentication, while others can "
@@ -4619,7 +4660,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4035
+#: sssd.conf.5.xml:4067
 msgid ""
 "There are three possible values for this option: match, only, enable. "
 "<quote>match</quote> is used to match offline and online states for Kerberos "
@@ -4631,7 +4672,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4048
+#: sssd.conf.5.xml:4080
 msgid ""
 "The following table shows which authentication methods, if configured "
 "properly, are currently enabled or disabled for each backend, with the "
@@ -4639,42 +4680,42 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
-#: sssd.conf.5.xml:4061
+#: sssd.conf.5.xml:4093
 msgid "local_auth_policy = match (default)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
-#: sssd.conf.5.xml:4062
+#: sssd.conf.5.xml:4094
 msgid "Passkey"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
-#: sssd.conf.5.xml:4063
+#: sssd.conf.5.xml:4095
 msgid "Smartcard"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4066 sssd-ldap.5.xml:228
+#: sssd.conf.5.xml:4098 sssd-ldap.5.xml:228
 msgid "IPA"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4069 sssd-ldap.5.xml:233
+#: sssd.conf.5.xml:4101 sssd-ldap.5.xml:233
 msgid "AD"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
-#: sssd.conf.5.xml:4069 sssd.conf.5.xml:4072 sssd.conf.5.xml:4073
+#: sssd.conf.5.xml:4101 sssd.conf.5.xml:4104 sssd.conf.5.xml:4105
 msgid "disabled"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry>
-#: sssd.conf.5.xml:4072
+#: sssd.conf.5.xml:4104
 msgid "LDAP"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4077
+#: sssd.conf.5.xml:4109
 msgid ""
 "Please note that if local Smartcard authentication is enabled and a "
 "Smartcard is present, Smartcard authentication will be preferred over the "
@@ -4683,7 +4724,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd.conf.5.xml:4089
+#: sssd.conf.5.xml:4121
 #, no-wrap
 msgid ""
 "[domain/shadowutils]\n"
@@ -4694,7 +4735,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4085
+#: sssd.conf.5.xml:4117
 msgid ""
 "The following configuration example allows local users to authenticate "
 "locally using any enabled method (i.e. smartcard, passkey).  <placeholder "
@@ -4702,38 +4743,38 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4097
+#: sssd.conf.5.xml:4129
 msgid ""
 "It is expected that the <quote>files</quote> provider ignores the "
 "local_auth_policy option and supports Smartcard authentication by default."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4102
+#: sssd.conf.5.xml:4134
 #, fuzzy
 #| msgid "Default: 6"
 msgid "Default: match"
 msgstr "Noklusējuma: 6"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4107
+#: sssd.conf.5.xml:4139
 msgid "auto_private_groups (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4113
+#: sssd.conf.5.xml:4145
 msgid "true"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4116
+#: sssd.conf.5.xml:4148
 msgid ""
 "Create user's private group unconditionally from user's UID number.  The GID "
 "number is ignored in this case."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4120
+#: sssd.conf.5.xml:4152
 msgid ""
 "NOTE: Because the GID number and the user private group are inferred from "
 "the UID number, it is not supported to have multiple entries with the same "
@@ -4742,24 +4783,24 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4129
+#: sssd.conf.5.xml:4161
 msgid "false"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4132
+#: sssd.conf.5.xml:4164
 msgid ""
 "Always use the user's primary GID number. The GID number must refer to a "
 "group object in the LDAP database."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4138
+#: sssd.conf.5.xml:4170
 msgid "hybrid"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4141
+#: sssd.conf.5.xml:4173
 msgid ""
 "A primary group is autogenerated for user entries whose UID and GID numbers "
 "have the same value and at the same time the GID number does not correspond "
@@ -4769,14 +4810,14 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4154
+#: sssd.conf.5.xml:4186
 msgid ""
 "If the UID and GID of a user are different, then the GID must correspond to "
 "a group entry, otherwise the GID is simply not resolvable."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4161
+#: sssd.conf.5.xml:4193
 msgid ""
 "This feature is useful for environments that wish to stop maintaining a "
 "separate group objects for the user private groups, but also wish to retain "
@@ -4784,21 +4825,21 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4110
+#: sssd.conf.5.xml:4142
 msgid ""
 "This option takes any of three available values: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4173
+#: sssd.conf.5.xml:4205
 msgid ""
 "For subdomains, the default value is False for subdomains that use assigned "
 "POSIX IDs and True for subdomains that use automatic ID-mapping."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd.conf.5.xml:4181
+#: sssd.conf.5.xml:4213
 #, no-wrap
 msgid ""
 "[domain/forest.domain/sub.domain]\n"
@@ -4806,7 +4847,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><programlisting>
-#: sssd.conf.5.xml:4187
+#: sssd.conf.5.xml:4219
 #, no-wrap
 msgid ""
 "[domain/forest.domain]\n"
@@ -4815,7 +4856,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4178
+#: sssd.conf.5.xml:4210
 msgid ""
 "The value of auto_private_groups can either be set per subdomains in a "
 "subsection, for example: <placeholder type=\"programlisting\" id=\"0\"/> or "
@@ -4824,7 +4865,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:2583
+#: sssd.conf.5.xml:2615
 msgid ""
 "These configuration options can be present in a domain configuration "
 "section, that is, in a section called <quote>[domain/<replaceable>NAME</"
@@ -4832,17 +4873,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4202
+#: sssd.conf.5.xml:4234
 msgid "proxy_pam_target (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4205
+#: sssd.conf.5.xml:4237
 msgid "The proxy target PAM proxies to."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4208
+#: sssd.conf.5.xml:4240
 msgid ""
 "Default: not set by default, you have to take an existing pam configuration "
 "or create a new one and add the service name here. As an alternative you can "
@@ -4850,12 +4891,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4218
+#: sssd.conf.5.xml:4250
 msgid "proxy_lib_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4221
+#: sssd.conf.5.xml:4253
 msgid ""
 "The name of the NSS library to use in proxy domains. The NSS functions "
 "searched for in the library are in the form of _nss_$(libName)_$(function), "
@@ -4863,12 +4904,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4231
+#: sssd.conf.5.xml:4263
 msgid "proxy_resolver_lib_name (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4234
+#: sssd.conf.5.xml:4266
 msgid ""
 "The name of the NSS library to use for hosts and networks lookups in proxy "
 "domains. The NSS functions searched for in the library are in the form of "
@@ -4876,12 +4917,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4245
+#: sssd.conf.5.xml:4277
 msgid "proxy_fast_alias (boolean)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4248
+#: sssd.conf.5.xml:4280
 msgid ""
 "When a user or group is looked up by name in the proxy provider, a second "
 "lookup by ID is performed to \"canonicalize\" the name in case the requested "
@@ -4890,12 +4931,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4262
+#: sssd.conf.5.xml:4294
 msgid "proxy_max_children (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4265
+#: sssd.conf.5.xml:4297
 msgid ""
 "This option specifies the number of pre-forked proxy children. It is useful "
 "for high-load SSSD environments where sssd may run out of available child "
@@ -4903,19 +4944,19 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4198
+#: sssd.conf.5.xml:4230
 msgid ""
 "Options valid for proxy domains.  <placeholder type=\"variablelist\" "
 "id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
-#: sssd.conf.5.xml:4281
+#: sssd.conf.5.xml:4313
 msgid "Application domains"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:4283
+#: sssd.conf.5.xml:4315
 msgid ""
 "SSSD, with its D-Bus interface (see <citerefentry> <refentrytitle>sssd-ifp</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>) is appealing to "
@@ -4932,7 +4973,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:4303
+#: sssd.conf.5.xml:4335
 msgid ""
 "Please note that the application domain must still be explicitly enabled in "
 "the <quote>domains</quote> parameter so that the lookup order between the "
@@ -4940,17 +4981,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><title>
-#: sssd.conf.5.xml:4309
+#: sssd.conf.5.xml:4341
 msgid "Application domain parameters"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4311
+#: sssd.conf.5.xml:4343
 msgid "inherit_from (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4314
+#: sssd.conf.5.xml:4346
 msgid ""
 "The SSSD POSIX-type domain the application domain inherits all settings "
 "from. The application domain can moreover add its own settings to the "
@@ -4959,7 +5000,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
-#: sssd.conf.5.xml:4328
+#: sssd.conf.5.xml:4360
 msgid ""
 "The following example illustrates the use of an application domain. In this "
 "setup, the POSIX domain is connected to an LDAP server and is used by the OS "
@@ -4969,7 +5010,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><programlisting>
-#: sssd.conf.5.xml:4336
+#: sssd.conf.5.xml:4368
 #, no-wrap
 msgid ""
 "[sssd]\n"
@@ -4989,12 +5030,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4356
+#: sssd.conf.5.xml:4388
 msgid "TRUSTED DOMAIN SECTION"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4358
+#: sssd.conf.5.xml:4390
 msgid ""
 "Some options used in the domain section can also be used in the trusted "
 "domain section, that is, in a section called <quote>[domain/"
@@ -5005,69 +5046,69 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4365
+#: sssd.conf.5.xml:4397
 msgid "ldap_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4366
+#: sssd.conf.5.xml:4398
 msgid "ldap_user_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4367
+#: sssd.conf.5.xml:4399
 msgid "ldap_group_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4368
+#: sssd.conf.5.xml:4400
 msgid "ldap_netgroup_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4369
+#: sssd.conf.5.xml:4401
 msgid "ldap_service_search_base,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4370
+#: sssd.conf.5.xml:4402
 msgid "ldap_sasl_mech,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4371
+#: sssd.conf.5.xml:4403
 msgid "ad_server,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4372
+#: sssd.conf.5.xml:4404
 msgid "ad_backup_server,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4373
+#: sssd.conf.5.xml:4405
 msgid "ad_site,"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4374 sssd-ipa.5.xml:924
+#: sssd.conf.5.xml:4406 sssd-ipa.5.xml:924
 msgid "use_fully_qualified_names"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4378
+#: sssd.conf.5.xml:4410
 msgid ""
 "For more details about these options see their individual description in the "
 "manual page."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4384
+#: sssd.conf.5.xml:4416
 msgid "CERTIFICATE MAPPING SECTION"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4386
+#: sssd.conf.5.xml:4418
 msgid ""
 "To allow authentication with Smartcards and certificates SSSD must be able "
 "to map certificates to users. This can be done by adding the full "
@@ -5080,7 +5121,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4400
+#: sssd.conf.5.xml:4432
 msgid ""
 "To make the mapping more flexible mapping and matching rules were added to "
 "SSSD (see <citerefentry> <refentrytitle>sss-certmap</refentrytitle> "
@@ -5088,7 +5129,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4409
+#: sssd.conf.5.xml:4441
 msgid ""
 "A mapping and matching rule can be added to the SSSD configuration in a "
 "section on its own with a name like <quote>[certmap/"
@@ -5097,43 +5138,43 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4416
+#: sssd.conf.5.xml:4448
 msgid "matchrule (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4419
+#: sssd.conf.5.xml:4451
 msgid ""
 "Only certificates from the Smartcard which matches this rule will be "
 "processed, all others are ignored."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4423
+#: sssd.conf.5.xml:4455
 msgid ""
 "Default: KRB5:&lt;EKU&gt;clientAuth, i.e. only certificates which have the "
 "Extended Key Usage <quote>clientAuth</quote>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4430
+#: sssd.conf.5.xml:4462
 msgid "maprule (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4433
+#: sssd.conf.5.xml:4465
 msgid "Defines how the user is found for a given certificate."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4439
+#: sssd.conf.5.xml:4471
 msgid ""
 "LDAP:(userCertificate;binary={cert!bin})  for LDAP based providers like "
 "<quote>ldap</quote>, <quote>AD</quote> or <quote>ipa</quote>."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4445
+#: sssd.conf.5.xml:4477
 msgid ""
 "If maprule is not set and provider is <quote>proxy</quote><phrase "
 "condition=\"with_files_provider\"> &nbsp;or <quote>files</quote></phrase>, "
@@ -5141,12 +5182,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4456
+#: sssd.conf.5.xml:4488
 msgid "domains (string)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4459
+#: sssd.conf.5.xml:4491
 msgid ""
 "Comma separated list of domain names the rule should be applied. By default "
 "a rule is only valid in the domain configured in sssd.conf. If the provider "
@@ -5155,17 +5196,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4466
+#: sssd.conf.5.xml:4498
 msgid "Default: the configured domain in sssd.conf"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4471
+#: sssd.conf.5.xml:4503
 msgid "priority (integer)"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4474
+#: sssd.conf.5.xml:4506
 msgid ""
 "Unsigned integer value defining the priority of the rule. The higher the "
 "number the lower the priority.  <quote>0</quote> stands for the highest "
@@ -5173,26 +5214,26 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4480
+#: sssd.conf.5.xml:4512
 msgid "Default: the lowest priority"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4486
+#: sssd.conf.5.xml:4518
 msgid ""
 "To make the configuration simple and reduce the amount of configuration "
 "options the <quote>files</quote> provider has some special properties:"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4492
+#: sssd.conf.5.xml:4524
 msgid ""
 "if maprule is not set the RULE_NAME name is assumed to be the name of the "
 "matching user"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4498
+#: sssd.conf.5.xml:4530
 msgid ""
 "if a maprule is used both a single user name or a template like "
 "<quote>{subject_rfc822_name.short_name}</quote> must be in braces like e.g. "
@@ -5201,17 +5242,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4507
+#: sssd.conf.5.xml:4539
 msgid "the <quote>domains</quote> option is ignored"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4515
+#: sssd.conf.5.xml:4547
 msgid "PROMPTING CONFIGURATION SECTION"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4517
+#: sssd.conf.5.xml:4549
 msgid ""
 "If a special file (<filename>/var/lib/sss/pubconf/pam_preauth_available</"
 "filename>)  exists SSSD's PAM module pam_sss will ask SSSD to figure out "
@@ -5221,7 +5262,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4525
+#: sssd.conf.5.xml:4557
 msgid ""
 "With the growing number of authentication methods and the possibility that "
 "there are multiple ones for a single user the heuristic used by pam_sss to "
@@ -5230,59 +5271,59 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4537
+#: sssd.conf.5.xml:4569
 msgid "[prompting/password]"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4540
+#: sssd.conf.5.xml:4572
 msgid "password_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4541
+#: sssd.conf.5.xml:4573
 msgid "to change the string of the password prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4539
+#: sssd.conf.5.xml:4571
 msgid ""
 "to configure password prompting, allowed options are: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4549
+#: sssd.conf.5.xml:4581
 msgid "[prompting/2fa]"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4553
+#: sssd.conf.5.xml:4585
 msgid "first_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4554
+#: sssd.conf.5.xml:4586
 msgid "to change the string of the prompt for the first factor"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4557
+#: sssd.conf.5.xml:4589
 msgid "second_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4558
+#: sssd.conf.5.xml:4590
 msgid "to change the string of the prompt for the second factor"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4561
+#: sssd.conf.5.xml:4593
 msgid "single_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4562
+#: sssd.conf.5.xml:4594
 msgid ""
 "boolean value, if True there will be only a single prompt using the value of "
 "first_prompt where it is expected that both factors are entered as a single "
@@ -5291,7 +5332,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4551
+#: sssd.conf.5.xml:4583
 msgid ""
 "to configure two-factor authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/> If the second factor is "
@@ -5300,7 +5341,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4575
+#: sssd.conf.5.xml:4607
 msgid ""
 "Some clients, such as SSH with 'PasswordAuthentication yes', generate their "
 "own prompts and do not use prompts provided by SSSD or other PAM modules. "
@@ -5311,17 +5352,17 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4590
+#: sssd.conf.5.xml:4622
 msgid "[prompting/passkey]"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
-#: sssd.conf.5.xml:4596 sssd-ad.5.xml:1022
+#: sssd.conf.5.xml:4628 sssd-ad.5.xml:1022
 msgid "interactive"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4598
+#: sssd.conf.5.xml:4630
 msgid ""
 "boolean value, if True prompt a message and wait before testing the presence "
 "of a passkey device.  Recommended if your device doesn’t have a tactile "
@@ -5329,46 +5370,46 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4606
+#: sssd.conf.5.xml:4638
 msgid "interactive_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4608
+#: sssd.conf.5.xml:4640
 msgid "to change the message of the interactive prompt."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4613
+#: sssd.conf.5.xml:4645
 msgid "touch"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4615
+#: sssd.conf.5.xml:4647
 msgid ""
 "boolean value, if True prompt a message to remind the user to touch the "
 "device."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
-#: sssd.conf.5.xml:4621
+#: sssd.conf.5.xml:4653
 msgid "touch_prompt"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4623
+#: sssd.conf.5.xml:4655
 msgid "to change the message of the touch prompt."
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
-#: sssd.conf.5.xml:4592
+#: sssd.conf.5.xml:4624
 msgid ""
 "to configure passkey authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4532
+#: sssd.conf.5.xml:4564
 msgid ""
 "Each supported authentication method has its own configuration subsection "
 "under <quote>[prompting/...]</quote>. Currently there are: <placeholder "
@@ -5377,7 +5418,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4634
+#: sssd.conf.5.xml:4666
 msgid ""
 "It is possible to add a subsection for specific PAM services, e.g. "
 "<quote>[prompting/password/sshd]</quote> to individual change the prompting "
@@ -5385,12 +5426,12 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
-#: sssd.conf.5.xml:4641 pam_sss_gss.8.xml:157 idmap_sss.8.xml:43
+#: sssd.conf.5.xml:4673 pam_sss_gss.8.xml:157 idmap_sss.8.xml:43
 msgid "EXAMPLES"
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:4647
+#: sssd.conf.5.xml:4679
 #, no-wrap
 msgid ""
 "[sssd]\n"
@@ -5420,7 +5461,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4643
+#: sssd.conf.5.xml:4675
 msgid ""
 "1. The following example shows a typical SSSD config. It does not describe "
 "configuration of the domains themselves - refer to documentation on "
@@ -5429,7 +5470,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:4680
+#: sssd.conf.5.xml:4712
 #, no-wrap
 msgid ""
 "[domain/ipa.com/child.ad.com]\n"
@@ -5437,7 +5478,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4674
+#: sssd.conf.5.xml:4706
 msgid ""
 "2. The following example shows configuration of IPA AD trust where the AD "
 "forest consists of two domains in a parent-child structure.  Suppose IPA "
@@ -5448,7 +5489,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
-#: sssd.conf.5.xml:4691
+#: sssd.conf.5.xml:4723
 #, no-wrap
 msgid ""
 "[certmap/my.domain/rule_name]\n"
@@ -5459,7 +5500,7 @@ msgid ""
 msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
-#: sssd.conf.5.xml:4685
+#: sssd.conf.5.xml:4717
 msgid ""
 "3. The following example shows the configuration of a certificate mapping "
 "rule. It is valid for the configured domain <quote>my.domain</quote> and "
@@ -17185,6 +17226,7 @@ msgstr "KONFIGURĒŠANAS IESPĒJAS"
 msgid ""
 "[plugins]\n"
 " localauth = {\n"
+"  disable = an2ln\n"
 "  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
 " }\n"
 msgstr ""
@@ -17199,6 +17241,28 @@ msgid ""
 "type=\"programlisting\" id=\"0\"/> automatically in the SSSD's public "
 "Kerberos configuration snippet directory. If this directory is included in "
 "the local Kerberos configuration the plugin will be enabled automatically."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd_krb5_localauth_plugin.8.xml:67
+msgid ""
+"This configuration snippet also disables the <command>an2ln</command> module "
+"provided by MIT Kerberos if SSSD is configured to use the AD or IPA "
+"provider. In those environments <command>sssd_krb5_localauth_plugin</"
+"command> can reliably map the system user names to Kerberos principals. A "
+"fallback to <command>an2ln</command> might cause issues in environments "
+"where users have the privilege to create Kerberos principals on their own "
+"which might collide with names of other users used in the system.  Other "
+"modules provided by MIT Kerberos, e.g.  <command>k5login</command> are not "
+"affected."
+msgstr ""
+
+#. type: Content of: <reference><refentry><refsect1><para>
+#: sssd_krb5_localauth_plugin.8.xml:79
+msgid ""
+"Note: If using <quote>auth_provider = krb5</quote> then "
+"<command>sssd_krb5_localauth_plugin</command> is not used, therefore the "
+"above text is not applicable."
 msgstr ""
 
 #. type: Content of: <variablelist><varlistentry><term>
