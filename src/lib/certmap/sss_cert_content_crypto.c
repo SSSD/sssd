@@ -248,8 +248,8 @@ static int add_pkinit_princ_to_san_list(TALLOC_CTX *mem_ctx,
     ASN1_GENERALSTRING *name_comp;
 
     oct = current->d.otherName->value->value.sequence;
-    p = oct->data;
-    princ = d2i_KRB5PrincipalName(NULL, &p, oct->length);
+    p = ASN1_STRING_get0_data(oct);
+    princ = d2i_KRB5PrincipalName(NULL, &p, ASN1_STRING_length(oct));
     if (princ == NULL) {
         return EINVAL;
     }
@@ -347,15 +347,15 @@ static int add_ip_to_san_list(TALLOC_CTX *mem_ctx, enum san_opt san_opt,
     return 0;
 }
 
-static int get_rdn_list(TALLOC_CTX *mem_ctx, X509_NAME *name,
+static int get_rdn_list(TALLOC_CTX *mem_ctx, const X509_NAME *name,
                         const char ***rdn_list)
 {
     int ret;
     size_t c;
     const char **list = NULL;
-    X509_NAME_ENTRY *e;
-    ASN1_STRING *rdn_str;
-    ASN1_OBJECT *rdn_name;
+    const X509_NAME_ENTRY *e;
+    const ASN1_STRING *rdn_str;
+    const ASN1_OBJECT *rdn_name;
     BIO *bio_mem = NULL;
     char *tmp_str;
     long tmp_str_size;
@@ -748,7 +748,7 @@ static int get_sid_ext(TALLOC_CTX *mem_ctx, X509 *cert, const char **_sid)
     ASN1_OBJECT *sid_ext_oid = NULL;
     ASN1_OBJECT *sid_oid = NULL;
     int idx;
-    X509_EXTENSION *ext = NULL;
+    const X509_EXTENSION *ext = NULL;
     const unsigned char *p;
     NTDS_CA_SECURITY_EXTS *sec_exts = NULL;
     NTDS_CA_SECURITY_EXT *current;
@@ -773,13 +773,14 @@ static int get_sid_ext(TALLOC_CTX *mem_ctx, X509 *cert, const char **_sid)
         return EINVAL;
     }
 
-    ext_data = X509_EXTENSION_get_data(ext);
+    /* cast away const for openssl 3 compat, remove once v3 is obsolete */
+    ext_data = X509_EXTENSION_get_data((X509_EXTENSION *)(uintptr_t)ext);
     if (ext_data == NULL) {
         return EINVAL;
     }
 
-    p = ext_data->data;
-    sec_exts = d2i_NTDS_CA_SECURITY_EXTS(NULL, &p, ext_data->length);
+    p = ASN1_STRING_get0_data(ext_data);
+    sec_exts = d2i_NTDS_CA_SECURITY_EXTS(NULL, &p, ASN1_STRING_length(ext_data));
     if (sec_exts == NULL) {
         return EIO;
     }
@@ -810,8 +811,8 @@ static int get_sid_ext(TALLOC_CTX *mem_ctx, X509 *cert, const char **_sid)
                 goto done;
             }
 
-            sid = talloc_strndup(mem_ctx, (char *) current->d.sid->value->data,
-                                          current->d.sid->value->length);
+            sid = talloc_strndup(mem_ctx, (const char *) ASN1_STRING_get0_data(current->d.sid->value),
+                                          ASN1_STRING_length(current->d.sid->value));
             if (sid == NULL) {
                 ret = ENOMEM;
                 goto done;
@@ -995,7 +996,7 @@ int sss_cert_get_content(TALLOC_CTX *mem_ctx,
     X509 *cert = NULL;
     const unsigned char *der;
     BIO *bio_mem = NULL;
-    X509_NAME *tmp_name;
+    const X509_NAME *tmp_name;
 
     if (der_blob == NULL || der_size == 0) {
         return EINVAL;
