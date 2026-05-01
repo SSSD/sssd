@@ -3605,7 +3605,11 @@ static int mbof_mod_process_membel(TALLOC_CTX *mem_ctx,
                     talloc_free(old_set);
                     return LDB_ERR_OPERATIONS_ERROR;
                 }
-                hash_enter(old_set, &hkey, &hval);
+                hret = hash_enter(old_set, &hkey, &hval);
+                if (hret != HASH_SUCCESS) {
+                    talloc_free(old_set);
+                    return LDB_ERR_OPERATIONS_ERROR;
+                }
             }
 
             new_added = 0;
