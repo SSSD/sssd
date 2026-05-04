@@ -866,7 +866,7 @@ int main(int argc, const char *argv[])
          */
         json_t *tmp_json;
         char *tmp_str;
-        
+
         tmp_json = json_pack("{s:s, s:i, s:i}",
                                 "device_code", dc_ctx->device_code,
                                 "expires_in", dc_ctx->expires_in,

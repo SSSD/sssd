@@ -411,7 +411,6 @@ errno_t parse_result(struct devicecode_ctx *dc_ctx)
     if (dc_ctx->user_code != NULL) {
         talloc_set_destructor((void *) dc_ctx->user_code, sss_erase_talloc_mem_securely);
     }
-
     dc_ctx->device_code = get_json_string(dc_ctx, root, "device_code");
     if (dc_ctx->device_code != NULL) {
         talloc_set_destructor((void *) dc_ctx->device_code, sss_erase_talloc_mem_securely);
