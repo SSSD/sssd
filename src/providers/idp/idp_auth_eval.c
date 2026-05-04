@@ -261,8 +261,6 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
 
     token_data = json_loadb((const char *) buf, token_buflen, 0, &json_error);
     if (token_data == NULL) {
-        // FIXME: Authentik fails at this point, 
-        // as the buffered device token contains special chars that let this operation fail
         DEBUG(SSSDBG_OP_FAILURE,
               "Failed to parse token data on line [%d]: [%s].\n",
               json_error.line, json_error.text);
