@@ -42,3 +42,17 @@ jobs:
       - upstream
     targets:
       - centos-stream-10
+
+  # Use fedora-latest as host for centos-10 tests due to memory constraints
+  # that cause swapping issues with centos-10 containers on centos hosts
+  - job: tests
+    trigger: pull_request
+    identifier: "centos-stream-10"
+    packages:
+      - upstream
+    targets:
+      - fedora-latest
+    tf_extra_params:
+      environments:
+        - variables:
+            CONTAINER_TARGET: "centos-10"
