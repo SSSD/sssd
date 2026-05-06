@@ -705,6 +705,35 @@ int ipa_get_subdom_acct_recv(struct tevent_req *req)
     return EOK;
 }
 
+struct sss_failover_ctx *
+get_ad_fctx_conn_method(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
+                     struct dp_id_data *ar)
+{
+
+    bool use_gc = false;
+
+    /* We read users and groups from GC. From groups, we may switch to
+     * using LDAP connection in the group request itself, but in order
+     * to resolve Universal group memberships, we also need the GC
+     * connection
+     */
+    switch (ar->entry_type & BE_REQ_TYPE_MASK) {
+    case BE_REQ_INITGROUPS:
+    case BE_REQ_BY_SECID:
+    case BE_REQ_GROUP:
+        use_gc = true;
+        break;
+    default:
+        break;
+    }
+
+    if (!dp_opt_get_bool(ad_ctx->ad_options->basic, AD_ENABLE_GC)) {
+        use_gc = false;
+    }
+
+    return use_gc ? ad_ctx->sdap_id_ctx->gc_fctx : ad_ctx->sdap_id_ctx->fctx;
+}
+
 static struct ad_id_ctx *ipa_get_ad_id_ctx(struct ipa_id_ctx *ipa_ctx,
                                            struct sss_domain_info *dom);
 
@@ -743,6 +772,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *subreq;
     struct ipa_get_acct_state *state;
     struct sdap_domain *sdom;
+    struct sss_failover_ctx *fctx;
     struct sdap_id_conn_ctx **clist;
     struct sdap_id_ctx *sdap_id_ctx;
     struct ad_id_ctx *ad_id_ctx;
@@ -773,25 +803,9 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     }
     sdap_id_ctx = ad_id_ctx->sdap_id_ctx;
 
-    /* We read users and groups from GC. From groups, we may switch to
-     * using LDAP connection in the group request itself, but in order
-     * to resolve Universal group memberships, we also need the GC
-     * connection
-     */
-    switch (state->ar->entry_type & BE_REQ_TYPE_MASK) {
-    case BE_REQ_INITGROUPS:
-    case BE_REQ_BY_SECID:
-    case BE_REQ_GROUP:
-        clist = ipa_ad_gc_conn_list(req, ipa_ctx, ad_id_ctx, state->obj_dom);
-        break;
-    default:
-        clist = ad_ldap_conn_list(req, ad_id_ctx, state->obj_dom);
-        break;
-    }
-
-    if (clist == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Cannot generate AD connection list!\n");
-        ret = ENOMEM;
+    fctx = get_ad_fctx_conn_method(req, ad_id_ctx, state->ar);
+    if (fctx == NULL) {
+        ret = EIO;
         goto fail;
     }
 
