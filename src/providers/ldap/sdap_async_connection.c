@@ -2205,7 +2205,8 @@ static void sdap_cli_resolve_and_connect_kinit_done(struct tevent_req *subreq)
          * There's not much we can do except for going offline */
         DEBUG(SSSDBG_TRACE_FUNC,
               "Cannot get a TGT: ret [%d](%s)\n", ret, sss_strerror(ret));
-        tevent_req_error(req, EACCES);
+        state->can_retry = false;
+        tevent_req_error(req, EIO);
         return;
     }
 
