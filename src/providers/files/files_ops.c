@@ -492,7 +492,7 @@ static const char **get_cached_user_names(TALLOC_CTX *mem_ctx,
     const char **user_names = NULL;
     unsigned c = 0;
 
-    ret = sysdb_enumpwent(mem_ctx, dom, &res);
+    ret = sysdb_enumpwent_filter(mem_ctx, dom, NULL, NULL, NULL, &res);
     if (ret != EOK) {
         goto done;
     }
