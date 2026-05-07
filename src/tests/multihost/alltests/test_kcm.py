@@ -8,12 +8,14 @@
 """
 
 from __future__ import print_function
+
 import re
-import pytest
 import time
+
+import pytest
+from constants import ds_instance_name
 from sssd.testlib.common.ssh2_python import check_login_client
 from sssd.testlib.common.utils import sssdTools
-from constants import ds_instance_name
 
 
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
@@ -83,12 +85,17 @@ class TestKcm(object):
         tools.sssd_conf('domain/%s' % (ds_instance_name), ldap_params)
         multihost.client[0].service_sssd('restart')
         multihost.client[0].run_command("> /var/log/sssd/sssd_example1.log")
-        time.sleep(65)
         log_location = "/var/log/sssd/sssd_example1.log"
-        grep_cmd = multihost.client[0].run_command(f"grep "
-                                                   f"'calling "
-                                                   f"ldap_search_ext with' "
-                                                   f"{log_location}")
+        grep_cmd = None
+        for _ in range(12):
+            time.sleep(10)
+            grep_cmd = multihost.client[0].run_command(
+                f"grep 'calling ldap_search_ext with' {log_location}",
+                raiseonerr=False)
+            if grep_cmd.returncode == 0:
+                break
+        else:
+            pytest.fail("Failed to find 'calling ldap_search_ext with' in log file")
         assert 'modifyTimestamp>=' not in grep_cmd.stdout_text
 
     @pytest.mark.tier1_2
