@@ -42,6 +42,9 @@
 #include "providers/be_dyndns.h"
 #include "providers/ipa/ipa_session.h"
 #include "providers/ipa/ipa_opts.h"
+#include "providers/failover/failover.h"
+#include "providers/failover/failover_vtable.h"
+#include "providers/failover/ldap/failover_ldap.h"
 
 #define DNS_SRV_MISCONFIGURATION "SRV discovery is enabled on the IPA " \
     "server while using custom dns_discovery_domain. DNS discovery of " \
@@ -56,6 +59,7 @@ struct ipa_init_ctx {
     struct ipa_options *options;
     struct ipa_id_ctx *id_ctx;
     struct ipa_auth_ctx *auth_ctx;
+    struct sss_failover_ctx *fctx;
 };
 
 
@@ -102,6 +106,93 @@ static bool srv_in_server_list(const char *servers)
 done:
     talloc_free(tmp_ctx);
     return has_srv;
+}
+
+static struct sss_failover_ctx *
+sssm_ipa_init_failover(TALLOC_CTX *mem_ctx,
+                       struct be_ctx *be_ctx,
+                       struct sdap_options *opts,
+                       const char *service,
+                       uint16_t port)
+{
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_group *group;
+    struct sss_failover_server *server;
+    errno_t ret;
+
+    /* Setup new failover. */
+    fctx = sss_failover_init(mem_ctx, be_ctx->ev, service,
+                             be_ctx->be_res->resolv,
+                             be_ctx->be_res->family_order);
+    if (fctx == NULL) {
+        return NULL;
+    }
+
+    /* Add primary servers */
+    group = sss_failover_group_new(fctx, "primary");
+    if (group == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_1.ipa.test",
+                                     "ldap://fake_1.ipa.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_2.ipa.test",
+                                     "ldap://fake_2.ipa.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "master.ipa.test",
+                                     "ldap://master.ipa.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* kinit ctx needs to be set to call kinit vtable functions */
+    fctx->kinit_ctx = fctx;
+
+    sss_failover_vtable_set_kinit(fctx,
+                                  sss_failover_ldap_kinit_send,
+                                  sss_failover_ldap_kinit_recv,
+                                  opts);
+
+    sss_failover_vtable_set_connect(fctx,
+                                    sss_failover_ldap_connect_send,
+                                    sss_failover_ldap_connect_recv,
+                                    opts);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(fctx);
+        return NULL;
+    }
+
+    return fctx;
 }
 
 static errno_t ipa_init_options(TALLOC_CTX *mem_ctx,
@@ -215,7 +306,9 @@ done:
 
 
 static errno_t ipa_init_dyndns(struct be_ctx *be_ctx,
-                               struct ipa_options *ipa_options)
+                               struct ipa_options *ipa_options,
+                               struct sdap_id_ctx *sdap_id_ctx)
+
 {
     bool enabled;
     errno_t ret;
@@ -253,7 +346,7 @@ static errno_t ipa_init_dyndns(struct be_ctx *be_ctx,
 
     DEBUG(SSSDBG_CONF_SETTINGS, "nsupdate is available\n");
 
-    ret = ipa_dyndns_init(be_ctx, ipa_options);
+    ret = ipa_dyndns_init(be_ctx, ipa_options, sdap_id_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Failure setting up automatic DNS update\n");
@@ -552,7 +645,7 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
               "ipa_hostname is not Fully Qualified Domain Name.\n");
     }
 
-    ret = ipa_init_dyndns(be_ctx, ipa_options);
+    ret = ipa_init_dyndns(be_ctx, ipa_options, sdap_id_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to init dyndns [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -679,6 +772,19 @@ errno_t sssm_ipa_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* Setup new failover. */
+    init_ctx->fctx = sssm_ipa_init_failover(init_ctx, be_ctx,
+                                            init_ctx->id_ctx->sdap_id_ctx->opts,
+                                            "IPA", 389);
+    if (init_ctx->fctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to init new failover\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    init_ctx->id_ctx->fctx = init_ctx->fctx;
+    init_ctx->id_ctx->sdap_id_ctx->fctx = init_ctx->fctx;
+
     *_module_data = init_ctx;
 
     ret = EOK;
@@ -705,10 +811,6 @@ errno_t sssm_ipa_id_init(TALLOC_CTX *mem_ctx,
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
                   ipa_account_info_handler_send, ipa_account_info_handler_recv, id_ctx,
                   struct ipa_id_ctx, struct dp_id_data, struct dp_reply_std);
-
-    dp_set_method(dp_methods, DPM_CHECK_ONLINE,
-                  sdap_online_check_handler_send, sdap_online_check_handler_recv, id_ctx->sdap_id_ctx,
-                  struct sdap_id_ctx, void, struct dp_reply_std);
 
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
                   default_account_domain_send, default_account_domain_recv, NULL,
@@ -763,6 +865,7 @@ errno_t sssm_ipa_access_init(TALLOC_CTX *mem_ctx,
     }
 
     access_ctx->sdap_ctx = id_ctx->sdap_id_ctx;
+    access_ctx->fctx = init_ctx->fctx;
     access_ctx->host_map = id_ctx->ipa_options->id->host_map;
     access_ctx->hostgroup_map = id_ctx->ipa_options->hostgroup_map;
     access_ctx->host_search_bases = id_ctx->ipa_options->id->sdom->host_search_bases;

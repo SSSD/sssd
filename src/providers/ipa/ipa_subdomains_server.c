@@ -431,6 +431,8 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     const char *gc_service_name;
     const char *service_name;
     struct ad_srv_plugin_ctx *srv_ctx;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ctx *gc_fctx;
     const char *ad_domain;
     const char *ad_site_override;
     const char *ad_servers;
@@ -584,6 +586,30 @@ ipa_ad_ctx_new(struct be_ctx *be_ctx,
     /* Set up the certificate mapping context */
     ad_id_ctx->sdap_id_ctx->opts->sdap_certmap_ctx =
         id_ctx->sdap_id_ctx->opts->sdap_certmap_ctx;
+
+    /* Setup new failover. */
+    fctx = ad_init_failover(be_ctx, be_ctx,
+                            ad_id_ctx->sdap_id_ctx->opts,
+                            "AD", 389);
+    if (fctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to init new failover\n");
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+
+    gc_fctx = ad_init_failover(be_ctx, be_ctx,
+                               ad_id_ctx->sdap_id_ctx->opts,
+                               "AD_GC", 3268);
+    if (gc_fctx == NULL) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Unable to init new failover\n");
+        talloc_free(ad_options);
+        return ENOMEM;
+    }
+
+    ad_id_ctx->sdap_id_ctx->fctx = fctx;
+    ad_id_ctx->sdap_id_ctx->gc_fctx = gc_fctx;
+    ad_id_ctx->fctx = fctx;
+    ad_id_ctx->gc_fctx = gc_fctx;
 
     *_ad_id_ctx = ad_id_ctx;
     return EOK;
