@@ -519,8 +519,9 @@ static void ipa_add_trusted_memberships_done(struct tevent_req *subreq);
 struct get_trusted_membership_state {
     struct tevent_context *ev;
     struct ipa_server_mode_ctx *server_mode;
-    struct sdap_id_op *sdap_op;
     struct sdap_id_ctx *sdap_id_ctx;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct fo_server *srv;
     char *user_name;
     struct sss_domain_info *user_dom;
@@ -545,7 +546,6 @@ struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
 {
     int ret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct get_trusted_membership_state *state;
 
     req = tevent_req_create(mem_ctx, &state, struct get_trusted_membership_state);
@@ -557,6 +557,7 @@ struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->user_dom = user_dom;
     state->sdap_id_ctx = sdap_id_ctx;
+    state->fctx = sdap_id_ctx->fctx;
     state->srv = NULL;
     state->domain = domain;
 
@@ -571,14 +572,6 @@ struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
     state->user_name = talloc_strdup(state, ar->filter_value);
     if (state->user_name == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_Strdup failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    state->sdap_op = sdap_id_op_create(state,
-                                       state->sdap_id_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
         ret = ENOMEM;
         goto done;
     }
@@ -608,14 +601,11 @@ struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
 
     }
 
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret));
+    ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                        ipa_get_trusted_memberships_connect_done);
+    if (ret != EOK) {
         goto done;
     }
-
-    tevent_req_set_callback(subreq, ipa_get_trusted_memberships_connect_done, req);
 
     return req;
 
@@ -638,23 +628,23 @@ static void ipa_get_trusted_memberships_connect_done(struct tevent_req *subreq)
                                                 struct get_trusted_membership_state);
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        if (be_is_offline(state->sdap_id_ctx->be)) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No IPA server is available, going offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret));
-        }
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
 
+    if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "IPA server is offline\n");
         goto fail;
     }
 
     subreq = sdap_search_bases_send(state, state->ev, state->sdap_id_ctx->opts,
-                            sdap_id_op_handle(state->sdap_op),
+                            state->conn->sh,
                             state->sdap_id_ctx->opts->sdom->group_search_bases,
                             NULL, true,
                             dp_opt_get_int(state->sdap_id_ctx->opts->basic,
@@ -850,7 +840,8 @@ static errno_t filter_groups_by_attribute_name(char **groups,
 struct add_trusted_membership_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *sdap_id_ctx;
-    struct sdap_id_op *sdap_op;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct ldb_dn *user_dn;
     struct sss_domain_info *user_dom;
     struct sss_domain_info *group_dom;
@@ -877,7 +868,6 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
 {
     int ret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct add_trusted_membership_state *state;
 
     req = tevent_req_create(mem_ctx, &state, struct add_trusted_membership_state);
@@ -889,6 +879,7 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->user_dom = user_dom;
     state->sdap_id_ctx = sdap_id_ctx;
+    state->fctx = sdap_id_ctx->fctx;
     state->user_dn = user_dn;
     state->group_dom = group_dom;
     state->orig_groups = groups;
@@ -932,22 +923,11 @@ static struct tevent_req *ipa_add_trusted_memberships_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    state->sdap_op = sdap_id_op_create(state,
-                                       state->sdap_id_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
+    ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                        ipa_add_trusted_memberships_connect_done);
+    if (ret != EOK) {
         goto done;
     }
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret));
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, ipa_add_trusted_memberships_connect_done, req);
 
     return req;
 
@@ -970,17 +950,18 @@ static void ipa_add_trusted_memberships_connect_done(struct tevent_req *subreq)
                                                 struct add_trusted_membership_state);
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        if (be_is_offline(state->sdap_id_ctx->be)) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No IPA server is available, going offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret));
-        }
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "No IPA server is available, going offline\n");
 
         tevent_req_error(req, ret);
         return;
@@ -1053,7 +1034,7 @@ static void ipa_add_trusted_memberships_get_next(struct tevent_req *req)
  * directly fetch the group with the corresponding DN. */
     subreq = groups_get_send(state, state->ev,
                                  state->sdap_id_ctx, state->group_sdom,
-                                 NULL,
+                                 state->fctx,
                                  fq_name,
                                  BE_FILTER_NAME,
                                  false, false, false);
