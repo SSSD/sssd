@@ -382,13 +382,14 @@ errno_t get_dp_id_data_for_user_name(TALLOC_CTX *mem_ctx,
 struct ipa_get_trusted_override_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *sdap_id_ctx;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct ipa_options *ipa_options;
     const char *ipa_realm;
     const char *ipa_view_name;
     struct dp_id_data *ar;
     struct sss_domain_info *dom;
 
-    struct sdap_id_op *sdap_op;
     struct sysdb_attrs *override_attrs;
     char *filter;
     bool login_override_checked;
@@ -409,7 +410,6 @@ struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
 {
     int ret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct ipa_get_trusted_override_state *state;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_get_trusted_override_state);
@@ -420,6 +420,7 @@ struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->sdap_id_ctx = sdap_id_ctx;
+    state->fctx = sdap_id_ctx->fctx;
     state->ipa_options = ipa_options;
     state->ipa_realm = ipa_realm;
     state->ar = ar;
@@ -446,22 +447,11 @@ struct tevent_req *ipa_get_trusted_override_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    state->sdap_op = sdap_id_op_create(state,
-                                       state->sdap_id_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
+    ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                        ipa_get_trusted_override_connect_done);
+    if (ret != EOK) {
         goto done;
     }
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret));
-        goto done;
-    }
-
-    tevent_req_set_callback(subreq, ipa_get_trusted_override_connect_done, req);
 
     return req;
 
@@ -487,18 +477,18 @@ static void ipa_get_trusted_override_connect_done(struct tevent_req *subreq)
     char *search_base;
     struct ipa_options *ipa_opts = state->ipa_options;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                    struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        if (ret == ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No IPA server is available, going offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret));
-        }
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
 
+    if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "No IPA server is available, going offline\n");
         goto fail;
     }
 
@@ -528,7 +518,7 @@ static void ipa_get_trusted_override_connect_done(struct tevent_req *subreq)
           state->ipa_view_name, state->filter);
 
     subreq = sdap_get_generic_send(state, state->ev, state->sdap_id_ctx->opts,
-                                 sdap_id_op_handle(state->sdap_op), search_base,
+                                 state->conn->sh, search_base,
                                  LDAP_SCOPE_SUBTREE,
                                  state->filter, NULL,
                                  state->ipa_options->override_map,
@@ -583,14 +573,12 @@ static void ipa_get_trusted_override_done(struct tevent_req *subreq)
             state->login_override_checked = true;
             state->ar->entry_type = BE_REQ_USER;
 
-            subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-            if (subreq == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
+            ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                                ipa_get_trusted_override_connect_done);
+            if (ret != EOK) {
                 state->ar->entry_type = BE_REQ_GROUP;
                 goto fail;
             }
-            tevent_req_set_callback(subreq, ipa_get_trusted_override_connect_done,
-                                    req);
             return;
         /* If no user override was found when looking up the auto private group
          * switch back to BE_REQ_GROUP to continue processing */

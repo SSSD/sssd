@@ -216,8 +216,7 @@ static errno_t ipa_init_options(TALLOC_CTX *mem_ctx,
     realm = dp_opt_get_string(ipa_options->basic, IPA_KRB5_REALM);
 
     ret = ipa_service_init(ipa_options, be_ctx, ipa_servers,
-                           ipa_backup_servers, realm, "IPA", ipa_options,
-                           &ipa_options->service);
+                           ipa_backup_servers, realm, "IPA", ipa_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init IPA service [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -245,7 +244,7 @@ static errno_t ipa_init_id_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    sdap_id_ctx = sdap_id_ctx_new(mem_ctx, be_ctx, ipa_options->service->sdap);
+    sdap_id_ctx = sdap_id_ctx_new(mem_ctx, be_ctx);
     if (sdap_id_ctx == NULL) {
         ret = ENOMEM;
         goto done;
@@ -497,7 +496,7 @@ static errno_t ipa_init_krb5_auth_ctx(TALLOC_CTX *mem_ctx,
         return ENOMEM;
     }
 
-    krb5_auth_ctx->service = ipa_options->service->krb5_service;
+    krb5_auth_ctx->service = ipa_options->krb5_service;
 
     server_mode = dp_opt_get_bool(ipa_options->basic, IPA_SERVER_MODE);
     krb5_auth_ctx->config_type = server_mode ? K5C_IPA_SERVER : K5C_IPA_CLIENT;
@@ -526,7 +525,6 @@ static errno_t ipa_init_sdap_auth_ctx(TALLOC_CTX *mem_ctx,
     }
 
     sdap_auth_ctx->be =  be_ctx;
-    sdap_auth_ctx->service = ipa_options->service->sdap;
 
     if (ipa_options->id == NULL) {
         talloc_free(sdap_auth_ctx);

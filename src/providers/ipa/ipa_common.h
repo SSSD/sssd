@@ -229,7 +229,7 @@ struct ipa_options {
     struct sdap_search_base **ranges_search_bases;
     struct sdap_search_base **views_search_bases;
     struct sdap_search_base **deskprofile_search_bases;
-    struct ipa_service *service;
+    struct krb5_service *krb5_service;
 
     /* id provider */
     struct sdap_options *id;
@@ -295,8 +295,7 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      const char *backup_servers,
                      const char *realm,
                      const char *ipa_service,
-                     struct ipa_options *options,
-                     struct ipa_service **_service);
+                     struct ipa_options *options);
 
 int ipa_sudo_init(TALLOC_CTX *mem_ctx,
                   struct be_ctx *be_ctx,

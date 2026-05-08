@@ -51,7 +51,8 @@ struct ipa_subdomain_account_state {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
     struct sdap_id_ctx *ctx;
-    struct sdap_id_op *op;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     struct dp_id_data *ar;
@@ -79,7 +80,6 @@ struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct ipa_subdomain_account_state *state;
-    struct tevent_req *subreq;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct ipa_subdomain_account_state);
@@ -91,13 +91,7 @@ struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ipa_ctx = ipa_ctx;
     state->ctx = ipa_ctx->sdap_id_ctx;
-
-    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
-    if (!state->op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
-        goto fail;
-    }
+    state->fctx = ipa_ctx->sdap_id_ctx->fctx;
 
     state->domain = find_domain_by_name(state->ctx->be->domain,
                                         ar->domain, true);
@@ -138,11 +132,11 @@ struct tevent_req *ipa_subdomain_account_send(TALLOC_CTX *memctx,
         return req;
     }
 
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
-    if (!subreq) {
+    ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                        ipa_subdomain_account_connected);
+    if (ret != EOK) {
         goto fail;
     }
-    tevent_req_set_callback(subreq, ipa_subdomain_account_connected, req);
 
     return req;
 
@@ -160,18 +154,20 @@ static void ipa_subdomain_account_connected(struct tevent_req *subreq)
                                             struct ipa_subdomain_account_state);
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect request failed.\n");
-        goto fail;
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
     }
 
     subreq = ipa_get_trusted_override_send(state, state->ev, state->ctx,
-                          state->ipa_ctx->ipa_options,
-                          dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
-                                            IPA_KRB5_REALM),
-                          state->ipa_ctx->view_name, state->ar);
+                         state->ipa_ctx->ipa_options,
+                         dp_opt_get_string(state->ipa_ctx->ipa_options->basic,
+                                           IPA_KRB5_REALM),
+                         state->ipa_ctx->view_name, state->ar);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_get_trusted_override_send failed.\n");
         ret = ENOMEM;
@@ -204,21 +200,7 @@ static void ipa_subdomain_account_got_override(struct tevent_req *subreq)
                                         &state->override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        ret = sdap_id_op_done(state->op, ret);
-
-        if (ret == EAGAIN) {
-            /* retry */
-            subreq = sdap_id_op_connect_send(state->op, state, &ret);
-            if (subreq == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
-                goto fail;
-            }
-            tevent_req_set_callback(subreq, ipa_subdomain_account_connected,
-                                    req);
-            return;
-        }
-
-        DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
+        ret = ERR_SERVER_FAILURE;
         goto fail;
     }
 
@@ -412,7 +394,8 @@ struct ipa_get_subdom_acct {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
     struct sdap_id_ctx *ctx;
-    struct sdap_id_op *op;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     struct sysdb_attrs *override_attrs;
@@ -436,7 +419,6 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct ipa_get_subdom_acct *state;
-    struct tevent_req *subreq;
     int ret;
 
     req = tevent_req_create(memctx, &state, struct ipa_get_subdom_acct);
@@ -445,15 +427,9 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     state->ev = ev;
     state->ipa_ctx = ipa_ctx;
     state->ctx = ipa_ctx->sdap_id_ctx;
+    state->fctx = state->ctx->fctx;
     state->override_attrs = override_attrs;
     state->use_pac = false;
-
-    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
-    if (!state->op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
-        goto fail;
-    }
 
     state->domain = find_domain_by_name(state->ctx->be->domain,
                                         ar->domain, true);
@@ -498,11 +474,11 @@ struct tevent_req *ipa_get_subdom_acct_send(TALLOC_CTX *memctx,
     }
     if (ret != EOK) goto fail;
 
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
-    if (!subreq) {
+    ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                        ipa_get_subdom_acct_connected);
+    if (ret != EOK) {
         goto fail;
     }
-    tevent_req_set_callback(subreq, ipa_get_subdom_acct_connected, req);
 
     return req;
 
@@ -523,19 +499,21 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
     struct req_input *req_input;
     char *shortname;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
     if (state->entry_type == BE_REQ_INITGROUPS) {
         /* With V1/V2 of the extdom plugin a user lookup will resolve the full
          * group membership of the user. */
-        if (sdap_is_extension_supported(sdap_id_op_handle(state->op),
+        if (sdap_is_extension_supported(state->conn->sh,
                                         EXOP_SID2NAME_V1_OID) ||
-            sdap_is_extension_supported(sdap_id_op_handle(state->op),
+            sdap_is_extension_supported(state->conn->sh,
                                         EXOP_SID2NAME_V2_OID)) {
             state->entry_type = BE_REQ_USER;
         } else {
@@ -545,7 +523,7 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
                  * and add the user to all groups. */
 
                 subreq = ipa_get_subdom_acct_process_pac_send(state, state->ev,
-                                                   sdap_id_op_handle(state->op),
+                                                   state->conn->sh,
                                                    state->ipa_ctx,
                                                    state->domain,
                                                    state->user_msg);
@@ -623,9 +601,9 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
             }
             break;
         case BE_FILTER_CERT:
-            if (sdap_is_extension_supported(sdap_id_op_handle(state->op),
+            if (sdap_is_extension_supported(state->conn->sh,
                                             EXOP_SID2NAME_V1_OID) ||
-                sdap_is_extension_supported(sdap_id_op_handle(state->op),
+                sdap_is_extension_supported(state->conn->sh,
                                             EXOP_SID2NAME_V2_OID)) {
                 req_input->type = REQ_INP_CERT;
                 req_input->inp.cert = talloc_strdup(req_input, state->filter);
@@ -653,7 +631,7 @@ static void ipa_get_subdom_acct_connected(struct tevent_req *subreq)
                                         state->ctx->opts,
                                         state->domain,
                                         state->override_attrs,
-                                        sdap_id_op_handle(state->op),
+                                        state->conn->sh,
                                         state->entry_type,
                                         req_input);
     if (!subreq) {
@@ -669,31 +647,18 @@ static void ipa_get_subdom_acct_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                 struct tevent_req);
-    struct ipa_get_subdom_acct *state = tevent_req_data(req,
-                                                struct ipa_get_subdom_acct);
     int ret;
 
     ret = ipa_s2n_get_acct_info_recv(subreq);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->op, ret);
-    if (ret != EOK) {
-        /* retry */
-        subreq = sdap_id_op_connect_send(state->op, state, &ret);
-        if (!subreq) {
-            tevent_req_error(req, ret);
-            return;
-        }
-        tevent_req_set_callback(subreq, ipa_get_subdom_acct_connected, req);
+    if (ret == ENOMEM) {
+        tevent_req_error(req, ENOMEM);
+        return;
+    } else if (ret != EOK && ret != ENOENT) {
+        tevent_req_error(req, ERR_SERVER_FAILURE);
         return;
     }
-
-    if (ret && ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    /* FIXME: do we need some special handling of ENOENT */
 
     tevent_req_done(req);
 }
@@ -773,7 +738,6 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     struct ipa_get_acct_state *state;
     struct sdap_domain *sdom;
     struct sss_failover_ctx *fctx;
-    struct sdap_id_conn_ctx **clist;
     struct sdap_id_ctx *sdap_id_ctx;
     struct ad_id_ctx *ad_id_ctx;
 
@@ -817,7 +781,7 @@ ipa_get_ad_acct_send(TALLOC_CTX *mem_ctx,
     }
 
     subreq = ad_handle_acct_info_send(req, ar, sdap_id_ctx,
-                                      ad_id_ctx->ad_options, sdom, clist);
+                                      ad_id_ctx->ad_options, sdom, fctx);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto fail;

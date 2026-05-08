@@ -28,8 +28,11 @@
 #include "providers/ipa/ipa_hosts.h"
 #include "providers/ipa/ipa_sudo.h"
 #include "providers/ipa/ipa_dn.h"
+#include "providers/failover/ldap/failover_ldap.h"
+#include "providers/failover/failover_transaction.h"
 #include "db/sysdb.h"
 #include "db/sysdb_sudo.h"
+
 
 struct ipa_hostinfo {
     size_t num_hosts;
@@ -842,6 +845,8 @@ struct ipa_sudo_refresh_state {
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     struct ipa_sudo_ctx *sudo_ctx;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct ipa_options *ipa_opts;
     struct sdap_options *sdap_opts;
     const char *cmdgroups_filter;
@@ -849,14 +854,12 @@ struct ipa_sudo_refresh_state {
     const char *delete_filter;
     bool update_usn;
 
-    struct sdap_id_op *sdap_op;
     struct sdap_handle *sh;
 
     struct sysdb_attrs **rules;
     size_t num_rules;
 };
 
-static errno_t ipa_sudo_refresh_retry(struct tevent_req *req);
 static void ipa_sudo_refresh_connect_done(struct tevent_req *subreq);
 static void ipa_sudo_refresh_host_done(struct tevent_req *subreq);
 static void ipa_sudo_refresh_done(struct tevent_req *subreq);
@@ -884,17 +887,10 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->sysdb = sudo_ctx->id_ctx->be->domain->sysdb;
     state->domain = sudo_ctx->id_ctx->be->domain;
     state->sudo_ctx = sudo_ctx;
+    state->fctx = sudo_ctx->id_ctx->fctx;
     state->ipa_opts = sudo_ctx->ipa_opts;
     state->sdap_opts = sudo_ctx->sdap_opts;
     state->update_usn = update_usn;
-
-    state->sdap_op = sdap_id_op_create(state,
-                                       sudo_ctx->id_ctx->conn->conn_cache);
-    if (!state->sdap_op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
-        ret = ENOMEM;
-        goto immediately;
-    }
 
     state->cmdgroups_filter = talloc_strdup(state, cmdgroups_filter);
     if (cmdgroups_filter != NULL && state->cmdgroups_filter == NULL) {
@@ -914,11 +910,13 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = ipa_sudo_refresh_retry(req);
-    if (ret == EAGAIN) {
-        /* asynchronous processing */
-        return req;
+    ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                        ipa_sudo_refresh_connect_done);
+    if (ret != EOK) {
+        goto immediately;
     }
+
+    return req;
 
 immediately:
     if (ret == EOK) {
@@ -931,49 +929,26 @@ immediately:
     return req;
 }
 
-static errno_t
-ipa_sudo_refresh_retry(struct tevent_req *req)
-{
-    struct ipa_sudo_refresh_state *state;
-    struct tevent_req *subreq;
-    int ret;
-
-    state = tevent_req_data(req, struct ipa_sudo_refresh_state);
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed: "
-                                   "%d(%s)\n", ret, strerror(ret));
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, ipa_sudo_refresh_connect_done, req);
-
-    return EAGAIN;
-}
-
 static void
 ipa_sudo_refresh_connect_done(struct tevent_req *subreq)
 {
     struct ipa_sudo_refresh_state *state;
     const char *hostname;
     struct tevent_req *req;
-    int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_sudo_refresh_state);
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "SUDO LDAP connection failed "
-                                   "[%d]: %s\n", ret, strerror(ret));
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
-    state->sh = sdap_id_op_handle(state->sdap_op);
+    state->sh = state->conn->sh;
 
     DEBUG(SSSDBG_TRACE_FUNC, "SUDO LDAP connection successful\n");
     DEBUG(SSSDBG_TRACE_FUNC, "About to fetch host information\n");
@@ -1053,17 +1028,9 @@ ipa_sudo_refresh_done(struct tevent_req *subreq)
                               &state->num_rules, &usn);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->sdap_op, ret);
-    if (ret == EAGAIN) {
-        /* retry */
-        ret = ipa_sudo_refresh_retry(req);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-        }
-        return;
-    } else if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+    if (ret != EOK) {
+        ret = ERR_SERVER_FAILURE;
+        goto done;
     }
 
     ret = sysdb_transaction_start(state->sysdb);
@@ -1092,7 +1059,7 @@ ipa_sudo_refresh_done(struct tevent_req *subreq)
     in_transaction = false;
 
     if (usn != NULL && state->update_usn) {
-        sdap_sudo_set_usn(state->sudo_ctx->id_ctx->srv_opts, usn);
+        sdap_sudo_set_usn(state->conn->srv_opts, usn);
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Sudo rules are successfully stored in cache\n");

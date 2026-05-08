@@ -49,8 +49,9 @@ struct ipa_fetch_deskprofile_state {
     struct tevent_context *ev;
     struct be_ctx *be_ctx;
     struct sdap_id_ctx *sdap_ctx;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct ipa_session_ctx *session_ctx;
-    struct sdap_id_op *sdap_op;
     struct dp_option *ipa_options;
     struct sdap_search_base **search_bases;
     const char *username;
@@ -65,7 +66,6 @@ struct ipa_fetch_deskprofile_state {
     uint16_t priority;
 };
 
-static errno_t ipa_fetch_deskprofile_retry(struct tevent_req *req);
 static void ipa_fetch_deskprofile_connect_done(struct tevent_req *subreq);
 static errno_t ipa_fetch_deskprofile_hostinfo(struct tevent_req *req);
 static void ipa_fetch_deskprofile_hostinfo_done(struct tevent_req *subreq);
@@ -98,6 +98,7 @@ ipa_fetch_deskprofile_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
     state->be_ctx = be_ctx;
     state->session_ctx = session_ctx;
+    state->fctx = session_ctx->sdap_ctx->fctx;
     state->sdap_ctx = session_ctx->sdap_ctx;
     state->ipa_options = session_ctx->ipa_options;
     state->search_bases = session_ctx->deskprofile_search_bases;
@@ -116,14 +117,6 @@ ipa_fetch_deskprofile_send(TALLOC_CTX *mem_ctx,
     if (state->search_bases == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "No Desktop Profile search base found.\n");
         ret = EINVAL;
-        goto immediately;
-    }
-
-    state->sdap_op = sdap_id_op_create(state,
-                                       state->sdap_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
-        ret = ENOMEM;
         goto immediately;
     }
 
@@ -149,7 +142,7 @@ ipa_fetch_deskprofile_send(TALLOC_CTX *mem_ctx,
 
     state->session_ctx->no_rules_found = false;
 
-    offline = be_is_offline(be_ctx);
+    offline = state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE;
     DEBUG(SSSDBG_TRACE_ALL, "Connection status is [%s].\n",
           offline ? "offline" : "online");
 
@@ -163,11 +156,11 @@ ipa_fetch_deskprofile_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = ipa_fetch_deskprofile_retry(req);
-    if (ret != EAGAIN) {
+    ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                        ipa_fetch_deskprofile_connect_done);
+    if (ret != EOK) {
         goto immediately;
     }
-
     return req;
 
 immediately:
@@ -181,29 +174,6 @@ immediately:
     return req;
 }
 
-static errno_t
-ipa_fetch_deskprofile_retry(struct tevent_req *req)
-{
-    struct tevent_req *subreq;
-    struct ipa_fetch_deskprofile_state *state;
-    int ret;
-
-    state = tevent_req_data(req, struct ipa_fetch_deskprofile_state);
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "sdap_id_op_connect_send() failed: %d (%s)\n",
-              ret, strerror(ret));
-
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, ipa_fetch_deskprofile_connect_done, req);
-
-    return EAGAIN;
-}
-
 static void
 ipa_fetch_deskprofile_connect_done(struct tevent_req *subreq)
 {
@@ -211,10 +181,15 @@ ipa_fetch_deskprofile_connect_done(struct tevent_req *subreq)
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
+    struct ipa_fetch_deskprofile_state *state = tevent_req_data(req,
+                                                struct ipa_fetch_deskprofile_state);
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        ret = EINVAL;
         goto done;
     }
 
@@ -243,7 +218,7 @@ ipa_fetch_deskprofile_hostinfo(struct tevent_req *req)
 
     subreq = ipa_host_info_send(state,
                                 state->ev,
-                                sdap_id_op_handle(state->sdap_op),
+                                state->conn->sh,
                                 state->sdap_ctx->opts,
                                 hostname,
                                 state->session_ctx->host_map,
@@ -291,7 +266,7 @@ ipa_fetch_deskprofile_hostinfo_done(struct tevent_req *subreq)
 
     subreq = ipa_deskprofile_get_config_send(state,
                                              state->ev,
-                                             sdap_id_op_handle(state->sdap_op),
+                                             state->conn->sh,
                                              state->sdap_ctx->opts,
                                              state->ipa_options);
     if (subreq == NULL) {
@@ -331,7 +306,7 @@ ipa_fetch_deskprofile_config_done(struct tevent_req *subreq)
 
     subreq = ipa_deskprofile_rule_info_send(state,
                                             state->ev,
-                                            sdap_id_op_handle(state->sdap_op),
+                                            state->conn->sh,
                                             state->sdap_ctx->opts,
                                             state->search_bases,
                                             state->ipa_host,
@@ -367,19 +342,11 @@ ipa_fetch_deskprofile_rules_done(struct tevent_req *subreq)
     state->rules->entry_subdir = DESKPROFILE_RULES_SUBDIR;
     talloc_zfree(subreq);
     if (ret == ENOENT) {
-        /* Set ret to EOK so we can safely call sdap_id_op_done. */
-        ret = EOK;
         found = false;
     } else if (ret == EOK) {
         found = true;
     } else {
         goto done;
-    }
-
-    ret = sdap_id_op_done(state->sdap_op, ret);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
     }
 
    /* For now, let's completely purge the previous stored

@@ -30,6 +30,7 @@
 #include "providers/backend.h"
 
 errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
-                        struct ipa_options *ctx);
+                        struct ipa_options *ctx,
+                        struct sdap_id_ctx *sdap_id_ctx);
 
 #endif /* IPA_DYNDNS_H_ */

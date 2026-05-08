@@ -34,8 +34,9 @@
 
 struct get_password_migration_flag_state {
     struct tevent_context *ev;
-    struct sdap_id_op *sdap_op;
     struct sdap_id_ctx *sdap_id_ctx;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct fo_server *srv;
     char *ipa_realm;
     bool password_migration;
@@ -50,7 +51,7 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
                                             char *ipa_realm)
 {
     int ret;
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct get_password_migration_flag_state *state;
 
     if (sdap_id_ctx == NULL || ipa_realm == NULL) {
@@ -67,25 +68,16 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->sdap_id_ctx = sdap_id_ctx;
+    state->fctx = sdap_id_ctx->fctx;
     state->srv = NULL;
     state->password_migration = false;
     state->ipa_realm = ipa_realm;
 
-    state->sdap_op = sdap_id_op_create(state,
-                                       state->sdap_id_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
+    ret = sss_failover_transaction_send(state, ev, state->fctx, req,
+                                        get_password_migration_flag_auth_done);
+    if (ret != EOK) {
         goto fail;
     }
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (!subreq) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret));
-        goto fail;
-    }
-
-    tevent_req_set_callback(subreq, get_password_migration_flag_auth_done, req);
 
     return req;
 
@@ -101,27 +93,28 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
     struct get_password_migration_flag_state *state = tevent_req_data(req,
                                       struct get_password_migration_flag_state);
     static const char *attrs[] = {IPA_CONFIG_MIGRATION_ENABLED, NULL};
-    int ret;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret) {
-        if (be_is_offline(state->sdap_id_ctx->be)) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No IPA server is available, cannot get the "
-                   "migration flag while offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret));
-        }
 
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "No IPA server is available, cannot get the "
+               "migration flag while offline\n");
+
+        tevent_req_error(req, ERR_SERVER_FAILURE);
         return;
     }
 
     subreq = ipa_get_config_send(state, state->ev,
-                                 sdap_id_op_handle(state->sdap_op),
+                                 state->conn->sh,
                                  state->sdap_id_ctx->opts, state->ipa_realm,
                                  attrs, NULL, NULL);
 
@@ -181,6 +174,7 @@ struct ipa_pam_auth_handler_state {
     struct tevent_context *ev;
     struct ipa_auth_ctx *auth_ctx;
     struct be_ctx *be_ctx;
+    struct sss_failover_ctx *fctx;
     struct pam_data *pd;
     struct sss_domain_info *dom;
 };
@@ -212,6 +206,7 @@ ipa_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
     state->ev = params->ev;
     state->auth_ctx = auth_ctx;
     state->be_ctx = params->be_ctx;
+    state->fctx = auth_ctx->sdap_id_ctx->fctx;
     state->dom = find_domain_by_name(state->be_ctx->domain,
                                      state->pd->domain,
                                      true);
@@ -306,7 +301,6 @@ done:
 static void ipa_pam_auth_handler_flag_done(struct tevent_req *subreq)
 {
     struct ipa_pam_auth_handler_state *state;
-    struct sdap_auth_ctx *sdap_auth_ctx;
     bool password_migration = false;
     struct tevent_req *req;
     errno_t ret;
@@ -324,18 +318,14 @@ static void ipa_pam_auth_handler_flag_done(struct tevent_req *subreq)
     }
 
     if (password_migration) {
-        sdap_auth_ctx = state->auth_ctx->sdap_auth_ctx;
-        subreq = sdap_cli_resolve_and_connect_send(state, state->ev,
-                                                   sdap_auth_ctx->opts,
-                                                   sdap_auth_ctx->be,
-                                                   sdap_auth_ctx->service,
-                                                   true, CON_TLS_ON, true);
-        if (subreq == NULL) {
+        ret = sss_failover_transaction_ex_send(
+             state, state->ev, state->fctx, req, ipa_pam_auth_handler_connect_done, true,
+             false, false, SSS_FAILOVER_TRANSACTION_TLS_ON);
+        if (ret != EOK) {
             state->pd->pam_status = PAM_SYSTEM_ERR;
             goto done;
         }
 
-        tevent_req_set_callback(subreq, ipa_pam_auth_handler_connect_done, req);
         return;
     }
 

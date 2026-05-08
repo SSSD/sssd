@@ -899,16 +899,16 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     /* Set flag that controls whether we want to write the
      * kdcinfo files at all
      */
-    ipa_opts->service->krb5_service->write_kdcinfo = \
+    ipa_opts->krb5_service->write_kdcinfo = \
         dp_opt_get_bool(ipa_opts->auth, KRB5_USE_KDCINFO);
     DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
           ipa_opts->auth[KRB5_USE_KDCINFO].opt_name,
-          ipa_opts->service->krb5_service->write_kdcinfo ? "true" : "false");
-    if (ipa_opts->service->krb5_service->write_kdcinfo) {
+          ipa_opts->krb5_service->write_kdcinfo ? "true" : "false");
+    if (ipa_opts->krb5_service->write_kdcinfo) {
         sss_krb5_parse_lookahead(
             dp_opt_get_string(ipa_opts->auth, KRB5_KDCINFO_LOOKAHEAD),
-            &ipa_opts->service->krb5_service->lookahead_primary,
-            &ipa_opts->service->krb5_service->lookahead_backup);
+            &ipa_opts->krb5_service->lookahead_primary,
+            &ipa_opts->krb5_service->lookahead_backup);
     }
 
     *_opts = ipa_opts->auth;
@@ -1108,85 +1108,25 @@ int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      const char *backup_servers,
                      const char *realm,
                      const char *ipa_service,
-                     struct ipa_options *options,
-                     struct ipa_service **_service)
+                     struct ipa_options *options)
 {
     TALLOC_CTX *tmp_ctx;
-    struct ipa_service *service;
     int ret;
 
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    service = talloc_zero(tmp_ctx, struct ipa_service);
-    if (!service) {
-        ret = ENOMEM;
-        goto done;
-    }
-    service->sdap = talloc_zero(service, struct sdap_service);
-    if (!service->sdap) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    service->krb5_service = krb5_service_new(service, ctx,
+    options->krb5_service = krb5_service_new(memctx, ctx,
                                              ipa_service, realm,
                                              true,   /* The configured value */
                                              0,      /* will be set later when */
                                              0);     /* the auth provider is set up */
 
-    if (!service->krb5_service) {
+    if (!options->krb5_service) {
         ret = ENOMEM;
-        goto done;
-    }
-
-    ret = be_fo_add_service(ctx, ipa_service, ipa_user_data_cmp);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create failover service!\n");
-        goto done;
-    }
-
-    service->sdap->name = talloc_strdup(service, ipa_service);
-    if (!service->sdap->name) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    service->sdap->kinit_service_name = service->krb5_service->name;
-
-    if (!primary_servers) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "No primary servers defined, using service discovery\n");
-        primary_servers = BE_SRV_IDENTIFIER;
-    }
-
-    ret = ipa_primary_servers_init(ctx, ipa_service, service, options, primary_servers);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    if (backup_servers) {
-        ret = ipa_backup_servers_init(ctx, ipa_service, service, options, backup_servers);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    ret = be_fo_service_add_callback(memctx, ctx, ipa_service,
-                                     ipa_resolve_callback, service);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add failover callback!\n");
         goto done;
     }
 
     ret = EOK;
 
 done:
-    if (ret == EOK) {
-        *_service = talloc_steal(memctx, service);
-    }
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -1359,8 +1299,7 @@ ipa_create_trust_options(TALLOC_CTX *mem_ctx,
 
     ret = ipa_service_init(ipa_options, be_ctx, ipa_servers,
                            ipa_backup_servers, subdom->realm,
-                           service_name, ipa_options,
-                           &ipa_options->service);
+                           service_name, ipa_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init IPA service [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -1374,7 +1313,7 @@ ipa_create_trust_options(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    sdap_id_ctx = sdap_id_ctx_new(mem_ctx, be_ctx, ipa_options->service->sdap);
+    sdap_id_ctx = sdap_id_ctx_new(mem_ctx, be_ctx);
     if (sdap_id_ctx == NULL) {
         ret = ENOMEM;
         goto done;

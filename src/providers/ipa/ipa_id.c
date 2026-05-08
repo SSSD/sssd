@@ -477,7 +477,8 @@ struct ipa_id_get_account_info_state {
     struct tevent_context *ev;
     struct ipa_id_ctx *ipa_ctx;
     struct sdap_id_ctx *ctx;
-    struct sdap_id_op *op;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
     struct dp_id_data *ar;
@@ -511,7 +512,6 @@ ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
 {
     int ret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct ipa_id_get_account_info_state *state;
 
     req = tevent_req_create(memctx, &state,
@@ -524,13 +524,7 @@ ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
     state->ev = ev;
     state->ipa_ctx = ipa_ctx;
     state->ctx = ipa_ctx->sdap_id_ctx;
-
-    state->op = sdap_id_op_create(state, state->ctx->conn->conn_cache);
-    if (state->op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
-        ret = ENOMEM;
-        goto fail;
-    }
+    state->fctx = state->ctx->fctx;
 
     state->domain = find_domain_by_name(state->ctx->be->domain,
                                         ar->domain, true);
@@ -568,12 +562,11 @@ ipa_id_get_account_info_send(TALLOC_CTX *memctx, struct tevent_context *ev,
             goto fail;
         }
     } else {
-        subreq = sdap_id_op_connect_send(state->op, state, &ret);
-        if (subreq == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
+        ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                            ipa_id_get_account_info_connected);
+        if (ret != EOK) {
             goto fail;
         }
-        tevent_req_set_callback(subreq, ipa_id_get_account_info_connected, req);
     }
 
     return req;
@@ -590,14 +583,17 @@ static void ipa_id_get_account_info_connected(struct tevent_req *subreq)
                                                 struct tevent_req);
     struct ipa_id_get_account_info_state *state = tevent_req_data(req,
                                           struct ipa_id_get_account_info_state);
-    int ret;
-
-    ret = sdap_id_op_connect_recv(subreq);
+    errno_t ret;
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect request failed.\n");
-        goto fail;
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
     }
+
+    talloc_zfree(subreq);
 
     subreq = ipa_get_trusted_override_send(state, state->ev, state->ctx,
                                            state->ipa_ctx->ipa_options, state->realm,
@@ -633,21 +629,7 @@ static void ipa_id_get_account_info_got_override(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        ret = sdap_id_op_done(state->op, ret);
-
-        if (ret == EAGAIN) {
-            /* retry */
-            subreq = sdap_id_op_connect_send(state->op, state, &ret);
-            if (subreq == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
-                goto fail;
-            }
-            tevent_req_set_callback(subreq, ipa_id_get_account_info_connected,
-                                    req);
-            return;
-        }
-
-        DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
+        ret = ERR_SERVER_FAILURE;
         goto fail;
     }
 
@@ -720,8 +702,9 @@ static errno_t ipa_id_get_account_info_get_original_step(struct tevent_req *req,
 
     subreq = sdap_handle_acct_req_send(state, state->ctx->be, ar,
                                        state->ipa_ctx->sdap_id_ctx,
+                                       state->ipa_ctx->sdap_id_ctx->fctx,
                                        state->ipa_ctx->sdap_id_ctx->opts->sdom,
-                                       state->ipa_ctx->sdap_id_ctx->conn, true);
+                                       true);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct_req_send failed.\n");
         return ENOMEM;
@@ -1144,7 +1127,8 @@ int ipa_id_get_account_info_recv(struct tevent_req *req)
 struct ipa_id_get_netgroup_state {
     struct tevent_context *ev;
     struct ipa_id_ctx *ctx;
-    struct sdap_id_op *op;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct sysdb_ctx *sysdb;
     struct sss_domain_info *domain;
 
@@ -1168,7 +1152,6 @@ static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
 {
     struct tevent_req *req;
     struct ipa_id_get_netgroup_state *state;
-    struct tevent_req *subreq;
     struct sdap_id_ctx *ctx;
     char *clean_name;
     int ret;
@@ -1180,14 +1163,7 @@ static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ipa_ctx;
-
-    state->op = sdap_id_op_create(state, ctx->conn->conn_cache);
-    if (!state->op) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
-        goto fail;
-    }
-
+    state->fctx = state->ctx->sdap_id_ctx->fctx;
     state->sysdb = ctx->be->domain->sysdb;
     state->domain = ctx->be->domain;
     state->name = name;
@@ -1214,11 +1190,11 @@ static struct tevent_req *ipa_id_get_netgroup_send(TALLOC_CTX *memctx,
                                &state->attrs, NULL);
     if (ret != EOK) goto fail;
 
-    subreq = sdap_id_op_connect_send(state->op, state, &ret);
-    if (!subreq) {
+    ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                        ipa_id_get_netgroup_connected);
+    if (ret != EOK) {
         goto fail;
     }
-    tevent_req_set_callback(subreq, ipa_id_get_netgroup_connected, req);
 
     return req;
 
@@ -1234,21 +1210,21 @@ static void ipa_id_get_netgroup_connected(struct tevent_req *subreq)
                     tevent_req_callback_data(subreq, struct tevent_req);
     struct ipa_id_get_netgroup_state *state =
                     tevent_req_data(req, struct ipa_id_get_netgroup_state);
-    int ret;
     struct sdap_id_ctx *sdap_ctx = state->ctx->sdap_id_ctx;
 
-    ret = sdap_id_op_connect_recv(subreq);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
     subreq = ipa_get_netgroups_send(state, state->ev, state->sysdb,
                                     state->domain, sdap_ctx->opts,
                                     state->ctx->ipa_options,
-                                    sdap_id_op_handle(state->op),
+                                    state->conn->sh,
                                     state->attrs, state->filter,
                                     state->timeout);
     if (!subreq) {
@@ -1271,18 +1247,6 @@ static void ipa_id_get_netgroup_done(struct tevent_req *subreq)
     ret = ipa_get_netgroups_recv(subreq, state,
                                  &state->count, &state->netgroups);
     talloc_zfree(subreq);
-    ret = sdap_id_op_done(state->op, ret);
-
-    if (ret == EAGAIN) {
-        /* retry */
-        subreq = sdap_id_op_connect_send(state->op, state, &ret);
-        if (!subreq) {
-            tevent_req_error(req, ret);
-            return;
-        }
-        tevent_req_set_callback(subreq, ipa_id_get_netgroup_connected, req);
-        return;
-    }
 
     if (ret && ret != ENOENT) {
         tevent_req_error(req, ret);
