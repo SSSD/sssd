@@ -1263,7 +1263,7 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
     if (!sdom->naming_context) {
         sdom->naming_context = get_naming_context(sdom, rootdse);
         if (sdom->naming_context == NULL) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "get_naming_context failed.\n");
+            DEBUG(SSSDBG_MINOR_FAILURE, "get_naming_context failed.\n");
 
             /* This has to be non-fatal, since some servers offer
              * multiple namingContexts entries. We will just
