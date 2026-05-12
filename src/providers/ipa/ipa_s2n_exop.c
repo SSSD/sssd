@@ -1334,6 +1334,7 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
 
     talloc_zfree(state->step_ctx);
     talloc_zfree(state->override_attrs);
+    talloc_zfree(state->attrs);
     state->step_ctx = talloc_new(state);
     if (state->step_ctx == NULL) {
         return ENOMEM;
