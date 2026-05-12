@@ -45,6 +45,14 @@ enum search_str_type {
     TYPE_OBJECT_ID = 2
 };
 
+enum client_auth_method {
+    CAM_NONE = 0,
+    CAM_SECRET,
+    CAM_MTLS, /* RFC-8705 */
+    CAM_JWT,  /* RFC-7523 */
+    CAM_SENTINEL
+};
+
 struct rest_ctx;
 
 struct token_data {
@@ -91,6 +99,7 @@ struct name_and_type_identifier {
 struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
                               const char *ca_db,
                               const char *pkcs12_client_creds,
+                              enum client_auth_method client_auth_method,
                               const char *key_passwd);
 
 const char *get_http_data(struct rest_ctx *rest_ctx);
@@ -133,6 +142,10 @@ errno_t do_http_request(struct rest_ctx *rest_ctx, const char *uri,
 
 errno_t do_http_request_json_data(struct rest_ctx *rest_ctx, const char *uri,
                                   const char *post_data, const char *token);
+
+const char *rest_ctx_get_pkcs12_client_creds(struct rest_ctx *rest_ctx);
+
+const char *rest_ctx_get_key_passwd(struct rest_ctx *rest_ctx);
 
 /* oidc_child_json.c */
 errno_t parse_openid_configuration(struct devicecode_ctx *dc_ctx);
@@ -184,6 +197,9 @@ errno_t add_posix_to_json_string_array(TALLOC_CTX *mem_ctx,
 
 json_t *token_data_to_json(struct devicecode_ctx *dc_ctx);
 
+char *get_jwt(struct rest_ctx *rest_ctx, const char *token_endpoint,
+              const char *client_id);
+
 /* oidc_child_id.c */
 errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     char *idp_type,
@@ -191,6 +207,7 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     bool libcurl_debug, const char *ca_db,
                     const char *client_id, const char *client_secret,
                     const char *pkcs12_client_creds,
+                    enum client_auth_method client_auth_method,
                     const char *token_endpoint, const char *scope, char **out);
 
 #endif /* __OIDC_CHILD_UTIL_H__ */

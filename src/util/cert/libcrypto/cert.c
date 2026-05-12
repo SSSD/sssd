@@ -258,7 +258,7 @@ static int sss_ec_get_x_y_d(BN_CTX *bn_ctx, const EVP_PKEY *cert_pub_key,
     BIGNUM *x = NULL;
     BIGNUM *y = NULL;
     BIGNUM *d = NULL;
-    static char curve_name[4096];
+    char curve_name[4096];
     EC_GROUP *ec_group = NULL;
 
     ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_EC_PUB_X, &x);
@@ -277,7 +277,7 @@ static int sss_ec_get_x_y_d(BN_CTX *bn_ctx, const EVP_PKEY *cert_pub_key,
 
     ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_PRIV_KEY, &d);
     if (ret != 1) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve EC y coordinate.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve EC private key.\n");
         ret = EINVAL;
         goto done;
     }
@@ -333,6 +333,7 @@ static errno_t ec_priv_key_jwk(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_priv_key,
     char *y_str = NULL;
     char *d_str = NULL;
     BN_CTX *bn_ctx = NULL;
+    const char *alg;
 
     bn_ctx =  BN_CTX_new();
     if (bn_ctx == NULL) {
@@ -350,12 +351,15 @@ static errno_t ec_priv_key_jwk(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_priv_key,
     switch(EC_GROUP_get_curve_name(ec_group)) {
     case NID_X9_62_prime256v1:
         jwk_crv = CRV_P256;
+        alg  = "ES256";
         break;
     case NID_secp384r1:
         jwk_crv = CRV_P384;
+        alg  = "ES384";
         break;
     case NID_secp521r1:
         jwk_crv = CRV_P521;
+        alg = "ES512";
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported curve [%s]\n",
@@ -388,10 +392,12 @@ static errno_t ec_priv_key_jwk(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_priv_key,
     out = talloc_asprintf(mem_ctx,
                           "\"kty\":\"EC\","
                           "\"crv\":\"%s\","
+                          "\"alg\":\"%s\","
                           "\"x\":\"%s\","
                           "\"y\":\"%s\","
                           "\"d\":\"%s\","
-                          "\"x5t#S256\":\"%s\"", jwk_crv, x_str, y_str, d_str,
+                          "\"x5t#S256\":\"%s\"", jwk_crv, alg,
+                                                 x_str, y_str, d_str,
                                                  cert_hash);
     if (out == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to generate JSON snippet.\n");
