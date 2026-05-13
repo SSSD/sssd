@@ -1256,3 +1256,29 @@ def test_ipa__prohibited_short_names(ipa: IPA):
 
     assert result is not None, "Test failure - no result of SSSD restart!"
     assert result.rc != 0, "SSSD should refuse to start with full_name_format set to '%1$s'!"
+
+
+@pytest.mark.integration
+@pytest.mark.importance("high")
+@pytest.mark.ticket(jira="IDM-3243")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__disabled_memcached_does_not_cause_nss_stacktrace(client: Client):
+    """
+    :title: Disabling the memcache does not cause nss stacktrace
+    :setup:
+        1. Disable memcache, start SSSD, and look up the admin user
+    :steps:
+        1. Check NSS logs
+    :expectedresults:
+        1. NSS logs do not have 'memcache_delete_entry_by_name' error
+    :customerscenario: False
+    """
+    client.sssd.nss["memcache_timeout"] = "0"
+    client.sssd.start()
+    client.tools.id("admin")
+
+    logs = client.fs.read(client.sssd.logs.nss)
+    assert (
+        "[nss] [memcache_delete_entry_by_name] (0x0020): [CID#12345] Internal failure in memory cache code: 22"
+        not in logs
+    ), "'memcache_delete_entry_by_name' error message found!"
