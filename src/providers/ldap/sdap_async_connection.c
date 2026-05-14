@@ -2166,6 +2166,7 @@ int sdap_cli_connect_recv(struct tevent_req *req,
                                              struct sdap_cli_connect_state);
     enum tevent_req_state tstate;
     uint64_t err_uint64;
+    errno_t ret;
     int err;
 
     if (can_retry) {
@@ -2213,6 +2214,21 @@ int sdap_cli_connect_recv(struct tevent_req *req,
     }
 
     if (srv_opts) {
+        if (state->srv_opts == NULL) {
+            /* Always setup srv_opts to make sure it is never NULL (this can
+             * happen if rootdse_access == never or if rootDSE is not available
+             * on the server). */
+            ret = sdap_get_server_opts_from_rootdse(state, state->service->uri,
+                                                    NULL, state->opts,
+                                                    &state->srv_opts);
+            if (ret) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Unable to setup server options [%d]: %s\n", ret,
+                      sss_strerror(ret));
+                return ret;
+            }
+        }
+
         *srv_opts = talloc_steal(memctx, state->srv_opts);
     }
 
