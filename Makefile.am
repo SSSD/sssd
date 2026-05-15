@@ -305,6 +305,7 @@ if HAVE_CMOCKA
         test_sbus_message \
         test_sbus_opath \
         test_fo_srv \
+        test_failover_server \
         pam-srv-tests \
         ssh-srv-tests \
         test_ipa_subdom_util \
@@ -425,6 +426,10 @@ sssdlib_LTLIBRARIES += \
     libsss_idp.la \
     $(NULL)
 endif
+
+sssdlib_LTLIBRARIES += \
+    libsss_minimal.la \
+    $(NULL)
 
 ldblib_LTLIBRARIES = \
     memberof.la
@@ -662,6 +667,24 @@ SSSD_FAILOVER_OBJ = \
     src/providers/fail_over_srv.c \
     $(SSSD_RESOLV_OBJ)
 
+# Make sure to build new failover code to test compilation even though it is
+# not used anywhere yet.
+SSSD_NEW_FAILOVER_OBJ = \
+    src/providers/failover/failover.c \
+    src/providers/failover/failover_callback.c \
+    src/providers/failover/failover_refresh_candidates.c \
+    src/providers/failover/failover_group.c \
+    src/providers/failover/failover_server_resolve.c \
+    src/providers/failover/failover_server.c \
+    src/providers/failover/failover_srv.c \
+    src/providers/failover/failover_transaction.c \
+    src/providers/failover/failover_vtable_op.c \
+    src/providers/failover/failover_vtable.c \
+    src/providers/failover/ldap/failover_ldap_connect.c \
+    src/providers/failover/ldap/failover_ldap_kinit.c \
+    $(SSSD_RESOLV_OBJ) \
+    $(NULL)
+
 SSSD_LIBS = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
@@ -854,6 +877,16 @@ dist_noinst_HEADERS = \
     src/providers/be_refresh.h \
     src/providers/fail_over.h \
     src/providers/fail_over_srv.h \
+    src/providers/failover/failover.h \
+    src/providers/failover/failover_group.h \
+    src/providers/failover/failover_refresh_candidates.h \
+    src/providers/failover/failover_server.h \
+    src/providers/failover/failover_server_resolve.h \
+    src/providers/failover/failover_srv.h \
+    src/providers/failover/failover_transaction.h \
+    src/providers/failover/failover_vtable.h \
+    src/providers/failover/failover_vtable_op.h \
+    src/providers/failover/ldap/failover_ldap.h \
     src/util/child_common.h \
     src/util/child_bootstrap.h \
     src/providers/simple/simple_access.h \
@@ -915,6 +948,10 @@ dist_noinst_HEADERS = \
     src/providers/idp/idp_id.h \
     src/providers/idp/idp_opts.h \
     src/providers/idp/idp_private.h \
+    src/providers/minimal/minimal.h \
+    src/providers/minimal/minimal_id.h \
+    src/providers/minimal/minimal_id_services.h \
+    src/providers/minimal/minimal_ldap_auth.h \
     src/tools/tools_util.h \
     src/resolv/async_resolv.h \
     src/tests/common.h \
@@ -3515,6 +3552,24 @@ test_fo_srv_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
+test_failover_server_SOURCES = \
+    src/tests/cmocka/test_failover_server.c \
+    src/providers/failover/failover_server.c \
+    $(SSSD_RESOLV_TESTS_OBJ) \
+    $(NULL)
+test_failover_server_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(NULL)
+test_failover_server_LDADD = \
+    $(CARES_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
 test_sdap_initgr_SOURCES = \
     src/tests/cmocka/common_mock_sdap.c \
     src/tests/cmocka/common_mock_sysdb_objects.c \
@@ -4718,6 +4773,28 @@ libsss_idp_la_LIBADD = \
     $(NULL)
 
 libsss_idp_la_LDFLAGS = \
+    -avoid-version \
+    -module \
+    $(NULL)
+
+libsss_minimal_la_SOURCES = \
+    src/providers/minimal/minimal_init.c \
+    src/providers/minimal/minimal_id.c \
+    src/providers/minimal/minimal_id_services.c \
+    src/providers/minimal/minimal_ldap_auth.c \
+    $(SSSD_NEW_FAILOVER_OBJ) \
+    $(NULL)
+
+libsss_minimal_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(NULL)
+
+libsss_minimal_la_LIBADD = \
+    $(SSSD_INTERNAL_LTLIBS) \
+    libsss_ldap_common.la \
+    $(NULL)
+
+libsss_minimal_la_LDFLAGS = \
     -avoid-version \
     -module \
     $(NULL)
