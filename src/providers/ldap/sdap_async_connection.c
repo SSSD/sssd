@@ -119,6 +119,14 @@ struct tevent_req *sdap_connect_send(TALLOC_CTX *memctx,
 
     timeout = dp_opt_get_int(state->opts->basic, SDAP_NETWORK_TIMEOUT);
 
+    ret = sdap_setup_libldap_global_options(state->opts->basic);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "sdap_setup_libldap_global_options failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto fail;
+    }
+
     subreq = sss_ldap_init_send(state, ev, state->uri, sockaddr,
                                 sockaddr_len, timeout);
     if (subreq == NULL) {

@@ -843,7 +843,7 @@ static void sss_ldap_debug(const char *buf)
                 "libldap: %s", buf);
 }
 
-void setup_ldap_debug(struct dp_option *basic_opts)
+static void setup_ldap_debug(struct dp_option *basic_opts)
 {
     int ret;
     int ldap_debug_level;
@@ -875,7 +875,7 @@ void setup_ldap_debug(struct dp_option *basic_opts)
     }
 }
 
-errno_t setup_tls_config(struct dp_option *basic_opts)
+static errno_t setup_tls_config(struct dp_option *basic_opts)
 {
     int ret;
     int ldap_opt_x_tls_require_cert;
@@ -969,6 +969,31 @@ errno_t setup_tls_config(struct dp_option *basic_opts)
         }
     }
 
+    return EOK;
+}
+
+errno_t sdap_setup_libldap_global_options(struct dp_option *basic_opts)
+{
+    static bool done = false;
+    errno_t ret;
+
+    if (done) {
+        return EOK;
+    }
+
+    if (basic_opts == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "'basic_opts' are NULL\n");
+        return EINVAL;
+    }
+
+    setup_ldap_debug(basic_opts);
+
+    ret = setup_tls_config(basic_opts);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    done = true;
     return EOK;
 }
 
