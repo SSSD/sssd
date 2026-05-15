@@ -1,0 +1,789 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss-certmap</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss-certmap</refname>
+        <refpurpose>SSSD Certificate Matching and Mapping Rules</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            The manual page describes the rules which can be used by SSSD and
+            other components to match X.509 certificates and map them to
+            accounts.
+        </para>
+        <para>
+            Each rule has four components, a <quote>priority</quote>, a
+            <quote>matching rule</quote>, a <quote>mapping rule</quote> and a
+            <quote>domain list</quote>. All components are optional. A missing
+            <quote>priority</quote> will add the rule with the lowest priority.
+            The default <quote>matching rule</quote> will match certificates with
+            the digitalSignature key usage and clientAuth extended key usage. If
+            the <quote>mapping rule</quote> is empty the certificates will be
+            searched in the userCertificate attribute as DER encoded binary. If
+            no domains are given only the local domain will be searched.
+        </para>
+        <para>
+            To allow extensions or completely different style of rule the
+            <quote>mapping</quote> and <quote>matching rules</quote> can
+            contain a prefix separated with a ':' from the main part of the
+            rule. The prefix may only contain upper-case ASCII letters and
+            numbers. If the prefix is omitted the default type will be used
+            which is 'KRB5' for the matching rules and 'LDAP' for the mapping
+            rules.
+        </para>
+        <para>
+            The 'sssctl' utility provides the 'cert-eval-rule' command to check
+            if a given certificate matches a matching rules and how the output
+            of a mapping rule would look like.
+        </para>
+    </refsect1>
+
+    <refsect1 id='components'>
+        <title>RULE COMPONENTS</title>
+    <refsect2 id='priority'>
+        <title>PRIORITY</title>
+        <para>
+            The rules are processed by priority while the number '0' (zero)
+            indicates the highest priority. The higher the number the lower is
+            the priority. A missing value indicates the lowest priority. The
+            rules processing is stopped when a matched rule is found and no
+            further rules are checked.
+        </para>
+        <para>
+            Internally the priority is treated as unsigned 32bit integer, using
+            a priority value larger than 4294967295 will cause an error.
+        </para>
+        <para>
+            If multiple rules have the same priority and only one of the related
+            matching rules applies, this rule will be chosen. If there are
+            multiple rules with the same priority which matches, one is chosen
+            but which one is undefined. To avoid this undefined behavior either
+            use different priorities or make the matching rules more specific
+            e.g. by using distinct &lt;ISSUER&gt; patterns.
+        </para>
+    </refsect2>
+    <refsect2 id='match'>
+        <title>MATCHING RULE</title>
+        <para>
+            The matching rule is used to select a certificate to which the
+            mapping rule should be applied. It uses a system similar to the one
+            used by <quote>pkinit_cert_match</quote> option of MIT Kerberos. It
+            consists of a keyword enclosed by '&lt;' and '&gt;' which identified
+            a certain part of the certificate and a pattern which should be
+            found for the rule to match. Multiple keyword pattern pairs can be
+            either joined with '&amp;&amp;' (and) or '&#124;&#124;' (or).
+        </para>
+        <para>
+            Given the similarity to MIT Kerberos the type prefix for this rule
+            is 'KRB5'. But 'KRB5' will also be the default for <quote>matching
+            rules</quote> so that "&lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN" and
+            "KRB5:&lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN" are equivalent.
+        </para>
+        <para>
+            The available options are:
+            <variablelist>
+                <varlistentry>
+                    <term>&lt;SUBJECT&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        With this a part or the whole subject name of the
+                        certificate can be matched. For the matching POSIX
+                        Extended Regular Expression syntax is used, see regex(7)
+                        for details.
+                    </para>
+                    <para>
+                        For the matching the subject name stored in the
+                        certificate in DER encoded ASN.1 is converted into a
+                        string according to RFC 4514. This means the most
+                        specific name component comes first. Please note that
+                        not all possible attribute names are covered by RFC
+                        4514. The names included are 'CN', 'L', 'ST', 'O',
+                        'OU', 'C', 'STREET', 'DC' and 'UID'. Other attribute
+                        names might be shown differently on different platform
+                        and by different tools. To avoid confusion those
+                        attribute names are best not used or covered by a
+                        suitable regular-expression.
+                    </para>
+                    <para>
+                        Example: &lt;SUBJECT&gt;.*,DC=MY,DC=DOMAIN
+                    </para>
+                    <para>
+                        Please note that the characters "^.[$()|*+?{\" have a
+                        special meaning in regular expressions and must be
+                        escaped with the help of the '\' character so that they
+                        are matched as ordinary characters.
+                    </para>
+                    <para>
+                        Example: &lt;SUBJECT&gt;^CN=.* \(Admin\),DC=MY,DC=DOMAIN$
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;ISSUER&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        With this a part or the whole issuer name of the
+                        certificate can be matched. All comments for
+                        &lt;SUBJECT&gt; apply her as well.
+                    </para>
+                    <para>
+                        Example: &lt;ISSUER&gt;^CN=My-CA,DC=MY,DC=DOMAIN$
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;KU&gt;key-usage</term>
+                    <listitem>
+                    <para>
+                        This option can be used to specify which key usage
+                        values the certificate should have. The following values
+                        can be used in a comma separated list:
+                        <itemizedlist>
+                            <listitem><para>digitalSignature</para></listitem>
+                            <listitem><para>nonRepudiation</para></listitem>
+                            <listitem><para>keyEncipherment</para></listitem>
+                            <listitem><para>dataEncipherment</para></listitem>
+                            <listitem><para>keyAgreement</para></listitem>
+                            <listitem><para>keyCertSign</para></listitem>
+                            <listitem><para>cRLSign</para></listitem>
+                            <listitem><para>encipherOnly</para></listitem>
+                            <listitem><para>decipherOnly</para></listitem>
+                        </itemizedlist>
+                    </para>
+                    <para>
+                        A numerical value in the range of a 32bit unsigned
+                        integer can be used as well to cover special use cases.
+                    </para>
+                    <para>
+                        Example: &lt;KU&gt;digitalSignature,keyEncipherment
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;EKU&gt;extended-key-usage</term>
+                    <listitem>
+                    <para>
+                        This option can be used to specify which extended key
+                        usage the certificate should have. The following value
+                        can be used in a comma separated list:
+                        <itemizedlist>
+                            <listitem><para>serverAuth</para></listitem>
+                            <listitem><para>clientAuth</para></listitem>
+                            <listitem><para>codeSigning</para></listitem>
+                            <listitem><para>emailProtection</para></listitem>
+                            <listitem><para>timeStamping</para></listitem>
+                            <listitem><para>OCSPSigning</para></listitem>
+                            <listitem><para>KPClientAuth</para></listitem>
+                            <listitem><para>pkinit</para></listitem>
+                            <listitem><para>msScLogin</para></listitem>
+                        </itemizedlist>
+                    </para>
+                    <para>
+                        Extended key usages which are not listed above can be
+                        specified with their OID in dotted-decimal notation.
+                    </para>
+                    <para>
+                        Example: &lt;EKU&gt;clientAuth,1.3.6.1.5.2.3.4
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        To be compatible with the usage of MIT Kerberos this
+                        option will match the Kerberos principals in the PKINIT
+                        or AD NT Principal SAN as &lt;SAN:Principal&gt; does.
+                    </para>
+                    <para>
+                        Example: &lt;SAN&gt;.*@MY\.REALM
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:Principal&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Match the Kerberos principals in the PKINIT or AD NT
+                        Principal SAN.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:Principal&gt;.*@MY\.REALM
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:ntPrincipalName&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Match the Kerberos principals from the AD NT Principal
+                        SAN.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:ntPrincipalName&gt;.*@MY.AD.REALM
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:pkinit&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Match the Kerberos principals from the PKINIT SAN.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:ntPrincipalName&gt;.*@MY\.PKINIT\.REALM
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:dotted-decimal-oid&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Take the value of the otherName SAN component given by
+                        the OID in dotted-decimal notation, interpret it as
+                        string and try to match it against the regular
+                        expression.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:1.2.3.4&gt;test
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:otherName&gt;base64-string</term>
+                    <listitem>
+                    <para>
+                        Do a binary match with the base64 encoded blob against
+                        all otherName SAN components. With this option it is
+                        possible to match against custom otherName components
+                        with special encodings which could not be treated as
+                        strings.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:otherName&gt;MTIz
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:rfc822Name&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Match the value of the rfc822Name SAN.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:rfc822Name&gt;.*@email\.domain
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:dNSName&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Match the value of the dNSName SAN.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:dNSName&gt;.*\.my\.dns\.domain
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:x400Address&gt;base64-string</term>
+                    <listitem>
+                    <para>
+                        Binary match the value of the x400Address SAN.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:x400Address&gt;MTIz
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:directoryName&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Match the value of the directoryName SAN. The same
+                        comments as given for &lt;ISSUER&gt; and &lt;SUBJECT&gt;
+                        apply here as well.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:directoryName&gt;.*,DC=com
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:ediPartyName&gt;base64-string</term>
+                    <listitem>
+                    <para>
+                        Binary match the value of the ediPartyName SAN.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:ediPartyName&gt;MTIz
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:uniformResourceIdentifier&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Match the value of the uniformResourceIdentifier SAN.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:uniformResourceIdentifier&gt;URN:.*
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:iPAddress&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Match the value of the iPAddress SAN.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:iPAddress&gt;192\.168\..*
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>&lt;SAN:registeredID&gt;regular-expression</term>
+                    <listitem>
+                    <para>
+                        Match the value of the registeredID SAN as
+                        dotted-decimal string.
+                    </para>
+                    <para>
+                        Example: &lt;SAN:registeredID&gt;1\.2\.3\..*
+                    </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+    </refsect2>
+    <refsect2 id='map'>
+        <title>MAPPING RULE</title>
+        <para>
+            The mapping rule is used to associate a certificate with one or more
+            accounts. A Smartcard with the certificate and the matching private
+            key can then be used to authenticate as one of those accounts.
+        </para>
+        <para>
+            Currently SSSD basically only supports LDAP to lookup user
+            information (the exception is the proxy provider which is not of
+            relevance here). Because of this the mapping rule is based on LDAP
+            search filter syntax with templates to add certificate content to
+            the filter. It is expected that the filter will only contain the
+            specific data needed for the mapping and that the caller will embed
+            it in another filter to do the actual search. Because of this the
+            filter string should start and stop with '(' and ')' respectively.
+        </para>
+        <para>
+            In general it is recommended to use attributes from the certificate
+            and add them to special attributes to the LDAP user object. E.g. the
+            'altSecurityIdentities' attribute in AD or the 'ipaCertMapData'
+            attribute for IPA can be used.
+        </para>
+        <para>
+            This should be preferred to read user specific data from the
+            certificate like e.g. an email address and search for it in the LDAP
+            server. The reason is that the user specific data in LDAP might
+            change for various reasons would break the mapping. On the
+            other hand it would be hard to break the mapping on purpose for a
+            specific user.
+        </para>
+	<para>
+            The default <quote>mapping rule</quote> type is 'LDAP' which can be
+            added as a prefix to a rule like e.g.
+            'LDAP:(userCertificate;binary={cert!bin})'. There is an extension
+            called 'LDAPU1' which offer more templates for more flexibility. To
+            allow older versions of this library to ignore the extension the
+            prefix 'LDAPU1' must be used when using the new templates in a
+            <quote>mapping rule</quote> otherwise the old version of this
+            library will fail with a parsing error. The new templates are
+            described in section <xref linkend="map_ldapu1"/>.
+        </para>
+        <para>
+            The templates to add certificate data to the search filter are based
+            on Python-style formatting strings. They consist of a keyword in
+            curly braces with an optional sub-component specifier separated by a
+            '.' or an optional conversion/formatting option separated by a '!'.
+            Allowed values are:
+            <variablelist>
+                <varlistentry>
+                    <term>{issuer_dn[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the full issuer DN converted to a
+                        string according to RFC 4514. If X.500 ordering (most
+                        specific RDN comes last) an option with the '_x500'
+                        prefix should be used.
+                    </para>
+                    <para>
+                        The conversion options starting with 'ad_' will use
+                        attribute names as used by AD, e.g. 'S' instead of 'ST'.
+                    </para>
+                    <para>
+                        The conversion options starting with 'nss_' will use
+                        attribute names as used by NSS.
+                    </para>
+                    <para>
+                        The default conversion option is 'nss', i.e. attribute
+                        names according to NSS and LDAP/RFC 4514 ordering.
+                    </para>
+                    <para>
+                        Example: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!ad}&lt;S&gt;{subject_dn!ad})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_dn[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the full subject DN converted to
+                        string according to RFC 4514. If X.500 ordering (most
+                        specific RDN comes last) an option with the '_x500'
+                        prefix should be used.
+                    </para>
+                    <para>
+                        The conversion options starting with 'ad_' will use
+                        attribute names as used by AD, e.g. 'S' instead of 'ST'.
+                    </para>
+                    <para>
+                        The conversion options starting with 'nss_' will use
+                        attribute names as used by NSS.
+                    </para>
+                    <para>
+                        The default conversion option is 'nss', i.e. attribute
+                        names according to NSS and LDAP/RFC 4514 ordering.
+                    </para>
+                    <para>
+                        Example: (ipacertmapdata=X509:&lt;I&gt;{issuer_dn!nss_x500}&lt;S&gt;{subject_dn!nss_x500})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{cert[!(bin|base64)]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the whole DER encoded certificate
+                        as a string to the search filter. Depending on the
+                        conversion option the binary certificate is either
+                        converted to an escaped hex sequence '\xx' or base64.
+                        The escaped hex sequence is the default and can e.g. be
+                        used with the LDAP attribute 'userCertificate;binary'.
+                    </para>
+                    <para>
+                        Example: (userCertificate;binary={cert!bin})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_principal[.short_name]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the Kerberos principal which is
+                        taken either from the SAN used by pkinit or the one used
+                        by AD. The 'short_name' component represents the first
+                        part of the principal before the '@' sign.
+                    </para>
+                    <para>
+                        Example: (|(userPrincipal={subject_principal})(samAccountName={subject_principal.short_name}))
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_pkinit_principal[.short_name]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the Kerberos principal which is
+                        given by the SAN used by pkinit. The 'short_name'
+                        component represents the first part of the principal
+                        before the '@' sign.
+                    </para>
+                    <para>
+                        Example: (|(userPrincipal={subject_pkinit_principal})(uid={subject_pkinit_principal.short_name}))
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_nt_principal[.short_name]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the Kerberos principal which is
+                        given by the SAN used by AD. The 'short_name' component
+                        represent the first part of the principal before the '@'
+                        sign.
+                    </para>
+                    <para>
+                        Example: (|(userPrincipalName={subject_nt_principal})(samAccountName={subject_nt_principal.short_name}))
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_rfc822_name[.short_name]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the string which is stored in the
+                        rfc822Name component of the SAN, typically an email
+                        address. The 'short_name' component represents the first
+                        part of the address before the '@' sign.
+                    </para>
+                    <para>
+                        Example: (|(mail={subject_rfc822_name})(uid={subject_rfc822_name.short_name}))
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_dns_name[.short_name]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the string which is stored in the
+                        dNSName component of the SAN, typically a fully-qualified host name.
+                        The 'short_name' component represents the first
+                        part of the name before the first '.' sign.
+                    </para>
+                    <para>
+                        Example: (|(fqdn={subject_dns_name})(host={subject_dns_name.short_name}))
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_uri}</term>
+                    <listitem>
+                    <para>
+                        This template will add the string which is stored in the
+                        uniformResourceIdentifier component of the SAN.
+                    </para>
+                    <para>
+                        Example: (uri={subject_uri})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_ip_address}</term>
+                    <listitem>
+                    <para>
+                        This template will add the string which is stored in the
+                        iPAddress component of the SAN.
+                    </para>
+                    <para>
+                        Example: (ip={subject_ip_address})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_x400_address}</term>
+                    <listitem>
+                    <para>
+                        This template will add the value which is stored in the
+                        x400Address component of the SAN as escaped hex
+                        sequence.
+                    </para>
+                    <para>
+                        Example: (attr:binary={subject_x400_address})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_directory_name[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the DN string of the value which
+                        is stored in the directoryName component of the SAN.
+                    </para>
+                    <para>
+                        Example: (orig_dn={subject_directory_name})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_ediparty_name}</term>
+                    <listitem>
+                    <para>
+                        This template will add the value which is stored in the
+                        ediPartyName component of the SAN as escaped hex
+                        sequence.
+                    </para>
+                    <para>
+                        Example: (attr:binary={subject_ediparty_name})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{subject_registered_id}</term>
+                    <listitem>
+                    <para>
+                        This template will add the OID which is stored in the
+                        registeredID component of the SAN as a dotted-decimal
+                        string.
+                    </para>
+                    <para>
+                        Example: (oid={subject_registered_id})
+                    </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+    <refsect3 id='map_ldapu1'>
+        <title>LDAPU1 extension</title>
+        <para>
+            The following templates are available when using the 'LDAPU1'
+            extension:
+        </para>
+        <para>
+            <variablelist>
+                <varlistentry>
+                    <term>{serial_number[!(dec|hex[_ucr])]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the serial number of the
+                        certificate. By default it will be printed as a
+			hexadecimal number with lower-case letters.
+                    </para>
+                    <para>
+                        With the formatting option '!dec' the number will be
+                        printed as decimal string. The hexadecimal output can
+                        be printed with upper-case letters ('!hex_u'), with a
+                        colon separating the hexadecimal bytes ('!hex_c') or
+                        with the hexadecimal bytes in reverse order ('!hex_r').
+                        The postfix letters can be combined so that e.g.
+                        '!hex_uc' will produce a colon-separated hexadecimal
+                        string with upper-case letters.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(serial={serial_number})
+                    </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>{subject_key_id[!hex[_ucr]]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the subject key id of the
+                        certificate. By default it will be printed as a
+			hexadecimal number with lower-case letters.
+                    </para>
+                    <para>
+                        The hexadecimal output can
+                        be printed with upper-case letters ('!hex_u'), with a
+                        colon separating the hexadecimal bytes ('!hex_c') or
+                        with the hexadecimal bytes in reverse order ('!hex_r').
+                        The postfix letters can be combined so that e.g.
+                        '!hex_uc' will produce a colon-separated hexadecimal
+                        string with upper-case letters.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(ski={subject_key_id})
+                    </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>{cert[!DIGEST[_ucr]]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the hexadecimal digest/hash of
+                        the certificate where DIGEST must be replaced with the
+                        name of a digest/hash function supported by OpenSSL,
+                        e.g. 'sha512'.
+                    </para>
+                    <para>
+                        The hexadecimal output can
+                        be printed with upper-case letters ('!sha512_u'), with a
+                        colon separating the hexadecimal bytes ('!sha512_c') or
+                        with the hexadecimal bytes in reverse order
+                        ('!sha512_r'). The postfix letters can be combined so
+                        that e.g. '!sha512_uc' will produce a colon-separated
+                        hexadecimal string with upper-case letters.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(dgst={cert!sha256})
+                    </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>{subject_dn_component[(.attr_name|[number]]}</term>
+                    <listitem>
+                    <para>
+                        This template will add an attribute value of a component
+                        of the subject DN, by default the value of the most
+                        specific component.
+                    </para>
+                    <para>
+                        A different component can be selected by either
+                        attribute name, e.g. {subject_dn_component.uid} or by
+                        position, e.g. {subject_dn_component.[2]} where
+                        positive numbers start counting from the most specific
+                        component and negative numbers start counting from the
+                        least specific component. Attribute name and the
+                        position can be combined as e.g.
+                        {subject_dn_component.uid[2]} which means that the name
+                        of the second component must be 'uid'.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(uid={subject_dn_component.uid})
+                    </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>{issuer_dn_component[(.attr_name|[number]]}</term>
+                    <listitem>
+                    <para>
+                        This template will add an attribute value of a component
+                        of the issuer DN, by default the value of the most
+                        specific component.
+                    </para>
+                    <para>
+                        See 'subject_dn_component' for details about the
+                        attribute name and position specifiers.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(domain={issuer_dn_component.[-2]}.{issuer_dn_component.dc[-1]})
+                    </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>{sid[.rid]}</term>
+                    <listitem>
+                    <para>
+                        This template will add the SID if the corresponding
+                        extension introduced by Microsoft with the OID
+                        1.3.6.1.4.1.311.25.2 is available. With the '.rid'
+                        selector only the last component, i.e. the RID, will be
+                        added.
+                    </para>
+                    <para>
+                        Example: LDAPU1:(objectsid={sid})
+                    </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+    </refsect3>
+    </refsect2>
+    <refsect2 id='domains'>
+        <title>DOMAIN LIST</title>
+        <para>
+            If the domain list is not empty users mapped to a given certificate
+            are not only searched in the local domain but in the listed domains
+            as well as long as they are know by SSSD. Domains not know to SSSD
+            will be ignored.
+        </para>
+    </refsect2>
+    </refsect1>
+</refentry>
+</reference>

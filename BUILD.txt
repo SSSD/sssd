@@ -1,0 +1,6 @@
+The instructions on how to build the SSSD and contribute to the
+project can be found here:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+https://sssd.io/contrib/introduction.html
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

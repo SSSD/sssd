@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_seed</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_seed</refname>
+        <refpurpose>seed the SSSD cache with a user</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_seed</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+            <arg choice='plain'>-D <replaceable>DOMAIN</replaceable></arg>
+            <arg choice='plain'>-n <replaceable>USER</replaceable></arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_seed</command> seeds the SSSD cache with a user entry
+            and temporary password. If a user entry is already present in the
+            SSSD cache then the entry is updated with the temporary password.
+        </para>
+        <para>
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-D</option>,<option>--domain</option>
+                    <replaceable>DOMAIN</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Provide the name of the domain in which the
+                        user is a member of. The domain is also used to
+                        retrieve user information. The domain must be configured
+                        in sssd.conf. The <replaceable>DOMAIN</replaceable>
+                        option must be provided.
+                        Information retrieved from the domain
+                        overrides what is provided in the options.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-n</option>,<option>--username</option>
+                    <replaceable>USER</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        The username of the entry to be created or modified
+                        in the cache. The <replaceable>USER</replaceable> option
+                        must be provided.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-u</option>,<option>--uid</option>
+                    <replaceable>UID</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Set the UID of the user to
+                        <replaceable>UID</replaceable>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-g</option>,<option>--gid</option>
+                    <replaceable>GID</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Set the GID of the user to
+                        <replaceable>GID</replaceable>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-c</option>,<option>--gecos</option>
+                    <replaceable>COMMENT</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Any text string describing the user. Often used as
+                        the field for the user's full name.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-h</option>,<option>--home</option>
+                    <replaceable>HOME_DIR</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Set the home directory of the user to
+                        <replaceable>HOME_DIR</replaceable>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-s</option>,<option>--shell</option>
+                    <replaceable>SHELL</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Set the login shell of the user to
+                        <replaceable>SHELL</replaceable>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-i</option>,<option>--interactive</option>
+                </term>
+                <listitem>
+                    <para>
+                        Interactive mode for entering user information. This
+                        option will only prompt for information not provided in
+                        the options or retrieved from the domain.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-p</option>,<option>--password-file</option>
+                    <replaceable>PASS_FILE</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Specify file to read user's password from. (if not
+                        specified password is prompted for)
+                    </para>
+                </listitem>
+            </varlistentry>
+           <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+            The length of the password (or the size of file specified with -p
+            or --password-file option) must be less than or equal to PASS_MAX
+            bytes (64 bytes on systems with no globally-defined PASS_MAX value).
+        </para>
+        <para>
+        </para>
+    </refsect1>
+
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

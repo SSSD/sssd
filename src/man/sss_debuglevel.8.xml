@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_debuglevel</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_debuglevel</refname>
+        <refpurpose>[DEPRECATED] change debug level while SSSD is running</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_debuglevel</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+            <arg choice='plain'><replaceable>NEW_DEBUG_LEVEL</replaceable></arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_debuglevel</command> is deprecated and replaced
+            by the sssctl debug-level command. Please refer to the
+            <command>sssctl</command> man page for more information on sssctl usage.
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

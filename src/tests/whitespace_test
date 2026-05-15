@@ -1,0 +1,49 @@
+#!/bin/bash
+
+set -e -u -o pipefail
+
+# An AWK regex matching tracked file paths to be excluded from the search.
+# Example: '.*\.po|README'
+PATH_EXCLUDE_REGEX='.*\.po|.*\.patch|.*\.diff'
+
+export GIT_DIR="$ABS_TOP_SRCDIR/.git"
+export GIT_WORK_TREE="$ABS_TOP_SRCDIR"
+
+if [ ! -d "$GIT_DIR" ]; then
+    echo "Git repository is required for this test!" 1>&2
+    exit 77
+fi
+
+{
+    # Look for lines with trailing whitespace in all files tracked by Git
+    git grep -n -I '\s\+$' -- "$(git rev-parse --show-toplevel)" ||
+        # Don't fail if no such lines were found anywhere
+        [[ $? == 1 ]]
+} |
+    awk -- "
+        BEGIN {
+            found = 0
+        }
+        ! /^($PATH_EXCLUDE_REGEX):/ {
+            if (!found) {
+                print \"Trailing whitespace found:\"
+                found = 1
+            }
+            print
+        }
+        END {
+            exit found
+        }
+    "
+
+declare found_file=false
+while read file; do
+    [[ $file == "src/config/testconfigs/noparse.api.conf" ]] && continue
+    test `tail -c 1 $ABS_TOP_SRCDIR/$file` && \
+        echo "Missing new line at the eof: $file" && \
+        found_file=true
+done < <(git ls-files)
+
+if $found_file; then
+    exit 1
+fi

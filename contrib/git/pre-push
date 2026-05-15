@@ -1,0 +1,73 @@
+#!/usr/bin/env python
+
+# A git pre-push hook that declines commits that don't contain a Reviewed-By:
+# tag. The tag must be present on the beginning of the line. To activate, copy
+# to $GIT_DIR/hooks/pre-push and make sure the executable flag is on.
+
+# The commit message should also be based on .git-commit-template, although
+# that is just best practice and not enforced
+
+import sys
+import re
+import subprocess
+
+
+def get_all_commits(ref_from, ref_to):
+    args = ['git', 'rev-list', '{:s}..{:s}'.format(ref_from, ref_to)]
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    return [commit.strip() for commit in out.decode('UTF-8').split('\n') if commit != '']
+
+
+def commit_message(commit_hash):
+    args = ['git', 'cat-file', 'commit', commit_hash]
+    p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    return out.decode('UTF-8')
+
+
+def commit_has_rb(commit):
+    msg = commit_message(commit)
+    for l in msg.split('\n'):
+        has_rb = re.search('^Reviewed-by:', l)
+        if has_rb:
+            return True
+
+    return False
+
+
+def report_commit(commit_hash):
+    print("Commit {:s} does not have Reviewed-By!".format(commit_hash))
+    print("Full message:\n======")
+    print("{:s}".format(commit_message(commit_hash)))
+    print("======")
+
+
+# man 5 githooks says:
+#   Information about what is to be pushed is provided on the hook's
+#   standard input with lines of the form:
+#       <local ref> SP <local sha1> SP <remote ref> SP <remote sha1> LF
+def check_push(hook_input):
+    ref_to = hook_input.split()[1][:6]
+    ref_from = hook_input.split()[3][:6]
+    commit_list = get_all_commits(ref_from, ref_to)
+
+    no_rb_list = []
+    for commit in commit_list:
+        if not commit_has_rb(commit):
+            no_rb_list.append(commit)
+
+    return no_rb_list
+
+# Don't warn when pushing to personal repositories, only origin
+remote = sys.argv[1]
+if remote != 'origin':
+    sys.exit(0)
+
+for hook_input in sys.stdin.readlines():
+    no_rb_list = check_push(hook_input)
+
+    if len(no_rb_list) > 0:
+        for offender in no_rb_list:
+            report_commit(offender)
+        sys.exit(1)

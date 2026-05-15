@@ -1,0 +1,110 @@
+<refsect1 id='modified-default-options'>
+    <title>MODIFIED DEFAULT OPTIONS</title>
+    <para>
+        Certain option defaults do not match their respective backend
+        provider defaults, these option names and AD provider-specific
+        defaults are listed below:
+    </para>
+    <refsect2 id='krb5_modifications'>
+        <title>KRB5 Provider</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    krb5_validate = true
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    krb5_use_enterprise_principal = true
+                </para>
+            </listitem>
+        </itemizedlist>
+    </refsect2>
+    <refsect2 id='ldap_modifications'>
+        <title>LDAP Provider</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    ldap_schema = ad
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_force_upper_case_realm = true
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_id_mapping = true
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_sasl_mech = GSS-SPNEGO
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_referrals = false
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_account_expire_policy = ad
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_use_tokengroups = true
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_sasl_authid = sAMAccountName@REALM (typically SHORTNAME$@REALM)
+                </para>
+                <para>
+                    The AD provider looks for a different principal than the
+                    LDAP provider by default, because in an Active Directory
+                    environment the principals are divided into two groups
+                    - User Principals and Service Principals. Only User
+                    Principal can be used to obtain a TGT and by default,
+                    computer object's principal is constructed from
+                    its sAMAccountName and the AD realm. The well-known
+                    host/hostname@REALM principal is a Service Principal
+                    and thus cannot be used to get a TGT with.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </refsect2>
+    <refsect2 id='nss_modifications'>
+        <title>NSS configuration</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    fallback_homedir = /home/%d/%u
+                </para>
+                <para>
+                    The AD provider automatically sets
+                    "fallback_homedir = /home/%d/%u" to provide personal
+                    home directories for users without the homeDirectory
+                    attribute. If your AD Domain is properly
+                    populated with Posix attributes, and you want to avoid
+                    this fallback behavior, you can explicitly
+                    set "fallback_homedir = %o".
+                </para>
+                <para>
+                    Note that the system typically expects a home directory
+                    in /home/%u folder. If you decide to use a different
+                    directory structure, some other parts of your system may
+                    need adjustments.
+                </para>
+                <para>
+                    For example automated creation of home directories in
+                    combination with selinux requires selinux adjustment,
+                    otherwise the home directory will be created with wrong
+                    selinux context.
+                </para>
+            </listitem>
+        </itemizedlist>
+    </refsect2>
+</refsect1>

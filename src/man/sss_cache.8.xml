@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_cache</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_cache</refname>
+        <refpurpose>perform cache cleanup</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_cache</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_cache</command> invalidates records in SSSD cache.
+            Invalidated records are forced to be reloaded from server as soon
+            as related SSSD backend is online. Options that invalidate a single
+            object only accept a single provided argument.
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-E</option>,<option>--everything</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all cached entries.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-u</option>,<option>--user</option>
+                    <replaceable>login</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific user.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-U</option>,<option>--users</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all user records. This option overrides
+                        invalidation of specific user if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-g</option>,<option>--group</option>
+                    <replaceable>group</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific group.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-G</option>,<option>--groups</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all group records. This option overrides
+                        invalidation of specific group if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-n</option>,<option>--netgroup</option>
+                    <replaceable>netgroup</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific netgroup.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-N</option>,<option>--netgroups</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all netgroup records. This option overrides
+                        invalidation of specific netgroup if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-s</option>,<option>--service</option>
+                    <replaceable>service</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific service.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-S</option>,<option>--services</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all service records. This option overrides
+                        invalidation of specific service if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="with_autofs">
+                <term>
+                    <option>-a</option>,<option>--autofs-map</option>
+                    <replaceable>autofs-map</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate specific autofs maps.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="with_autofs">
+                <term>
+                    <option>-A</option>,<option>--autofs-maps</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all autofs maps. This option overrides
+                        invalidation of specific map if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="with_ssh">
+                <term>
+                    <option>-h</option>,<option>--ssh-host</option>
+                    <replaceable>hostname</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate SSH public keys of a specific host.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="with_ssh">
+                <term>
+                    <option>-H</option>,<option>--ssh-hosts</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate SSH public keys of all hosts. This option
+                        overrides invalidation of SSH public keys of specific
+                        host if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+           <varlistentry condition="with_sudo">
+                <term>
+                    <option>-r</option>,<option>--sudo-rule</option>
+                    <replaceable>rule</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate particular sudo rule.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry condition="with_sudo">
+                <term>
+                    <option>-R</option>,<option>--sudo-rules</option>
+                </term>
+                <listitem>
+                    <para>
+                        Invalidate all cached sudo rules. This option
+                        overrides invalidation of specific sudo rule
+                        if it was also set.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--domain</option>
+                    <replaceable>domain</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Restrict invalidation process only to a particular
+                        domain.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='memcache'>
+        <title>EFFECTS ON THE FAST MEMORY CACHE</title>
+        <para>
+            <command>sss_cache</command> also invalidates the memory cache.
+            Since the memory cache is a file which is mapped into the memory of
+            each process which called SSSD to resolve users or groups the file
+            cannot be truncated. A special flag is set in the header of the file
+            to indicate that the content is invalid and then the file is
+            unlinked by SSSD's NSS responder and a new cache file is created.
+            Whenever a process is now doing a new lookup for a user or a group
+            it will see the flag, close the old memory cache file and map the
+            new one into its memory. When all processes which had opened the old
+            memory cache file have closed it while looking up a user or a group
+            the kernel can release the occupied disk space and the old memory
+            cache file is finally removed completely.
+        </para>
+        <para>
+            A special case is long running processes which are doing user or
+            group lookups only at startup, e.g. to determine the name of the
+            user the process is running as. For those lookups the memory cache
+            file is mapped into the memory of the process. But since there will
+            be no further lookups this process would never detect if the memory
+            cache file was invalidated and hence it will be kept in memory and
+            will occupy disk space until the process stops. As a result calling
+            <command>sss_cache</command> might increase the disk usage because
+            old memory cache files cannot be removed from the disk because they
+            are still mapped by long running processes.
+        </para>
+        <para>
+            A possible work-around for long running processes which are looking
+            up users and groups only at startup or very rarely is to run them
+            with the environment variable SSS_NSS_USE_MEMCACHE set to "NO" so
+            that they won't use the memory cache at all and not map the memory
+            cache file into the memory. In general a better solution is to tune
+            the cache timeout parameters so that they meet the local
+            expectations and calling <command>sss_cache</command> is not needed.
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

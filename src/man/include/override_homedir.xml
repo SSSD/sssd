@@ -1,0 +1,96 @@
+<varlistentry>
+<term>override_homedir (string)</term>
+<listitem>
+    <para>
+        Override the user's home directory. You
+        can either provide an absolute value or a
+        template. In the template, the following
+        sequences are substituted:
+        <variablelist>
+            <varlistentry>
+                <term>%u</term>
+                <listitem><para>login name</para></listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>%U</term>
+                <listitem><para>UID number</para></listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>%d</term>
+                <listitem><para>domain name</para></listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>%f</term>
+                <listitem><para>fully qualified user name (user@domain)</para></listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>%l</term>
+                <listitem><para>The first letter of the login name.</para></listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>%P</term>
+                <listitem><para>UPN - User Principal Name (name@REALM)</para></listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>%o</term>
+                <listitem>
+                    <para>
+                        The homedir value that is defined in the directory
+                        of the identity provider.
+                    </para>
+                    <para>
+                        This substitution is designed to be used in an IPA-AD
+                        trust scenario. If this substitution is used for the
+                        <emphasis>subdomain_homedir</emphasis> option, it
+                        propagates the home directory value from the AD domain
+                        to the IPA clients. In this scenario, the option must be
+                        set in the SSSD configuration on the IPA server where
+                        SSSD is running in server mode.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>%h</term>
+                <listitem><para>
+                    The path defined for the homedir directory attribute
+                    of the identity provider, but in lower case.
+                    For details of use, see <emphasis>%o</emphasis>.
+                    </para></listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>%H</term>
+                <listitem><para>
+                    The value of configure option
+                    <emphasis>homedir_substring</emphasis>.
+                    </para></listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>%%</term>
+                <listitem><para>a literal '%'</para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </para>
+    <para>
+        This option can also be set per-domain.
+    </para>
+    <para>
+        example:
+        <programlisting>
+override_homedir = /home/%u
+        </programlisting>
+    </para>
+    <para>
+        Default: Not set (SSSD will use the value
+        retrieved from LDAP)
+    </para>
+    <para>
+        Please note, the home directory from a specific override for the user,
+        either locally (see
+        <citerefentry><refentrytitle>sss_override</refentrytitle>
+        <manvolnum>8</manvolnum></citerefentry>) or centrally managed IPA
+        id-overrides, has a higher precedence and will be used instead of the
+        value given by override_homedir.
+    </para>
+</listitem>
+</varlistentry>

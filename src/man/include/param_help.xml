@@ -1,0 +1,10 @@
+<varlistentry>
+    <term>
+        <option>-?</option>,<option>--help</option>
+    </term>
+    <listitem>
+        <para>
+            Display help message and exit.
+        </para>
+    </listitem>
+</varlistentry>

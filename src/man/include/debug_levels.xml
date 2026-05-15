@@ -1,0 +1,113 @@
+<listitem>
+    <para>
+        SSSD supports two representations for specifying the debug level. The
+        simplest is to specify a decimal value from 0-9, which represents
+        enabling that level and all lower-level debug messages. The more
+        comprehensive option is to specify a hexadecimal bitmask to enable or
+        disable specific levels (such as if you wish to suppress a level).
+    </para>
+    <para>
+        Please note that each SSSD service logs into its own log
+        file. Also please note that enabling <quote>debug_level</quote>
+        in the <quote>[sssd]</quote> section only enables debugging just
+        for the sssd process itself, not for the responder or provider
+        processes. The <quote>debug_level</quote> parameter should be
+        added to all sections that you wish to produce debug logs from.
+    </para>
+    <para>
+        In addition to changing the log level in the config file using
+        the <quote>debug_level</quote> parameter, which is persistent, but
+        requires SSSD restart, it is also possible to change the debug level
+        on the fly using the
+        <citerefentry>
+            <refentrytitle>sss_debuglevel</refentrytitle>
+            <manvolnum>8</manvolnum>
+        </citerefentry>
+        tool.
+    </para>
+    <para>
+        Currently supported debug levels:
+    </para>
+    <para>
+         <emphasis>0</emphasis>,
+         <emphasis>0x0010</emphasis>:
+         Fatal failures. Anything that would prevent SSSD from starting up or
+         causes it to cease running.
+    </para>
+    <para>
+         <emphasis>1</emphasis>,
+         <emphasis>0x0020</emphasis>:
+         Critical failures. An error that doesn't kill SSSD, but one that
+         indicates that at least one major feature is not going to work
+         properly.
+    </para>
+    <para>
+         <emphasis>2</emphasis>,
+         <emphasis>0x0040</emphasis>: Serious failures. An error announcing
+         that a particular request or operation has failed.
+    </para>
+    <para>
+         <emphasis>3</emphasis>,
+         <emphasis>0x0080</emphasis>: Minor failures. These are the errors that
+         would percolate down to cause the operation failure of 2.
+    </para>
+    <para>
+         <emphasis>4</emphasis>,
+         <emphasis>0x0100</emphasis>: Configuration settings.
+    </para>
+    <para>
+         <emphasis>5</emphasis>,
+         <emphasis>0x0200</emphasis>: Function data.
+    </para>
+    <para>
+         <emphasis>6</emphasis>,
+         <emphasis>0x0400</emphasis>: Trace messages for operation functions.
+    </para>
+    <para>
+         <emphasis>7</emphasis>,
+         <emphasis>0x1000</emphasis>: Trace messages for internal control
+         functions.
+    </para>
+    <para>
+         <emphasis>8</emphasis>,
+         <emphasis>0x2000</emphasis>: Contents of function-internal variables
+         that may be interesting.
+    </para>
+    <para>
+         <emphasis>9</emphasis>,
+         <emphasis>0x4000</emphasis>: Extremely low-level tracing information.
+    </para>
+    <para>
+         <emphasis>9</emphasis>,
+         <emphasis>0x20000</emphasis>: Performance and statistical data,
+         please note that due to the way requests are processed internally the
+         logged execution time of a request might be longer than it actually
+	 was.
+    </para>
+    <para>
+         <emphasis>10</emphasis>,
+         <emphasis>0x10000</emphasis>: Even more low-level libldb tracing
+         information. Almost never really required.
+    </para>
+    <para>
+        To log required bitmask debug levels, simply add their numbers together
+        as shown in following examples:
+    </para>
+    <para>
+        <emphasis>Example</emphasis>: To log fatal failures, critical failures,
+        serious failures and function data use 0x0270.
+    </para>
+    <para>
+        <emphasis>Example</emphasis>: To log fatal failures, configuration
+        settings, function data, trace messages for internal control functions
+        use 0x1310.
+    </para>
+    <para>
+        <emphasis>Note</emphasis>: The bitmask format of debug levels was
+        introduced in 1.7.0.
+    </para>
+    <para>
+        <emphasis>Default</emphasis>: 0x0070 (i.e. fatal, critical and serious
+        failures; corresponds to setting 2 in decimal notation)
+    </para>
+</listitem>

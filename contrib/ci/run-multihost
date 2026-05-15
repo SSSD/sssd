@@ -1,0 +1,55 @@
+#!/bin/bash
+#
+# Run multihost tests.
+#
+# CAUTION: This script will modify your system so execute it with caution. It is
+# supposed to be run only in SSSD CI and it expected that it is executed from
+# SSSD source directory.
+#
+# Copyright (C) 2020 Red Hat
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -o nounset -o pipefail -o errexit -o xtrace
+declare -r CI_DIR=`dirname "\`readlink -f \"\$0\"\`"`
+export PATH=$CI_DIR:$PATH
+
+. distro.sh
+
+if [[ $DISTRO_FAMILY != redhat ||
+      $DISTRO_BRANCH == -redhat-redhatenterprise*-7.*- ||
+      $DISTRO_BRANCH == -redhat-centos-7.*- ]]; then
+    echo "Unsupported platform."
+    exit 0
+fi
+
+echo "Building SSSD"
+autoreconf -if &> multihost-build.log
+./configure &>> multihost-build.log
+make rpms &>> multihost-build.log
+
+# Remove old packages to avoid conflict if something has changed
+echo "Removing current SSSD packages"
+sudo yum remove -y --noautoremove sssd\* &> multihost-remove.log
+
+echo "Installing SSSD"
+sudo yum install -y ./rpmbuild/RPMS/*/*.rpm &> multihost-install.log
+
+DIR=src/tests/multihost
+
+echo "Installing python requirements"
+sudo pip3 install -r $DIR/requirements.txt &> multihost-pip.log
+
+echo "Running tests"
+pytest-3 -s --multihost-config=$DIR/basic/mhc.yaml $DIR/basic &> multihost-pytest.log

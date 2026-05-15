@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_obfuscate</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_obfuscate</refname>
+        <refpurpose>obfuscate a clear text password</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_obfuscate</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+            <arg choice='plain'><replaceable>[PASSWORD]</replaceable></arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_obfuscate</command> converts a given password into
+            human-unreadable format and places it into appropriate domain
+            section of the SSSD config file.
+        </para>
+        <para>
+            The cleartext password is read from standard input or entered interactively.
+            The obfuscated password is put into <quote>ldap_default_authtok</quote>
+            parameter of a given SSSD domain and the
+            <quote>ldap_default_authtok_type</quote> parameter is set to
+            <quote>obfuscated_password</quote>. Refer to
+            <citerefentry>
+                <refentrytitle>sssd-ldap</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+            for more details on these parameters.
+        </para>
+        <para>
+            Please note that obfuscating the password provides <emphasis>no
+            real security benefit</emphasis> as it is still possible for an
+            attacker to reverse-engineer the password back. Using better
+            authentication mechanisms such as client side certificates or GSSAPI
+            is <emphasis>strongly</emphasis> advised.
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help_py.xml" />
+            <varlistentry>
+                <term>
+                    <option>-s</option>,<option>--stdin</option>
+                </term>
+                <listitem>
+                    <para>
+                        The password to obfuscate will be read from standard
+                        input.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--domain</option>
+                    <replaceable>DOMAIN</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        The SSSD domain to use the password in. The
+                        default name is <quote>default</quote>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-f</option>,<option>--file</option>
+                    <replaceable>FILE</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Read the config file specified by the positional
+                        parameter.
+                    </para>
+                    <para>
+                        Default: <filename>/etc/sssd/sssd.conf</filename>
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

@@ -1,0 +1,54 @@
+COMPONENT: Subject
+
+Explanation
+
+Resolves: https://github.com/SSSD/sssd/issues/XXXX
+
+# If a release note is required, choose one of the tags (or multiple tags if
+# it makes sense) and place it here. See the description below for tag names
+# and information. This is fully optional: not all changes require a release
+# note.
+#
+# :relnote: Generic release note.
+# :feature: New feature description.
+# :fixes: Notable bug fix description.
+# :packaging: Packaging change description.
+# :config: Change in configuration (new option, new default, etc.)
+
+# Try to keep the subject line within 52 chars ----|
+# Also please try to not exceed 72 characters of length for the body --|
+#
+# *** Release notes ***
+#
+# Release notes for new versions are automatically generated from the
+# information provided in commit messages.
+#
+# Ticket Resolution:
+#   If "Resolves: ticket_url" is found in the commit message then this ticket
+#   will be automatically closed when this commit is pushed to the upstream
+#   repository. The ticket will be also mentioned in the release notes as fixed.
+#
+#   Ideally, each commit should resolve at most one ticket. If multiple tickets
+#   are resolved then repeat the whole line, i.e.:
+#      Resolves: Ticket #1
+#      Resolves: Ticket #2
+#
+# Release Notes Content
+#   You can also provide short description of the fix or new feature for
+#   the release notes using one of the release notes tag. The tag is associated
+#   with a human readable description which is automatically put into the
+#   release notes into the correct group that is determined by the tag name.
+#
+#   The description is read until an empty line is found. And it can contain
+#   markdown language for enhanced formatting.
+#
+# Example:
+#   SUBJECT
+#
+#   Commit description.
+#
+#   Resolves: https://github.com/SSSD/sssd/issues/XXXX
+#
+#   :fixes: This is an important bug that has been fixed. Keep the
+#     description short but it can also span multiple lines.
+#

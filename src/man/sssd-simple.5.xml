@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-simple</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-simple</refname>
+        <refpurpose>the configuration file for SSSD's 'simple' access-control
+            provider</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the configuration of the simple
+            access-control provider for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            For a detailed syntax reference, refer to the
+            <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            The simple access provider grants or denies access based on an
+            access or deny list of user or group names.
+        </para>
+        <para>
+            Groups from other domains configured in sssd.conf, even if
+            the simple access provider is used there as well, and groups
+            managed outside of SSSD are not evaluated.
+        </para>
+        <para>
+            The following rules apply:
+            <itemizedlist>
+                <listitem>
+                    <para>
+                        It is not recommended to leave an option empty, it might
+                        cause errors. If you want to allow all users, do not specify
+                        any `simple_allow_users` or `simple_allow_groups`.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        If any list is provided, the order of evaluation is:
+                        allow → deny. This means that any matching deny rule
+                        will supersede any matched allow rule.
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        If either or both "allow" lists are provided, all
+                        users are denied unless they appear in at least one
+                        of these lists (OR condition).
+                    </para>
+                </listitem>
+                <listitem>
+                    <para>
+                        If either or both "deny" lists are provided, all
+                        users are granted access unless they appear in
+                        at least one of these lists (OR condition).
+                    </para>
+                </listitem>
+            </itemizedlist>
+        </para>
+    </refsect1>
+
+    <refsect1 id='configuration-options'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>Refer to the section <quote>DOMAIN SECTIONS</quote> of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page for details on the configuration of an
+            SSSD domain.
+            <variablelist>
+                <varlistentry>
+                    <term>simple_allow_users (string)</term>
+                    <listitem>
+                        <para>
+                            Comma-separated list of users who are allowed to
+                            log in. If this option is specified, all other
+                            users are denied unless they are members of groups
+                            listed in`simple_allow_groups`.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>simple_deny_users (string)</term>
+                    <listitem>
+                        <para>
+                            Comma-separated list of users who are explicitly
+                            denied access. If this option is specified, these
+                            users will be denied regardless of whether they
+                            appear in `simple_allow_users` or `simple_allow_groups`.
+                        </para>
+                        <para>
+                            OR Logic Applies: A user will be denied access
+                            if they are listed in `simple_deny_users` or
+                            if they are a member of a group in `simple_deny_groups`.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>simple_allow_groups (string)</term>
+                    <listitem>
+                        <para>
+                            Comma-separated list of groups that are allowed to
+                            log in. If this option is specified, all other
+                            users are denied unless they are explicitly listed
+                            in `simple_allow_users`.
+                        </para>
+                        <para>
+                            OR Logic Applies: A user can log in if they
+                            are listed in `simple_allow_users` or if they
+                            belong to a group in `simple_allow_groups`.
+                        </para>
+                        <para>
+                            This applies only to groups within this SSSD domain.
+                            Local groups are not evaluated.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>simple_deny_groups (string)</term>
+                    <listitem>
+                        <para>
+                            Comma-separated list of groups that are explicitly
+                            denied access. This applies only to groups within
+                            this SSSD domain. Local groups are not evaluated.
+                        </para>
+                        <para>
+                            OR Logic Applies: A user will be denied access
+                            if they are listed in `simple_deny_users` or
+                            if they are a member of any group in `simple_deny_groups`.
+                        </para>
+                        <para>
+                            This applies only to groups within this SSSD domain.
+                            Local groups are not evaluated.
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+        <para>
+            Specifying no values for any of the lists is equivalent
+            to skipping it entirely. Beware of this while generating
+            parameters for the simple provider using automated scripts.
+        </para>
+    </refsect1>
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following example assumes that SSSD is correctly
+            configured and example.com is one of the domains in the
+            <replaceable>[sssd]</replaceable> section. This example shows only
+            the simple access provider-specific options.
+        </para>
+        <para>
+<programlisting>
+[domain/example.com]
+access_provider = simple
+simple_allow_users = user1, user2
+simple_deny_users = user3, user4
+simple_allow_groups = allowed_group1
+simple_deny_groups = denied_group1
+</programlisting>
+        </para>
+    </refsect1>
+
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+          The complete group membership hierarchy is resolved
+          before the access check, thus even nested groups can be
+          included in the access lists.  Please be aware that the
+          <quote>ldap_group_nesting_level</quote> option may impact the
+          results and should be set to a sufficient value.
+          (<citerefentry>
+               <refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum>
+          </citerefentry>) option.
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

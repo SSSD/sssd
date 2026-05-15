@@ -1,0 +1,132 @@
+<refsect1 id='failover'>
+    <title>FAILOVER</title>
+    <para>
+        The failover feature allows back ends to automatically switch to
+        a different server if the current server fails.
+    </para>
+    <refsect2 id='failover_syntax'>
+        <title>Failover Syntax</title>
+        <para>
+            The list of servers is given as a comma-separated list; any
+            number of spaces is allowed around the comma. The servers are
+            listed in order of preference. The list can contain any number
+            of servers.
+        </para>
+        <para>
+            For each failover-enabled config option, two variants exist:
+            <emphasis>primary</emphasis> and <emphasis>backup</emphasis>.
+            The idea is that servers in the primary list are preferred and
+            backup servers are only searched if no primary servers can be
+            reached. If a backup server is selected, a timeout of 31 seconds
+            is set. After this timeout SSSD will periodically try to reconnect
+            to one of the primary servers. If it succeeds, it will replace
+            the current active (backup) server.
+        </para>
+    </refsect2>
+    <refsect2 id='failover_mechanism'>
+        <title>The Failover Mechanism</title>
+        <para>
+            The failover mechanism distinguishes between a machine and a
+            service. The back end first tries to resolve the hostname of a
+            given machine; if this resolution attempt fails, the machine is
+            considered offline. No further attempts are made to connect
+            to this machine for any other service. If the resolution
+            attempt succeeds, the back end tries to connect to a service
+            on this machine. If the service connection attempt fails,
+            then only this particular service is considered offline and
+            the back end automatically switches over to the next service.
+            The machine is still considered online and might still be tried
+            for another service.
+        </para>
+        <para>
+            Further connection attempts are made to machines or services
+            marked as offline after a specified period of time; this is
+            currently hard coded to 30 seconds.
+        </para>
+        <para>
+            If there are no more machines to try, the back end as a whole
+            switches to offline mode, and then attempts to reconnect
+            every 30 seconds.
+        </para>
+    </refsect2>
+    <refsect2 id='failover_tuning'>
+        <title>Failover time outs and tuning</title>
+        <para>
+            Resolving a server to connect to can be as simple as running
+            a single DNS query or can involve several steps, such as finding
+            the correct site or trying out multiple host names in case some
+            of the configured servers are not reachable. The more complex
+            scenarios can take some time and SSSD needs to balance between
+            providing enough time to finish the resolution process but on
+            the other hand, not trying for too long before falling back
+            to offline mode. If the SSSD debug logs show that the server
+            resolution is timing out before a live server is contacted,
+            you can consider changing the time outs.
+        </para>
+        <para>
+            This section lists the available tunables. Please refer to their
+            description in the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle><manvolnum>5</manvolnum>
+            </citerefentry>,
+            manual page.
+            <variablelist>
+                <varlistentry>
+                    <term>
+                        dns_resolver_server_timeout
+                    </term>
+                    <listitem>
+                        <para>
+                            Time in milliseconds that sets how long would SSSD
+                            talk to a single DNS server before trying next one.
+                        </para>
+                        <para>
+                            Default: 1000
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>
+                        dns_resolver_op_timeout
+                    </term>
+                    <listitem>
+                        <para>
+                            Time in seconds to tell how long would SSSD try
+                            to resolve single DNS query (e.g. resolution of a
+                            hostname or an SRV record) before trying the next
+                            hostname or discovery domain.
+                        </para>
+                        <para>
+                            Default: 3
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>
+                        dns_resolver_timeout
+                    </term>
+                    <listitem>
+                        <para>
+                            How long would SSSD try to resolve a failover
+                            service. This service resolution internally might
+                            include several steps, such as resolving DNS SRV
+                            queries or locating the site.
+                        </para>
+                        <para>
+                            Default: 6
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+        <para>
+            For LDAP-based providers, the resolve operation is performed
+            as part of an LDAP connection operation. Therefore, also the
+            <quote>ldap_opt_timeout</quote> timeout should be set to
+            a larger value than <quote>dns_resolver_timeout</quote>
+            which in turn should be set to a larger value than
+            <quote>dns_resolver_op_timeout</quote> which should be larger
+            than <quote>dns_resolver_server_timeout</quote>.
+        </para>
+    </refsect2>
+</refsect1>

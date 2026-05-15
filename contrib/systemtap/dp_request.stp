@@ -1,0 +1,85 @@
+/* Start Run with:
+ *   stap -v dp_request.stp
+ *
+ * Then reproduce slow login or id/getent in another terminal.
+ * Ctrl-C running stap once login completes.
+ *
+ * Probe tapsets are in /usr/share/systemtap/tapset/sssd.stp
+ */
+
+
+global num_dp_requests
+
+global time_in_dp_req
+global elapsed_time
+global dp_req_send_start
+global dp_req_send_end
+
+/* Used for tracking slowest request as tz_ctime() only converts seconds, not ms */
+global dp_req_send_sec_start
+global dp_req_send_sec_end
+
+global slowest_req_name
+global slowest_req_target
+global slowest_req_method
+global slowest_req_time = 0
+global slowest_req_start_time
+global slowest_req_end_time
+
+function print_report()
+{
+	printf("\nEnding Systemtap Run - Providing Summary\n")
+	printf("Total Number of DP requests: [%d]\n", num_dp_requests)
+	printf("Total time in DP requests: [%s]\n", msecs_to_string(time_in_dp_req))
+	printf("Slowest request data:\n")
+	printf("\tRequest: [%s]\n", slowest_req_name)
+	printf("\tTarget:  [%s]\n", dp_target_str(slowest_req_target))
+	printf("\tMethod:  [%s]\n", dp_method_str(slowest_req_method))
+	printf("\tStart Time: [%s]\n", tz_ctime(slowest_req_start_time))
+	printf("\tEnd Time: [%s]\n", tz_ctime(slowest_req_end_time))
+	printf("\tDuration: [%s]\n\n", msecs_to_string(slowest_req_time))
+}
+
+probe dp_req_send
+{
+	dp_req_send_start = gettimeofday_ms()
+	dp_req_send_sec_start = gettimeofday_s()
+
+	printf("\t--> DP Request [%s] sent for domain [%s]\n", dp_req_name, dp_req_domain)
+	printf("\t--> Target: [%s] - Method: [%s]\n", dp_target_str(dp_req_target), dp_method_str(dp_req_method))
+
+	num_dp_requests++
+}
+
+probe dp_req_done
+{
+	dp_req_send_end = gettimeofday_ms()
+	dp_req_send_sec_end = gettimeofday_s()
+	elapsed_time = (dp_req_send_end - dp_req_send_start)
+
+	printf("\t\t DP Request [%s] finished with return code [%d]: [%s]\n",
+	        dp_req_name, dp_ret, dp_errorstr)
+	printf("\t\t Elapsed time [%s]\n\n", msecs_to_string(elapsed_time))
+
+	/* Track slowest request information */
+	if (elapsed_time > slowest_req_time) {
+		slowest_req_time = elapsed_time
+		slowest_req_name = dp_req_name
+		slowest_req_method = dp_req_method
+		slowest_req_target = slowest_req_target
+		slowest_req_start_time = dp_req_send_sec_start
+		slowest_req_end_time = dp_req_send_sec_end
+	}
+
+	time_in_dp_req += (dp_req_send_end - dp_req_send_start)
+}
+
+probe begin
+{
+	printf("\t*** Beginning run! ***\n")
+}
+
+probe end
+{
+    print_report()
+}

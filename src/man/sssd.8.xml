@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd</refname>
+        <refpurpose>System Security Services Daemon</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sssd</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>SSSD</command> provides a set of daemons to manage access to remote
+            directories and authentication mechanisms. It provides an NSS and
+            PAM interface toward the system and a pluggable backend system to
+            connect to multiple different account sources as well as D-Bus
+            interface. It is also the basis to provide client auditing and
+            policy services for projects like FreeIPA. It provides a more robust database
+            to store local users as well as extended user data.
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--debug-level</option>
+                    <replaceable>LEVEL</replaceable>
+                </term>
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels.xml" />
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>--debug-timestamps=</option><replaceable>mode</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        <emphasis>1</emphasis>: Add a timestamp to the debug messages
+                    </para>
+                    <para>
+                        <emphasis>0</emphasis>: Disable timestamp in the debug messages
+                    </para>
+                    <para>
+                        Default: 1
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>--debug-microseconds=</option><replaceable>mode</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        <emphasis>1</emphasis>: Add microseconds to the timestamp in debug messages
+                    </para>
+                    <para>
+                        <emphasis>0</emphasis>: Disable microseconds in timestamp
+                    </para>
+                    <para>
+                        Default: 0
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>--logger=</option><replaceable>value</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Location where SSSD will send log messages.
+                    </para>
+                    <para>
+                        <emphasis>stderr</emphasis>: Redirect debug messages to
+                        standard error output.
+                    </para>
+                    <para>
+                        <emphasis>files</emphasis>: Redirect debug messages to
+                        the log files. By default, the log files are stored in
+                        <filename>/var/log/sssd</filename> and there are
+                        separate log files for every SSSD service and domain.
+                    </para>
+                    <para>
+                        <emphasis>journald</emphasis>: Redirect debug messages
+                        to systemd-journald
+                    </para>
+                    <para>
+                        Default: not set (fall back to journald if available,
+                        otherwise to stderr)
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-D</option>,<option>--daemon</option>
+                </term>
+                <listitem>
+                    <para>
+                        Become a daemon after starting up.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-i</option>,<option>--interactive</option>
+                </term>
+                <listitem>
+                    <para>
+                        Run in the foreground, don't become a daemon.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-c</option>,<option>--config</option>
+                </term>
+                <listitem>
+                    <para>
+                        Specify a non-default config file. The default is
+                        <filename>/etc/sssd/sssd.conf</filename>. For reference
+                        on the config file syntax and options, consult the
+                        <citerefentry>
+                            <refentrytitle>sssd.conf</refentrytitle>
+                            <manvolnum>5</manvolnum>
+                        </citerefentry>
+                        manual page.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-g</option>,<option>--genconf</option>
+                </term>
+                <listitem>
+                    <para>
+                        Do not start the SSSD, but refresh the configuration
+                        database from the contents of
+                        <filename>/etc/sssd/sssd.conf</filename> and exit.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>-s</option>,<option>--genconf-section</option>
+                </term>
+                <listitem>
+                    <para>
+                        Similar to <quote>--genconf</quote>, but only refresh
+                        a single section from the configuration file.  This
+                        option is useful mainly to be called from systemd
+                        unit files to allow socket-activated responders
+                        to refresh their configuration without requiring
+                        the administrator to restart the whole SSSD.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+            <varlistentry>
+                <term>
+                    <option>--version</option>
+                </term>
+                <listitem>
+                    <para>
+                        Print version number and exit.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <refsect1>
+        <title>Signals</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>SIGTERM/SIGINT</term>
+                <listitem>
+                    <para>
+                        Informs the SSSD to gracefully terminate all of its
+                        child processes and then shut down the monitor.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>SIGHUP</term>
+                <listitem>
+                    <para>
+                        Tells the SSSD to stop writing to its current debug
+                        file descriptors and to close and reopen them. This is
+                        meant to facilitate log rolling with programs like
+                        logrotate.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>SIGUSR1</term>
+                <listitem>
+                    <para>
+                        Tells the SSSD to simulate offline operation for the
+                        duration of the <quote>offline_timeout</quote>
+                        parameter. This is useful for testing. The signal
+                        can be sent to either the sssd process or any sssd_be
+                        process directly.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>SIGUSR2</term>
+                <listitem>
+                    <para>
+                        Tells the SSSD to go online immediately. This is
+                        useful for testing. The signal can be sent to either
+                        the sssd process or any sssd_be process directly.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+            If the environment variable SSS_NSS_USE_MEMCACHE is set to "NO",
+            client applications will not use the fast in-memory cache.
+        </para>
+        <para condition="enable_lockfree_support">
+            If the environment variable SSS_LOCKFREE is set to "NO", requests
+            from multiple threads of a single application will be serialized.
+        </para>
+    </refsect1>
+
+	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

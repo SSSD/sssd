@@ -1,0 +1,9 @@
+[Unit]
+Description=SSSD Kerberos Cache Manager responder socket
+Documentation=man:sssd-kcm(8)
+
+[Socket]
+ListenStream=@runstatedir@/.heim_org.h5l.kcm-socket
+
+[Install]
+WantedBy=sockets.target

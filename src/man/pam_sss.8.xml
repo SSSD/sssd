@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"
+                href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>pam_sss</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>pam_sss</refname>
+        <refpurpose>PAM module for SSSD</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>pam_sss.so</command>
+            <arg choice='opt'>
+                <replaceable>quiet</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>forward_pass</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>use_first_pass</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>use_authtok</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>retry=N</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>ignore_unknown_user</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>ignore_authinfo_unavail</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>domains=X</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>allow_missing_name</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>prompt_always</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>try_cert_auth</replaceable>
+            </arg>
+            <arg choice='opt'>
+                <replaceable>require_cert_auth</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para><command>pam_sss.so</command> is the PAM interface to the System
+        Security Services daemon (SSSD). Errors and results are logged through
+        <command>syslog(3)</command> with the LOG_AUTHPRIV facility.</para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>quiet</option>
+                </term>
+                <listitem>
+                    <para>Suppress log messages for unknown users.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>forward_pass</option>
+                </term>
+                <listitem>
+                    <para>If <option>forward_pass</option> is set the entered
+                    password is put on the stack for other PAM modules to use.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>use_first_pass</option>
+                </term>
+                <listitem>
+                    <para>The argument use_first_pass forces the module to use
+                    a previous stacked modules password and will never prompt
+                    the user - if no password is available or the password is
+                    not appropriate, the user will be denied access.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>use_authtok</option>
+                </term>
+                <listitem>
+                    <para>When password changing enforce the module to set the
+                    new password to the one provided by a previously stacked
+                    password module.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>retry=N</option>
+                </term>
+                <listitem>
+                    <para>If specified the user is asked another N times for a
+                    password if authentication fails. Default is 0.</para>
+                    <para>Please note that this option might not work as
+                    expected if the application calling PAM handles the user
+                    dialog on its own. A typical example is
+                    <command>sshd</command> with
+                    <option>PasswordAuthentication</option>.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>ignore_unknown_user</option>
+                </term>
+                <listitem>
+                    <para>If this option is specified and the user does not
+                    exist, the PAM module will return PAM_IGNORE. This causes
+                    the PAM framework to ignore this module.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>ignore_authinfo_unavail</option>
+                </term>
+                <listitem>
+                    <para>
+                    Specifies  that  the  PAM module should return PAM_IGNORE
+                    if it cannot contact the SSSD daemon. This causes
+                    the PAM framework to ignore this module.</para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>domains</option>
+                </term>
+                <listitem>
+                    <para>
+                        Allows the administrator to restrict the domains a
+                        particular PAM service is allowed to authenticate
+                        against. The format is a comma-separated list of
+                        SSSD domain names, as specified in the sssd.conf file.
+                    </para>
+                    <para>
+                        NOTE: If this is used for a service not running as root
+                        user, e.g. a web-server, it must be used in conjunction
+                        with the <quote>pam_trusted_users</quote> and
+                        <quote>pam_public_domains</quote> options.
+                        Please see the
+                        <citerefentry>
+                            <refentrytitle>sssd.conf</refentrytitle>
+                            <manvolnum>5</manvolnum>
+                        </citerefentry> manual page for more information
+                        on these two PAM responder options.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>allow_missing_name</option>
+                </term>
+                <listitem>
+                    <para>
+                        The main purpose of this option is to let SSSD determine
+                        the user name based on additional information, e.g. the
+                        certificate from a Smartcard.
+                    </para>
+                    <para>
+                        The current use case are login managers which can
+                        monitor a Smartcard reader for card events. In case a
+                        Smartcard is inserted the login manager will call a PAM
+                        stack which includes a line like
+                        <programlisting>
+auth sufficient pam_sss.so allow_missing_name
+                        </programlisting>
+                        In this case SSSD will try to determine the user name
+                        based on the content of the Smartcard, returns it to
+                        pam_sss which will finally put it on the PAM stack.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>prompt_always</option>
+                </term>
+                <listitem>
+                    <para>
+                        Always prompt  the user for credentials. With this
+                        option credentials requested by other PAM modules,
+                        typically a password, will be ignored and pam_sss will
+                        prompt for credentials again. Based on the pre-auth
+                        reply by SSSD pam_sss might prompt for a password, a
+                        Smartcard PIN or other credentials.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>try_cert_auth</option>
+                </term>
+                <listitem>
+                    <para>
+                        Try to use certificate based authentication, i.e.
+                        authentication with a Smartcard or similar devices. If a
+                        Smartcard is available and the service is allowed for
+                        Smartcard authentication the user will be prompted for a
+                        PIN and the certificate based authentication will
+                        continue
+                    </para>
+                    <para>
+                        If no Smartcard is available or certificate based
+                        authentication is not allowed for the current service
+                        PAM_AUTHINFO_UNAVAIL is returned.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>require_cert_auth</option>
+                </term>
+                <listitem>
+                    <para>
+                        Do certificate based authentication, i.e.
+                        authentication with a Smartcard or similar devices. If a
+                        Smartcard is not available the user will be prompted to
+                        insert one. SSSD will wait for a Smartcard until the
+                        timeout defined by p11_wait_for_card_timeout passed,
+                        please see
+                        <citerefentry><refentrytitle>sssd.conf</refentrytitle>
+                        <manvolnum>5</manvolnum></citerefentry> for details.
+                    </para>
+                    <para>
+                        If no Smartcard is available after the timeout or
+                        certificate based authentication is not allowed for the
+                        current service PAM_AUTHINFO_UNAVAIL is returned.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='module_types_provides'>
+        <title>MODULE TYPES PROVIDED</title>
+        <para>All module types (<option>account</option>, <option>auth</option>,
+        <option>password</option> and <option>session</option>) are provided.
+        </para>
+        <para>If SSSD's PAM responder is not running, e.g. if the PAM responder
+        socket is not available, pam_sss will return PAM_USER_UNKNOWN when
+        called as <option>account</option> module to avoid issues with users
+        from other sources during access control.</para>
+    </refsect1>
+
+    <refsect1 id="return_values">
+        <title>RETURN VALUES</title>
+        <variablelist>
+            <varlistentry>
+                <term>PAM_SUCCESS</term>
+                <listitem>
+                    <para>
+                        The PAM operation finished successfully.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_USER_UNKNOWN</term>
+                <listitem>
+                    <para>
+                        The user is not known to the authentication service or
+                        the SSSD's PAM responder is not running.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_AUTH_ERR</term>
+                <listitem>
+                    <para>
+                        Authentication failure. Also, could be returned when there
+                        is a problem with getting the certificate.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_PERM_DENIED</term>
+                <listitem>
+                    <para>
+                        Permission denied. The SSSD log files may contain additional
+                        information about the error.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_IGNORE</term>
+                <listitem>
+                    <para>
+                        See options <option>ignore_unknown_user</option> and
+                        <option>ignore_authinfo_unavail</option>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_AUTHTOK_ERR</term>
+                <listitem>
+                    <para>
+                        Unable to obtain the new authentication token. Also, could be
+                        returned when the user authenticates with certificates and
+                        multiple certificates are available, but the installed version
+                        of GDM does not support selection from multiple certificates.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_AUTHINFO_UNAVAIL</term>
+                <listitem>
+                    <para>
+                        Unable to access the authentication information.
+                        This might be due to a network or hardware failure.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_BUF_ERR</term>
+                <listitem>
+                    <para>
+                        A memory error occurred. Also, could be returned when options
+                        use_first_pass or use_authtok were set, but no password was
+                        found from the previously stacked PAM module.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_SYSTEM_ERR</term>
+                <listitem>
+                    <para>
+                        A system error occurred. The SSSD log files may contain additional
+                        information about the error.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_CRED_ERR</term>
+                <listitem>
+                    <para>
+                        Unable to set the credentials of the user.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_CRED_INSUFFICIENT</term>
+                <listitem>
+                    <para>
+                        The application does not have sufficient credentials
+                        to authenticate the user. For example, missing PIN during
+                        smartcard authentication or missing factor during
+                        two-factor authentication.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_SERVICE_ERR</term>
+                <listitem>
+                    <para>
+                        Error in service module.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_NEW_AUTHTOK_REQD</term>
+                <listitem>
+                    <para>
+                        The user's authentication token has expired.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_ACCT_EXPIRED</term>
+                <listitem>
+                    <para>
+                        The user account has expired.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_SESSION_ERR</term>
+                <listitem>
+                    <para>
+                        Unable to fetch IPA Desktop Profile rules or user info.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_CRED_UNAVAIL</term>
+                <listitem>
+                    <para>
+                        Unable to retrieve Kerberos user credentials.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_NO_MODULE_DATA</term>
+                <listitem>
+                    <para>
+                        No authentication method was found by Kerberos.
+                        This might happen if the user has a Smartcard assigned but
+                        the pkint plugin is not available on the client.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_CONV_ERR</term>
+                <listitem>
+                    <para>
+                       Conversation failure.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_AUTHTOK_LOCK_BUSY</term>
+                <listitem>
+                    <para>
+                       No KDC suitable for password change is available.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_ABORT</term>
+                <listitem>
+                    <para>
+                       Unknown PAM call.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_MODULE_UNKNOWN</term>
+                <listitem>
+                    <para>
+                       Unsupported PAM task or command.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>PAM_BAD_ITEM</term>
+                <listitem>
+                    <para>
+                       The authentication module cannot handle Smartcard credentials.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='files'>
+        <title>FILES</title>
+        <para>If a password reset by root fails, because the corresponding SSSD
+        provider does not support password resets, an individual message can be
+        displayed. This message can e.g. contain instructions about how to reset
+        a password.</para>
+
+        <para>The message is read from the file
+        <filename>pam_sss_pw_reset_message.LOC</filename> where LOC stands for a
+        locale string returned by <citerefentry>
+        <refentrytitle>setlocale</refentrytitle><manvolnum>3</manvolnum>
+        </citerefentry>. If there is no matching file the content of
+        <filename>pam_sss_pw_reset_message.txt</filename> is displayed. Root
+        must be the owner of the files and only root may have read and write
+        permissions while all other users must have only read
+        permissions.</para>
+
+        <para>These files are searched in the directory
+        <filename>/etc/sssd/customize/DOMAIN_NAME/</filename>. If no matching
+        file is present a generic message is displayed.</para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

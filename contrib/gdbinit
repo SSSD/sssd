@@ -1,0 +1,2 @@
+# When attaching to an SSSD process, cancel the watchdog
+p teardown_watchdog()

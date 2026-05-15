@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-sudo</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-sudo</refname>
+        <refpurpose>Configuring sudo with the SSSD back end</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes how to configure
+            <citerefentry>
+                <refentrytitle>sudo</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry> to work with
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry> and how SSSD caches sudo rules.
+        </para>
+    </refsect1>
+
+    <refsect1 id='sudo'>
+        <title>Configuring sudo to cooperate with SSSD</title>
+        <para>
+            To enable SSSD as a source for sudo rules, add
+            <emphasis>sss</emphasis> to the <emphasis>sudoers</emphasis> entry
+            in
+            <citerefentry>
+                <refentrytitle>nsswitch.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+        </para>
+        <para>
+            For example, to configure sudo to first lookup rules in the standard
+            <citerefentry>
+                <refentrytitle>sudoers</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> file (which should contain rules that apply to
+            local users) and then in SSSD, the nsswitch.conf file should contain
+            the following line:
+        </para>
+        <para>
+<programlisting>
+sudoers: files sss
+</programlisting>
+        </para>
+        <para>
+            More information about configuring the sudoers search order from the
+            nsswitch.conf file as well as information about the LDAP schema that
+            is used to store sudo rules in the directory can be found in
+            <citerefentry>
+                <refentrytitle>sudoers.ldap</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+        </para>
+        <para>
+            <emphasis>Note</emphasis>: in order to use netgroups or IPA
+            hostgroups in sudo rules, you also need to correctly set
+            <citerefentry>
+                <refentrytitle>nisdomainname</refentrytitle>
+                <manvolnum>1</manvolnum>
+            </citerefentry>
+            to your NIS domain name (which equals to IPA domain name when
+            using hostgroups).
+        </para>
+    </refsect1>
+
+    <refsect1 id='sssd'>
+        <title>Configuring SSSD to fetch sudo rules</title>
+        <para>
+            All configuration that is needed on SSSD side is to extend the list
+            of <emphasis>services</emphasis> with "sudo" in [sssd] section of
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>. To speed up the LDAP lookups, you can also set
+            search base for sudo rules using
+            <emphasis>ldap_sudo_search_base</emphasis> option.
+        </para>
+        <para>
+            The following example shows how to configure SSSD to download sudo
+            rules from an LDAP server.
+        </para>
+        <para>
+<programlisting>
+[sssd]
+config_file_version = 2
+services = nss, pam, sudo
+domains = EXAMPLE
+
+[domain/EXAMPLE]
+id_provider = ldap
+sudo_provider = ldap
+ldap_uri = ldap://example.com
+ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
+</programlisting>
+            <phrase condition="have_systemd">
+                It's important to note that on platforms where systemd is supported
+                there's no need to add the "sudo" provider to the list of services,
+                as it became optional. However, sssd-sudo.socket must be enabled
+                instead.
+            </phrase>
+        </para>
+        <para>
+            When SSSD is configured to use IPA as the ID provider, the
+            sudo provider is automatically enabled. The sudo search base is
+            configured to use the IPA native LDAP tree (cn=sudo,$SUFFIX).
+            If any other search base is defined in sssd.conf, this value will be
+            used instead. The compat tree (ou=sudoers,$SUFFIX) is no longer
+            required for IPA sudo functionality.
+        </para>
+    </refsect1>
+
+    <refsect1 id='cache'>
+        <title>The SUDO rule caching mechanism</title>
+        <para>
+            The biggest challenge, when developing sudo support in SSSD, was to
+            ensure that running sudo with SSSD as the data source provides the
+            same user experience and is as fast as sudo but keeps providing
+            the most current set of rules as possible. To satisfy these
+            requirements, SSSD uses three kinds of updates. They are referred to
+            as full refresh, smart refresh and rules refresh.
+        </para>
+        <para>
+            The <emphasis>smart refresh</emphasis> periodically downloads rules
+            that are new or were modified after the last update. Its primary
+            goal is to keep the database growing by fetching only small
+            increments that do not generate large amounts of network traffic.
+        </para>
+        <para>
+            The <emphasis>full refresh</emphasis> simply deletes all sudo rules
+            stored in the cache and replaces them with all rules that are stored
+            on the server. This is used to keep the cache consistent by removing
+            every rule which was deleted from the server. However, full refresh
+            may produce a lot of traffic and thus it should be run only
+            occasionally depending on the size and stability of the sudo rules.
+        </para>
+        <para>
+            The <emphasis>rules refresh</emphasis> ensures that we do not grant
+            the user more permission than defined. It is triggered each time the
+            user runs sudo. Rules refresh will find all rules that apply to this
+            user, check their expiration time and redownload them if expired.
+            In the case that any of these rules are missing on the server, the
+            SSSD will do an out of band full refresh because more rules
+            (that apply to other users) may have been deleted.
+        </para>
+        <para>
+            If enabled, SSSD will store only rules that can be applied to this
+            machine. This means rules that contain one of the following values
+            in <emphasis>sudoHost</emphasis> attribute:
+        </para>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    keyword ALL
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    wildcard
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    netgroup (in the form "+netgroup")
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    hostname or fully qualified domain name of this machine
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    one of the IP addresses of this machine
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    one of the IP addresses of the network
+                    (in the form "address/mask")
+                </para>
+            </listitem>
+        </itemizedlist>
+        <para>
+            There are many configuration options that can be used to adjust
+            the behavior. Please refer to "ldap_sudo_*" in
+            <citerefentry>
+                <refentrytitle>sssd-ldap</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> and "sudo_*" in
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>.
+        </para>
+    </refsect1>
+
+    <refsect1 id='performance'>
+        <title>Tuning the performance</title>
+        <para>
+            SSSD uses different kinds of mechanisms with more or less complex
+            LDAP filters to keep the cached sudo rules up to date. The default
+            configuration is set to values that should satisfy most of our
+            users, but the following paragraphs contain few tips on how to fine-
+            tune the configuration to your requirements.
+        </para>
+        <para>
+            1. <emphasis>Index LDAP attributes</emphasis>. Make sure that
+            following LDAP attributes are indexed: objectClass, cn, entryUSN or
+            modifyTimestamp.
+        </para>
+        <para>
+            2. <emphasis>Set ldap_sudo_search_base</emphasis>. Set the search
+            base to the container that holds the sudo rules to limit the scope
+            of the lookup.
+        </para>
+        <para>
+            3. <emphasis>Set full and smart refresh interval</emphasis>. If your
+            sudo rules do not change often and you do not require quick update
+            of cached rules on your clients, you may consider increasing the
+            <emphasis>ldap_sudo_full_refresh_interval</emphasis> and
+            <emphasis>ldap_sudo_smart_refresh_interval</emphasis>. You may also
+            consider disabling the smart refresh by setting
+            <emphasis>ldap_sudo_smart_refresh_interval = 0</emphasis>.
+        </para>
+        <para>
+            4. If you have large number of clients, you may consider increasing
+            the value of <emphasis>ldap_sudo_random_offset</emphasis> to
+            distribute the load on the server better.
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

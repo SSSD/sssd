@@ -1,0 +1,77 @@
+SSS_NSS_IDMAP_0.0.1 {
+
+    # public functions
+    global:
+
+        sss_nss_getsidbyname;
+        sss_nss_getsidbyid;
+        sss_nss_getnamebysid;
+        sss_nss_getidbysid;
+
+    # everything else is local
+    local:
+        *;
+};
+
+SSS_NSS_IDMAP_0.1.0 {
+    # public functions
+    global:
+        sss_nss_getorigbyname;
+        sss_nss_free_kv;
+} SSS_NSS_IDMAP_0.0.1;
+
+SSS_NSS_IDMAP_0.2.0 {
+    # public functions
+    global:
+        sss_nss_getnamebycert;
+} SSS_NSS_IDMAP_0.1.0;
+
+SSS_NSS_IDMAP_0.3.0 {
+    # public functions
+    global:
+        sss_nss_getlistbycert;
+} SSS_NSS_IDMAP_0.2.0;
+
+SSS_NSS_IDMAP_0.4.0 {
+    # public functions
+    global:
+        sss_nss_getpwnam_timeout;
+        sss_nss_getpwuid_timeout;
+        sss_nss_getgrnam_timeout;
+        sss_nss_getgrgid_timeout;
+        sss_nss_getgrouplist_timeout;
+        sss_nss_getsidbyname_timeout;
+        sss_nss_getsidbyid_timeout;
+        sss_nss_getnamebysid_timeout;
+        sss_nss_getidbysid_timeout;
+        sss_nss_getorigbyname_timeout;
+        sss_nss_getnamebycert_timeout;
+        sss_nss_getlistbycert_timeout;
+} SSS_NSS_IDMAP_0.3.0;
+
+SSS_NSS_IDMAP_0.5.0 {
+    # public functions
+    global:
+        sss_nss_getsidbyuid;
+        sss_nss_getsidbyuid_timeout;
+        sss_nss_getsidbygid;
+        sss_nss_getsidbygid_timeout;
+} SSS_NSS_IDMAP_0.4.0;
+
+SSS_NSS_IDMAP_0.6.0 {
+    # public functions
+    global:
+        sss_nss_getorigbyusername;
+        sss_nss_getorigbyusername_timeout;
+        sss_nss_getorigbygroupname;
+        sss_nss_getorigbygroupname_timeout;
+} SSS_NSS_IDMAP_0.5.0;
+
+SSS_NSS_IDMAP_0.7.0 {
+    # public functions
+    global:
+        sss_nss_getsidbyusername;
+        sss_nss_getsidbyusername_timeout;
+        sss_nss_getsidbygroupname;
+        sss_nss_getsidbygroupname_timeout;
+} SSS_NSS_IDMAP_0.6.0;

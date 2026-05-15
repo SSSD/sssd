@@ -1,0 +1,167 @@
+global in_id
+
+global runtime_start
+global runtime_end
+
+global num_transactions
+global time_in_transactions
+global trans_start_time
+global trans_end_time
+
+global time_in_ldb
+global ldb_start_time
+global ldb_end_time
+
+global num_ldap_searches
+global time_in_ldap
+global ldap_start_time
+global ldap_end_time
+
+global acct_req_types
+global acct_req_times
+global acct_req_rtime
+
+global bts
+
+function print_acct_req(req_type)
+{
+    str_req = acct_req_desc(req_type)
+    printf("\tNumber of %s requests: %d\n", str_req, acct_req_types[req_type])
+    printf("\tTime spent in %s requests: %d\n", str_req, acct_req_times[req_type])
+    printf("\n")
+}
+
+function print_report()
+{
+    max_trans_time = 0
+    max_trans_time_bt = ""
+
+    total_time = runtime_end - runtime_start
+    printf("Total run time of id was: %d ms\n", total_time)
+    printf("Number of zero-level cache transactions: %d\n", num_transactions)
+    printf("Time spent in level-0 sysdb transactions: %d ms\n", time_in_transactions)
+    printf("Time spent writing to LDB: %d ms\n", time_in_ldb)
+    printf("Number of LDAP searches: %d\n", num_ldap_searches)
+    printf("Time spent waiting for LDAP: %d ms\n", time_in_ldap)
+
+    printf("LDAP searches breakdown:\n")
+    foreach (req_type in acct_req_types) {
+        print_acct_req(req_type)
+    }
+
+    printf("Unaccounted time: %d ms\n",
+           total_time - time_in_transactions - time_in_ldap)
+
+    printf("sysdb transaction breakdown:\n")
+    foreach ([b] in bts) {
+        printf("%d hits of transaction %s\n", @count(bts[b]), b)
+        printf("avg:%d   min: %d   max: %d   sum: %d\n\n",
+               @avg(bts[b]), @min(bts[b]), @max(bts[b]), @sum(bts[b]))
+
+        if (@max(bts[b]) > max_trans_time) {
+            max_trans_time = @max(bts[b])
+            max_trans_time_bt = b
+        }
+    }
+
+    if (max_trans_time > 0) {
+            printf("The most expensive transaction breakdown, per transaction:\n")
+            print(@hist_linear(bts[max_trans_time_bt], 0, 500, 50))
+    }
+}
+
+probe process("/usr/bin/id").begin
+{
+    in_id = 1
+
+    num_transactions = 0
+    time_in_transactions = 0
+
+    num_ldap_searches = 0
+    time_in_ldap = 0
+    time_in_ldb = 0
+
+    acct_req_types[0x0001] = 0
+    acct_req_types[0x0002] = 0
+    acct_req_types[0x0003] = 0
+
+    acct_req_times[0x0001] = 0
+    acct_req_times[0x0002] = 0
+    acct_req_times[0x0003] = 0
+
+    acct_req_rtime[0x0001] = 0
+    acct_req_rtime[0x0002] = 0
+    acct_req_rtime[0x0003] = 0
+
+    runtime_start = gettimeofday_ms()
+}
+
+probe process("/usr/bin/id").end
+{
+    in_id = 0
+
+    runtime_end = gettimeofday_ms()
+    print_report()
+
+    delete bts
+}
+
+probe sssd_transaction_start
+{
+    if (nesting == 0 && in_id == 1) {
+        num_transactions++
+        trans_start_time = gettimeofday_ms()
+    }
+}
+
+probe sssd_transaction_commit_before
+{
+    if (nesting == 0 && in_id == 1) {
+        ldb_start_time = gettimeofday_ms()
+    }
+}
+
+probe sssd_transaction_commit_after
+{
+    if (nesting == 0 && in_id == 1) {
+        ldb_end_time = gettimeofday_ms()
+        time_in_ldb += (ldb_end_time-ldb_start_time)
+
+        trans_end_time = gettimeofday_ms()
+        time_in_transactions += (trans_end_time-trans_start_time)
+
+        bt = sprint_ubacktrace()
+        bts[bt] <<< (trans_end_time-trans_start_time)
+    }
+}
+
+probe sdap_search_send
+{
+    if (in_id == 1) {
+        num_ldap_searches++
+        ldap_start_time = gettimeofday_ms()
+    }
+}
+
+probe sdap_search_recv
+{
+    if (in_id == 1) {
+        ldap_end_time = gettimeofday_ms()
+        time_in_ldap += (ldap_end_time-ldap_start_time)
+    }
+}
+
+probe sdap_acct_req_send
+{
+    if (in_id == 1) {
+        acct_req_types[entry_type]++
+        acct_req_rtime[entry_type] = gettimeofday_ms()
+    }
+}
+
+probe sdap_acct_req_recv
+{
+    if (in_id == 1) {
+        acct_req_times[entry_type] += (gettimeofday_ms() - acct_req_rtime[entry_type])
+    }
+}

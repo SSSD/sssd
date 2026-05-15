@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+#
+# Extract build dependencies from an RPM .spec file.
+#
+# Copyright (C) 2014 Red Hat
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+from __future__ import print_function
+
+import sys
+import re
+import rpm
+
+
+def usage(file):
+    file.write(("Usage: %s SPEC\n" +
+                "Extract build dependencies from an RPM .spec file.\n") %
+               re.match(".*?([^/]+)$", sys.argv[0]).group(1))
+
+if len(sys.argv) != 2:
+    usage(sys.stderr)
+    sys.exit(1)
+
+spec = rpm.spec(sys.argv[1])
+for d in rpm.ds(spec.sourceHeader, 'requires'):
+    print(d.DNEVR()[2:])

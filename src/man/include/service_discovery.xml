@@ -1,0 +1,48 @@
+<refsect1 id='service_discovery'>
+    <title>SERVICE DISCOVERY</title>
+    <para>
+        The service discovery feature allows back ends to automatically
+        find the appropriate servers to connect to using a special DNS
+        query. This feature is not supported for backup servers.
+    </para>
+    <refsect2 id='configuration'>
+        <title>Configuration</title>
+        <para>
+            If no servers are specified, the back end automatically
+            uses service discovery to try to find a server. Optionally,
+            the user may choose to use both fixed server addresses
+            and service discovery by inserting a special keyword,
+            <quote>_srv_</quote>, in the list of servers. The order
+            of preference is maintained. This feature is useful if, for
+            example, the user prefers to use service discovery whenever
+            possible, and fall back to a specific server when no servers
+            can be discovered using DNS.
+        </para>
+    </refsect2>
+    <refsect2 id='domain_name'>
+        <title>The domain name</title>
+        <para>
+            Please refer to the <quote>dns_discovery_domain</quote>
+            parameter in the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+            manual page for more details.
+        </para>
+    </refsect2>
+    <refsect2 id='search_protocol'>
+        <title>The protocol</title>
+        <para>
+            The queries usually specify _tcp as the protocol. Exceptions
+            are documented in respective option description.
+        </para>
+    </refsect2>
+    <refsect2 id='reference'>
+        <title>See Also</title>
+        <para>
+            For more information on the service discovery mechanism,
+            refer to RFC 2782.
+        </para>
+    </refsect2>
+</refsect1>

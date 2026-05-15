@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-session-recording</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-session-recording</refname>
+        <refpurpose>Configuring session recording with SSSD</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes how to configure
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry> to work with
+            <citerefentry>
+                <refentrytitle>tlog-rec-session</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>, a part of tlog package, to implement user session
+            recording on text terminals.
+            For a detailed configuration syntax reference, refer to the
+            <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            SSSD can be set up to enable recording of everything specific
+            users see or type during their sessions on text terminals. E.g.
+            when users log in on the console, or via SSH. SSSD itself doesn't
+            record anything, but makes sure tlog-rec-session is started upon
+            user login, so it can record according to its configuration.
+        </para>
+        <para>
+            For users with session recording enabled, SSSD replaces the user
+            shell with tlog-rec-session in NSS responses, and adds a variable
+            specifying the original shell to the user environment, upon PAM
+            session setup. This way tlog-rec-session can be started in place
+            of the user shell, and know which actual shell to start, once it
+            set up the recording.
+        </para>
+    </refsect1>
+
+    <refsect1 id='configuration-options'>
+        <title>CONFIGURATION OPTIONS</title>
+            <para>
+                These options can be used to configure the session recording.
+            </para>
+            <variablelist>
+                <varlistentry>
+                    <term>scope (string)</term>
+                    <listitem>
+                        <para>
+                            One of the following strings specifying the scope
+                            of session recording:
+                            <variablelist>
+                                <varlistentry>
+                                    <term>"none"</term>
+                                    <listitem>
+                                        <para>
+                                            No users are recorded.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>"some"</term>
+                                    <listitem>
+                                        <para>
+                                            Users/groups specified by
+                                            <replaceable>users</replaceable>
+                                            and
+                                            <replaceable>groups</replaceable>
+                                            options are recorded.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>"all"</term>
+                                    <listitem>
+                                        <para>
+                                            All users are recorded.
+                                        </para>
+                                    </listitem>
+                                </varlistentry>
+                            </variablelist>
+                        </para>
+                        <para>
+                            Default: "none"
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>users (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of users which should have
+                            session recording enabled. Matches user names as
+                            returned by NSS. I.e. after the possible space
+                            replacement, case changes, etc.
+                        </para>
+                        <para>
+                            Default: Empty. Matches no users.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>groups (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of groups, members of which
+                            should have session recording enabled. Matches
+                            group names as returned by NSS. I.e. after the
+                            possible space replacement, case changes, etc.
+                        </para>
+                        <para>
+                            NOTE: using this option (having it set to
+                            anything) has a considerable performance cost,
+                            because each uncached request for a user requires
+                            retrieving and matching the groups the user is
+                            member of.
+                        </para>
+                        <para>
+                            Default: Empty. Matches no groups.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>exclude_users (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of users to be excluded from
+                            recording, only applicable with 'scope=all'.
+                        </para>
+                        <para>
+                            Default: Empty. No users excluded.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>exclude_groups (string)</term>
+                    <listitem>
+                        <para>
+                            A comma-separated list of groups, members of which
+                            should be excluded from recording. Only applicable
+                            with 'scope=all'.
+                        </para>
+                        <para>
+                            NOTE: using this option (having it set to
+                            anything) has a considerable performance cost,
+                            because each uncached request for a user requires
+                            retrieving and matching the groups the user is
+                            member of.
+                        </para>
+                        <para>
+                            Default: Empty. No groups excluded.
+                        </para>
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+    </refsect1>
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following snippet of sssd.conf enables session recording for
+            users "contractor1" and "contractor2", and group "students".
+        </para>
+        <para>
+<programlisting>
+[session_recording]
+scope = some
+users = contractor1, contractor2
+groups = students
+</programlisting>
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

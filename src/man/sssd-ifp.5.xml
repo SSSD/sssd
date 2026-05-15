@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-ifp</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-ifp</refname>
+        <refpurpose>SSSD InfoPipe responder</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the configuration of the InfoPipe responder
+            for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            The InfoPipe responder provides a public D-Bus interface
+            accessible over the system bus. The interface allows the user
+            to query information about remote users and groups over the
+            system bus.
+        </para>
+
+    <refsect2 id='valid_certificate'>
+        <title>FIND BY VALID CERTIFICATE</title>
+        <para>
+            The following options can be used to control how the certificates
+            are validated when using the FindByValidCertificate() API:
+            <itemizedlist>
+                <listitem><para>ca_db</para></listitem>
+                <listitem><para>p11_child_timeout</para></listitem>
+                <listitem><para>certificate_verification</para></listitem>
+            </itemizedlist>
+            For more details about the options see
+            <citerefentry><refentrytitle>sssd.conf</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry>.
+        </para>
+    </refsect2>
+    </refsect1>
+
+    <refsect1 id='configuration-options'>
+        <title>CONFIGURATION OPTIONS</title>
+            <para>
+                These options can be used to configure the InfoPipe responder.
+            </para>
+            <variablelist>
+                <varlistentry>
+                    <term>allowed_uids (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the comma-separated list of UID values or
+                            user names that are allowed to access the InfoPipe
+                            responder. User names are resolved to UIDs at
+                            startup.
+                        </para>
+                        <para>
+                            Default: 0 (only the root user is allowed to access
+                            the InfoPipe responder)
+                        </para>
+                        <para>
+                            Please note that although the UID 0 is used as the
+                            default it will be overwritten with this option. If
+                            you still want to allow the root user to access the
+                            InfoPipe responder, which would be the typical
+                            case, you have to add 0 to the list of allowed UIDs
+                            as well.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>user_attributes (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the comma-separated list of white
+                            or blacklisted attributes. This option only
+                            applies to the <quote>Users</quote> interface. The
+                            deprecated <quote>GetUserAttr</quote> interface does not
+                            utilize this option, it allows any attribute
+                            requested.
+                        </para>
+                        <para>
+                            By default, the InfoPipe responder `/Users` interface
+                            only allows the default set of POSIX attributes to
+                            be requested. This set is the same as returned by
+                            <citerefentry>
+                                <refentrytitle>getpwnam</refentrytitle>
+                                <manvolnum>3</manvolnum>
+                            </citerefentry>
+                            and includes:
+                            <variablelist>
+                                <varlistentry>
+                                    <term>name</term>
+                                    <listitem><para>user's login name</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>uidNumber</term>
+                                    <listitem><para>user ID</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>gidNumber</term>
+                                    <listitem><para>primary group ID</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>gecos</term>
+                                    <listitem><para>user information, typically full name</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>homeDirectory</term>
+                                    <listitem><para>home directory</para></listitem>
+                                </varlistentry>
+                                <varlistentry>
+                                    <term>loginShell</term>
+                                    <listitem><para>user shell</para></listitem>
+                                </varlistentry>
+                            </variablelist>
+                        </para>
+                        <para>
+                            It is possible to add another attribute to
+                            this set by using <quote>+attr_name</quote>
+                            or explicitly remove an attribute using
+                            <quote>-attr_name</quote>. Added attributes
+                            will be made available in the
+                            <quote>extraAttributes</quote> array. For example, to
+                            allow <quote>telephoneNumber</quote> but deny
+                            <quote>loginShell</quote>, you would use the
+                            following configuration:
+                        <programlisting>
+user_attributes = +telephoneNumber, -loginShell
+                        </programlisting>
+                        </para>
+                        <para>
+                            Default: not set. Only the default set of
+                            POSIX attributes is allowed.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>wildcard_limit (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies an upper limit on the number of entries
+                            that are downloaded during a wildcard lookup that
+                            overrides caller-supplied limit.
+                        </para>
+                        <para>
+                            Default: 0 (let the caller set an upper limit)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+            </variablelist>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

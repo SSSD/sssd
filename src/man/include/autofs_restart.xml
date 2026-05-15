@@ -1,0 +1,6 @@
+<para>
+    Please note that the automounter only reads the master
+    map on startup, so if any autofs-related changes are made
+    to the sssd.conf, you typically also need to restart the
+    automounter daemon after restarting the SSSD.
+</para>

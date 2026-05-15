@@ -1,0 +1,56 @@
+SSS_SIMPLEIFP_0.0 {
+
+    # public functions
+    global:
+
+        sss_sifp_init;
+        sss_sifp_init_ex;
+        sss_sifp_get_last_io_error_name;
+        sss_sifp_get_last_io_error_message;
+        sss_sifp_create_message;
+        sss_sifp_send_message;
+        sss_sifp_send_message_ex;
+        sss_sifp_fetch_attr;
+        sss_sifp_fetch_all_attrs;
+        sss_sifp_fetch_object;
+        sss_sifp_invoke_list;
+        sss_sifp_invoke_find;
+        sss_sifp_find_attr_as_bool;
+        sss_sifp_find_attr_as_int16;
+        sss_sifp_find_attr_as_uint16;
+        sss_sifp_find_attr_as_int32;
+        sss_sifp_find_attr_as_uint32;
+        sss_sifp_find_attr_as_int64;
+        sss_sifp_find_attr_as_uint64;
+        sss_sifp_find_attr_as_string;
+        sss_sifp_find_attr_as_string_dict;
+        sss_sifp_find_attr_as_bool_array;
+        sss_sifp_find_attr_as_int16_array;
+        sss_sifp_find_attr_as_uint16_array;
+        sss_sifp_find_attr_as_int32_array;
+        sss_sifp_find_attr_as_uint32_array;
+        sss_sifp_find_attr_as_int64_array;
+        sss_sifp_find_attr_as_uint64_array;
+        sss_sifp_find_attr_as_string_array;
+        sss_sifp_free;
+        sss_sifp_free_attrs;
+        sss_sifp_free_object;
+        sss_sifp_free_string;
+        sss_sifp_free_string_array;
+        sss_sifp_list_domains;
+        sss_sifp_fetch_domain_by_name;
+        sss_sifp_fetch_user_by_uid;
+        sss_sifp_fetch_user_by_name;
+
+    # everything else is local
+    local:
+        *;
+};
+
+SSS_SIMPLEIFP_0.1 {
+    # public functions
+    global:
+        sss_sifp_strerr;
+        sss_sifp_invoke_list_ex;
+        sss_sifp_invoke_find_ex;
+} SSS_SIMPLEIFP_0.0;

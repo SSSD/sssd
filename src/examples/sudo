@@ -1,0 +1,6 @@
+#%PAM-1.0
+auth     required pam_sss.so
+account  required pam_sss.so
+password required pam_sss.so
+session    optional     pam_keyinit.so revoke
+session    required     pam_limits.so

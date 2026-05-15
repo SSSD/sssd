@@ -1,0 +1,14 @@
+name: 'Install dependencies'
+description: 'Install dependencies to build sssd'
+inputs:
+  working-directory:
+    description: Working directory.
+    required: false
+    default: '.'
+runs:
+  using: "composite"
+  steps:
+  - shell: bash
+    working-directory: ${{ inputs.working-directory }}
+    run: |
+      sudo ./contrib/ci/run --deps-only

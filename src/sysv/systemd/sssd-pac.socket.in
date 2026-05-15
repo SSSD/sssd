@@ -1,0 +1,16 @@
+[Unit]
+Description=SSSD PAC Service responder socket
+Documentation=man:sssd.conf(5)
+After=sssd.service
+BindsTo=sssd.service
+DefaultDependencies=no
+Conflicts=shutdown.target
+
+[Socket]
+ExecStartPre=@libexecdir@/sssd/sssd_check_socket_activated_responders -r pac
+ListenStream=@pipepath@/pac
+SocketUser=@SSSD_USER@
+SocketGroup=@SSSD_USER@
+
+[Install]
+WantedBy=sssd.service

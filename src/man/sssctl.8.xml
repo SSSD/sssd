@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssctl</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssctl</refname>
+        <refpurpose>SSSD control and status utility</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sssctl</command>
+            <arg choice='plain'><replaceable>COMMAND</replaceable></arg>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sssctl</command> provides a simple and unified way
+            to obtain information about SSSD status, such as active server,
+            auto-discovered servers, domains and cached objects. In addition,
+            it can manage SSSD data files for troubleshooting in such a way
+            that is safe to manipulate while SSSD is running.
+        </para>
+    </refsect1>
+
+    <refsect1 id='commands'>
+        <title>AVAILABLE COMMANDS</title>
+        <para>
+            To list all available commands run <command>sssctl</command>
+            without any parameters. To print help for selected command
+            run <command>sssctl COMMAND --help</command>.
+        </para>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>COMMON OPTIONS</title>
+        <para>
+            Those options are available with all commands.
+        </para>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>--debug</option>
+                    <replaceable>LEVEL</replaceable>
+                </term>
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels_tools.xml" />
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

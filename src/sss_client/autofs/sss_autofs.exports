@@ -1,0 +1,14 @@
+EXPORTED {
+
+    # public functions
+    global:
+        _sss_auto_protocol_version;
+        _sss_setautomntent;
+        _sss_getautomntent_r;
+        _sss_getautomntbyname_r;
+        _sss_endautomntent;
+
+    # everything else is local
+    local:
+        *;
+};

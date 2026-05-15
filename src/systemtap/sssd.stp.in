@@ -1,0 +1,294 @@
+# Database transaction probes
+probe sssd_transaction_start = process("@libdir@/sssd/libsss_util.so").mark("sysdb_transaction_start")
+{
+    nesting = $arg1;
+    probestr = sprintf("-> %s(nesting=%d)",
+                       $$name,
+                       nesting);
+}
+
+probe sssd_transaction_commit_before = process("@libdir@/sssd/libsss_util.so").mark("sysdb_transaction_commit_before")
+{
+    nesting = $arg1;
+    probestr = sprintf("<- %s(pre)(nesting=%d)",
+                       $$name,
+                       nesting);
+}
+
+probe sssd_transaction_commit_after = process("@libdir@/sssd/libsss_util.so").mark("sysdb_transaction_commit_after")
+{
+    nesting = $arg1;
+    probestr = sprintf("<- %s(post)(nesting=%d)",
+                       $$name,
+                       nesting);
+}
+
+probe sssd_transaction_cancel = process("@libdir@/sssd/libsss_util.so").mark("sysdb_transaction_cancel")
+{
+    nesting = $arg1;
+    probestr = sprintf("<- %s(nesting=%d)",
+                       $$name,
+                       nesting);
+}
+
+# LDAP search probes
+probe sdap_search_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_get_generic_ext_send")
+{
+    base = user_string($arg1);
+    scope = $arg2;
+    if ($arg3 == 0) {
+        filter = "<no filter>";
+    } else {
+        filter = user_string($arg3);
+    }
+    attrs = __get_argv($arg4, 0);
+
+    probestr = sprintf("-> search base [%s] scope [%d] filter [%s]",
+                       base, scope, filter);
+}
+
+probe sdap_search_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_get_generic_ext_recv")
+{
+    base = user_string($arg1);
+    scope = $arg2;
+    if ($arg3 == 0) {
+        filter = "<no filter>";
+    } else {
+        filter = user_string($arg3);
+    }
+
+    probestr = sprintf("<- search base [%s] scope [%d] filter [%s]",
+                       base, scope, filter);
+}
+
+probe sdap_parse_entry = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_parse_entry")
+{
+    attr = user_string($arg1);
+    value = user_string_n($arg2, $arg3);
+}
+
+probe sdap_parse_entry_done = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_parse_entry_done")
+{
+   # No arguments
+}
+
+probe sdap_deref_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_deref_search_send")
+{
+    base_dn = user_string($arg1);
+    deref_attr = user_string($arg2);
+
+    probestr = sprintf("-> (%s)(base_dn=[%s],deref_attr=[%s])",
+                       $$name, base_dn, deref_attr);
+}
+
+probe sdap_deref_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_deref_search_recv")
+{
+    base_dn = user_string($arg1);
+    deref_attr = user_string($arg2);
+
+    probestr = sprintf("-> (%s)(base_dn=[%s],deref_attr=[%s])",
+                       $$name, base_dn, deref_attr);
+}
+
+# LDAP account request probes
+probe sdap_acct_req_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_acct_req_send")
+{
+    entry_type = $arg1;
+    filter_type = $arg2;
+    filter_value = user_string($arg3);
+    extra_value = user_string($arg4);
+}
+
+probe sdap_acct_req_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_acct_req_recv")
+{
+    entry_type = $arg1;
+    filter_type = $arg2;
+    filter_value = user_string($arg3);
+    extra_value = user_string($arg4);
+}
+
+# LDAP user search probes
+probe sdap_search_user_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_search_user_send")
+{
+    filter = user_string($arg1);
+}
+
+probe sdap_search_user_save_begin = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_search_user_save_begin")
+{
+    filter = user_string($arg1);
+}
+
+probe sdap_search_user_save_end = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_search_user_save_end")
+{
+    filter = user_string($arg1);
+}
+
+probe sdap_search_user_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_search_user_recv")
+{
+    filter = user_string($arg1);
+}
+
+# LDAP group search probes
+probe sdap_nested_group_populate_pre = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_populate_pre")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_populate_post = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_populate_post")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_save_pre = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_save_pre")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_save_post = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_save_post")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_lookup_user_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_lookup_user_send")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_lookup_user_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_lookup_user_recv")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_lookup_group_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_lookup_group_send")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_lookup_group_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_lookup_group_recv")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_lookup_unknown_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_lookup_unknown_send")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_lookup_unknown_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_lookup_unknown_recv")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_deref_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_deref_send")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_deref_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_deref_recv")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_deref_process_pre = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_deref_process_pre")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_deref_process_post = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_deref_process_post")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_send")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_recv")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_process_send = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_process_send")
+{
+    orig_dn = user_string($arg1);
+
+    probestr = sprintf("-> %s(orig_dn=[%s])",
+                       $$name, orig_dn);
+}
+
+probe sdap_nested_group_process_split_pre = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_process_split_pre")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_process_split_post = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_process_split_post")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_check_cache_pre = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_check_cache_pre")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_check_cache_post = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_check_cache_post")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_sysdb_search_users_pre = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_sysdb_search_users_pre")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_sysdb_search_users_post = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_sysdb_search_users_post")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_sysdb_search_groups_pre = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_sysdb_search_groups_pre")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_sysdb_search_groups_post = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_sysdb_search_groups_post")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_populate_search_users_pre = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_populate_search_users_pre")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_populate_search_users_post = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_populate_search_users_post")
+{
+    # No arguments
+}
+
+probe sdap_nested_group_process_recv = process("@libdir@/sssd/libsss_ldap_common.so").mark("sdap_nested_group_process_recv")
+{
+    orig_dn = user_string($arg1);
+
+    probestr = sprintf("-> %s(orig_dn=[%s])",
+                       $$name, orig_dn);
+}
+
+## Data Provider Request Probes
+probe dp_req_send = process("@libexecdir@/sssd/sssd_be").mark("dp_req_send")
+{
+    dp_req_domain = user_string($arg1, "NULL");
+    dp_req_name = user_string($arg2, "NULL");
+    dp_req_target = $arg3;
+    dp_req_method = $arg4;
+}
+
+probe dp_req_done = process("@libexecdir@/sssd/sssd_be").mark("dp_req_done")
+{
+    dp_req_name = user_string($arg1, "NULL");
+    dp_req_target = $arg2;
+    dp_req_method = $arg3;
+    dp_ret = $arg4;
+    dp_errorstr = user_string($arg5, "NULL");
+}

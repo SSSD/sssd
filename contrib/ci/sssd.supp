@@ -1,0 +1,188 @@
+#
+# Valgrind suppression patterns
+#
+# See an introduction to suppressions in Valgrind manual:
+# http://valgrind.org/docs/manual/manual-core.html#manual-core.suppress
+#
+# Each suppression name here must start with "sssd-" to differentiate it from
+# suppressions maintained elsewhere.
+#
+
+# talloc-involved leaks
+{
+   sssd-leak-talloc
+   Memcheck:Leak
+   ...
+   fun:talloc_*
+   ...
+}
+{
+   sssd-leak-_talloc
+   Memcheck:Leak
+   ...
+   fun:_talloc_*
+   ...
+}
+
+# dbus-involved leaks
+{
+   sssd-leak-dbus
+   Memcheck:Leak
+   ...
+   obj:*/libdbus-1.so.*
+   ...
+}
+
+# False positive - pcre_free is called in sss_names_ctx_destructor
+{
+   sssd-leak-sss_names_pcre2
+   Memcheck:Leak
+   fun:malloc
+   fun:pcre2_compile_8
+   fun:sss_regexp_pcre2_compile
+   fun:sss_regexp_new
+   fun:sss_names_init_from_args
+   ...
+}
+
+# Ignore tests exiting and abandoning cmocka state, concerns dyndns test
+{
+   sssd-leak-cmocka-exit
+   Memcheck:Leak
+   fun:malloc
+   fun:_test_malloc
+   fun:_run_tests
+   fun:main
+}
+
+# Stpncpy false positive on RHEL6:
+# https://lists.fedorahosted.org/pipermail/sssd-devel/2014-September/021417.html
+# possibly related to:
+# https://www.mail-archive.com/valgrind-users@lists.sourceforge.net/msg03832.html
+{
+   sssd-value8-stpncpy
+   Memcheck:Value8
+   obj:/lib*/libc-2.12.so
+   fun:sha512_crypt_r
+   ...
+}
+{
+   sssd-cond-stpncpy
+   Memcheck:Cond
+   obj:/lib*/libc-2.12.so
+   fun:sha512_crypt_r
+   ...
+}
+
+# uninitialised value in libselinux (fixed in fedora >= 21)
+{
+   libselinux-jump-or-move-depends-on-uninitialised-value-in-selabel_close
+   Memcheck:Cond
+   obj:/usr/lib64/libselinux.so.1
+   fun:selabel_close
+   obj:/usr/lib64/libkrb5support.so.0.1
+   fun:_dl_fini
+   fun:__run_exit_handlers
+   fun:exit
+   fun:(below main)
+}
+
+# long-standing memory leak in popt
+{
+   popt-memleak-from-poptGetNextOpt-malloc
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:poptGetNextOpt
+   ...
+   fun:main
+}
+
+# long-standing memory leak in popt
+{
+   popt-memleak-from-poptGetNextOpt-realloc
+   Memcheck:Leak
+   fun:realloc
+   ...
+   fun:poptGetNextOpt
+   fun:main
+}
+
+# Some tests initialize c-ares context, then fork a child that just exits
+# without a proper teardown, which means the ares destructor is not called.
+# Suppress those errors.
+{
+   c-ares-suppress-leak-from-init
+   Memcheck:Leak
+   ...
+   fun:ares_init_options
+   fun:recreate_ares_channel
+   fun:resolv_init
+   ...
+   fun:be_res_init
+   fun:be_init_failover
+   fun:test_ipa_server_create_trusts_setup
+}
+
+# Leaks in bash if p11_child returns and error because due to libtool the
+# p11_child binary is not called directly during the unit tests but with the
+# help of a libtool wrapper
+{
+   bash-calling-p11-child-returning-error
+   Memcheck:Leak
+   ...
+   fun:malloc
+   fun:xmalloc
+   ...
+   fun:execute_command_internal
+   ...
+   fun:execute_command_internal
+   ...
+}
+
+{
+   bash-calling-p11-child-returning-error-debian
+   Memcheck:Free
+   fun:free
+   obj:/usr/bin/bash
+   fun:run_unwind_frame
+   fun:parse_and_execute
+   fun:command_substitute
+   obj:/usr/bin/bash
+   obj:/usr/bin/bash
+   ...
+}
+
+# Leak in sqlite3 used by the softhsm2 PKCS#11 module
+{
+   sqlite3.error
+   Memcheck:Leak
+   ...
+   fun:malloc
+   obj:/usr/lib64/libsqlite3.so.0.8.6
+   ...
+}
+
+# sssd debug initialization leak
+{
+   sss_debug_backtrace_init-malloc
+   Memcheck:Leak
+   fun:malloc
+   ...
+   fun:sss_debug_backtrace_init
+   ...
+   fun:test_parse_*_args
+   ...
+   fun:main
+}
+
+{
+   dl-invalid-read
+   Memcheck:Addr32
+   fun:bcmp
+   ...
+   fun:openaux
+   ...
+   fun:_dl_catch_exception
+   fun:_dl_open
+}

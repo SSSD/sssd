@@ -1,0 +1,31 @@
+Simple CA for SSSD tests
+
+To avoid issues with certificate lifetimes during tests certificates can be
+generated with a simple OpenSSL based CA.
+
+To create a new certificate add a suitable and valid OpenSSL config file with a
+[req] section for a certificate signing request (CSR) which must use the name
+pattern SSSD_test_cert_*.config. Additionally a matching key file
+SSSD_test_cert_key_%.pem should be added e.g. with
+
+    openssl genpkey -algorithm RSA -out SSSD_test_cert_key_XYZ.pem -pkeyopt rsa_keygen_bits:2048
+    openssl genpkey -algorithm RSA -out SSSD_test_cert_key_0007.pem -pkeyopt rsa_keygen_bits:2048 -pkeyopt rsa_keygen_pubexp:32993
+
+It would be possible to generate the keys automatically as well but
+pre-created keys will safe some resources on the hosts running the tests,
+allow more flexibility with algorithms and key lengths and make the tests
+more reproducible.
+
+The Makefile will pick up the config and the keys and generate a X.509
+certificate. For usage in C-code it will generate a header file
+SSSD_test_cert_x509_*.h where the base64 encoded binary certificate is made
+available in a macro called SSSD_TEST_CERT_*. To run test with derived ssh-keys
+the ssh key is available in SSSD_test_cert_pubsshkey_*.h as
+SSSD_TEST_CERT_SSH_KEY_*.
+
+Cert 0007 will be created with nondefault exponent setting and later on signed
+with rsassapss as seen by some 3rd party CA:s.
+The exponent is chosen to trigger padding errors.
+
+Other targets for other types of tests can be added to the Makefile and should
+be documented here.

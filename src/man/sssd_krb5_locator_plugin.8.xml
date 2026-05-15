@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd_krb5_locator_plugin</refname>
+        <refpurpose>Kerberos locator plugin</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            The Kerberos locator plugin
+            <command>sssd_krb5_locator_plugin</command> is used by libkrb5 to
+            find KDCs for a given Kerberos realm. SSSD provides such a plugin to
+            guide all Kerberos clients on a system to a single KDC. In general
+            it should not matter to which KDC a client process is talking to.
+            But there are cases, e.g. after a password change, where not all
+            KDCs are in the same state because the new data has to be replicated
+            first. To avoid unexpected authentication failures and maybe even
+            account lockings it would be good to talk to a single KDC as long as
+            possible.
+        </para>
+        <para>
+            libkrb5 will search the locator plugin in the libkrb5 sub-directory
+            of the Kerberos plugin directory, see plugin_base_dir in
+            <citerefentry>
+                <refentrytitle>krb5.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry>
+            for details. The plugin can only be disabled by removing the plugin
+            file. There is no option in the Kerberos configuration to disable
+            it. But the SSSD_KRB5_LOCATOR_DISABLE environment variable can be
+            used to disable the plugin for individual commands. Alternatively
+            the SSSD option krb5_use_kdcinfo=False can be used to not generate
+            the data needed by the plugin. With this the plugin is still
+            called but will provide no data to the caller so that libkrb5 can
+            fall back to other methods defined in krb5.conf.
+        </para>
+        <para>
+            The plugin reads the information about the KDCs of a given realm
+            from a file called <filename>kdcinfo.REALM</filename>. The file
+            should contain one or more DNS names or IP addresses either in
+            dotted-decimal IPv4 notation or the hexadecimal IPv6 notation.
+            An optional port number can be added to the end separated with
+            a colon, the IPv6 address has to be enclosed in squared brackets
+            in this case as usual. Valid entries are:
+            <itemizedlist>
+                <listitem><para>kdc.example.com</para></listitem>
+                <listitem><para>kdc.example.com:321</para></listitem>
+                <listitem><para>1.2.3.4</para></listitem>
+                <listitem><para>5.6.7.8:99</para></listitem>
+                <listitem><para>2001:db8:85a3::8a2e:370:7334</para></listitem>
+                <listitem><para>[2001:db8:85a3::8a2e:370:7334]:321</para></listitem>
+            </itemizedlist>
+            SSSD's krb5 auth-provider which is used by the IPA and AD providers
+            as well adds the address of the current KDC or domain controller
+            SSSD is using to this file.
+        </para>
+        <para>
+            In environments with read-only and read-write KDCs where clients are
+            expected to use the read-only instances for the general operations
+            and only the read-write KDC for config changes like password changes
+            a <filename>kpasswdinfo.REALM</filename> is used as well to identify
+            read-write KDCs. If this file exists for the given realm the content
+            will be used by the plugin to reply to requests for a kpasswd or
+            kadmin server or for the MIT Kerberos specific master KDC. If the
+            address contains a port number the default KDC port 88 will be used
+            for the latter.
+        </para>
+    </refsect1>
+
+    <refsect1 id='notes'>
+        <title>NOTES</title>
+        <para>
+            Not all Kerberos implementations support the use of plugins. If
+            <command>sssd_krb5_locator_plugin</command> is not available on
+            your system you have to edit /etc/krb5.conf to reflect your
+            Kerberos setup.
+        </para>
+        <para>
+            If the environment variable SSSD_KRB5_LOCATOR_DEBUG is set to any
+            value debug messages will be sent to stderr.
+        </para>
+        <para>
+            If the environment variable SSSD_KRB5_LOCATOR_DISABLE is set to any
+            value the plugin is disabled and will just return
+            KRB5_PLUGIN_NO_HANDLE to the caller.
+        </para>
+        <para>
+            If the environment variable SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES
+            is set to any value plugin will try to resolve all DNS names
+            in kdcinfo file. By default plugin returns KRB5_PLUGIN_NO_HANDLE
+            to the caller immediately on first DNS resolving failure.
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

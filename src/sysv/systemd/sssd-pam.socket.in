@@ -1,0 +1,17 @@
+[Unit]
+Description=SSSD PAM Service responder socket
+Documentation=man:sssd.conf(5)
+After=sssd.service
+BindsTo=sssd.service
+BindsTo=sssd-pam-priv.socket
+DefaultDependencies=no
+Conflicts=shutdown.target
+
+[Socket]
+ExecStartPre=@libexecdir@/sssd/sssd_check_socket_activated_responders -r pam
+ListenStream=@pipepath@/pam
+SocketUser=root
+SocketGroup=root
+
+[Install]
+WantedBy=sssd.service

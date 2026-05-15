@@ -1,0 +1,46 @@
+{
+   debian-openssl-issue
+   Memcheck:Cond
+   ...
+   fun:s3crypt_gen_salt
+   ...
+}
+
+{
+   debian-openssl-issue
+   Memcheck:Value8
+   ...
+   fun:s3crypt_gen_salt
+   ...
+}
+
+{
+   debian-openssl-issue
+   Memcheck:Cond
+   ...
+   fun:sss_password_encrypt
+   ...
+}
+
+{
+   debian-openssl-issue
+   Memcheck:Value8
+   ...
+   fun:sss_password_encrypt
+   ...
+}
+
+{
+   debian-openssl-issue
+   Memcheck:Cond
+   ...
+   fun:sss_decrypt
+   ...
+}
+
+{
+   debian-openssl-issue
+   Memcheck:Cond
+   fun:test_sss_encrypt_decrypt
+   ...
+}

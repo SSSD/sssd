@@ -1,0 +1,22 @@
+SSS_CERTMAP_0.0 {
+    global:
+        sss_certmap_init;
+        sss_certmap_free_ctx;
+        sss_certmap_add_rule;
+        sss_certmap_match_cert;
+        sss_certmap_get_search_filter;
+        sss_cert_get_content;
+        sss_certmap_free_filter_and_domains;
+    local:
+        *;
+};
+
+SSS_CERTMAP_0.1 {
+    global:
+        sss_certmap_display_cert_content;
+} SSS_CERTMAP_0.0;
+
+SSS_CERTMAP_0.2 {
+    global:
+        sss_certmap_expand_mapping_rule;
+} SSS_CERTMAP_0.1;

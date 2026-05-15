@@ -1,0 +1,123 @@
+<refsect1 id='modified-default-options'>
+    <title>MODIFIED DEFAULT OPTIONS</title>
+    <para>
+        Certain option defaults do not match their respective backend
+        provider defaults, these option names and IPA provider-specific
+        defaults are listed below:
+    </para>
+    <refsect2 id='krb5_modifications'>
+        <title>KRB5 Provider</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    krb5_validate = true
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    krb5_use_fast = try
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    krb5_canonicalize = true
+                </para>
+            </listitem>
+        </itemizedlist>
+    </refsect2>
+    <refsect2 id='ldap_general_modifications'>
+        <title>LDAP Provider - General</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    ldap_schema = ipa_v1
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_force_upper_case_realm = true
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_sasl_mech = GSSAPI
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_sasl_minssf = 56
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_account_expire_policy = ipa
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_use_tokengroups = true
+                </para>
+            </listitem>
+        </itemizedlist>
+    </refsect2>
+    <refsect2 id='ldap_user_modifications'>
+        <title>LDAP Provider - User options</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    ldap_user_member_of = memberOf
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_user_uuid = ipaUniqueID
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_user_ssh_public_key = ipaSshPubKey
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_user_auth_type = ipaUserAuthType
+                </para>
+            </listitem>
+        </itemizedlist>
+    </refsect2>
+    <refsect2 id='ldap_group_modifications'>
+        <title>LDAP Provider - Group options</title>
+        <itemizedlist>
+            <listitem>
+                <para>
+                    ldap_group_object_class = ipaUserGroup
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_group_object_class_alt = posixGroup
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_group_member = member
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_group_uuid = ipaUniqueID
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_group_objectsid = ipaNTSecurityIdentifier
+                </para>
+            </listitem>
+            <listitem>
+                <para>
+                    ldap_group_external_member = ipaExternalMember
+                </para>
+            </listitem>
+        </itemizedlist>
+    </refsect2>
+</refsect1>

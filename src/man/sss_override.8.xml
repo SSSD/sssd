@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_override</refentrytitle>
+        <manvolnum>8</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_override</refname>
+        <refpurpose>create local overrides of user and group attributes</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_override</command>
+            <arg choice='plain'><replaceable>COMMAND</replaceable></arg>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_override</command> enables to create a client-side
+            view and allows to change selected values of specific user
+            and groups. This change takes effect only on local machine.
+        </para>
+        <para>
+            Overrides data are stored in the SSSD cache. If the cache is deleted,
+            all local overrides are lost. Please note that after the first
+            override is created using any of the following
+            <emphasis>user-add</emphasis>, <emphasis>group-add</emphasis>,
+            <emphasis>user-import</emphasis> or
+            <emphasis>group-import</emphasis> command. SSSD needs to be
+            restarted to take effect.
+            <emphasis>sss_override</emphasis> prints message when a restart is
+            required.
+        </para>
+        <para>
+            <emphasis>NOTE:</emphasis> The options provided in this man page
+            only work with <quote>ldap</quote> and <quote>AD</quote> <quote>
+            id_provider</quote>. IPA overrides can be managed centrally
+            on the IPA server.
+        </para>
+    </refsect1>
+
+    <refsect1 id='commands'>
+        <title>AVAILABLE COMMANDS</title>
+        <para>
+            Argument <emphasis>NAME</emphasis> is the name of original object
+            in all commands. It is not possible to override
+            <emphasis>uid</emphasis> or <emphasis>gid</emphasis> to 0.
+        </para>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>user-add</option>
+                    <emphasis>NAME</emphasis>
+                    <optional><option>-n,--name</option> NAME</optional>
+                    <optional><option>-u,--uid</option> UID</optional>
+                    <optional><option>-g,--gid</option> GID</optional>
+                    <optional><option>-h,--home</option> HOME</optional>
+                    <optional><option>-s,--shell</option> SHELL</optional>
+                    <optional><option>-c,--gecos</option> GECOS</optional>
+                    <optional><option>-x,--certificate</option>
+                                     BASE64 ENCODED CERTIFICATE</optional>
+                </term>
+                <listitem>
+                    <para>
+                        Override attributes of an user. Please be aware that
+                        calling this command will replace any previous override
+                        for the (NAMEd) user.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>user-del</option>
+                    <emphasis>NAME</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Remove user overrides. However be aware that overridden
+                        attributes might be returned from memory cache. Please
+                        see SSSD option <emphasis>memcache_timeout</emphasis>
+                        for more details.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>user-find</option>
+                    <optional><option>-d,--domain</option> DOMAIN</optional>
+                </term>
+                <listitem>
+                    <para>
+                        List all users with set overrides.
+                        If <emphasis>DOMAIN</emphasis> parameter is set,
+                        only users from the domain are listed.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>user-show</option>
+                    <emphasis>NAME</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Show user overrides.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>user-import</option>
+                    <emphasis>FILE</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Import user overrides from <emphasis>FILE</emphasis>.
+                        Data format is similar to standard passwd file.
+                        The format is:
+                    </para>
+                    <para>
+                        original_name:name:uid:gid:gecos:home:shell:base64_encoded_certificate
+                    </para>
+                    <para>
+                        where original_name is original name of the user whose
+                        attributes should be overridden. The rest of fields
+                        correspond to new values. You can omit a value simply
+                        by leaving corresponding field empty.
+                    </para>
+                    <para>
+                        Examples:
+                    </para>
+                    <para>
+                        ckent:superman::::::
+                    </para>
+                    <para>
+                        ckent@krypton.com::501:501:Superman:/home/earth:/bin/bash:
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>user-export</option>
+                    <emphasis>FILE</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Export all overridden attributes and store them in
+                        <emphasis>FILE</emphasis>. See
+                        <emphasis>user-import</emphasis> for data format.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-add</option>
+                    <emphasis>NAME</emphasis>
+                    <optional><option>-n,--name</option> NAME</optional>
+                    <optional><option>-g,--gid</option> GID</optional>
+                </term>
+                <listitem>
+                    <para>
+                        Override attributes of a group. Please be aware that
+                        calling this command will replace any previous override
+                        for the (NAMEd) group.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-del</option>
+                    <emphasis>NAME</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Remove group overrides. However be aware that overridden
+                        attributes might be returned from memory cache. Please
+                        see SSSD option <emphasis>memcache_timeout</emphasis>
+                        for more details.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-find</option>
+                    <optional><option>-d,--domain</option> DOMAIN</optional>
+                </term>
+                <listitem>
+                    <para>
+                        List all groups with set overrides.
+                        If <emphasis>DOMAIN</emphasis> parameter is set,
+                        only groups from the domain are listed.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-show</option>
+                    <emphasis>NAME</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Show group overrides.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-import</option>
+                    <emphasis>FILE</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Import group overrides from <emphasis>FILE</emphasis>.
+                        Data format is similar to standard group file.
+                        The format is:
+                    </para>
+                    <para>
+                        original_name:name:gid
+                    </para>
+                    <para>
+                        where original_name is original name of the group whose
+                        attributes should be overridden. The rest of fields
+                        correspond to new values. You can omit a value simply
+                        by leaving corresponding field empty.
+                    </para>
+                    <para>
+                        Examples:
+                    </para>
+                    <para>
+                        admins:administrators:
+                    </para>
+                    <para>
+                        Domain Users:Users:501
+                    </para>
+                </listitem>
+            </varlistentry>
+            <varlistentry>
+                <term>
+                    <option>group-export</option>
+                    <emphasis>FILE</emphasis>
+                </term>
+                <listitem>
+                    <para>
+                        Export all overridden attributes and store them in
+                        <emphasis>FILE</emphasis>. See
+                        <emphasis>group-import</emphasis> for data format.
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>COMMON OPTIONS</title>
+        <para>
+            Those options are available with all commands.
+        </para>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>--debug</option>
+                    <replaceable>LEVEL</replaceable>
+                </term>
+                <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/debug_levels_tools.xml" />
+            </varlistentry>
+        </variablelist>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

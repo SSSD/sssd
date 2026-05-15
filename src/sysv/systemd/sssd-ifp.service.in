@@ -1,0 +1,14 @@
+[Unit]
+Description=SSSD IFP Service responder
+Documentation=man:sssd-ifp(5)
+After=sssd.service
+BindsTo=sssd.service
+
+[Service]
+Environment=DEBUG_LOGGER=--logger=files
+EnvironmentFile=-@environment_file@
+Type=dbus
+BusName=org.freedesktop.sssd.infopipe
+ExecStart=@ifp_exec_cmd@ ${DEBUG_LOGGER}
+CapabilityBoundingSet= @additional_caps@ CAP_IPC_LOCK CAP_CHOWN CAP_DAC_READ_SEARCH CAP_FOWNER CAP_SETGID CAP_SETUID
+@ifp_restart@

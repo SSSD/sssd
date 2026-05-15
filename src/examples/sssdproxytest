@@ -1,0 +1,4 @@
+#%PAM-1.0
+auth        irequired     pam_ldap.so
+
+account     required      pam_ldap.so

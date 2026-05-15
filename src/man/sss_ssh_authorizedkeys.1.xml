@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sss_ssh_authorizedkeys</refentrytitle>
+        <manvolnum>1</manvolnum>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sss_ssh_authorizedkeys</refname>
+        <refpurpose>get OpenSSH authorized keys</refpurpose>
+    </refnamediv>
+
+    <refsynopsisdiv id='synopsis'>
+        <cmdsynopsis>
+            <command>sss_ssh_authorizedkeys</command>
+            <arg choice='opt'>
+                <replaceable>options</replaceable>
+            </arg>
+            <arg choice='plain'><replaceable>USER</replaceable></arg>
+        </cmdsynopsis>
+    </refsynopsisdiv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            <command>sss_ssh_authorizedkeys</command> acquires SSH
+            public keys for user <replaceable>USER</replaceable> and
+            outputs them in OpenSSH authorized_keys format (see the
+            <quote>AUTHORIZED_KEYS FILE FORMAT</quote> section of
+            <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> for more
+            information).
+        </para>
+        <para>
+            <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> can be configured
+            to use <command>sss_ssh_authorizedkeys</command> for public
+            key user authentication if it is compiled with support for
+            <quote>AuthorizedKeysCommand</quote> option. Please refer
+            to the <citerefentry>
+            <refentrytitle>sshd_config</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry> man page for more
+            details about this option.
+        </para>
+        <para>
+            If <quote>AuthorizedKeysCommand</quote> is supported,
+            <citerefentry><refentrytitle>sshd</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry> can be configured to
+            use it by putting the following directives in <citerefentry>
+            <refentrytitle>sshd_config</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry>:
+<programlisting>
+  AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys
+  AuthorizedKeysCommandUser nobody
+</programlisting>
+        </para>
+
+    <refsect2 id='cert_keys'>
+        <title>KEYS FROM CERTIFICATES</title>
+        <para>
+            In addition to the public SSH keys for user
+            <replaceable>USER</replaceable>
+            <command>sss_ssh_authorizedkeys</command> can return public SSH keys
+            derived from the public key of a X.509 certificate as well.
+        </para>
+        <para>
+            To enable this the <quote>ssh_use_certificate_keys</quote> option
+            must be set to true (default) in the [ssh] section of
+            <filename>sssd.conf</filename>. If the user entry contains
+            certificates (see <quote>ldap_user_certificate</quote> in
+            <citerefentry><refentrytitle>sssd-ldap</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry>
+            for details) or there is a certificate in an override entry for the
+            user (see
+            <citerefentry><refentrytitle>sss_override</refentrytitle>
+            <manvolnum>8</manvolnum></citerefentry>
+            or <citerefentry><refentrytitle>sssd-ipa</refentrytitle>
+            <manvolnum>5</manvolnum></citerefentry>
+            for details) and the certificate is valid SSSD will extract the
+            public key from the certificate and convert it into the format
+            expected by sshd.
+        </para>
+        <para>
+            Besides <quote>ssh_use_certificate_keys</quote> the options
+            <itemizedlist>
+                <listitem><para>ca_db</para></listitem>
+                <listitem><para>p11_child_timeout</para></listitem>
+                <listitem><para>certificate_verification</para></listitem>
+            </itemizedlist>
+            can be used to control how the certificates are validated (see
+            <citerefentry><refentrytitle>sssd.conf</refentrytitle>
+                        <manvolnum>5</manvolnum></citerefentry> for details).
+        </para>
+        <para>
+            The validation is the benefit of using X.509 certificates instead of
+            SSH keys directly because e.g. it gives a better control of the
+            lifetime of the keys. When the ssh client is configured to use the
+            private keys from a Smartcard with the help of a PKCS#11 shared
+            library (see
+            <citerefentry><refentrytitle>ssh</refentrytitle>
+            <manvolnum>1</manvolnum></citerefentry>
+            for details) it might be irritating that authentication is still
+            working even if the related X.509 certificate on the Smartcard is
+            already expired because neither <command>ssh</command> nor
+            <command>sshd</command> will look at the certificate at all.
+        </para>
+        <para>
+            It has to be noted that the derived public SSH key can still be
+            added to the <filename>authorized_keys</filename> file of the user
+            to bypass the certificate validation if the <command>sshd</command>
+            configuration permits this.
+        </para>
+    </refsect2>
+    </refsect1>
+
+    <refsect1 id='options'>
+        <title>OPTIONS</title>
+        <variablelist remap='IP'>
+            <varlistentry>
+                <term>
+                    <option>-d</option>,<option>--domain</option>
+                    <replaceable>DOMAIN</replaceable>
+                </term>
+                <listitem>
+                    <para>
+                        Search for user public keys in SSSD domain <replaceable>DOMAIN</replaceable>.
+                    </para>
+                </listitem>
+            </varlistentry>
+            <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/param_help.xml" />
+        </variablelist>
+    </refsect1>
+
+    <refsect1 id='exit_status'>
+        <title>EXIT STATUS</title>
+        <para>
+            In case of success, an exit value of 0 is returned. Otherwise,
+            1 is returned.
+        </para>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

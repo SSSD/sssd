@@ -1,0 +1,15 @@
+[Unit]
+Description=SSSD NSS Service responder
+Documentation=man:sssd.conf(5)
+After=sssd.service
+BindsTo=sssd.service
+RefuseManualStart=true
+
+[Install]
+Also=sssd-nss.socket
+
+[Service]
+Environment=DEBUG_LOGGER=--logger=files
+EnvironmentFile=-@environment_file@
+ExecStart=@libexecdir@/sssd/sssd_nss ${DEBUG_LOGGER} --socket-activated
+Restart=on-failure

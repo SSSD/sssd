@@ -1,0 +1,994 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE reference PUBLIC "-//OASIS//DTD DocBook V4.5//EN"
+"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd">
+<reference>
+<title>SSSD Manual pages</title>
+<refentry>
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/upstream.xml" />
+
+    <refmeta>
+        <refentrytitle>sssd-ipa</refentrytitle>
+        <manvolnum>5</manvolnum>
+        <refmiscinfo class="manual">File Formats and Conventions</refmiscinfo>
+    </refmeta>
+
+    <refnamediv id='name'>
+        <refname>sssd-ipa</refname>
+        <refpurpose>SSSD IPA provider</refpurpose>
+    </refnamediv>
+
+    <refsect1 id='description'>
+        <title>DESCRIPTION</title>
+        <para>
+            This manual page describes the configuration of the IPA provider
+            for
+            <citerefentry>
+                <refentrytitle>sssd</refentrytitle>
+                <manvolnum>8</manvolnum>
+            </citerefentry>.
+            For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> section of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            The IPA provider is a back end used to connect to an IPA server.
+            (Refer to the freeipa.org web site for information about IPA servers.)
+            This provider requires that the machine be joined to the IPA domain;
+            configuration is almost entirely self-discovered and obtained
+            directly from the server.
+        </para>
+        <para>
+            The IPA provider enables SSSD to use the
+            <citerefentry>
+                <refentrytitle>sssd-ldap</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> identity provider and the
+            <citerefentry>
+                <refentrytitle>sssd-krb5</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> authentication provider with optimizations for IPA
+            environments. The IPA provider accepts the same options used by the
+            sssd-ldap and sssd-krb5 providers with some exceptions. However, it is
+            neither necessary nor recommended to set these options.
+        </para>
+        <para>
+            The IPA provider primarily copies the traditional ldap and krb5 provider
+            default options with some exceptions, the differences are listed in the
+            <quote>MODIFIED DEFAULT OPTIONS</quote> section.
+        </para>
+        <para>
+            As an access provider, the IPA provider has a minimal configuration
+            (see <quote>ipa_access_order</quote>) as it mainly uses HBAC
+            (host-based access control) rules. Please refer to freeipa.org for
+            more information about HBAC.
+        </para>
+        <para>
+            If <quote>auth_provider=ipa</quote> or
+            <quote>access_provider=ipa</quote> is configured
+            in sssd.conf then the id_provider must also be set to
+            <quote>ipa</quote>.
+        </para>
+        <para>
+            The IPA provider will use the PAC responder if the Kerberos tickets
+            of users from trusted realms contain a PAC. To make configuration
+            easier the PAC responder is started automatically if the IPA ID
+            provider is configured.
+        </para>
+    </refsect1>
+
+    <refsect1 id='configuration-options'>
+        <title>CONFIGURATION OPTIONS</title>
+        <para>Refer to the section <quote>DOMAIN SECTIONS</quote> of the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page for details on the configuration of an SSSD domain.
+            <variablelist>
+                <varlistentry>
+                    <term>ipa_domain (string)</term>
+                    <listitem>
+                        <para>
+                            Specifies the name of the IPA domain.
+                            This is optional. If not provided, the configuration
+                            domain name is used.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_server, ipa_backup_server (string)</term>
+                    <listitem>
+                        <para>
+                            The comma-separated list of IP addresses or hostnames of the
+                            IPA servers to which SSSD should connect in
+                            the order of preference. For more information
+                            on failover and server redundancy, see the
+                            <quote>FAILOVER</quote> section.
+                            This is optional if autodiscovery is enabled.
+                            For more information on service discovery, refer
+                            to the <quote>SERVICE DISCOVERY</quote> section.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_hostname (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. May be set on machines where the
+                            hostname(5) does not reflect the fully qualified
+                            name used in the IPA domain to identify this host.
+                            The hostname must be fully qualified.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_update (boolean)</term>
+                    <listitem>
+                        <para>
+                            Optional. This option tells SSSD to automatically
+                            update the DNS server built into FreeIPA with
+                            the IP address of this client. The update is
+                            secured using GSS-TSIG. The IP address of the IPA
+                            LDAP connection is used for the updates, if it is
+                            not otherwise specified by using the
+                            <quote>dyndns_iface</quote> option.
+                        </para>
+                        <para>
+                            NOTE: On older systems (such as RHEL 5), for this
+                            behavior to work reliably, the default Kerberos
+                            realm must be set properly in /etc/krb5.conf
+                        </para>
+                        <para>
+                            NOTE: While it is still possible to use the old
+                            <emphasis>ipa_dyndns_update</emphasis> option, users
+                            should migrate to using <emphasis>dyndns_update</emphasis>
+                            in their config file.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_ttl (integer)</term>
+                    <listitem>
+                        <para>
+                            The TTL to apply to the client DNS record when updating it.
+                            If dyndns_update is false this has no effect. This will
+                            override the TTL serverside if set by an administrator.
+                        </para>
+                        <para>
+                            NOTE: While it is still possible to use the old
+                            <emphasis>ipa_dyndns_ttl</emphasis> option, users
+                            should migrate to using <emphasis>dyndns_ttl</emphasis>
+                            in their config file.
+                        </para>
+                        <para>
+                            Default: 1200 (seconds)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_iface (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Applicable only when dyndns_update
+                            is true. Choose the interface or a list of interfaces
+                            whose IP addresses should be used for dynamic DNS
+                            updates. The name of interface can be a wildcard
+                            pattern. See <emphasis>man 7 glob</emphasis> for
+                            details about patterns.
+                        </para>
+                        <para>
+                            NOTE: While it is still possible to use the old
+                            <emphasis>ipa_dyndns_iface</emphasis> option, users
+                            should migrate to using <emphasis>dyndns_iface</emphasis>
+                            in their config file.
+                        </para>
+                        <para>
+                            Default: Use the IP addresses of the interface which
+                            is used for IPA LDAP connection
+                        </para>
+                        <para>
+                            Example: dyndns_iface = em1, vnet1, vnet2
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_auth (string)</term>
+                    <listitem>
+                        <para>
+                            Whether the nsupdate utility should use GSS-TSIG
+                            authentication for secure updates with the DNS
+                            server, insecure updates can be sent by setting
+                            this option to 'none'.
+                        </para>
+                        <para>
+                            Default: GSS-TSIG
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_auth_ptr (string)</term>
+                    <listitem>
+                        <para>
+                            Whether the nsupdate utility should use GSS-TSIG
+                            authentication for secure PTR updates with the DNS
+                            server, insecure updates can be sent by setting
+                            this option to 'none'.
+                        </para>
+                        <para>
+                            Default: Same as dyndns_auth
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_refresh_interval (integer)</term>
+                    <listitem>
+                        <para>
+                            How often should the back end perform periodic DNS update in
+                            addition to the automatic update performed when the back end
+                            goes online.
+                            This option is optional and applicable only when dyndns_update
+                            is true.
+                        </para>
+                        <para>
+                            Default: 0 (disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_update_ptr (bool)</term>
+                    <listitem>
+                        <para>
+                            Whether the PTR record should also be explicitly
+                            updated when updating the client's DNS records.
+                            Applicable only when dyndns_update is true.
+                        </para>
+                        <para>
+                            This option should be False in most IPA
+                            deployments as the IPA server generates the
+                            PTR records automatically when forward records
+                            are changed.
+                        </para>
+                        <para>
+                            Note that <emphasis>dyndns_update_per_family</emphasis>
+                            parameter does not apply for PTR record updates.
+                            Those updates are always sent separately.
+                        </para>
+                        <para>
+                            Default: False (disabled)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_force_tcp (bool)</term>
+                    <listitem>
+                        <para>
+                            Whether the nsupdate utility should default to using
+                            TCP for communicating with the DNS server.
+                        </para>
+                        <para>
+                            Default: False (let nsupdate choose the protocol)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_server (string)</term>
+                    <listitem>
+                        <para>
+                            The DNS server to use when performing a DNS
+                            update. In most setups, it's recommended to leave
+                            this option unset.
+                        </para>
+                        <para>
+                            Setting this option makes sense for environments
+                            where the DNS server is different from the identity
+                            server or when we use encrypted DNS.
+                        </para>
+                        <para>
+                           The parameter can be a simple string containing
+                           DNS name or IP address. It can also be an URI.
+                           The URI can look like
+                           <emphasis>dns://servername/</emphasis> or
+                           <emphasis>dns+tls://1.2.3.4:853#servername/</emphasis>.
+                        </para>
+                        <para>
+                            The second example enables DNS-over-TLS protocol for
+                            DNS updates. The nsupdate utility must support DoT -
+                            check the <emphasis>man nsupdate</emphasis> before
+                            enabling it in SSSD.
+                        </para>
+                        <para>
+                            Please note that this option will be only used in
+                            fallback attempt when previous attempt using
+                            autodetected settings failed or when DNS-over-TLS
+                            is enabled.
+                        </para>
+                        <para>
+                            Default: None (let nsupdate choose the server)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_update_per_family (boolean)</term>
+                    <listitem>
+                        <para>
+                            DNS update is by default performed in two steps -
+                            IPv4 update and then IPv6 update. In some cases
+                            it might be desirable to perform IPv4 and IPv6
+                            update in single step.
+                        </para>
+                        <para>
+                            Default: true
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_dot_cacert (string)</term>
+                    <listitem>
+                        <para>
+                            This option specifies the file of the certificate
+                            authorities certificates (in PEM format) in order
+                            to verify the remote server TLS certificate when
+                            using  DoT.
+                        </para>
+                        <para>
+                            Default: None (use global certificate store)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_dot_cert (string)</term>
+                    <listitem>
+                        <para>
+                            This option sets the certificate(s) file for
+                            authentication for the DoT transport to the remote
+                            server. The certificate chain file is expected to
+                            be in PEM format.
+                        </para>
+                        <para>
+                            The <emphasis>dyndns_dot_cert</emphasis> and
+                            <emphasis>dyndns_dot_key</emphasis> options must be
+                            both set to achieve mutual TLS authentication.
+                        </para>
+                        <para>
+                            Default: None (Do not use TLS authentication)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>dyndns_dot_key (string)</term>
+                    <listitem>
+                        <para>
+                            This option sets the key file for authenticated
+                            encryption for the DoT transport to the remote
+                            server. The private key file is expected to
+                            be in PEM format.
+                        </para>
+                        <para>
+                            Default: None (Do not use TLS authentication)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_access_order (string)</term>
+                    <listitem>
+                        <para>
+                            Comma separated list of access control options.
+                            Allowed values are:
+                        </para>
+                        <para>
+                            <emphasis>expire</emphasis>: use
+                            IPA's account expiration policy.
+                        </para>
+                        <para>
+                            <emphasis>pwd_expire_policy_reject,
+                                      pwd_expire_policy_warn,
+                                      pwd_expire_policy_renew:
+                            </emphasis>
+                            These options are useful if users are interested
+                            in being warned that password is about to expire
+                            and authentication is based on using a different
+                            method than passwords - for example SSH keys.
+                       </para>
+                       <para>
+                            The difference between these options is the action
+                            taken if user password is expired:
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                    pwd_expire_policy_reject -
+                                    user is denied to log in,
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                    pwd_expire_policy_warn -
+                                    user is still able to log in,
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                    pwd_expire_policy_renew -
+                                    user is prompted to change their
+                                    password immediately.
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            Please note that 'access_provider = ipa' must
+                            be set for this feature to work.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_deskprofile_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            Desktop Profile related objects.
+                        </para>
+                        <para>
+                            Default: Use base DN
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry condition="with_subid">
+                    <term>ipa_subid_ranges_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Deprecated. Use ldap_subid_ranges_search_base instead.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_hbac_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            HBAC related objects.
+                        </para>
+                        <para>
+                            Default: Use base DN
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_host_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Deprecated. Use ldap_host_search_base instead.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_selinux_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            SELinux user maps.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>ldap_search_base</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_subdomains_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            trusted domains.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>cn=trusts,%basedn</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_master_domain_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            master domain object.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>cn=ad,cn=etc,%basedn</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_views_search_base (string)</term>
+                    <listitem>
+                        <para>
+                            Optional. Use the given string as search base for
+                            views containers.
+                        </para>
+                        <para>
+                            See <quote>ldap_search_base</quote> for
+                            information about configuring multiple search
+                            bases.
+                        </para>
+                        <para>
+                            Default: the value of
+                            <emphasis>cn=views,cn=accounts,%basedn</emphasis>
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>krb5_realm (string)</term>
+                    <listitem>
+                        <para>
+                            The name of the Kerberos realm. This is optional and
+                            defaults to the value of <quote>ipa_domain</quote>.
+                        </para>
+                        <para>
+                            The name of the Kerberos realm has a special
+                            meaning in IPA - it is converted into the base
+                            DN to use for performing LDAP operations.
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>krb5_confd_path (string)</term>
+                    <listitem>
+                        <para>
+                            Absolute path of a directory where SSSD should place
+                            Kerberos configuration snippets.
+                        </para>
+                        <para>
+                            To disable the creation of the configuration
+                            snippets set the parameter to 'none'.
+                        </para>
+                        <para>
+                            Default: not set (krb5.include.d subdirectory of
+                            SSSD's pubconf directory)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_deskprofile_refresh (integer)</term>
+                    <listitem>
+                        <para>
+                            The amount of time between lookups of the Desktop
+                            Profile rules against the IPA server. This will
+                            reduce the latency and load on the IPA server if
+                            there are many desktop profiles requests made in a
+                            short period.
+                        </para>
+                        <para>
+                            Default: 5 (seconds)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_deskprofile_request_interval (integer)</term>
+                    <listitem>
+                        <para>
+                            The amount of time between lookups of the Desktop
+                            Profile rules against the IPA server in case the
+                            last request did not return any rule.
+                        </para>
+                        <para>
+                            Default: 60 (minutes)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_hbac_refresh (integer)</term>
+                    <listitem>
+                        <para>
+                            The amount of time between lookups of the HBAC
+                            rules against the IPA server. This will reduce the
+                            latency and load on the IPA server if there are
+                            many access-control requests made in a short
+                            period.
+                        </para>
+                        <para>
+                            Default: 5 (seconds)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_hbac_selinux (integer)</term>
+                    <listitem>
+                        <para>
+                            The amount of time between lookups of the SELinux
+                            maps against the IPA server. This will reduce the
+                            latency and load on the IPA server if there are
+                            many user login requests made in a short
+                            period.
+                        </para>
+                        <para>
+                            Default: 5 (seconds)
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ipa_server_mode (boolean)</term>
+                    <listitem>
+			<para>
+                            This option will be set by the IPA installer
+                            (ipa-server-install) automatically and denotes
+                            if SSSD is running on an IPA server or not.
+                        </para>
+			<para>
+                            On an IPA server SSSD will lookup users and groups
+                            from trusted domains directly while on a client
+                            it will ask an IPA server.
+                        </para>
+                        <para>
+                            NOTE: There are currently some assumptions that
+                            must be met when SSSD is running on an IPA server.
+                            <itemizedlist>
+                                <listitem>
+                                    <para>
+                                        The <quote>ipa_server</quote> option
+                                        must be configured to point to the
+                                        IPA server itself. This is already
+                                        the default set by the IPA installer,
+                                        so no manual change is required.
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        The <quote>full_name_format</quote>
+                                        option must not be tweaked to only
+                                        print short names for users from
+                                        trusted domains.
+                                    </para>
+                                </listitem>
+                            </itemizedlist>
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry condition="with_autofs">
+                    <term>ipa_automount_location (string)</term>
+                    <listitem>
+                        <para>
+                            The automounter location this IPA client will be using
+                        </para>
+                        <para>
+                            Default: The location named "default"
+                        </para>
+                        <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/autofs_restart.xml" />
+                    </listitem>
+                </varlistentry>
+            </variablelist>
+        </para>
+        <refsect2 id='views'>
+            <title>VIEWS AND OVERRIDES</title>
+            <para>
+                SSSD can handle views and overrides which are offered by
+                FreeIPA 4.1 and later version. Since all paths and objectclasses
+                are fixed on the server side there is basically no need to
+                configure anything. For completeness the related options are
+                listed here with their default values.
+                <variablelist>
+                    <varlistentry>
+                        <term>ipa_view_class (string)</term>
+                        <listitem>
+                            <para>
+                                Objectclass of the view container.
+                            </para>
+                            <para>
+                                Default: nsContainer
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_view_name (string)</term>
+                        <listitem>
+                            <para>
+                                Name of the attribute holding the name of the
+                                view.
+                            </para>
+                            <para>
+                                Default: cn
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_override_object_class (string)</term>
+                        <listitem>
+                            <para>
+                                Objectclass of the override objects.
+                            </para>
+                            <para>
+                                Default: ipaOverrideAnchor
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_anchor_uuid (string)</term>
+                        <listitem>
+                            <para>
+                                Name of the attribute containing the reference
+                                to the original object in a remote domain.
+                            </para>
+                            <para>
+                                Default: ipaAnchorUUID
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_user_override_object_class (string)</term>
+                        <listitem>
+                            <para>
+                                Name of the objectclass for user overrides. It
+                                is used to determine if the found override
+                                object is related to a user or a group.
+                            </para>
+                            <para>
+                                User overrides can contain attributes given by
+                                <itemizedlist>
+                                    <listitem>
+                                        <para>ldap_user_name</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_uid_number</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_gid_number</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_gecos</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_home_directory</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_shell</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_user_ssh_public_key</para>
+                                    </listitem>
+                                </itemizedlist>
+                            </para>
+                            <para>
+                                Default: ipaUserOverride
+                            </para>
+                        </listitem>
+                    </varlistentry>
+
+                    <varlistentry>
+                        <term>ipa_group_override_object_class (string)</term>
+                        <listitem>
+                            <para>
+                                Name of the objectclass for group overrides. It
+                                is used to determine if the found override
+                                object is related to a user or a group.
+                            </para>
+                            <para>
+                                Group overrides can contain attributes given by
+                                <itemizedlist>
+                                    <listitem>
+                                        <para>ldap_group_name</para>
+                                    </listitem>
+                                    <listitem>
+                                        <para>ldap_group_gid_number</para>
+                                    </listitem>
+                                </itemizedlist>
+                            </para>
+                            <para>
+                                Default: ipaGroupOverride
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                </variablelist>
+            </para>
+        </refsect2>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/ipa_modified_defaults.xml" />
+
+    <refsect1 id='subdomains_provider'>
+        <title>SUBDOMAINS PROVIDER</title>
+        <para>
+            The IPA subdomains provider behaves slightly differently
+            if it is configured explicitly or implicitly.
+        </para>
+        <para>
+            If the option 'subdomains_provider = ipa' is found in the
+            domain section of sssd.conf, the IPA subdomains provider is
+            configured explicitly, and all subdomain requests are sent to the
+            IPA server if necessary.
+        </para>
+        <para>
+            If the option 'subdomains_provider' is not set in the domain
+            section of sssd.conf but there is the option 'id_provider = ipa',
+            the IPA subdomains provider is configured implicitly. In this case,
+            if a subdomain request fails and indicates that the server does not
+            support subdomains, i.e. is not configured for trusts, the IPA
+            subdomains provider is disabled. After an hour or after the IPA
+            provider goes online, the subdomains provider is enabled again.
+        </para>
+    </refsect1>
+
+    <refsect1 id='trusted_domains'>
+        <title>TRUSTED DOMAINS CONFIGURATION</title>
+        <para>
+            Some configuration options can also be set for a trusted domain.
+            A trusted domain configuration can be set using the trusted domain
+            subsection as shown in the example below. Alternatively,
+            the <quote>subdomain_inherit</quote> option can be used in the
+            parent domain.
+<programlisting>
+[domain/ipa.domain.com/ad.domain.com]
+ad_server = dc.ad.domain.com
+</programlisting>
+        </para>
+        <para>
+            For more details, see the
+            <citerefentry>
+                <refentrytitle>sssd.conf</refentrytitle>
+                <manvolnum>5</manvolnum>
+            </citerefentry> manual page.
+        </para>
+        <para>
+            Different configuration options are tunable for a trusted
+            domain depending on whether you are configuring SSSD on an
+            IPA server or an IPA client.
+        </para>
+        <refsect2 id='server_configuration'>
+            <title>OPTIONS TUNABLE ON IPA MASTERS</title>
+            <para>
+                The following options can be set in a subdomain
+                section on an IPA master:
+                <itemizedlist>
+                    <listitem>
+                        <para>ad_server</para>
+                    </listitem>
+                    <listitem>
+                        <para>ad_backup_server</para>
+                    </listitem>
+                    <listitem>
+                        <para>ad_site</para>
+                    </listitem>
+                    <listitem>
+                        <para>ipa_server</para>
+                    </listitem>
+                    <listitem>
+                        <para>ipa_backup_server</para>
+                    </listitem>
+                    <listitem>
+                        <para>ldap_search_base</para>
+                    </listitem>
+                    <listitem>
+                        <para>ldap_user_search_base</para>
+                    </listitem>
+                    <listitem>
+                        <para>ldap_group_search_base</para>
+                    </listitem>
+                    <listitem>
+                        <para>use_fully_qualified_names</para>
+                    </listitem>
+                </itemizedlist>
+            </para>
+            <para>
+                Options prefixed with 'ad_' or 'ipa_' only apply to
+                their respective subdomain type.
+            </para>
+        </refsect2>
+        <refsect2 id='client_configuration'>
+            <title>OPTIONS TUNABLE ON IPA CLIENTS</title>
+            <para>
+                The following options can be set in an AD subdomain
+                section on an IPA client:
+                <itemizedlist>
+                    <listitem>
+                        <para>ad_server</para>
+                    </listitem>
+                    <listitem>
+                        <para>ad_site</para>
+                    </listitem>
+                </itemizedlist>
+            </para>
+            <para>
+                Note that if both options are set, only
+                <quote>ad_server</quote> is evaluated.
+            </para>
+            <para>
+                Since any request for a user or a group identity from a
+                trusted domain triggered from an IPA client is resolved
+                by the IPA server, the <quote>ad_server</quote> and
+                <quote>ad_site</quote> options only affect which AD DC will
+                the authentication be performed against. In particular,
+                the addresses resolved from these lists will be written to
+                <quote>kdcinfo</quote> files read by the Kerberos locator
+                plugin. Please refer to the
+                <citerefentry>
+                    <refentrytitle>sssd_krb5_locator_plugin</refentrytitle>
+                    <manvolnum>8</manvolnum>
+                </citerefentry> manual page for more details on the Kerberos
+                locator plugin.
+            </para>
+        </refsect2>
+    </refsect1>
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/failover.xml" />
+
+    <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/service_discovery.xml" />
+
+    <refsect1 id='example'>
+        <title>EXAMPLE</title>
+        <para>
+            The following example assumes that SSSD is correctly
+            configured and example.com is one of the domains in the
+            <replaceable>[sssd]</replaceable> section. This examples shows only
+            the ipa provider-specific options.
+        </para>
+        <para>
+<programlisting>
+[domain/example.com]
+id_provider = ipa
+ipa_server = ipaserver.example.com
+ipa_hostname = myhost.example.com
+</programlisting>
+        </para>
+    </refsect1>
+
+	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
+
+</refentry>
+</reference>

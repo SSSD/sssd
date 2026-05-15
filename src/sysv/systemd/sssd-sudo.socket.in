@@ -1,0 +1,16 @@
+[Unit]
+Description=SSSD Sudo Service responder socket
+Documentation=man:sssd.conf(5)
+After=sssd.service
+BindsTo=sssd.service
+DefaultDependencies=no
+Conflicts=shutdown.target
+
+[Socket]
+ExecStartPre=@libexecdir@/sssd/sssd_check_socket_activated_responders -r sudo
+ListenStream=@pipepath@/sudo
+SocketUser=@SSSD_USER@
+SocketMode=0660
+
+[Install]
+WantedBy=sssd.service

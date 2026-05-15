@@ -1,0 +1,73 @@
+EXPORTED {
+
+	# public functions
+	global:
+
+		_nss_sss_getpwnam_r;
+		_nss_sss_getpwuid_r;
+		_nss_sss_setpwent;
+		_nss_sss_getpwent_r;
+		_nss_sss_endpwent;
+
+		_nss_sss_getgrnam_r;
+		_nss_sss_getgrgid_r;
+		_nss_sss_setgrent;
+		_nss_sss_getgrent_r;
+		_nss_sss_endgrent;
+		_nss_sss_initgroups_dyn;
+
+		#_nss_sss_getaliasbyname_r;
+		#_nss_sss_setaliasent;
+		#_nss_sss_getaliasent_r;
+		#_nss_sss_endaliasent;
+
+		#_nss_sss_gethostton_r;
+		#_nss_sss_getntohost_r;
+		#_nss_sss_setetherent;
+		#_nss_sss_getetherent_r;
+		#_nss_sss_endetherent;
+
+		_nss_sss_gethostbyname_r;
+		_nss_sss_gethostbyname2_r;
+		_nss_sss_gethostbyaddr_r;
+		_nss_sss_sethostent;
+		_nss_sss_gethostent_r;
+		_nss_sss_endhostent;
+
+		_nss_sss_setnetgrent;
+		_nss_sss_getnetgrent_r;
+		_nss_sss_endnetgrent;
+
+		_nss_sss_getnetbyname_r;
+		_nss_sss_getnetbyaddr_r;
+		_nss_sss_setnetent;
+		_nss_sss_getnetent_r;
+		_nss_sss_endnetent;
+
+		#_nss_sss_getprotobyname_r;
+		#_nss_sss_getprotobynumber_r;
+		#_nss_sss_setprotoent;
+		#_nss_sss_getprotoent_r;
+		#_nss_sss_endprotoent;
+
+		#_nss_sss_getrpcbyname_r;
+		#_nss_sss_getrpcbynumber_r;
+		#_nss_sss_setrpcent;
+		#_nss_sss_getrpcent_r;
+		#_nss_sss_endrpcent;
+
+		_nss_sss_getservbyname_r;
+		_nss_sss_getservbyport_r;
+		_nss_sss_setservent;
+		_nss_sss_getservent_r;
+		_nss_sss_endservent;
+
+		#_nss_sss_getspnam_r;
+		#_nss_sss_setspent;
+		#_nss_sss_getspent_r;
+		#_nss_sss_endspent;
+
+	# everything else is local
+	local:
+		*;
+};

@@ -1,0 +1,123 @@
+#!/usr/bin/python
+
+from __future__ import print_function
+
+import sys
+from optparse import OptionParser
+
+import pysss
+import SSSDConfig
+import getpass
+
+
+def parse_options():
+    parser = OptionParser()
+    parser.set_description("sss_obfuscate converts a given password into \
+                            human-unreadable format and places it into \
+                            appropriate domain section of the SSSD config \
+                            file. The password can be passed in by stdin, \
+                            specified on the command-line or entered \
+                            interactively")
+    parser.add_option("-s", "--stdin", action="store_true",
+                      dest="stdin", default=False,
+                      help="Read the password from stdin.")
+    parser.add_option("-d", "--domain",
+                      dest="domain", default=None,
+                      help="The domain to use the password in (mandatory)",
+                      metavar="DOMNAME")
+    parser.add_option("-f", "--file",
+                      dest="filename", default=None,
+                      help="Set input file to FILE (default: Use system "
+                           "default, usually /etc/sssd/sssd.conf)",
+                      metavar="FILE")
+    (options, args) = parser.parse_args()
+
+    return options, args
+
+
+def main():
+    options, args = parse_options()
+    if not options:
+        print("Cannot parse options", file=sys.stderr)
+        return 1
+
+    if not options.domain:
+        print("No domain specified", file=sys.stderr)
+        return 1
+
+    if not options.stdin:
+        try:
+            pprompt = lambda: (getpass.getpass("Enter password: "),
+                               getpass.getpass("Re-enter password: "))
+            p1, p2 = pprompt()
+
+            # Work around bug in Python 2.6
+            if '\x03' in p1 or '\x03' in p2:
+                raise KeyboardInterrupt
+
+            while p1 != p2:
+                print('Passwords do not match. Try again')
+                p1, p2 = pprompt()
+
+                # Work around bug in Python 2.6
+                if '\x03' in p1 or '\x03' in p2:
+                    raise KeyboardInterrupt
+            password = p1
+
+        except EOFError:
+            print('\nUnexpected end-of-file. Password change aborted',
+                  file=sys.stderr)
+            return 1
+        except KeyboardInterrupt:
+            return 1
+
+    else:
+        try:
+            password = sys.stdin.read()
+        except KeyboardInterrupt:
+            return 1
+
+    # Obfuscate the password
+    obfobj = pysss.password()
+    obfpwd = obfobj.encrypt(password, obfobj.AES_256)
+
+    # Save the obfuscated password into the domain
+    try:
+        sssdconfig = SSSDConfig.SSSDConfig()
+    except IOError:
+        print("Cannot read internal configuration files.")
+        return 1
+    try:
+        sssdconfig.import_config(options.filename)
+    except IOError:
+        print("Permissions error reading config file")
+        return 1
+
+    try:
+        domain = sssdconfig.get_domain(options.domain)
+    except SSSDConfig.NoDomainError:
+        print("No such domain %s" % options.domain)
+        return 1
+
+    try:
+        domain.set_option('ldap_default_authtok_type', 'obfuscated_password')
+        domain.set_option('ldap_default_authtok', obfpwd)
+    except SSSDConfig.NoOptionError:
+        print("The domain %s does not seem to support the required options"
+              % options.domain)
+        return 1
+
+    sssdconfig.save_domain(domain)
+    try:
+        sssdconfig.write()
+    except IOError:
+        # File could not be written
+        print("Could not write to config file. Check that you have the "
+              "appropriate permissions to edit this file.", file=sys.stderr)
+        return 1
+
+    return 0
+
+if __name__ == "__main__":
+    ret = main()
+    sys.exit(ret)

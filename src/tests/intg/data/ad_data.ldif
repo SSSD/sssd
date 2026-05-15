@@ -1,0 +1,815 @@
+dn: cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: container
+cn: Users
+description: Default container for upgraded user accounts
+distinguishedName: cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923233930.0Z
+whenChanged: 20140923233930.0Z
+uSNCreated: 5696
+uSNChanged: 5696
+showInAdvancedViewOnly: FALSE
+name: Users
+objectGUID:: 6Gd2SrsmeEiT3Hmh/5hTqw==
+systemFlags: -1946157056
+objectCategory: cn=Container,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=CHILD1$,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: CHILD1$
+distinguishedName: cn=CHILD1$,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923224256.0Z
+whenChanged: 20160423221800.0Z
+uSNCreated: 20732
+uSNChanged: 2181674
+name: CHILD1$
+objectGUID:: ACE60RcYu0iZv4CMYPK+eg==
+userAccountControl: 2080
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 0
+lastLogoff: 0
+lastLogon: 0
+pwdLastSet: 131059234804699243
+primaryGroupID: 513
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EUAQAAA==
+accountExpires: 9223372036854775807
+logonCount: 0
+sAMAccountName: CHILD1$
+sAMAccountType: 805306370
+objectCategory: cn=Person,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=krbtgt,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: krbtgt
+description: Key Distribution Center Service Account
+distinguishedName: cn=krbtgt,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923185530.0Z
+uSNCreated: 12324
+memberOf: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+uSNChanged: 12723
+showInAdvancedViewOnly: TRUE
+name: krbtgt
+objectGUID:: F/Yrx8X81ESM6t14mMxcxA==
+userAccountControl: 514
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 0
+lastLogoff: 0
+lastLogon: 0
+pwdLastSet: 130559892182968750
+primaryGroupID: 513
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8E9gEAAA==
+adminCount: 1
+accountExpires: 9223372036854775807
+logonCount: 0
+sAMAccountName: krbtgt
+sAMAccountType: 805306368
+servicePrincipalName: kadmin/changepw
+objectCategory: cn=Person,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 20140923185530.0Z
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Domain Computers,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Domain Computers
+description: All workstations and servers joined to the domain
+distinguishedName: cn=Domain Computers,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923234018.0Z
+uSNCreated: 12330
+uSNChanged: 12332
+name: Domain Computers
+objectGUID:: 09VIVs7CDkOMTnLtMkZMUA==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EAwIAAA==
+sAMAccountName: Domain Computers
+sAMAccountType: 268435456
+groupType: -2147483646
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Domain Controllers,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Domain Controllers
+description: All domain controllers in the domain
+distinguishedName: cn=Domain Controllers,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923185530.0Z
+uSNCreated: 12333
+memberOf: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+uSNChanged: 12726
+name: Domain Controllers
+objectGUID:: a6OG+FLmnECf3fAe0a8o6w==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EBAIAAA==
+adminCount: 1
+sAMAccountName: Domain Controllers
+sAMAccountType: 268435456
+groupType: -2147483646
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 20140923185530.0Z
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Schema Admins,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Schema Admins
+description: Designated administrators of the schema
+member: cn=Administrator,cn=Users,dc=example,dc=com
+distinguishedName: cn=Schema Admins,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923185530.0Z
+uSNCreated: 12336
+memberOf: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+uSNChanged: 12708
+name: Schema Admins
+objectGUID:: ONs7cn0OF0uEip0yMnLv2Q==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EBgIAAA==
+adminCount: 1
+sAMAccountName: Schema Admins
+sAMAccountType: 268435456
+groupType: -2147483640
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 20140923185530.0Z
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Enterprise Admins,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Enterprise Admins
+description: Designated administrators of the enterprise
+member: cn=Administrator,cn=Users,dc=example,dc=com
+distinguishedName: cn=Enterprise Admins,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923185530.0Z
+uSNCreated: 12339
+memberOf: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+memberOf: cn=Administrators,cn=Builtin,dc=example,dc=com
+uSNChanged: 12712
+name: Enterprise Admins
+objectGUID:: rD6jEoiL8U6huv7c/OJPwg==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EBwIAAA==
+adminCount: 1
+sAMAccountName: Enterprise Admins
+sAMAccountType: 268435456
+groupType: -2147483640
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 20140923185530.0Z
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Cert Publishers,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Cert Publishers
+description: Members of this group are permitted to publish certificates to the directory
+member: cn=PLUTO,OU=Domain Controllers,dc=example,dc=com
+distinguishedName: cn=Cert Publishers,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923191508.0Z
+uSNCreated: 12342
+memberOf: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+uSNChanged: 12749
+name: Cert Publishers
+objectGUID:: zWTUMdl6tEWA1J0QnPLkRQ==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EBQIAAA==
+sAMAccountName: Cert Publishers
+sAMAccountType: 536870912
+groupType: -2147483644
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Domain Admins,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Domain Admins
+description: Designated administrators of the domain
+member: cn=Administrator,cn=Users,dc=example,dc=com
+distinguishedName: cn=Domain Admins,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923185530.0Z
+uSNCreated: 12345
+memberOf: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+memberOf: cn=Administrators,cn=Builtin,dc=example,dc=com
+uSNChanged: 12711
+name: Domain Admins
+objectGUID:: YxI+YLrC3UeNNsmMnXGTlg==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EAAIAAA==
+adminCount: 1
+sAMAccountName: Domain Admins
+sAMAccountType: 268435456
+groupType: -2147483646
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 20140923185530.0Z
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Domain Users,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Domain Users
+description: All domain users
+distinguishedName: cn=Domain Users,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20150202222731.0Z
+uSNCreated: 12348
+memberOf: cn=Users,cn=Builtin,dc=example,dc=com
+uSNChanged: 213433
+name: Domain Users
+objectGUID:: JRHvlJXoU0+LOYXs3vESow==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EAQIAAA==
+sAMAccountName: Domain Users
+sAMAccountType: 268435456
+groupType: -2147483646
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+msSFU30NisDomain: example
+gidNumber: 100000
+
+dn: cn=Domain Guests,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Domain Guests
+description: All domain guests
+distinguishedName: cn=Domain Guests,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923234018.0Z
+uSNCreated: 12351
+memberOf: cn=Guests,cn=Builtin,dc=example,dc=com
+uSNChanged: 12353
+name: Domain Guests
+objectGUID:: Rx/t/vuPwUGOMoprY1KFog==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EAgIAAA==
+sAMAccountName: Domain Guests
+sAMAccountType: 268435456
+groupType: -2147483646
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Group Policy Creator Owners,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Group Policy Creator Owners
+description: Members in this group can modify group policy for the domain
+member: cn=Administrator,cn=Users,dc=example,dc=com
+distinguishedName: cn=Group Policy Creator Owners,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923234018.0Z
+uSNCreated: 12354
+memberOf: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+uSNChanged: 12391
+name: Group Policy Creator Owners
+objectGUID:: V3HfwcWfZ0yv1br3tRP6bA==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8ECAIAAA==
+sAMAccountName: Group Policy Creator Owners
+sAMAccountType: 268435456
+groupType: -2147483646
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=RAS and IAS Servers,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: RAS and IAS Servers
+description: Servers in this group can access remote access properties of users
+distinguishedName: cn=RAS and IAS Servers,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923234018.0Z
+uSNCreated: 12357
+uSNChanged: 12359
+name: RAS and IAS Servers
+objectGUID:: PHyDebZK7UKVG9HG+mT8ng==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EKQIAAA==
+sAMAccountName: RAS and IAS Servers
+sAMAccountType: 536870912
+groupType: -2147483644
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Allowed ROdc Password Replication Group,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Allowed ROdc Password Replication Group
+description: Members in this group can have their passwords replicated to all read-only domain controllers in the domain
+distinguishedName: cn=Allowed ROdc Password Replication Group,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923234018.0Z
+uSNCreated: 12402
+uSNChanged: 12404
+name: Allowed ROdc Password Replication Group
+objectGUID:: pKN3Txn0SUenHm8Z58ZQYA==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EOwIAAA==
+sAMAccountName: Allowed ROdc Password Replication Group
+sAMAccountType: 536870912
+groupType: -2147483644
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Denied ROdc Password Replication Group
+description: Members in this group cannot have their passwords replicated to any read-only domain controllers in the domain
+member: cn=Read-only Domain Controllers,cn=Users,dc=example,dc=com
+member: cn=Group Policy Creator Owners,cn=Users,dc=example,dc=com
+member: cn=Domain Admins,cn=Users,dc=example,dc=com
+member: cn=Cert Publishers,cn=Users,dc=example,dc=com
+member: cn=Enterprise Admins,cn=Users,dc=example,dc=com
+member: cn=Schema Admins,cn=Users,dc=example,dc=com
+member: cn=Domain Controllers,cn=Users,dc=example,dc=com
+member: cn=krbtgt,cn=Users,dc=example,dc=com
+distinguishedName: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923234018.0Z
+uSNCreated: 12405
+uSNChanged: 12433
+name: Denied ROdc Password Replication Group
+objectGUID:: OoOtLxLbXUSdCGKeGvzc7Q==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EPAIAAA==
+sAMAccountName: Denied ROdc Password Replication Group
+sAMAccountType: 536870912
+groupType: -2147483644
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Read-only Domain Controllers,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Read-only Domain Controllers
+description: Members of this group are Read-Only Domain Controllers in the domain
+distinguishedName: cn=Read-only Domain Controllers,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923185530.0Z
+uSNCreated: 12419
+memberOf: cn=Denied ROdc Password Replication Group,cn=Users,dc=example,dc=com
+uSNChanged: 12725
+name: Read-only Domain Controllers
+objectGUID:: GoeeiCJ87UqBN3C9MhqQ3w==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8ECQIAAA==
+adminCount: 1
+sAMAccountName: Read-only Domain Controllers
+sAMAccountType: 268435456
+groupType: -2147483646
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 20140923185530.0Z
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Enterprise Read-only Domain Controllers,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: Enterprise Read-only Domain Controllers
+description: Members of this group are Read-Only Domain Controllers in the enterprise
+distinguishedName: cn=Enterprise Read-only Domain Controllers,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234018.0Z
+whenChanged: 20140923234018.0Z
+uSNCreated: 12429
+uSNChanged: 12431
+name: Enterprise Read-only Domain Controllers
+objectGUID:: qHRH+tAgFUy7660VnrFpTA==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8E8gEAAA==
+sAMAccountName: Enterprise Read-only Domain Controllers
+sAMAccountType: 268435456
+groupType: -2147483640
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=DnsAdmins,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: DnsAdmins
+description: DNS Administrators Group
+distinguishedName: cn=DnsAdmins,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234058.0Z
+whenChanged: 20140923234058.0Z
+uSNCreated: 12459
+uSNChanged: 12461
+name: DnsAdmins
+objectGUID:: w4cyv6dWNEGQao3mL5RpTA==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8ETQQAAA==
+sAMAccountName: DnsAdmins
+sAMAccountType: 536870912
+groupType: -2147483644
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=DnsUpdateProxy,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: DnsUpdateProxy
+description: DNS clients who are permitted to perform dynamic updates on behalf of some other clients (such as DHCP servers).
+distinguishedName: cn=DnsUpdateProxy,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923234058.0Z
+whenChanged: 20140923234058.0Z
+uSNCreated: 12464
+uSNChanged: 12464
+name: DnsUpdateProxy
+objectGUID:: LMyHGT2RuEG+IGrGL80qMg==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8ETgQAAA==
+sAMAccountName: DnsUpdateProxy
+sAMAccountType: 268435456
+groupType: -2147483646
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=user1_dom1-19661,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: user1_dom1-19661
+givenName: user1_dom1-19661
+distinguishedName: cn=user1_dom1-19661,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20160517121016.0Z
+whenChanged: 20160517121017.0Z
+displayName: user1_dom1-19661
+uSNCreated: 2223663
+memberOf: cn=group1_dom1-19661,cn=Users,dc=example,dc=com
+uSNChanged: 2223667
+name: user1_dom1-19661
+objectGUID:: qyJVkvQrRUyig6rpPsXNUw==
+userAccountControl: 512
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 0
+lastLogoff: 0
+lastLogon: 0
+pwdLastSet: 131079606172284326
+primaryGroupID: 513
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EeUMBAA==
+accountExpires: 0
+logonCount: 0
+sAMAccountName: user1_dom1-19661
+sAMAccountType: 805306368
+userPrincipalName: user1_dom1-19661@example.com
+objectCategory: cn=Person,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+uid: user1_dom1-19661
+msSFU30Name: user1_dom1-19661
+
+dn: cn=group1_dom1-19661,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: group1_dom1-19661
+member: cn=user1_dom1-19661,cn=Users,dc=example,dc=com
+distinguishedName: cn=group1_dom1-19661,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20160517121017.0Z
+whenChanged: 20160517121018.0Z
+uSNCreated: 2223669
+uSNChanged: 2223673
+name: group1_dom1-19661
+objectGUID:: 8BulXIrOCkmlc6HgV+PAvw==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EekMBAA==
+sAMAccountName: group1_dom1-19661
+sAMAccountType: 268435456
+groupType: -2147483640
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=user2_dom1-19661,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: user2_dom1-19661
+givenName: user2_dom1-19661
+distinguishedName: cn=user2_dom1-19661,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20160517121018.0Z
+whenChanged: 20160517121019.0Z
+displayName: user2_dom1-19661
+uSNCreated: 2223676
+memberOf: cn=group2_dom2-19661,cn=Users,dc=example_tree,dc=com
+uSNChanged: 2223680
+name: user2_dom1-19661
+objectGUID:: YSnhUKGpFUC+SqxUvvXugA==
+userAccountControl: 512
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 0
+lastLogoff: 0
+lastLogon: 0
+pwdLastSet: 131079606188221826
+primaryGroupID: 513
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8Ee0MBAA==
+accountExpires: 0
+logonCount: 0
+sAMAccountName: user2_dom1-19661
+sAMAccountType: 805306368
+userPrincipalName: user2_dom1-19661@example.com
+objectCategory: cn=Person,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+uid: user2_dom1-19661
+msSFU30Name: user2_dom1-19661
+
+dn: cn=group3_dom1-19661,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: group3_dom1-19661
+member: cn=user3_dom3-19661,cn=Users,dc=child1,dc=example,dc=com
+distinguishedName: cn=group3_dom1-19661,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20160517121145.0Z
+whenChanged: 20160517121146.0Z
+uSNCreated: 2223750
+uSNChanged: 2223754
+name: group3_dom1-19661
+objectGUID:: 7bIPzON/JEKmGsVlRmhU3g==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EfEMBAA==
+sAMAccountName: group3_dom1-19661
+sAMAccountType: 268435456
+groupType: -2147483640
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=TelnetClients,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: TelnetClients
+distinguishedName: cn=TelnetClients,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923184913.0Z
+whenChanged: 20140923184913.0Z
+uSNCreated: 12704
+uSNChanged: 12706
+name: TelnetClients
+objectGUID:: pen22ZTevU2Rb+8+krexQA==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8ETwQAAA==
+sAMAccountName: TelnetClients
+sAMAccountType: 536870912
+groupType: -2147483644
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=SSSDAD_TREE$,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: SSSDAD_TREE$
+distinguishedName: cn=SSSDAD_TREE$,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20141002150546.0Z
+whenChanged: 20160504032042.0Z
+uSNCreated: 31148
+uSNChanged: 2196300
+name: SSSDAD_TREE$
+objectGUID:: SYm5qEjtH0SySg5aQw6XNA==
+userAccountControl: 2080
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 0
+lastLogoff: 0
+lastLogon: 0
+pwdLastSet: 131068056421414345
+primaryGroupID: 513
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8EUQQAAA==
+accountExpires: 9223372036854775807
+logonCount: 0
+sAMAccountName: SSSDAD_TREE$
+sAMAccountType: 805306370
+objectCategory: cn=Person,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=user1_dom1-17775,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: user1_dom1-17775
+givenName: user1_dom1-17775
+distinguishedName: cn=user1_dom1-17775,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20160517104141.0Z
+whenChanged: 20160517105245.0Z
+displayName: user1_dom1-17775
+uSNCreated: 2220148
+memberOf: cn=group1_dom1-17775,cn=Users,dc=example,dc=com
+uSNChanged: 2220869
+name: user1_dom1-17775
+objectGUID:: dCwgefPZTEaA5Gq7fuH9eQ==
+userAccountControl: 512
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 0
+lastLogoff: 0
+lastLogon: 131079562057827406
+pwdLastSet: 131079557906733656
+primaryGroupID: 513
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8ESUMBAA==
+accountExpires: 0
+logonCount: 46
+sAMAccountName: user1_dom1-17775
+sAMAccountType: 805306368
+userPrincipalName: user1_dom1-17775@example.com
+objectCategory: cn=Person,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+lastLogonTimestamp: 131079557817046156
+uid: user1_dom1-17775
+msSFU30Name: user1_dom1-17775
+
+dn: cn=group1_dom1-17775,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: group1_dom1-17775
+member: cn=user1_dom1-17775,cn=Users,dc=example,dc=com
+distinguishedName: cn=group1_dom1-17775,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20160517104143.0Z
+whenChanged: 20160517104143.0Z
+uSNCreated: 2220154
+uSNChanged: 2220158
+name: group1_dom1-17775
+objectGUID:: UfJpBGL6gE2d5hqzqNlRGQ==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8ESkMBAA==
+sAMAccountName: group1_dom1-17775
+sAMAccountType: 268435456
+groupType: -2147483640
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=user2_dom1-17775,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: user2_dom1-17775
+givenName: user2_dom1-17775
+distinguishedName: cn=user2_dom1-17775,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20160517104143.0Z
+whenChanged: 20160517105302.0Z
+displayName: user2_dom1-17775
+uSNCreated: 2220161
+memberOf: cn=group2_dom2-17775,cn=Users,dc=example_tree,dc=com
+uSNChanged: 2220886
+name: user2_dom1-17775
+objectGUID:: r22lHyI8Y0eMVzeTH2dzoQ==
+userAccountControl: 512
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 0
+lastLogoff: 0
+lastLogon: 131079561237671156
+pwdLastSet: 131079553041264906
+primaryGroupID: 513
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8ES0MBAA==
+accountExpires: 0
+logonCount: 14
+sAMAccountName: user2_dom1-17775
+sAMAccountType: 805306368
+userPrincipalName: user2_dom1-17775@example.com
+objectCategory: cn=Person,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+lastLogonTimestamp: 131079559824702406
+uid: user2_dom1-17775
+msSFU30Name: user2_dom1-17775
+
+dn: cn=group3_dom1-17775,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: group
+cn: group3_dom1-17775
+member: cn=user3_dom3-17775,cn=Users,dc=child1,dc=example,dc=com
+distinguishedName: cn=group3_dom1-17775,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20160517104312.0Z
+whenChanged: 20160517104312.0Z
+uSNCreated: 2220239
+uSNChanged: 2220243
+name: group3_dom1-17775
+objectGUID:: jkkwGJCVb0K4OCjHZVDmdQ==
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8ETEMBAA==
+sAMAccountName: group3_dom1-17775
+sAMAccountType: 268435456
+groupType: -2147483640
+objectCategory: cn=Group,cn=Schema,cn=Configuration,dc=example,dc=com
+dSCorePropagationData: 16010101000000.0Z
+
+dn: cn=Administrator,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: Administrator
+description: Built-in account for administering the computer/domain
+distinguishedName: cn=Administrator,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923233931.0Z
+whenChanged: 20160510092815.0Z
+uSNCreated: 8196
+memberOf: cn=Group Policy Creator Owners,cn=Users,dc=example,dc=com
+memberOf: cn=Domain Admins,cn=Users,dc=example,dc=com
+memberOf: cn=Enterprise Admins,cn=Users,dc=example,dc=com
+memberOf: cn=Schema Admins,cn=Users,dc=example,dc=com
+memberOf: cn=Administrators,cn=Builtin,dc=example,dc=com
+uSNChanged: 2204950
+name: Administrator
+objectGUID:: QeHMqu/QPEyjJ+KQEqcKFw==
+userAccountControl: 66048
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 131074379403763791
+lastLogoff: 0
+lastLogon: 131079606125409326
+logonHours:: ////////////////////////////
+pwdLastSet: 130553133586093750
+primaryGroupID: 513
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8E9AEAAA==
+adminCount: 1
+accountExpires: 0
+logonCount: 7477
+sAMAccountName: Administrator
+sAMAccountType: 805306368
+objectCategory: cn=Person,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 20140923185530.0Z
+dSCorePropagationData: 16010101000000.0Z
+lastLogonTimestamp: 131073460951421705
+
+dn: cn=Guest,cn=Users,dc=example,dc=com
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: user
+cn: Guest
+description: Built-in account for guest access to the computer/domain
+distinguishedName: cn=Guest,cn=Users,dc=example,dc=com
+instanceType: 4
+whenCreated: 20140923233931.0Z
+whenChanged: 20140923233931.0Z
+uSNCreated: 8197
+memberOf: cn=Guests,cn=Builtin,dc=example,dc=com
+uSNChanged: 8197
+name: Guest
+objectGUID:: pZVy9Q6Eh02XuYDEXDE9Cg==
+userAccountControl: 66082
+badPwdCount: 0
+codePage: 0
+countryCode: 0
+badPasswordTime: 0
+lastLogoff: 0
+lastLogon: 0
+pwdLastSet: 0
+primaryGroupID: 514
+objectSid:: AQUAAAAAAAUVAAAADcfLTVzC66zo0l8E9QEAAA==
+accountExpires: 9223372036854775807
+logonCount: 0
+sAMAccountName: Guest
+sAMAccountType: 805306368
+objectCategory: cn=Person,cn=Schema,cn=Configuration,dc=example,dc=com
+isCriticalSystemObject: TRUE
+dSCorePropagationData: 16010101000000.0Z

@@ -1,0 +1,9 @@
+pexpect
+pytest
+pytest_multihost
+python-ldap
+PyYAML
+pymmh3
+ssh2-python
+git+https://github.com/next-actions/pytest-importance
+git+https://github.com/next-actions/pytest-ticket

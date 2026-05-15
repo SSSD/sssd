@@ -1,0 +1,14 @@
+[Unit]
+Description=SSSD Kerberos Cache Manager
+Documentation=man:sssd-kcm(5)
+Requires=sssd-kcm.socket
+After=sssd-kcm.socket
+
+[Install]
+Also=sssd-kcm.socket
+
+[Service]
+Environment=DEBUG_LOGGER=--logger=files
+ExecStartPre=-@sbindir@/sssd --genconf-section=kcm
+ExecStart=@libexecdir@/sssd/sssd_kcm --uid 0 --gid 0 ${DEBUG_LOGGER}
+CapabilityBoundingSet= @additional_caps@ CAP_IPC_LOCK CAP_CHOWN CAP_DAC_READ_SEARCH CAP_FOWNER CAP_SETGID CAP_SETUID

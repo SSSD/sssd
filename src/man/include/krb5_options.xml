@@ -1,0 +1,167 @@
+<variablelist>
+    <varlistentry>
+        <term>krb5_auth_timeout (integer)</term>
+        <listitem>
+            <para>
+                Timeout in seconds after an online authentication request
+                or change password request is aborted. If possible, the
+                authentication request is continued offline.
+            </para>
+            <para>
+                Default: 6
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>krb5_validate (boolean)</term>
+        <listitem>
+            <para>
+                Verify with the help of krb5_keytab that the TGT
+                obtained has not been spoofed. The keytab is checked for
+                entries sequentially, and the first entry with a matching
+                realm is used for validation. If no entry matches the realm, the last
+                entry in the keytab is used. This process can be used to validate
+                environments using cross-realm trust by placing the appropriate
+                keytab entry as the last entry or the only entry in the keytab file.
+            </para>
+            <para>
+                Default: false (IPA and AD provider: true)
+            </para>
+            <para>
+                Please note that the ticket validation is the first step when
+		checking the PAC (see 'pac_check' in the
+                <citerefentry>
+                    <refentrytitle>sssd.conf</refentrytitle>
+                    <manvolnum>5</manvolnum>
+                </citerefentry> manual page for details). If ticket
+                validation is disabled the PAC checks will be skipped as well.
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>krb5_renewable_lifetime (string)</term>
+        <listitem>
+            <para>
+                Request a renewable ticket with a total
+                lifetime, given as an integer immediately followed
+                by a time unit:
+            </para>
+            <para>
+                <emphasis>s</emphasis> for seconds
+            </para>
+            <para>
+                <emphasis>m</emphasis> for minutes
+            </para>
+            <para>
+                <emphasis>h</emphasis> for hours
+            </para>
+            <para>
+                <emphasis>d</emphasis> for days.
+            </para>
+            <para>
+                If there is no unit given, <emphasis>s</emphasis> is
+                assumed.
+            </para>
+            <para>
+                NOTE: It is not possible to mix units.  To set
+                the renewable lifetime to one and a half hours,
+                use '90m' instead of '1h30m'.
+            </para>
+            <para>
+                Default: not set, i.e. the TGT is not renewable
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>krb5_lifetime (string)</term>
+        <listitem>
+            <para>
+                Request ticket with a lifetime, given as an
+                integer immediately followed by a time unit:
+            </para>
+            <para>
+                <emphasis>s</emphasis> for seconds
+            </para>
+            <para>
+                <emphasis>m</emphasis> for minutes
+            </para>
+            <para>
+                <emphasis>h</emphasis> for hours
+            </para>
+            <para>
+                <emphasis>d</emphasis> for days.
+            </para>
+            <para>
+                If there is no unit given <emphasis>s</emphasis> is
+                assumed.
+            </para>
+            <para>
+                NOTE: It is not possible to mix units.
+                To set the lifetime to one and a half
+                hours please use '90m' instead of '1h30m'.
+            </para>
+            <para>
+                Default: not set, i.e. the default ticket lifetime
+                configured on the KDC.
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>krb5_renew_interval (string)</term>
+        <listitem>
+            <para>
+                The time in seconds between two checks if the TGT
+                should be renewed. TGTs are renewed if about half
+                of their lifetime is exceeded, given as an integer
+                immediately followed by a time unit:
+            </para>
+            <para>
+                <emphasis>s</emphasis> for seconds
+            </para>
+            <para>
+                <emphasis>m</emphasis> for minutes
+            </para>
+            <para>
+                <emphasis>h</emphasis> for hours
+            </para>
+            <para>
+                <emphasis>d</emphasis> for days.
+            </para>
+            <para>
+                If there is no unit given, <emphasis>s</emphasis> is
+                assumed.
+            </para>
+            <para>
+                NOTE: It is not possible to mix units.  To set
+                the renewable lifetime to one and a half hours,
+                use '90m' instead of '1h30m'.
+            </para>
+            <para>
+                 If this option is not set or is 0 the automatic
+                 renewal is disabled.
+            </para>
+            <para>
+                Default: not set
+            </para>
+        </listitem>
+    </varlistentry>
+
+    <varlistentry>
+        <term>krb5_canonicalize (boolean)</term>
+        <listitem>
+            <para>
+                Specifies if the host and user principal should be
+                canonicalized. This feature is available with MIT
+                Kerberos 1.7 and later versions.
+            </para>
+
+            <para>
+                Default: false
+            </para>
+        </listitem>
+    </varlistentry>
+</variablelist>

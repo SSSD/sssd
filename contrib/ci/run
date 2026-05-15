@@ -1,0 +1,253 @@
+#!/bin/bash
+#
+# Run continuous integration tests.
+#
+# Copyright (C) 2014 Red Hat
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# USER does not have to be defined in containers
+if [ -z $USER ]; then
+    declare -r USER=`id -nu $UID`
+    echo "\$USER is not set, using: $USER"
+fi
+
+set -o nounset -o pipefail -o errexit
+declare -r CI_DIR=`dirname "\`readlink -f \"\$0\"\`"`
+export PATH=$CI_DIR:$PATH
+export LC_ALL=C
+
+. deps.sh
+. distro.sh
+. configure.sh
+. misc.sh
+
+declare -r DEBUG_CFLAGS="-g3 -O2"
+declare -r ARCH=`uname -m`
+declare -r CPU_NUM=`getconf _NPROCESSORS_ONLN`
+declare -r TITLE_WIDTH=24
+declare -r RESULT_WIDTH=18
+
+declare BASE_PFX=""
+declare DEPS=true
+declare DEPS_ONLY=false
+declare BASE_DIR=`pwd`
+declare MODERATE=false
+
+# Additional valgrind flags
+declare VALGRIND_FLAGS=""
+if [ -e "$CI_DIR/sssd.$DISTRO_ID.supp" ]; then
+    VALGRIND_FLAGS+=" --suppressions=\"$CI_DIR/sssd.$DISTRO_ID.supp\""
+fi
+
+# Output program usage information.
+function usage()
+{
+    cat <<EOF
+Usage: `basename "$0"` [OPTION...]
+Run continuous integration tests.
+
+Options:
+    -h, --help          Output this help message and exit.
+    -p, --prefix=STRING Use STRING as the prefix to prepend to file and
+                        directory paths in output.
+    -n, --no-deps       Don't attempt to install dependencies.
+    -d, --deps-only     Only install dependencies, don't run tests.
+    -e, --essential     Run the essential subset of tests.
+    -m, --moderate      Run the moderate subset of tests.
+
+Default options: --essential
+EOF
+}
+
+# Output a file display path: a path relocated from base directory (BASE_DIR)
+# to base prefix (BASE_PFX).
+# Args: path
+function disppath()
+{
+    declare -r path=`readlink -f "$1"`
+    printf "%s" "$BASE_PFX${path:${#BASE_DIR}+1}"
+}
+
+# Run a stage.
+# Args: id cmd [arg...]
+function stage()
+{
+    declare -r id="$1";     shift
+    declare -r log="ci-$id.log"
+    declare status
+    declare start
+    declare end
+    declare duration
+
+    printf "%-${TITLE_WIDTH}s" "$id:"
+
+    {
+        printf "Start: "
+        start=`date +%s`
+        date --date="@$start"
+        set +o errexit
+        (
+            set -o errexit -o xtrace
+            "$@"
+        )
+        status=$?
+        set -o errexit
+        printf "End: "
+        end=`date +%s`
+        date --date="@$end"
+    } &> "$log"
+
+    duration=$((end - start))
+
+    if [ "$status" == 0 ]; then
+        printf 'success  '
+    else
+        printf 'failure  '
+    fi
+    printf "%02u:%02u:%02u " \
+           $((duration / (60 * 60))) \
+           $((duration / 60 % 60)) \
+           $((duration % 60))
+    disppath "$log"
+    printf "\n"
+
+    return "$status"
+}
+
+# Run debug build checks.
+function build_debug()
+{
+    # Extended glob pattern matching tests to run under Valgrind.
+    # NOTE: The particular pattern below is inverted
+    declare valgrind_test_pattern="!(*.py|*/whitespace_test|"
+    declare -r valgrind_test_pattern+="*/double_semicolon_test)"
+    export CFLAGS="$DEBUG_CFLAGS"
+    declare test_dir
+    declare intgcheck_configure_args
+    declare status
+
+    test_dir=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
+    stage configure         "$BASE_DIR/configure" \
+                                "${CONFIGURE_ARG_LIST[@]}" \
+                                --with-test-dir="$test_dir"
+
+    status=0
+    CK_FORK=no \
+    DEBUGINFOD_URLS="" \
+        stage make-check-valgrind \
+                make -j $CPU_NUM check \
+                     LOG_COMPILER=libtool \
+                     LOG_FLAGS="--mode=execute \
+                                valgrind-condense 99 \
+                                \"$valgrind_test_pattern\" -- \
+                                --trace-children=yes \
+                                --trace-children-skip='*/bin/*,*/sbin/*,./dummy-child' \
+                                --leak-check=full \
+                                --gen-suppressions=all \
+                                --suppressions=\"$CI_DIR/sssd.supp\" \
+                                $VALGRIND_FLAGS \
+                                --verbose" ||
+            status=$?
+    mv "$test_dir" ci-test-dir
+    ((status == 0))
+
+    if "$MODERATE"; then
+        if "$DEPS_INTGCHECK_SATISFIED"; then
+            printf -v intgcheck_configure_args " %q" \
+                        "${CONFIGURE_ARG_LIST[@]}"
+            stage make-intgcheck make -j $CPU_NUM intgcheck \
+                                      INTGCHECK_CONFIGURE_FLAGS=" \
+                                        $intgcheck_configure_args"
+        fi
+
+        ((status == 0))
+    fi
+
+    unset CFLAGS
+}
+
+# Run a build inside a sub-directory.
+# Args: id cmd [arg...]
+function run_build()
+{
+    declare -r id="$1"; shift
+    declare -r dir="ci-build-$id"
+
+    mkdir "$dir"
+    printf "%-$((TITLE_WIDTH + RESULT_WIDTH))s%s\n" \
+           "${id^^} BUILD:" "`disppath \"\$dir\"`"
+
+    cd "$dir"
+    "$@"
+    cd ..
+}
+
+#
+# Main routine
+#
+declare args_expr
+args_expr=`getopt --name \`basename "\$0"\` \
+                  --options hp:dnemrf \
+                  --longoptions help,prefix:,no-deps,deps-only \
+                  --longoptions essential,moderate \
+                  -- "$@"`
+eval set -- "$args_expr"
+
+while true; do
+    case "$1" in
+        -h|--help)
+            usage;          exit 0;;
+        -p|--prefix)
+            BASE_PFX="$2";  shift 2;;
+        -d|--deps-only)
+            DEPS_ONLY=true; shift;;
+        -n|--no-deps)
+            DEPS=false;     shift;;
+        -e|--essential)
+            MODERATE=false; shift;;
+        -m|--moderate)
+            MODERATE=true; shift;;
+        --)
+            shift;          break;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1;;
+    esac
+done
+
+if [ $# != 0 ]; then
+    echo "Positional arguments are not accepted." >&2
+    usage >&2
+    exit 1
+fi
+
+trap 'echo FAILURE' EXIT
+rm_rf_ro ci-*
+export V=1
+if "$DEPS"; then
+    stage install-deps  deps_install
+fi
+
+if "$DEPS_ONLY"; then
+    unset V
+    trap - EXIT
+    exit
+fi
+
+stage autoreconf    autoreconf --install --force
+run_build debug     build_debug
+unset V
+trap - EXIT
+echo SUCCESS

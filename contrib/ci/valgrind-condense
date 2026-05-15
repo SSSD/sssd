@@ -1,0 +1,135 @@
+#!/bin/bash
+#
+# Run Valgrind, condensing logged reports into an exit code.
+#
+# Copyright (C) 2014 Red Hat
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -o nounset -o pipefail -o errexit
+shopt -s extglob
+
+function usage()
+{
+    cat <<EOF
+Usage: `basename "$0"` ERROR_EXITCODE [PATH_PATTERN...] [-- VALGRIND_ARG...]
+Run Valgrind, condensing logged reports into an exit code.
+
+Arguments:
+    ERROR_EXITCODE  An exit code to return if at least one error is found in
+                    Valgrind log files.
+    PATH_PATTERN    An extended glob pattern matching the (original) path to
+                    the program to execute under Valgrind. If the program path
+                    doesn't match any patterns, the program is executed
+                    directly, without Valgrind. Without patterns any program
+                    path matches.
+    VALGRIND_ARG    An argument to pass to Valgrind after the arguments
+                    specified by `basename "$0"`.
+
+The first non-option VALGRIND_ARG, or the first VALGRIND_ARG after a "--",
+will be considered the path to the program to execute under Valgrind and will
+be used in naming Valgrind log files as such:
+
+    PROGRAM_NAME.PID.valgrind.log
+
+where PROGRAM_NAME is the filename portion of the program path and PID is the
+executed process ID. If the last directory of the program path is ".libs" and
+the filename begins with "lt-", both are removed to match the name of libtool
+frontend script. All files matching PROGRAM_NAME.*.valgrind.log are removed
+before invoking Valgrind.
+
+If an error is found in Valgrind log files, ERROR_EXITCODE is returned,
+otherwise Valgrind exit code is returned.
+EOF
+}
+
+
+if [[ $# == 0 ]]; then
+    echo "Invalid number of arguments." >&2
+    usage >&2
+    exit 1
+fi
+
+declare error_exitcode="$1";    shift
+declare -a path_pattern_list=()
+declare arg
+declare collecting_argv
+declare -a program_argv=()
+declare program_path
+declare program_name
+declare path_pattern
+declare match
+declare status=0
+
+# Extract path patterns
+while [[ $# != 0 ]]; do
+    arg="$1"
+    shift
+    if [[ "$arg" == "--" ]]; then
+        break
+    else
+        path_pattern_list+=("$arg")
+    fi
+done
+
+# Find program argv list in Valgrind arguments
+collecting_argv=false
+for arg in "$@"; do
+    if ! "$collecting_argv" && [[ "$arg" == "--" ]]; then
+        collecting_argv=true
+    elif "$collecting_argv" || [[ "$arg" != -* ]]; then
+        collecting_argv=true
+        program_argv+=("$arg")
+    fi
+done
+
+if [[ ${#program_argv[@]} == 0 ]]; then
+    echo "Program path not specified." >&2
+    usage >&2
+    exit 1
+fi
+program_path="${program_argv[0]}"
+
+# Match against path patterns, if any
+if [[ ${#path_pattern_list[@]} == 0 ]]; then
+    match=true
+else
+    match=false
+    for path_pattern in "${path_pattern_list[@]}"; do
+        if [[ "$program_path" == $path_pattern ]]; then
+            match=true
+        fi
+    done
+fi
+
+# Run the program
+if $match; then
+    # Generate original path from libtool path
+    program_path=`sed -e 's/^\(.*\/\)\?\.libs\/lt-\([^\/]\+\)$/\1\2/' \
+                        <<<"$program_path"`
+
+    program_name=`basename -- "$program_path"`
+
+    rm -f -- "$program_name".*.valgrind.log
+    valgrind --log-file="$program_name.%p.valgrind.log" "$@" || status=$?
+
+    if grep -q '^==[0-9]\+== *ERROR SUMMARY: *[1-9]' -- \
+                "$program_name".*.valgrind.log; then
+        exit "$error_exitcode"
+    else
+        exit "$status"
+    fi
+else
+    "${program_argv[@]}"
+fi

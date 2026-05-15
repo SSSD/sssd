@@ -1,0 +1,142 @@
+// constants
+global TARGET_ID=0, TARGET_AUTH=1, TARGET_ACCESS=2, TARGET_CHPASS=3,
+       TARGET_SUDO=4, TARGET_AUTOFS=5, TARGET_SELINUX=6, TARGET_HOSTID=7,
+       TARGET_SUBDOMAINS=8, TARGET_SESSION=9, TARGET_RESOLVER=10,
+       TARGET_SENTINEL=11
+
+global METHOD_CHECK_ONLINE=0, METHOD_ACCOUNT_HANDLER=1, METHOD_AUTH_HANDLER=2,
+       METHOD_ACCESS_HANDLER=3, METHOD_SELINUX_HANDLER=4, METHOD_SUDO_HANDLER=5,
+       METHOD_AUTOFS_HANDLER=6, METHOD_HOSTID_HANDLER=7, METHOD_DOMAINS_HANDLER=8,
+       METHOD_RESOLVER_HANDLER=9, METHOD_SENTINEL=10
+
+function acct_req_desc(entry_type)
+{
+    if (entry_type == 0x0001) {
+        str_entry_type = "user"
+    } else if (entry_type == 0x0002) {
+        str_entry_type = "group"
+    } else if (entry_type == 0x0003) {
+        str_entry_type = "initgroups"
+    } else if (entry_type == 0x0004) {
+        str_entry_type = "netgroups"
+    } else if (entry_type == 0x0005) {
+        str_entry_type = "services"
+    } else if (entry_type == 0x0006) {
+        str_entry_type = "sudo_full"
+    } else if (entry_type == 0x0007) {
+        str_entry_type = "sudo_rules"
+    } else if (entry_type == 0x0008) {
+        str_entry_type = "host"
+    } else if (entry_type == 0x0009) {
+        str_entry_type = "ip_network"
+    } else if (entry_type == 0x0010) {
+        str_entry_type = "subid_ranges"
+    } else if (entry_type == 0x0011) {
+        str_entry_type = "by_secid"
+    } else if (entry_type == 0x0012) {
+        str_entry_type = "user_and_group"
+    } else if (entry_type == 0x0013) {
+        str_entry_type = "by_uuid"
+    } else if (entry_type == 0x0014) {
+        str_entry_type = "by_cert"
+    } else {
+        str_entry_type = sprintf("%X", entry_type)
+    }
+
+    return str_entry_type
+}
+
+function sssd_acct_req_probestr(fc_name, entry_type, filter_type,
+                                filter_value, extra_value)
+{
+    str_entry_type = acct_req_desc(entry_type)
+
+    # Maybe we could use guru mode here and include the constants
+    # directly..
+    if (filter_type == 1) {
+        str_filter_type = "name"
+    } else if (filter_type == 2) {
+        str_filter_type = "idnum"
+    } else if (filter_type == 3) {
+        str_filter_type = "enum"
+    } else if (filter_type == 4) {
+        str_filter_type = "secid"
+    } else if (filter_type == 5) {
+        str_filter_type = "uuid"
+    } else if (filter_type == 6) {
+        str_filter_type = "cert"
+    } else if (filter_type == 7) {
+        str_filter_type = "wildcard"
+    } else {
+        str_filter_type = sprintf("%d", filter_type)
+    }
+
+    probestr = sprintf("%s(entry_type=%s, filter_type=%s, filter_value=%s, extra_value=%s)",
+                       fc_name, str_entry_type, str_filter_type,
+                       filter_value, extra_value)
+    return probestr
+}
+
+function dp_target_str(target)
+{
+    if (target == TARGET_ID) {
+        str_target = "ID"
+    } else if (target == TARGET_AUTH) {
+        str_target = "AUTH"
+    } else if (target == TARGET_ACCESS) {
+        str_target = "ACCESS"
+    } else if (target == TARGET_CHPASS) {
+        str_target = "CHPASS"
+    } else if (target == TARGET_SUDO) {
+        str_target = "SUDO"
+    } else if (target == TARGET_AUTOFS) {
+        str_target = "AUTOFS"
+    } else if (target == TARGET_SELINUX) {
+        str_target = "SELINUX"
+    } else if (target == TARGET_HOSTID) {
+        str_target = "HOSTID"
+    } else if (target == TARGET_SUBDOMAINS) {
+        str_target = "SUBDOMAINS"
+    } else if (target == TARGET_SESSION) {
+        str_target = "SESSION"
+    } else if (target == TARGET_RESOLVER) {
+        str_target = "RESOLVER"
+    } else if (target == TARGET_SENTINEL) {
+        str_target = "TARGET_SENTINEL"
+    } else {
+        str_target = "UNKNOWN"
+    }
+
+    return str_target
+}
+
+function dp_method_str(method)
+{
+    if (method == METHOD_CHECK_ONLINE) {
+        str_method = "Check Online"
+    } else if (method == METHOD_ACCOUNT_HANDLER) {
+        str_method = "Account Handler"
+    } else if (method == METHOD_AUTH_HANDLER) {
+        str_method = "Auth Handler"
+    } else if (method == METHOD_ACCESS_HANDLER) {
+        str_method = "Access Handler"
+    } else if (method == METHOD_SELINUX_HANDLER) {
+        str_method = "SELinux Handler"
+    } else if (method == METHOD_SUDO_HANDLER) {
+        str_method = "Sudo Handler"
+    } else if (method == METHOD_AUTOFS_HANDLER) {
+        str_method = "Autofs Handler"
+    } else if (method == METHOD_HOSTID_HANDLER) {
+        str_method = "HostID Handler"
+    } else if (method == METHOD_DOMAINS_HANDLER) {
+        str_method = "Domains Handler"
+    } else if (method == METHOD_RESOLVER_HANDLER) {
+        str_method = "Resolver Handler"
+    } else if (method == METHOD_SENTINEL) {
+        str_method = "Method Sentinel"
+    } else {
+        str_method = "UNKNOWN"
+    }
+
+    return str_method
+}
