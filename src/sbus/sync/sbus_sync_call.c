@@ -98,4 +98,5 @@ sbus_sync_call_signal(struct sbus_sync_connection *conn,
     }
 
     sbus_sync_emit_signal(conn, msg);
+    dbus_message_unref(msg);
 }
