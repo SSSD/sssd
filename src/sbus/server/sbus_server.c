@@ -538,6 +538,7 @@ sbus_server_name_owner_changed(struct sbus_server *server,
 
     /* Send the signal. */
     sbus_server_matchmaker(server, NULL, name, message);
+    dbus_message_unref(message);
 }
 
 void
@@ -557,6 +558,7 @@ sbus_server_name_acquired(struct sbus_server *server,
     dbus_message_set_sender(message, DBUS_SERVICE_DBUS);
     dbus_message_set_destination(message, conn->unique_name);
     dbus_connection_send(conn->connection, message, NULL);
+    dbus_message_unref(message);
 
     sbus_server_name_owner_changed(server, name, name, "");
 }
@@ -583,6 +585,7 @@ sbus_server_name_lost(struct sbus_server *server,
     dbus_message_set_sender(message, DBUS_SERVICE_DBUS);
     dbus_message_set_destination(message, conn->unique_name);
     dbus_connection_send(conn->connection, message, NULL);
+    dbus_message_unref(message);
 
     sbus_server_name_owner_changed(server, name, "", name);
 }
