@@ -672,9 +672,7 @@ errno_t sdap_parse_deref(TALLOC_CTX *mem_ctx,
                          LDAPDerefRes *dref,
                          struct sdap_deref_attrs ***_deref_res);
 
-void setup_ldap_debug(struct dp_option *basic_opts);
-
-errno_t setup_tls_config(struct dp_option *basic_opts);
+errno_t sdap_setup_libldap_global_options(struct dp_option *basic_opts);
 
 int sdap_set_rootdse_supported_lists(struct sysdb_attrs *rootdse,
                                      struct sdap_handle *sh);
