@@ -604,7 +604,8 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     const char *client_id, const char *client_secret,
                     const char *pkcs12_client_creds,
                     enum client_auth_method client_auth_method,
-                    const char *token_endpoint, const char *scope, char **out)
+                    const char *token_endpoint, const char *scope,
+                    bool use_gssapi, char **out)
 {
     errno_t ret;
     struct rest_ctx *rest_ctx;
@@ -616,15 +617,20 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
         return EINVAL;
     }
 
-    if (client_id == NULL || client_secret == NULL || token_endpoint == NULL
-            || input == NULL) {
+    if (client_id == NULL || token_endpoint == NULL || input == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing required argument.\n");
+        return EINVAL;
+    }
+
+    if (!use_gssapi && client_secret == NULL
+            && client_auth_method == CAM_SECRET) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing client_secret (required without GSSAPI).\n");
         return EINVAL;
     }
 
     rest_ctx = get_rest_ctx(mem_ctx, libcurl_debug, ca_db,
                             pkcs12_client_creds, client_auth_method,
-                            client_secret);
+                            client_secret, use_gssapi);
     if (rest_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get REST context.\n");
         return ENOMEM;
