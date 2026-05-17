@@ -42,6 +42,8 @@ struct idp_init_ctx {
     const char *client_secret;
     const char *token_endpoint;
     const char *scope;
+    bool use_gssapi;
+    const char *keytab;
 };
 
 static void token_refresh_table_delete_cb(hash_entry_t *item,
@@ -122,9 +124,12 @@ errno_t sssm_idp_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    init_ctx->use_gssapi = dp_opt_get_bool(init_ctx->opts, IDP_CLIENT_USE_GSSAPI);
+    init_ctx->keytab = dp_opt_get_cstring(init_ctx->opts, IDP_CLIENT_KEYTAB);
+
     init_ctx->client_secret = dp_opt_get_cstring(init_ctx->opts,
                                                  IDP_CLIENT_SECRET);
-    if (init_ctx->client_secret == NULL) {
+    if (init_ctx->client_secret == NULL && !init_ctx->use_gssapi) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Missing required option '"CONFDB_IDP_CLIENT_SECRET"'.\n");
         ret = EINVAL;
@@ -256,6 +261,8 @@ errno_t sssm_idp_id_init(TALLOC_CTX *mem_ctx,
     id_ctx->client_secret = init_ctx->client_secret;
     id_ctx->token_endpoint = init_ctx->token_endpoint;
     id_ctx->scope = init_ctx->scope;
+    id_ctx->use_gssapi = init_ctx->use_gssapi;
+    id_ctx->keytab = init_ctx->keytab;
 
     err = sss_idmap_init(sss_idmap_talloc, init_ctx, sss_idmap_talloc_free,
                          &id_ctx->idmap_ctx);
@@ -346,6 +353,8 @@ errno_t sssm_idp_auth_init(TALLOC_CTX *mem_ctx,
     auth_ctx->client_id = init_ctx->client_id;
     auth_ctx->client_secret = init_ctx->client_secret;
     auth_ctx->token_endpoint = init_ctx->token_endpoint;
+    auth_ctx->use_gssapi = init_ctx->use_gssapi;
+    auth_ctx->keytab = init_ctx->keytab;
 
     auth_ctx->open_request_table = sss_ptr_hash_create(auth_ctx, NULL, NULL);
     if (auth_ctx->open_request_table == NULL) {
