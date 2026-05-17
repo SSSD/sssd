@@ -4917,6 +4917,7 @@ if BUILD_OIDC_CHILD
 oidc_child_SOURCES = \
     src/oidc_child/oidc_child.c \
     src/oidc_child/oidc_child_curl.c \
+    src/oidc_child/oidc_child_gssapi.c \
     src/oidc_child/oidc_child_json.c \
     src/oidc_child/oidc_child_id.c \
     src/oidc_child/libcrypto/oidc_child_get_jwk.c \
@@ -4937,6 +4938,7 @@ oidc_child_CFLAGS = \
     $(CURL_CFLAGS) \
     $(UUID_CFLAGS) \
     $(CRYPTO_CFLAGS) \
+    $(GSSAPI_KRB5_CFLAGS) \
     $(NULL)
 oidc_child_LDADD = \
     libsss_debug.la \
@@ -4947,6 +4949,7 @@ oidc_child_LDADD = \
     $(CURL_LIBS) \
     $(UUID_LIBS) \
     $(CRYPTO_LIBS) \
+    $(GSSAPI_KRB5_LIBS) \
     $(NULL)
 endif
 
