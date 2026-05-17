@@ -414,6 +414,13 @@ sssdlib_LTLIBRARIES += \
     $(NULL)
 endif
 
+# sssdlib libraries (libsss_ldap, libsss_ipa, etc.) depend on pkglib
+# libraries (libsss_util, libsss_debug, etc.) at link time.  When
+# installing in parallel libtool tries to relink sssdlib libraries before
+# the pkglib libraries have been installed, causing make distcheck to fail.
+# Enforce install order so pkglib is always installed first.
+install-sssdlibLTLIBRARIES: install-pkglibLTLIBRARIES
+
 ldblib_LTLIBRARIES = \
     memberof.la
 
