@@ -22,6 +22,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <string.h>
+
 #include "src/providers/data_provider.h"
 
 #include "src/providers/idp/idp_common.h"
@@ -30,6 +32,37 @@
 #include "src/providers/idp/idp_auth.h"
 #include "lib/idmap/sss_idmap.h"
 #include "util/util_sss_idmap.h"
+
+/* If idp_type is "ahdapa:<url>", return a talloc'd copy of <url> with
+ * trailing slashes stripped.  Returns NULL for any other idp_type. */
+static char *ahdapa_base_url(TALLOC_CTX *mem_ctx, const char *idp_type)
+{
+    const char *base;
+    char *url;
+    char *p;
+
+    if (idp_type == NULL
+            || strncasecmp(idp_type, "ahdapa:", 7) != 0) {
+        return NULL;
+    }
+
+    base = idp_type + 7;
+    if (*base == '\0') {
+        return NULL;
+    }
+
+    url = talloc_strdup(mem_ctx, base);
+    if (url == NULL) {
+        return NULL;
+    }
+
+    p = url + strlen(url) - 1;
+    while (p > url && *p == '/') {
+        *p-- = '\0';
+    }
+
+    return url;
+}
 
 struct idp_init_ctx {
     struct be_ctx *be_ctx;
@@ -138,6 +171,14 @@ errno_t sssm_idp_init(TALLOC_CTX *mem_ctx,
 
     init_ctx->token_endpoint = dp_opt_get_cstring(init_ctx->opts,
                                                   IDP_TOKEN_ENDPOINT);
+    if (init_ctx->token_endpoint == NULL) {
+        char *base = ahdapa_base_url(init_ctx, init_ctx->idp_type);
+        if (base != NULL) {
+            init_ctx->token_endpoint = talloc_asprintf(init_ctx,
+                                                       "%s/token", base);
+            talloc_free(base);
+        }
+    }
     if (init_ctx->token_endpoint == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Missing required option 'idp_token_endpoint'.\n");
@@ -387,6 +428,14 @@ errno_t sssm_idp_auth_init(TALLOC_CTX *mem_ctx,
     auth_ctx->device_auth_endpoint = dp_opt_get_cstring(init_ctx->opts,
                                                       IDP_DEVICE_AUTH_ENDPOINT);
     if (auth_ctx->device_auth_endpoint == NULL) {
+        char *base = ahdapa_base_url(auth_ctx, init_ctx->idp_type);
+        if (base != NULL) {
+            auth_ctx->device_auth_endpoint = talloc_asprintf(auth_ctx,
+                                                 "%s/device_authorization", base);
+            talloc_free(base);
+        }
+    }
+    if (auth_ctx->device_auth_endpoint == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Missing required option 'idp_device_code_endpoint'.\n");
         ret = EINVAL;
@@ -395,6 +444,14 @@ errno_t sssm_idp_auth_init(TALLOC_CTX *mem_ctx,
 
     auth_ctx->userinfo_endpoint = dp_opt_get_cstring(init_ctx->opts,
                                                      IDP_USERINFO_ENDPOINT);
+    if (auth_ctx->userinfo_endpoint == NULL) {
+        char *base = ahdapa_base_url(auth_ctx, init_ctx->idp_type);
+        if (base != NULL) {
+            auth_ctx->userinfo_endpoint = talloc_asprintf(auth_ctx,
+                                                          "%s/userinfo", base);
+            talloc_free(base);
+        }
+    }
     if (auth_ctx->userinfo_endpoint == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Missing required option 'idp_userinfo_endpoint'.\n");
