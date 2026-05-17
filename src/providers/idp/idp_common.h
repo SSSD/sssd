@@ -43,6 +43,8 @@ enum idp_opts {
     IDP_ID_SCOPE,
     IDP_AUTH_SCOPE,
     IDP_AUTO_REFRESH,
+    IDP_CLIENT_USE_GSSAPI,
+    IDP_CLIENT_KEYTAB,
     IDMAP_LOWER,
     IDMAP_UPPER,
     IDMAP_RANGESIZE,
@@ -83,5 +85,7 @@ errno_t set_oidc_common_args(const char **extra_args, size_t *c,
                              const char *client_id,
                              const char *client_secret,
                              const char *token_endpoint,
-                             const char *scope);
+                             const char *scope,
+                             bool use_gssapi,
+                             const char *keytab);
 #endif /* __IDP_COMMON_H__ */
