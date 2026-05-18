@@ -593,7 +593,6 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/lib/certmap/sss_certmap.pc src/lib/certmap/sss_certmap.doxy
                  src/sss_client/idmap/sss_nss_idmap.pc
                  src/sss_client/idmap/sss_nss_idmap.doxy
-                 src/config/setup.py
                  src/systemtap/sssd.stp
                  src/tools/analyzer/Makefile
                  src/config/SSSDConfig/__init__.py])

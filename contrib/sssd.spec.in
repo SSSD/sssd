@@ -579,13 +579,6 @@ find $RPM_BUILD_ROOT -name "*.la" -exec rm -f {} \;
 # Suppress developer-only documentation
 rm -Rf ${RPM_BUILD_ROOT}/%{_docdir}/%{name}
 
-# Older versions of rpmbuild can only handle one -f option
-# So we need to append to the sssd*.lang file
-for file in `find $RPM_BUILD_ROOT/%{python3_sitelib} -maxdepth 1 -name "*.egg-info" 2> /dev/null`
-do
-    echo %{python3_sitelib}/`basename $file` >> python3_sssdconfig.lang
-done
-
 touch sssd.lang
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
                   sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap \
@@ -655,9 +648,6 @@ done
 # Print these to the rpmbuild log
 echo "sssd.lang:"
 cat sssd.lang
-
-echo "python3_sssdconfig.lang:"
-cat python3_sssdconfig.lang
 
 for subpackage in sssd_ldap sssd_krb5 sssd_ipa sssd_ad sssd_proxy sssd_tools \
                   sssd_client sssd_dbus sssd_nfs_idmap sssd_winbind_idmap \
@@ -870,7 +860,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_mandir}/man8/sss_seed.8*
 %{_mandir}/man8/sssctl.8*
 
-%files -n python3-sssdconfig -f python3_sssdconfig.lang
+%files -n python3-sssdconfig
 %dir %{python3_sitelib}/SSSDConfig
 %{python3_sitelib}/SSSDConfig/*.py*
 %dir %{python3_sitelib}/SSSDConfig/__pycache__
