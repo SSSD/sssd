@@ -33,11 +33,6 @@ builddir ?= .
 SETCAP = @SETCAP@
 DOXYGEN = @DOXYGEN@
 
-DISTSETUPOPTS =
-if HAVE_DEBIAN
-DISTSETUPOPTS += --install-layout=deb
-endif
-
 sssdlibexecdir = $(libexecdir)/sssd
 sssdlibdir = $(libdir)/sssd
 sssddefaultconfdir = $(sssdlibdir)/conf
@@ -479,7 +474,6 @@ sbin_SCRIPTS = \
 
 dist_noinst_SCRIPTS = \
     $(EXTRA_SCRIPTS) \
-    src/config/setup.py \
     src/config/SSSDConfig/ipachangeconf.py \
     src/config/SSSDConfig/sssdoptions.py \
     src/config/SSSDConfig/__init__.py \
@@ -5554,30 +5548,16 @@ SSSSCONFIG_MODULES =
 endif
 
 all-local: ldb_mod_test_dir $(SSSDCONFIG_MODULES)
-if BUILD_PYTHON2_BINDINGS
-	cd $(builddir)/src/config; \
-	$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config
-endif
-if BUILD_PYTHON3_BINDINGS
-	cd $(builddir)/src/config; \
-	$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config
-endif
 
 install-exec-hook: installsssddirs
 if BUILD_PYTHON2_BINDINGS
-	if [ "$(DESTDIR)" = "" ]; then \
-		cd $(builddir)/src/config; \
-		$(MKDIR_P) "$(python2dir)"; \
-		PYTHONPATH="$(PYTHONPATH):$(python2dir)" $(PYTHON2) setup.py build \
-			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
-			--record=$(abs_builddir)/src/config/.files2; \
-	else \
-		cd $(builddir)/src/config; \
-		$(MKDIR_P) "$(python2dir)"; \
-		PYTHONPATH="$(PYTHONPATH):$(python2dir)" $(PYTHON2) setup.py build \
-			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
-			--record=$(abs_builddir)/src/config/.files2 --root=$(DESTDIR); \
-	fi
+	$(MKDIR_P) "$(DESTDIR)$(python2dir)/SSSDConfig"
+	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/__init__.py \
+		"$(DESTDIR)$(python2dir)/SSSDConfig/__init__.py"
+	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/ipachangeconf.py \
+		"$(DESTDIR)$(python2dir)/SSSDConfig/ipachangeconf.py"
+	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/sssdoptions.py \
+		"$(DESTDIR)$(python2dir)/SSSDConfig/sssdoptions.py"
 	cd $(DESTDIR)$(py2execdir) && \
 		mv -f _py2sss.so pysss.so ; \
 		mv -f _py2hbac.so pyhbac.so ; \
@@ -5585,19 +5565,13 @@ if BUILD_PYTHON2_BINDINGS
 		mv -f _py2sss_nss_idmap.so pysss_nss_idmap.so
 endif
 if BUILD_PYTHON3_BINDINGS
-	if [ "$(DESTDIR)" = "" ]; then \
-		cd $(builddir)/src/config; \
-		$(MKDIR_P) "$(python3dir)"; \
-		PYTHONPATH="$(PYTHONPATH):$(python3dir)" $(PYTHON3) setup.py build \
-			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
-			--record=$(abs_builddir)/src/config/.files3; \
-	else \
-		cd $(builddir)/src/config; \
-		$(MKDIR_P) "$(python3dir)"; \
-		PYTHONPATH="$(PYTHONPATH):$(python3dir)" $(PYTHON3) setup.py build \
-			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
-			--record=$(abs_builddir)/src/config/.files3 --root=$(DESTDIR); \
-	fi
+	$(MKDIR_P) "$(DESTDIR)$(python3dir)/SSSDConfig"
+	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/__init__.py \
+		"$(DESTDIR)$(python3dir)/SSSDConfig/__init__.py"
+	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/ipachangeconf.py \
+		"$(DESTDIR)$(python3dir)/SSSDConfig/ipachangeconf.py"
+	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/sssdoptions.py \
+		"$(DESTDIR)$(python3dir)/SSSDConfig/sssdoptions.py"
 	cd $(DESTDIR)$(py3execdir) && \
 		mv -f _py3sss.so pysss.so ; \
 		mv -f _py3hbac.so pyhbac.so ; \
@@ -5657,30 +5631,18 @@ endif
 endif
 
 uninstall-hook:
-	if [ -f $(abs_builddir)/src/config/.files2 ]; then \
-	    cat $(abs_builddir)/src/config/.files2 | xargs -iq rm -f $(DESTDIR)/q; \
-	    rm $(abs_builddir)/src/config/.files2 ; \
-	fi
-	if [ -f $(abs_builddir)/src/config/.files3 ]; then \
-	    cat $(abs_builddir)/src/config/.files3 | xargs -iq rm -f $(DESTDIR)/q; \
-	    rm $(abs_builddir)/src/config/.files3 ; \
-	fi
 	for doc in $(SSSD_DOCS); do \
 		rm -Rf $(DESTDIR)/$(docdir)/$$doc; \
 	done;
 if BUILD_PYTHON2_BINDINGS
+	rm -rf "$(DESTDIR)$(python2dir)/SSSDConfig"
 	cd $(DESTDIR)$(py2execdir) && \
 		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
-	rm -fr "$(DESTDIR)$(python2dir)/easy-install.pth"
-	rm -fr "$(DESTDIR)$(python2dir)/__pycache__"
-	rm -fr "$(DESTDIR)$(python2dir)/site.py"
 endif
 if BUILD_PYTHON3_BINDINGS
+	rm -rf "$(DESTDIR)$(python3dir)/SSSDConfig"
 	cd $(DESTDIR)$(py3execdir) && \
 		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
-	rm -fr "$(DESTDIR)$(python3dir)/easy-install.pth"
-	rm -fr "$(DESTDIR)$(python3dir)/__pycache__"
-	rm -fr "$(DESTDIR)$(python3dir)/site.py"
 endif
 if BUILD_SAMBA
 	rm $(DESTDIR)/$(winbindplugindir)/sss.so
@@ -5696,10 +5658,6 @@ if BUILD_PYTHON2_BINDINGS
 		rm -f $(builddir)/src/config/SSSDConfig/sssdoptions.py ; \
 	fi
 
-	cd $(builddir)/src/config; $(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config clean --all
-
-	rm -fr "$(builddir)/src/config/dist"
-	rm -fr "$(builddir)/src/config/SSSDConfig.egg-info"
 	rm -fr "$(builddir)/src/config/SSSDConfig/__pycache__"
 	find "$(builddir)/src/config/SSSDConfig" -name "*.py[co]" -delete
 endif
@@ -5712,10 +5670,6 @@ if BUILD_PYTHON3_BINDINGS
 		rm -f $(builddir)/src/config/SSSDConfig/sssdoptions.py ; \
 	fi
 
-	cd $(builddir)/src/config; $(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config clean --all
-
-	rm -fr "$(builddir)/src/config/dist"
-	rm -fr "$(builddir)/src/config/SSSDConfig.egg-info"
 	rm -fr "$(builddir)/src/config/SSSDConfig/__pycache__"
 	find "$(builddir)/src/config/SSSDConfig" -name "*.py[co]" -delete
 endif
