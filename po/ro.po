@@ -1,41 +1,38 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Red Hat, Inc.
 # This file is distributed under the same license as the PACKAGE package.
-#
-# Translators:
-# Glenn Mandagi <s21710491@student.unklab.ac.id>, 2026.
+# Petru Rebeja <petru@rebeja.eu>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-05-08 05:45+0000\n"
-"Last-Translator: Glenn Mandagi <s21710491@student.unklab.ac.id>\n"
-"Language-Team: Indonesian <https://translate.fedoraproject.org/projects/sssd/"
-"sssd-master/id/>\n"
-"Language: id\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: ro\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.17.1\n"
+"Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
+"20)) ? 1 : 2;\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
 msgid "Set the verbosity of the debug logging"
-msgstr "Mengatur verbosity dari pencatatan debug"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:22
 msgid "Include timestamps in debug logs"
-msgstr "Sertakan cap waktu di pencatatan debug"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:23
 msgid "Include microseconds in timestamps in debug logs"
-msgstr "Sertakan mikrosekon dalam timestamp di log debug."
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Enable/disable debug backtrace"
-msgstr "Aktifkan/nonaktifkan debug backtrace"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
@@ -43,7 +40,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Command to start service"
-msgstr "Perintah untuk memulai layanan"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:27
 msgid "The number of file descriptors that may be opened by this responder"
@@ -71,11 +68,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:36
 msgid "SSSD Services to start"
-msgstr "Layanan SSSD akan dijalankan"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:37
 msgid "SSSD Domains to start"
-msgstr "Domain SSSD akan dijalankan"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:38
 msgid "Regex to parse username and domain"
@@ -160,19 +157,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Users that SSSD should explicitly ignore"
-msgstr "Pengguna yang diabaikan secara eksplisit oleh SSSD"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:62
 msgid "Groups that SSSD should explicitly ignore"
-msgstr "Grup yang diabaikan secara eksplisit oleh SSSD"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:63
 msgid "Should filtered users appear in groups"
-msgstr "Haruskah pengguna yang disaring muncul dalam grup"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:64
 msgid "The value of the password field the NSS provider should return"
-msgstr "Nilai kolom kata sandi yang harus dikembalikan oleh penyedia NSS"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:65
 msgid "Override homedir value from the identity provider with this value"
@@ -302,9 +299,8 @@ msgid "Path to certificate database with PKCS#11 modules."
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:102
-#, fuzzy
 msgid "Tune certificate verification for PAM authentication."
-msgstr "Membutuhkan verifikasi sertifikat TLS"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:103
 msgid "How many seconds will pam_sss wait for p11_child to finish"
@@ -450,19 +446,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:158
 msgid "Identity provider"
-msgstr "Penyedia identitas"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:159
 msgid "Authentication provider"
-msgstr "Penyedia otentikasi"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:160
 msgid "Access control provider"
-msgstr "Penyedia kontrol akses"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:161
 msgid "Password change provider"
-msgstr "Penyedia pengubah kata sandi"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:162
 msgid "SUDO provider"
@@ -498,11 +494,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:172
 msgid "Minimum user ID"
-msgstr "ID pengguna minimum"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:173
 msgid "Maximum user ID"
-msgstr "ID pengguna maksimum"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:174
 msgid "Enable enumerating all users/groups"
@@ -632,9 +628,8 @@ msgid "The file of the certificate authorities certificates for DoT"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:212
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
-msgstr "Membutuhkan verifikasi sertifikat TLS"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:213
 msgid "The key file for authenticated encryption for the DoT transport"
@@ -698,11 +693,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:233
 msgid "IPA domain"
-msgstr "Domain IPA"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:234
 msgid "IPA server address"
-msgstr "Alamat server IPA"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:235
 msgid "Address of backup IPA server"
@@ -710,7 +705,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:236
 msgid "IPA client hostname"
-msgstr "Nama host klien IPA"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:237
 msgid "Search base for HBAC related objects"
@@ -1017,7 +1012,7 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:324
 #: src/config/SSSDConfig/sssdoptions.py:325
 msgid "Kerberos server address"
-msgstr "Alamat server Kerberos"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:326
 msgid "Kerberos backup server address"
@@ -1025,7 +1020,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:327
 msgid "Kerberos realm"
-msgstr "Realm Kerberos"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:328
 msgid "Authentication timeout"
@@ -1106,7 +1101,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:354
 msgid "ldap_uri, The URI of the LDAP server"
-msgstr "ldap_uri, URI server LDAP"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:355
 msgid "ldap_backup_uri, The URI of the LDAP server"
@@ -1122,7 +1117,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:358
 msgid "The Schema Type in use on the LDAP server, rfc2307"
-msgstr "Jenis Skema yang digunakan pada server LDAP, rfc2307"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:359
 msgid "Mode used to change user password"
@@ -1142,15 +1137,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:363
 msgid "Length of time to attempt connection"
-msgstr "Lamanya waktu untuk mencoba koneksi"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:364
 msgid "Length of time to attempt synchronous LDAP operations"
-msgstr "Lamanya waktu untuk mencoba operasi LDAP yang sinkron"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:365
 msgid "Length of time between attempts to reconnect while offline"
-msgstr "Lamanya waktu antara upaya untuk menyambung kembali saat luring"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:366
 msgid "Use only the upper case for realm names"
@@ -1178,15 +1173,15 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:372
 msgid "Require TLS certificate verification"
-msgstr "Membutuhkan verifikasi sertifikat TLS"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:373
 msgid "Specify the sasl mechanism to use"
-msgstr "Tentukan mekanisme sasl yang digunakan"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:374
 msgid "Specify the sasl authorization id to use"
-msgstr "Tentukan id otorisasi sasl yang digunakan"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:375
 msgid "Specify the sasl authorization realm to use"
@@ -1202,11 +1197,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:378
 msgid "Kerberos service keytab"
-msgstr "Keytab layanan Kerberos"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:379
 msgid "Use Kerberos auth for LDAP connection"
-msgstr "Gunakan otentikasi Kerberos untuk koneksi LDAP"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:380
 msgid "Follow LDAP referrals"
@@ -1316,39 +1311,39 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:413
 msgid "Scope of user lookups"
-msgstr "Lingkup pencarian pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:414
 msgid "Filter for user lookups"
-msgstr "Filter pencarian pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:415
 msgid "Objectclass for users"
-msgstr "Objectclass untuk pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:416
 msgid "Username attribute"
-msgstr "Atribut Nama pengguna"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:417
 msgid "UID attribute"
-msgstr "Atribut UID"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:418
 msgid "Primary GID attribute"
-msgstr "Atribut GID Primer"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:419
 msgid "GECOS attribute"
-msgstr "Atribut GECOS"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:420
 msgid "Home directory attribute"
-msgstr "Atribut direktori Home"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:421
 msgid "Shell attribute"
-msgstr "Atribut Shell"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:422
 msgid "UUID attribute"
@@ -1365,19 +1360,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:425
 msgid "User principal attribute (for Kerberos)"
-msgstr "Atribut utama pengguna (untuk Kerberos)"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:426
 msgid "Full Name"
-msgstr "Nama Lengkap"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:427
 msgid "memberOf attribute"
-msgstr "Atribut memberOf"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:428
 msgid "Modification time attribute"
-msgstr "Atribut waktu modifikasi"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:429
 msgid "shadowLastChange attribute"
@@ -1814,11 +1809,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:561
 msgid "Comma separated list of allowed users"
-msgstr "Daftar pengguna yang diijinkan dalam format yang dipisahkan koma"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:562
 msgid "Comma separated list of prohibited users"
-msgstr "Daftar pengguna yang tidak diijinkan dalam format yang dipisahkan koma"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:563
 msgid ""
@@ -1905,7 +1900,7 @@ msgstr ""
 
 #: src/monitor/monitor.c:1971
 msgid "Out of memory\n"
-msgstr "Kehabisan memori\n"
+msgstr ""
 
 #: src/providers/krb5/krb5_child.c:4221
 msgid "Use anonymous PKINIT to request FAST armor ticket"
@@ -1982,7 +1977,7 @@ msgstr ""
 #: src/sss_client/pam_sss.c:75 src/sss_client/pam_sss.c:843
 #: src/sss_client/pam_sss.c:854
 msgid "Server message: "
-msgstr "Pesan server:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:76
 msgid ""
@@ -1996,7 +1991,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:320
 msgid "Passwords do not match"
-msgstr "Kata sandi tidak cocok"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:508
 msgid "Password reset by root is not supported."
@@ -2021,9 +2016,9 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr ""
 
 #: src/sss_client/pam_sss.c:633
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
-msgstr "Perubahan kata sandi gagal."
+msgstr ""
 
 #: src/sss_client/pam_sss.c:684
 msgid "Authentication is denied until: "
@@ -2031,7 +2026,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:705
 msgid "System is offline, password change not possible"
-msgstr "Sistem sedang luring, perubahan kata sandi tidak dimungkinkan"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:720
 msgid ""
@@ -2051,7 +2046,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:840 src/sss_client/pam_sss.c:853
 msgid "Password change failed. "
-msgstr "Perubahan kata sandi gagal."
+msgstr ""
 
 #: src/sss_client/pam_sss.c:1859
 #, c-format
@@ -2069,11 +2064,11 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2482
 msgid "New Password: "
-msgstr "Kata Sandi Baru: "
+msgstr ""
 
 #: src/sss_client/pam_sss.c:2483
 msgid "Reenter new Password: "
-msgstr "Masukkan lagi kata sandi baru:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:2676 src/sss_client/pam_sss.c:2679
 msgid "First Factor: "
@@ -2093,7 +2088,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2688 src/sss_client/pam_sss.c:2696
 msgid "Password: "
-msgstr "Kata sandi:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:2850 src/sss_client/pam_sss.c:2854
 msgid "First Factor (Current Password): "
@@ -2101,7 +2096,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2874
 msgid "Current Password: "
-msgstr "Kata sandi saat ini:"
+msgstr ""
 
 #: src/sss_client/pam_sss.c:3248
 msgid "Password expired. Change your password now."
@@ -2326,9 +2321,8 @@ msgid "Information about cached content:"
 msgstr ""
 
 #: src/tools/sssctl/sssctl.c:328
-#, fuzzy
 msgid "Information about cached user"
-msgstr "Tidak bisa mendapatkan info tentang pengguna\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl.c:329
 msgid "Information about cached group"
@@ -2411,9 +2405,8 @@ msgid "GPOs related tools:"
 msgstr ""
 
 #: src/tools/sssctl/sssctl.c:349
-#, fuzzy
 msgid "Information about cached GPO"
-msgstr "Tidak bisa mendapatkan info tentang pengguna\n"
+msgstr ""
 
 #: src/tools/sssctl/sssctl.c:350
 msgid "Enumerate cached GPOs"
@@ -2461,9 +2454,8 @@ msgid "Cached in InfoPipe"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:38
-#, fuzzy
 msgid "Policy Name"
-msgstr "Nama Lengkap"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_cache.c:39
 msgid "Policy GUID"
@@ -2852,23 +2844,20 @@ msgid "Target a specific domain"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:428 src/tools/sssctl/sssctl_logs.c:525
-#, fuzzy
 msgid "domain"
-msgstr "Domain IPA"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:430
 msgid "Attribute to index"
 msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:430
-#, fuzzy
 msgid "attribute"
-msgstr "Atribut UID"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:443
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "Penyedia otentikasi"
+msgstr ""
 
 #: src/tools/sssctl/sssctl_data.c:456
 #, c-format
@@ -3251,186 +3240,3 @@ msgstr ""
 #: src/util/util.h:107
 msgid "Informs that the responder has been socket-activated"
 msgstr ""
-
-#~ msgid "Number of times to attempt connection to Data Providers"
-#~ msgstr "Jumlah usaha yang dilakukan untuk mencoba koneksi ke Penyedia Data"
-
-#~ msgid "The UID of the user"
-#~ msgstr "UID dari pengguna"
-
-#~ msgid "The comment string"
-#~ msgstr "String komentar"
-
-#~ msgid "Home directory"
-#~ msgstr "Direktori Home"
-
-#~ msgid "Login shell"
-#~ msgstr "Shell login"
-
-#~ msgid "Groups"
-#~ msgstr "Grup"
-
-#~ msgid "Create user's directory if it does not exist"
-#~ msgstr "Buat direktori pengguna jika tidak ada"
-
-#~ msgid "Never create user's directory, overrides config"
-#~ msgstr "Jangan pernah buat direktori pengguna, timpa konfigurasi"
-
-#~ msgid "Specify an alternative skeleton directory"
-#~ msgstr "Tentukan direktori kerangka alternatif"
-
-#~ msgid "Specify user to add\n"
-#~ msgstr "Tentukan pengguna untuk ditambahkan\n"
-
-#~ msgid "Error initializing the tools\n"
-#~ msgstr "Gagal saat menginisialisasi perkakas\n"
-
-#~ msgid "Invalid domain specified in FQDN\n"
-#~ msgstr "Domain yang ditentukan dalam FQDN tidak valid\n"
-
-#~ msgid "Internal error while parsing parameters\n"
-#~ msgstr "Terjadi kesalahan internal ketika mengurai parameter\n"
-
-#~ msgid "Groups must be in the same domain as user\n"
-#~ msgstr "Grup harus berada dalam domain yang sama dengan pengguna\n"
-
-#~ msgid "Cannot set default values\n"
-#~ msgstr "Tidak dapat menetapkan nilai default\n"
-
-#~ msgid "The selected UID is outside the allowed range\n"
-#~ msgstr "UID yang dipilih berada di luar rentang yang diizinkan\n"
-
-#~ msgid ""
-#~ "User's home directory already exists, not copying data from skeldir\n"
-#~ msgstr ""
-#~ "Direktori home milik pengguna sudah ada, tidak menyalin data dari "
-#~ "skeldir\n"
-
-#~ msgid "Could not allocate ID for the user - domain full?\n"
-#~ msgstr "Tidak dapat mengalokasikan ID untuk pengguna - domain penuh?\n"
-
-#~ msgid "A user or group with the same name or ID already exists\n"
-#~ msgstr "Pengguna atau grup dengan nama atau ID yang sama sudah ada\n"
-
-#~ msgid "Transaction error. Could not add user.\n"
-#~ msgstr "Kesalahan transaksi. Tidak dapat menambahkan pengguna.\n"
-
-#~ msgid "The GID of the group"
-#~ msgstr "GID grup"
-
-#~ msgid "Specify group to add\n"
-#~ msgstr "Tentukan grup untuk ditambahkan\n"
-
-#~ msgid "The selected GID is outside the allowed range\n"
-#~ msgstr "GID yang dipilih berada di luar rentang yang diizinkan\n"
-
-#~ msgid "Could not allocate ID for the group - domain full?\n"
-#~ msgstr "Tidak dapat mengalokasikan ID untuk grup - domain penuh?\n"
-
-#~ msgid "A group with the same name or GID already exists\n"
-#~ msgstr "Grup dengan nama atau GID yang sama sudah ada\n"
-
-#~ msgid "Transaction error. Could not add group.\n"
-#~ msgstr "Kesalahan transaksi. Tidak dapat menambahkan grup.\n"
-
-#~ msgid ""
-#~ "No such group in local domain. Removing groups only allowed in local "
-#~ "domain.\n"
-#~ msgstr ""
-#~ "Tidak ada grup seperti itu di domain lokal. Menghapus grup hanya "
-#~ "diperbolehkan dalam domain lokal.\n"
-
-#~ msgid "Internal error. Could not remove group.\n"
-#~ msgstr "Kesalahan internal. Tidak dapat menghapus grup.\n"
-
-#~ msgid "Specify group to modify\n"
-#~ msgstr "Tentukan grup untuk dimodifikasi\n"
-
-#~ msgid ""
-#~ "Cannot find group in local domain, modifying groups is allowed only in "
-#~ "local domain\n"
-#~ msgstr ""
-#~ "Tidak dapat menemukan grup di domain lokal, memodifikasi grup hanya "
-#~ "diperbolehkan dalam domain lokal\n"
-
-#~ msgid "Member groups must be in the same domain as parent group\n"
-#~ msgstr ""
-#~ "Anggota kelompok harus berada dalam domain yang sama sebagaimana kelompok "
-#~ "induknya\n"
-
-#~ msgid "Could not modify group - check if member group names are correct\n"
-#~ msgstr ""
-#~ "Tidak bisa memodifikasi grup - periksa apakah nama grup anggota sudah "
-#~ "benar\n"
-
-#~ msgid "Could not modify group - check if groupname is correct\n"
-#~ msgstr ""
-#~ "Tidak bisa memodifikasi grup - periksa apakah groupname sudah benar\n"
-
-#~ msgid "Transaction error. Could not modify group.\n"
-#~ msgstr "Kesalahan transaksi. Tidak bisa memodifikasi grup.\n"
-
-#~ msgid "Remove home directory and mail spool"
-#~ msgstr "Hapus direktori home, dan spool mail"
-
-#~ msgid "Do not remove home directory and mail spool"
-#~ msgstr "Jangan hapus direktori home dan spool mail"
-
-#~ msgid "Force removal of files not owned by the user"
-#~ msgstr "Paksa penghapusan berkas yang tidak dimiliki oleh pengguna"
-
-#~ msgid "Specify user to delete\n"
-#~ msgstr "Tentukan pengguna yang akan dihapus\n"
-
-#~ msgid "Not removing home dir - not owned by user\n"
-#~ msgstr "Tidak menghapus home dir - tidak dimiliki oleh pengguna\n"
-
-#~ msgid ""
-#~ "No such user in local domain. Removing users only allowed in local "
-#~ "domain.\n"
-#~ msgstr ""
-#~ "Tidak ada pengguna seperti itu di domain lokal. Menghapus pengguna hanya "
-#~ "diperbolehkan dalam domain lokal.\n"
-
-#~ msgid "Internal error. Could not remove user.\n"
-#~ msgstr "Kesalahan internal. Tidak dapat menghapus pengguna.\n"
-
-#~ msgid "The GID of the user"
-#~ msgstr "GID pengguna"
-
-#~ msgid "Groups to add this user to"
-#~ msgstr "Pengguna ini akan ditambahkan ke grup"
-
-#~ msgid "Groups to remove this user from"
-#~ msgstr "Pengguna ini akan dihapus dari grup"
-
-#~ msgid "Lock the account"
-#~ msgstr "Kunci akun"
-
-#~ msgid "Unlock the account"
-#~ msgstr "Buka kunci akun"
-
-#~ msgid "Specify user to modify\n"
-#~ msgstr "Tentukan pengguna untuk dimodifikasi\n"
-
-#~ msgid ""
-#~ "Cannot find user in local domain, modifying users is allowed only in "
-#~ "local domain\n"
-#~ msgstr ""
-#~ "Tidak dapat menemukan pengguna dalam domain lokal, memodifikasi pengguna "
-#~ "hanya diperbolehkan dalam domain lokal\n"
-
-#~ msgid "Could not modify user - check if group names are correct\n"
-#~ msgstr ""
-#~ "Tidak bisa memodifikasi pengguna - periksa apakah nama grup sudah benar\n"
-
-#~ msgid "Could not modify user - user already member of groups?\n"
-#~ msgstr ""
-#~ "Tidak bisa memodifikasi pengguna - pengguna sudah menjadi anggota "
-#~ "kelompok?\n"
-
-#~ msgid "Transaction error. Could not modify user.\n"
-#~ msgstr "Kesalahan transaksi. Pengguna tidak dapat dimodifikasi.\n"
-
-#~ msgid "Write debug messages to logfiles"
-#~ msgstr "Menulis pesan debug ke berkas log"
