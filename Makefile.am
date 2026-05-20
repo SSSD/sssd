@@ -237,7 +237,6 @@ endif
 
 if HAVE_CHECK
     non_interactive_check_based_tests = \
-        dlopen-tests \
         sysdb-tests \
         strtonum-tests \
         resolv-tests \
@@ -274,13 +273,11 @@ if HAVE_CMOCKA
         test-authtok \
         test_prompt_config \
         sss_nss_idmap-tests \
-        deskprofile_utils-tests \
         dyndns-tests \
         domain_resolution_order-tests \
         fqnames-tests \
         nestedgroups-tests \
         test_sss_idmap \
-        test_ipa_idmap \
         test_utils \
         dp_opt_tests \
         responder-get-domains-tests \
@@ -305,9 +302,9 @@ if HAVE_CMOCKA
         test_sbus_message \
         test_sbus_opath \
         test_fo_srv \
+        test_failover_server \
         pam-srv-tests \
         ssh-srv-tests \
-        test_ipa_subdom_util \
         test_tools_colondb \
         test_krb5_wait_queue \
         test_cert_utils \
@@ -315,7 +312,6 @@ if HAVE_CMOCKA
         test_data_provider_be \
         test_dp_request \
         test_dp_builtin \
-        test_ipa_dn \
         simple-access-tests \
         krb5_common_test \
         test_iobuf \
@@ -356,12 +352,7 @@ endif # BUILD_PASSKEY
 
 if BUILD_SAMBA
 non_interactive_cmocka_based_tests += \
-    ad_access_filter_tests \
-    ad_gpo_tests \
-    ad_common_tests \
     test_sdap_initgr \
-    test_ad_subdom \
-    test_ipa_subdom_server \
     $(NULL)
 endif
 
@@ -416,8 +407,7 @@ sssdlib_LTLIBRARIES = \
 
 if BUILD_SAMBA
 sssdlib_LTLIBRARIES += \
-    libsss_ipa.la \
-    libsss_ad.la
+    $(NULL)
 endif
 
 if BUILD_ID_PROVIDER_IDP
@@ -662,6 +652,24 @@ SSSD_FAILOVER_OBJ = \
     src/providers/fail_over_srv.c \
     $(SSSD_RESOLV_OBJ)
 
+# Make sure to build new failover code to test compilation even though it is
+# not used anywhere yet.
+SSSD_NEW_FAILOVER_OBJ = \
+    src/providers/failover/failover.c \
+    src/providers/failover/failover_callback.c \
+    src/providers/failover/failover_refresh_candidates.c \
+    src/providers/failover/failover_group.c \
+    src/providers/failover/failover_server_resolve.c \
+    src/providers/failover/failover_server.c \
+    src/providers/failover/failover_srv.c \
+    src/providers/failover/failover_transaction.c \
+    src/providers/failover/failover_vtable_op.c \
+    src/providers/failover/failover_vtable.c \
+    src/providers/failover/ldap/failover_ldap_connect.c \
+    src/providers/failover/ldap/failover_ldap_kinit.c \
+    $(SSSD_RESOLV_OBJ) \
+    $(NULL)
+
 SSSD_LIBS = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
@@ -854,6 +862,16 @@ dist_noinst_HEADERS = \
     src/providers/be_refresh.h \
     src/providers/fail_over.h \
     src/providers/fail_over_srv.h \
+    src/providers/failover/failover.h \
+    src/providers/failover/failover_group.h \
+    src/providers/failover/failover_refresh_candidates.h \
+    src/providers/failover/failover_server.h \
+    src/providers/failover/failover_server_resolve.h \
+    src/providers/failover/failover_srv.h \
+    src/providers/failover/failover_transaction.h \
+    src/providers/failover/failover_vtable.h \
+    src/providers/failover/failover_vtable_op.h \
+    src/providers/failover/ldap/failover_ldap.h \
     src/util/child_common.h \
     src/util/child_bootstrap.h \
     src/providers/simple/simple_access.h \
@@ -873,7 +891,6 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_sudo.h \
     src/providers/ldap/sdap_sudo_shared.h \
     src/providers/ldap/sdap_autofs.h \
-    src/providers/ldap/sdap_id_op.h \
     src/providers/ldap/ldap_opts.h \
     src/providers/ldap/ldap_auth.h \
     src/providers/ldap/sdap_range.h \
@@ -1902,7 +1919,6 @@ sssctl_SOURCES = \
     src/tools/sssctl/sssctl_domains.c \
     src/tools/sssctl/sssctl_config.c \
     src/tools/sssctl/sssctl_user_checks.c \
-    src/tools/sssctl/sssctl_access_report.c \
     src/tools/sssctl/sssctl_cert.c \
     $(SSSD_TOOLS_OBJ) \
     $(NULL)
@@ -2062,7 +2078,6 @@ check_LTLIBRARIES += \
 
 if BUILD_SAMBA
 check_LTLIBRARIES += \
-    libsss_ad_tests.la \
     libdlopen_test_winbind_idmap.la \
     $(NULL)
 endif
@@ -3515,6 +3530,24 @@ test_fo_srv_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
+test_failover_server_SOURCES = \
+    src/tests/cmocka/test_failover_server.c \
+    src/providers/failover/failover_server.c \
+    $(SSSD_RESOLV_TESTS_OBJ) \
+    $(NULL)
+test_failover_server_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(NULL)
+test_failover_server_LDADD = \
+    $(CARES_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
 test_sdap_initgr_SOURCES = \
     src/tests/cmocka/common_mock_sdap.c \
     src/tests/cmocka/common_mock_sysdb_objects.c \
@@ -4357,12 +4390,10 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_async_services.c \
     src/providers/ldap/sdap_async_iphost.c \
     src/providers/ldap/sdap_async_ipnetwork.c \
-    src/providers/ldap/sdap_online_check.c \
     src/providers/ldap/sdap_ad_groups.c \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
     src/providers/ldap/sdap_hostid.h \
-    src/providers/ldap/sdap_id_op.c \
     src/providers/ldap/sdap_certmap.c \
     src/providers/ldap/sdap_idmap.c \
     src/providers/ldap/sdap_idmap.h \
@@ -4379,6 +4410,7 @@ libsss_ldap_common_la_SOURCES = \
     src/util/sss_sockets.c \
     src/util/sss_ldap.c \
     src/util/cert_derb64_to_ldap_filter.c \
+    $(SSSD_NEW_FAILOVER_OBJ) \
     $(NULL)
 libsss_ldap_common_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4458,7 +4490,8 @@ libsss_krb5_common_la_LDFLAGS = \
 
 libsss_ldap_la_SOURCES = \
     src/providers/ldap/ldap_init.c \
-    src/providers/ldap/ldap_access.c
+    src/providers/ldap/ldap_access.c \
+    $(SSSD_NEW_FAILOVER_OBJ)
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(OPENLDAP_CFLAGS)

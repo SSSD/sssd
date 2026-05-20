@@ -208,12 +208,11 @@ static void
 ipa_fetch_deskprofile_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;
@@ -355,7 +354,6 @@ ipa_fetch_deskprofile_rules_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct ipa_fetch_deskprofile_state *state;
-    int dp_error;
     errno_t ret;
     bool found;
 
@@ -378,15 +376,8 @@ ipa_fetch_deskprofile_rules_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
-        /* retry */
-        ret = ipa_fetch_deskprofile_retry(req);
-        if (ret != EAGAIN) {
-            tevent_req_error(req, ret);
-        }
-        return;
-    } else if (ret != EOK) {
+    ret = sdap_id_op_done(state->sdap_op, ret);
+    if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }

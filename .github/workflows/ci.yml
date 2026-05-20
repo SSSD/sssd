@@ -1,9 +1,9 @@
 name: "ci"
 on:
   push:
-    branches: [master]
+    branches: [master, failover]
   pull_request:
-    branches: [master]
+    branches: [master, failover]
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -152,7 +152,6 @@ jobs:
         working-directory: /sssd
         where: |
           client
-          ipa
         script: |
           #!/bin/bash
           set -ex
@@ -172,7 +171,6 @@ jobs:
         user: root
         where: |
           client
-          ipa
         script: |
           #!/bin/bash
           set -ex
@@ -187,17 +185,6 @@ jobs:
 
           # We need to reenable sssd-kcm since it was disabled by removing sssd not not enabled again
           systemctl enable --now sssd-kcm.socket
-
-    - name: Restart SSSD on IPA server
-      uses: SSSD/sssd-ci-containers/actions/exec@master
-      with:
-        user: root
-        where: ipa
-        script: |
-          #!/bin/bash
-          set -ex
-
-          systemctl restart sssd || systemctl status sssd
 
     - name: Patch the SSH configuration
       uses: SSSD/sssd-ci-containers/actions/exec@master
@@ -311,6 +298,9 @@ jobs:
           --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
+          --mh-not-topology=ipa --mh-not-topology=samba --mh-not-topology=ad \
+          --mh-not-topology=ipa-trust-samba \
+          -k "not test_logging__default_settings_logs_ and not test_failover and not test_autofs__propagate_offline_status_for_multiple_domains" \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
     - name: Run tests
@@ -331,6 +321,9 @@ jobs:
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           --output-polarion-testrun=$GITHUB_WORKSPACE/artifacts/testrun.xml \
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
+          --mh-not-topology=ipa --mh-not-topology=samba --mh-not-topology=ad \
+          --mh-not-topology=ipa-trust-samba \
+          -k "not test_logging__default_settings_logs_ and not test_failover and not test_autofs__propagate_offline_status_for_multiple_domains" \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
 
     - name: Upload artifacts

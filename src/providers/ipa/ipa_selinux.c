@@ -809,17 +809,16 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
                                                   struct tevent_req);
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
     struct ipa_id_ctx *id_ctx = state->selinux_ctx->id_ctx;
     struct dp_module *access_mod;
     struct dp_module *selinux_mod;
     const char *hostname;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
-    if (dp_error == DP_ERR_OFFLINE) {
+    if (be_is_offline(state->be_ctx)) {
         talloc_zfree(state->op);
         ret = ipa_get_selinux_maps_offline(req);
         if (ret == EOK) {

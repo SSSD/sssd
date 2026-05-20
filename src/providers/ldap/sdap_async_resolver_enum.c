@@ -25,10 +25,6 @@
 #include "providers/ldap/ldap_resolver_enum.h"
 #include "providers/ldap/sdap_async_resolver_enum.h"
 
-static errno_t sdap_dom_resolver_enum_retry(struct tevent_req *req,
-                                            struct sdap_id_op *op,
-                                            tevent_req_fn tcb);
-static bool sdap_dom_resolver_enum_connected(struct tevent_req *subreq);
 static void sdap_dom_resolver_enum_get_iphost(struct tevent_req *subreq);
 static void sdap_dom_resolver_enum_iphost_done(struct tevent_req *subreq);
 static void sdap_dom_resolver_enum_get_ipnetwork(struct tevent_req *subreq);
@@ -40,9 +36,8 @@ struct sdap_dom_resolver_enum_state {
     struct sdap_id_ctx *id_ctx;
     struct sdap_domain *sdom;
 
-    struct sdap_id_conn_ctx *conn;
-    struct sdap_id_op *iphost_op;
-    struct sdap_id_op *ipnetwork_op;
+    struct sss_failover_ldap_connection *iphost_conn;
+    struct sss_failover_ldap_connection *ipnetwork_conn;
 
     bool purge;
 };
@@ -52,8 +47,7 @@ sdap_dom_resolver_enum_send(TALLOC_CTX *memctx,
                             struct tevent_context *ev,
                             struct sdap_resolver_ctx *resolver_ctx,
                             struct sdap_id_ctx *id_ctx,
-                            struct sdap_domain *sdom,
-                            struct sdap_id_conn_ctx *conn)
+                            struct sdap_domain *sdom)
 {
     struct tevent_req *req;
     struct sdap_dom_resolver_enum_state *state;
@@ -67,7 +61,6 @@ sdap_dom_resolver_enum_send(TALLOC_CTX *memctx,
     state->resolver_ctx = resolver_ctx;
     state->id_ctx = id_ctx;
     state->sdom = sdom;
-    state->conn = conn;
     state->resolver_ctx->last_enum = tevent_timeval_current();
 
     t = dp_opt_get_int(resolver_ctx->id_ctx->opts->basic, SDAP_PURGE_CACHE_TIMEOUT);
@@ -75,17 +68,10 @@ sdap_dom_resolver_enum_send(TALLOC_CTX *memctx,
         state->purge = true;
     }
 
-    state->iphost_op = sdap_id_op_create(state, conn->conn_cache);
-    if (state->iphost_op == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_create failed for iphosts\n");
-        ret = EIO;
-        goto fail;
-    }
-
-    ret = sdap_dom_resolver_enum_retry(req, state->iphost_op,
-                                       sdap_dom_resolver_enum_get_iphost);
+    ret = sss_failover_transaction_send(state, ev, id_ctx->fctx, req,
+                                        sdap_dom_resolver_enum_get_iphost);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_dom_enum_retry failed\n");
+        DEBUG(SSSDBG_OP_FAILURE, "sss_failover_transaction_send failed\n");
         goto fail;
     }
 
@@ -97,54 +83,6 @@ fail:
     return req;
 }
 
-static errno_t
-sdap_dom_resolver_enum_retry(struct tevent_req *req,
-                             struct sdap_id_op *op,
-                             tevent_req_fn tcb)
-{
-    struct sdap_dom_resolver_enum_state *state;
-    struct tevent_req *subreq;
-    errno_t ret;
-
-    state = tevent_req_data(req, struct sdap_dom_resolver_enum_state);
-    subreq = sdap_id_op_connect_send(op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "sdap_id_op_connect_send failed: %d\n", ret);
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, tcb, req);
-    return EOK;
-}
-
-static bool sdap_dom_resolver_enum_connected(struct tevent_req *subreq)
-{
-    errno_t ret;
-    int dp_error;
-    struct tevent_req *req = tevent_req_callback_data(subreq,
-                                                      struct tevent_req);
-
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
-    talloc_zfree(subreq);
-
-    if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_TRACE_FUNC,
-                  "Backend is marked offline, retry later!\n");
-            tevent_req_done(req);
-        } else {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "Domain enumeration failed to connect to " \
-                   "LDAP server: (%d)[%s]\n", ret, strerror(ret));
-            tevent_req_error(req, ret);
-        }
-        return false;
-    }
-
-    return true;
-}
-
 static void sdap_dom_resolver_enum_get_iphost(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
@@ -153,13 +91,19 @@ static void sdap_dom_resolver_enum_get_iphost(struct tevent_req *subreq)
 
     state = tevent_req_data(req, struct sdap_dom_resolver_enum_state);
 
-    if (sdap_dom_resolver_enum_connected(subreq) == false) {
+    state->iphost_conn = sss_failover_transaction_connected_recv(state, subreq,
+                                             struct sss_failover_ldap_connection);
+    talloc_zfree(subreq);
+
+    if (state->iphost_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
     subreq = enum_iphosts_send(state, state->ev,
                                state->id_ctx,
-                               state->iphost_op,
+                               state->iphost_conn,
                                state->purge);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
@@ -175,45 +119,14 @@ static void sdap_dom_resolver_enum_iphost_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_dom_resolver_enum_state *state;
     errno_t ret;
-    int dp_error;
 
     state = tevent_req_data(req, struct sdap_dom_resolver_enum_state);
 
     ret = enum_iphosts_recv(subreq);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->iphost_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
-        /* retry */
-        ret = sdap_dom_resolver_enum_retry(req, state->iphost_op,
-                                           sdap_dom_resolver_enum_get_iphost);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-        return;
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
-        tevent_req_done(req);
-        return;
-    } else if (ret != EOK && ret != ENOENT) {
-        /* Non-recoverable error */
-        DEBUG(SSSDBG_OP_FAILURE,
-              "IP hosts enumeration failed: %d: %s\n", ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    state->ipnetwork_op = sdap_id_op_create(state, state->conn->conn_cache);
-    if (state->ipnetwork_op == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "sdap_id_op_create failed for IP networks\n");
-        tevent_req_error(req, EIO);
-        return;
-    }
-
-    ret = sdap_dom_resolver_enum_retry(req, state->ipnetwork_op,
-                                       sdap_dom_resolver_enum_get_ipnetwork);
+    ret = sss_failover_transaction_send(state, state->ev, state->id_ctx->fctx, req,
+                                        sdap_dom_resolver_enum_get_ipnetwork);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -230,13 +143,19 @@ static void sdap_dom_resolver_enum_get_ipnetwork(struct tevent_req *subreq)
 
     state = tevent_req_data(req, struct sdap_dom_resolver_enum_state);
 
-    if (sdap_dom_resolver_enum_connected(subreq) == false) {
+    state->ipnetwork_conn = sss_failover_transaction_connected_recv(state, subreq,
+                                                   struct sss_failover_ldap_connection);
+    talloc_zfree(subreq);
+
+    if (state->ipnetwork_conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
     subreq = enum_ipnetworks_send(state, state->ev,
                                   state->id_ctx,
-                                  state->ipnetwork_op,
+                                  state->ipnetwork_conn,
                                   state->purge);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
@@ -252,35 +171,11 @@ static void sdap_dom_resolver_enum_ipnetwork_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_dom_resolver_enum_state *state;
     errno_t ret;
-    int dp_error;
 
     state = tevent_req_data(req, struct sdap_dom_resolver_enum_state);
 
     ret = enum_ipnetworks_recv(subreq);
     talloc_zfree(subreq);
-
-    ret = sdap_id_op_done(state->ipnetwork_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
-        /* retry */
-        ret = sdap_dom_resolver_enum_retry(req, state->ipnetwork_op,
-                                        sdap_dom_resolver_enum_get_ipnetwork);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-        return;
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
-        tevent_req_done(req);
-        return;
-    } else if (ret != EOK && ret != ENOENT) {
-        /* Non-recoverable error */
-        DEBUG(SSSDBG_OP_FAILURE,
-              "IP networks enumeration failed: %d: %s\n",
-              ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-        return;
-    }
 
     /* Ok, we've completed an enumeration. Save this to the
      * sysdb so we can postpone starting up the enumeration

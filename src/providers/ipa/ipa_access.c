@@ -217,18 +217,19 @@ static errno_t ipa_fetch_hbac_retry(struct tevent_req *req)
 static void ipa_fetch_hbac_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
-    int dp_error;
+    struct ipa_fetch_hbac_state *state = NULL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_fetch_hbac_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto done;
     }
 
-    if (dp_error == DP_ERR_OFFLINE) {
+    if (be_is_offline(state->be_ctx)) {
         ret = EOK;
         goto done;
     }
@@ -293,7 +294,6 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
     struct ipa_fetch_hbac_state *state = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
-    int dp_error;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_fetch_hbac_state);
@@ -313,8 +313,8 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
          * so that all searches are in another sub-request so that we can
          * error out at any step and the parent request can call
          * sdap_id_op_done just once. */
-        ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret != EOK) {
+        ret = sdap_id_op_done(state->sdap_op, ret);
+        if (ret != EOK) {
             /* retry */
             ret = ipa_fetch_hbac_retry(req);
             if (ret != EAGAIN) {
@@ -405,7 +405,6 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
 {
     struct ipa_fetch_hbac_state *state = NULL;
     struct tevent_req *req = NULL;
-    int dp_error;
     errno_t ret;
     bool found;
 
@@ -427,8 +426,8 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->sdap_op, ret);
+    if (ret != EOK) {
         /* retry */
         ret = ipa_fetch_hbac_retry(req);
         if (ret != EAGAIN) {
