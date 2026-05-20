@@ -526,7 +526,7 @@ static errno_t ipa_init_sdap_auth_ctx(TALLOC_CTX *mem_ctx,
     }
 
     sdap_auth_ctx->be =  be_ctx;
-    sdap_auth_ctx->service = ipa_options->service->sdap;
+    // sdap_auth_ctx->service = ipa_options->service->sdap;
 
     if (ipa_options->id == NULL) {
         talloc_free(sdap_auth_ctx);

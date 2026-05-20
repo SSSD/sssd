@@ -54,89 +54,9 @@ static errno_t ldap_init_auth_ctx(TALLOC_CTX *mem_ctx,
     auth_ctx->be = be_ctx;
     auth_ctx->fctx = fctx;
     auth_ctx->opts = options;
-    auth_ctx->service = id_ctx->service;
-    auth_ctx->chpass_service = NULL;
 
     *_auth_ctx = auth_ctx;
 
-    return EOK;
-}
-
-static errno_t init_chpass_service(TALLOC_CTX *mem_ctx,
-                                   struct be_ctx *be_ctx,
-                                   struct sdap_options *opts,
-                                   struct sdap_service **_chpass_service)
-{
-    errno_t ret;
-    const char *urls;
-    const char *backup_urls;
-    const char *dns_service_name;
-    struct sdap_service *chpass_service;
-
-    dns_service_name = dp_opt_get_string(opts->basic,
-                                         SDAP_CHPASS_DNS_SERVICE_NAME);
-    if (dns_service_name != NULL) {
-        DEBUG(SSSDBG_TRACE_LIBS,
-              "Service name for chpass discovery set to %s\n",
-              dns_service_name);
-    }
-
-    urls = dp_opt_get_string(opts->basic, SDAP_CHPASS_URI);
-    backup_urls = dp_opt_get_string(opts->basic, SDAP_CHPASS_BACKUP_URI);
-
-    if (urls != NULL || backup_urls != NULL || dns_service_name != NULL) {
-        ret = sdap_service_init(mem_ctx,
-                                be_ctx,
-                                "LDAP_CHPASS",
-                                dns_service_name,
-                                urls,
-                                backup_urls,
-                                &chpass_service);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to initialize failover service!\n");
-            return ret;
-        }
-    } else {
-        DEBUG(SSSDBG_TRACE_ALL,
-              "ldap_chpass_uri and ldap_chpass_dns_service_name not set, "
-              "using ldap_uri.\n");
-        chpass_service = NULL;
-    }
-
-    *_chpass_service = chpass_service;
-    return EOK;
-}
-
-static errno_t get_sdap_service(TALLOC_CTX *mem_ctx,
-                                struct be_ctx *be_ctx,
-                                struct sdap_options *opts,
-                                struct sdap_service **_sdap_service)
-{
-    errno_t ret;
-    const char *urls;
-    const char *backup_urls;
-    const char *dns_service_name;
-    struct sdap_service *sdap_service;
-
-    urls = dp_opt_get_string(opts->basic, SDAP_URI);
-    backup_urls = dp_opt_get_string(opts->basic, SDAP_BACKUP_URI);
-    dns_service_name = dp_opt_get_string(opts->basic, SDAP_DNS_SERVICE_NAME);
-    if (dns_service_name != NULL) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "Service name for discovery set to %s\n", dns_service_name);
-    }
-
-    ret = sdap_service_init(mem_ctx, be_ctx, "LDAP",
-                            dns_service_name,
-                            urls,
-                            backup_urls,
-                            &sdap_service);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    *_sdap_service = sdap_service;
     return EOK;
 }
 
@@ -166,17 +86,6 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
 {
     errno_t ret;
 
-    if (should_call_gssapi_init(options)) {
-        ret = sdap_gssapi_init(id_ctx, options->basic, be_ctx,
-                               id_ctx->service, &id_ctx->krb5_service);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "sdap_gssapi_init failed [%d][%s].\n",
-                  ret, sss_strerror(ret));
-            return ret;
-        }
-    }
-
     setup_ldap_debug(options->basic);
 
     ret = setup_tls_config(options->basic);
@@ -198,14 +107,6 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
     ret = ldap_id_setup_tasks(id_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup background tasks "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
-    }
-
-    /* Setup SRV lookup plugin */
-    ret = be_fo_set_dns_srv_lookup_plugin(be_ctx, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set SRV lookup plugin "
               "[%d]: %s\n", ret, sss_strerror(ret));
         return ret;
     }
@@ -324,7 +225,6 @@ errno_t sssm_ldap_init(TALLOC_CTX *mem_ctx,
                        const char *module_name,
                        void **_module_data)
 {
-    struct sdap_service *sdap_service;
     struct ldap_init_ctx *init_ctx;
     errno_t ret;
 
@@ -343,15 +243,7 @@ errno_t sssm_ldap_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* Always initialize id_ctx since it is needed everywhere. */
-    ret = get_sdap_service(init_ctx, be_ctx, init_ctx->options, &sdap_service);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize failover service "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto done;
-    }
-
-    init_ctx->id_ctx = sdap_id_ctx_new(init_ctx, be_ctx, sdap_service);
+    init_ctx->id_ctx = sdap_id_ctx_new(init_ctx, be_ctx, NULL);
     if (init_ctx->id_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize LDAP ID context\n");
         ret = ENOMEM;
@@ -453,14 +345,6 @@ errno_t sssm_ldap_chpass_init(TALLOC_CTX *mem_ctx,
 
     init_ctx = talloc_get_type(module_data, struct ldap_init_ctx);
     auth_ctx = init_ctx->auth_ctx;
-
-    ret = init_chpass_service(auth_ctx, be_ctx, init_ctx->options,
-                              &auth_ctx->chpass_service);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to initialize chpass service "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
-    }
 
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
                   sdap_pam_chpass_handler_send, sdap_pam_chpass_handler_recv, auth_ctx,

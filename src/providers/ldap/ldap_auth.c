@@ -672,7 +672,6 @@ struct auth_state {
     struct sdap_auth_ctx *ctx;
     const char *username;
     struct sss_auth_token *authtok;
-    struct sdap_service *sdap_service;
 
     struct sss_failover_ldap_connection *conn;
 
@@ -718,12 +717,6 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->username = username;
     state->authtok = authtok;
-    if (try_chpass_service && ctx->chpass_service != NULL &&
-        ctx->chpass_service->name != NULL) {
-        state->sdap_service = ctx->chpass_service;
-    } else {
-        state->sdap_service = ctx->service;
-    }
 
     ret = get_user_dn(state, state->ctx->be->domain, SDAP_TYPE_LDAP,
                       state->ctx->opts, state->username, &state->dn,
@@ -792,7 +785,7 @@ static errno_t auth_connect_send(struct tevent_req *req)
         }
     }
 
-    if (ldap_is_ldapi_url(state->sdap_service->uri)) {
+    if (ldap_is_ldapi_url(state->ctx->fctx->active_server->uri)) {
         /* Don't force TLS on if we're a unix domain socket */
         use_tls = false;
     }
@@ -852,7 +845,7 @@ static void auth_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    if (!ldap_is_ldapi_url(state->sdap_service->uri) &&
+    if (!ldap_is_ldapi_url(state->conn->uri) &&
             !check_encryption_used(state->conn->sh->ldap) &&
             !dp_opt_get_bool(state->ctx->opts->basic, SDAP_DISABLE_AUTH_TLS)) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Aborting the authentication request.\n");

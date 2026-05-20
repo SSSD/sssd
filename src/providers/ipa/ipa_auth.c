@@ -321,7 +321,7 @@ static void ipa_pam_auth_handler_flag_done(struct tevent_req *subreq)
         subreq = sdap_cli_resolve_and_connect_send(state, state->ev,
                                                    sdap_auth_ctx->opts,
                                                    sdap_auth_ctx->be,
-                                                   sdap_auth_ctx->service,
+                                                   NULL,
                                                    true, CON_TLS_ON, true);
         if (subreq == NULL) {
             state->pd->pam_status = PAM_SYSTEM_ERR;
