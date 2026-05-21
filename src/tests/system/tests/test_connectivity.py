@@ -1,5 +1,5 @@
 """
-SSSD Failover tests.
+SSSD Connectivity tests.
 
 :requirement: Failover
 """
@@ -17,7 +17,7 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 @pytest.mark.ticket(gh=7375, jira="RHEL-17659")
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_failover__reactivation_timeout_is_honored(
+def test_connectivity__failover_reactivation_timeout_is_honored(
     client: Client, provider: GenericProvider, value: int | None, expected: int
 ):
     """
@@ -65,7 +65,7 @@ def test_failover__reactivation_timeout_is_honored(
 @pytest.mark.importance("low")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_failover__connect_using_ipv4_second_family(client: Client, provider: GenericProvider):
+def test_connectivity__failover_to_ipv4_when_ipv6_unavailable(client: Client, provider: GenericProvider):
     """
     :title: Make sure that we can connect using secondary protocol
     :setup:
@@ -96,7 +96,7 @@ def test_failover__connect_using_ipv4_second_family(client: Client, provider: Ge
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.topology(KnownTopology.Samba)
 @pytest.mark.preferred_topology(KnownTopology.IPA)
-def test_failover__go_offline_if_kinit_fails(client: Client, provider: GenericProvider):
+def test_connectivity__sssd_goes_offline_when_kerberos_is_unreachable(client: Client, provider: GenericProvider):
     """
     :title: SSSD goes offline when Kerberos authentication fails
     :setup:
@@ -129,7 +129,7 @@ def test_failover__go_offline_if_kinit_fails(client: Client, provider: GenericPr
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_failover__go_offline_if_ldap_fails(client: Client, provider: GenericProvider):
+def test_connectivity__sssd_goes_offline_when_ldap_is_unreachable(client: Client, provider: GenericProvider):
     """
     :title: SSSD goes offline when LDAP connection fails
     :setup:
