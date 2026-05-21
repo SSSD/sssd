@@ -17,6 +17,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE   /* For strchrnul() */
+#endif
 #include <string.h>
 #include <dhash.h>
 
@@ -73,6 +76,7 @@ struct mbof_add_operation {
 struct mbof_memberuid_op {
     struct ldb_dn *dn;
     struct ldb_message_element *el;
+    hash_table_t *val_table;
 };
 
 struct mbof_add_ctx {
@@ -225,6 +229,32 @@ static int entry_is_group_object(struct ldb_message *entry)
     return entry_has_objectclass(entry, DB_GROUP_CLASS);
 }
 
+__attribute__((always_inline))
+static inline bool sss_linearized_dn_match(const char *dn1, const char *dn2)
+{
+    const char *comma = NULL;
+    size_t name_len;
+
+    if ((dn1 == NULL) || (dn2 == NULL)) {
+        return false;
+    }
+
+    if (strcasecmp(dn1, dn2) != 0) {
+        return false;
+    }
+
+    /* Since sysdb cache treats 'name' case-sensitive,
+     * perform additional check to be on a safe side.
+     */
+    if (strncasecmp(dn1, "name=", 5) != 0) {
+        return true;
+    }
+
+    comma = strchrnul(dn1+5, ',');
+    name_len = comma - (dn1 + 5);
+    return (strncmp(dn1+5, dn2+5, name_len) == 0);
+}
+
 static int mbof_append_muop(TALLOC_CTX *memctx,
                             struct mbof_memberuid_op **_muops,
                             int *_num_muops,
@@ -237,12 +267,20 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
     int num_muops = *_num_muops;
     struct mbof_memberuid_op *op;
     struct ldb_val *val;
-    int i;
+    hash_key_t key;
+    hash_value_t hval;
+    int i, hret;
+    const char *parent_dn_linearized = ldb_dn_get_linearized(parent);
+
+    if (parent_dn_linearized == NULL) {
+        return LDB_ERR_INVALID_DN_SYNTAX;
+    }
 
     op = NULL;
     if (muops) {
         for (i = 0; i < num_muops; i++) {
-            if (ldb_dn_compare(parent, muops[i].dn) == 0) {
+            if (sss_linearized_dn_match(parent_dn_linearized,
+                                        ldb_dn_get_linearized(muops[i].dn))) {
                 op = &muops[i];
                 break;
             }
@@ -262,6 +300,7 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
 
         op->dn = parent;
         op->el = NULL;
+        op->val_table = NULL;
     }
 
     if (!op->el) {
@@ -276,11 +315,19 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
         op->el->flags = flags;
     }
 
-    for (i = 0; i < op->el->num_values; i++) {
-        if (strcmp((char *)op->el->values[i].data, name) == 0) {
-            /* we already have this value, get out*/
-            return LDB_SUCCESS;
+    if (!op->val_table) {
+        hret = hash_create_ex(1024, &op->val_table, 0, 0, 0, 0,
+                              hash_alloc, hash_free, op->el, NULL, NULL);
+        if (hret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
         }
+    }
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(name);
+
+    if (hash_has_key(op->val_table, &key)) {
+        return LDB_SUCCESS;
     }
 
     val = talloc_realloc(op->el, op->el->values,
@@ -296,6 +343,12 @@ static int mbof_append_muop(TALLOC_CTX *memctx,
 
     op->el->values = val;
     op->el->num_values++;
+
+    hval.type = HASH_VALUE_UNDEF;
+    hret = hash_enter(op->val_table, &key, &hval);
+    if (hret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
 
     return LDB_SUCCESS;
 }
@@ -348,6 +401,11 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
 {
     struct mbof_add_operation *lastop = NULL;
     struct mbof_add_operation *addop;
+    const char *entry_dn_linearized = ldb_dn_get_linearized(entry_dn);
+
+    if (entry_dn_linearized == NULL) {
+        return LDB_ERR_INVALID_DN_SYNTAX;
+    }
 
     /* test if this is a duplicate */
     /* FIXME: this is not efficient */
@@ -360,7 +418,8 @@ static int mbof_append_addop(struct mbof_add_ctx *add_ctx,
             }
 
             /* FIXME: check if this is right, might have to compare parents */
-            if (ldb_dn_compare(lastop->entry_dn, entry_dn) == 0) {
+            if (sss_linearized_dn_match(ldb_dn_get_linearized(lastop->entry_dn),
+                                       entry_dn_linearized)) {
                 /* duplicate found */
                 return LDB_SUCCESS;
             }
@@ -761,20 +820,51 @@ static int mbof_next_add_callback(struct ldb_request *req,
     return LDB_SUCCESS;
 }
 
+/* based on `ldb_dn_from_ldb_val()` but avoids memcpy */
+static const char *sss_get_linearized_dn_from_ldb_val(const struct ldb_val *strdn)
+{
+    const char *data;
+
+    if (strdn == NULL || strdn->data == NULL || strdn->length == 0) {
+        return NULL;
+    }
+
+    data = (const char *)strdn->data;
+
+    if (data[0] == '<') {
+        const char *p_save = data;
+        const char *p = data;
+        do {
+            p_save = p;
+            p = strstr(p, ">;");
+            if (p) {
+                p = p + 2;
+            }
+        } while (p);
+
+        if (p_save == data) {
+            /* Only extended components, no linearized DN */
+            return NULL;
+        }
+        return p_save;
+    }
+
+    return data;
+}
+
 /* if it is a group, add all members for cascade effect
  * add memberof attribute to this entry
  */
 static int mbof_add_operation(struct mbof_add_operation *addop)
 {
 
-    TALLOC_CTX *tmp_ctx;
     struct mbof_ctx *ctx;
     struct mbof_add_ctx *add_ctx;
     struct ldb_context *ldb;
     struct ldb_message_element *el;
     struct ldb_request *mod_req;
     struct ldb_message *msg;
-    struct ldb_dn *elval_dn;
+    const char *elval_dn;
     struct ldb_dn *valdn;
     struct mbof_dn_array *parents;
     int i, j, ret;
@@ -799,7 +889,8 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     /* create new parent set for this entry */
     for (i = 0; i < addop->parents->num; i++) {
         /* never add yourself as memberof */
-        if (ldb_dn_compare(addop->parents->dns[i], addop->entry_dn) == 0) {
+        if (sss_linearized_dn_match(ldb_dn_get_linearized(addop->parents->dns[i]),
+                                    ldb_dn_get_linearized(addop->entry_dn))) {
             continue;
         }
         parents->dns[parents->num] = addop->parents->dns[i];
@@ -810,35 +901,34 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
     el = ldb_msg_find_element(addop->entry, DB_MEMBEROF);
     if (el) {
 
-        tmp_ctx = talloc_new(addop);
-        if (!tmp_ctx) return LDB_ERR_OPERATIONS_ERROR;
-
         for (i = 0; i < el->num_values; i++) {
-            elval_dn = ldb_dn_from_ldb_val(tmp_ctx, ldb, &el->values[i]);
-            if (!elval_dn) {
+            elval_dn = sss_get_linearized_dn_from_ldb_val(&el->values[i]);
+            if (elval_dn == NULL) {
                 ldb_debug(ldb, LDB_DEBUG_TRACE, "Invalid DN in memberof [%s]",
                                             (const char *)el->values[i].data);
-                talloc_free(tmp_ctx);
                 return LDB_ERR_OPERATIONS_ERROR;
             }
             for (j = 0; j < parents->num; j++) {
-                if (ldb_dn_compare(parents->dns[j], elval_dn) == 0) {
+                /* Don't use `ldb_dn_compare()` here -
+                 * it is heavy because when DNs are not equal (vast majority of cases)
+                 * it performs `ldb_dn_casefold_internal()` to return -1 or 1,
+                 * but it's not important in this context.
+                 */
+                if (sss_linearized_dn_match(ldb_dn_get_linearized(parents->dns[j]),
+                                            elval_dn)) {
                     /* duplicate found */
                     break;
                 }
             }
             if (j < parents->num) {
                 /* remove duplicate */
-                for (;j+1 < parents->num; j++) {
-                    parents->dns[j] = parents->dns[j+1];
-                }
+                parents->dns[j] = parents->dns[parents->num - 1];
                 parents->num--;
             }
         }
 
         if (parents->num == 0) {
             /* already contains all parents as memberof, skip to next */
-            talloc_free(tmp_ctx);
             talloc_free(addop->entry);
             addop->entry = NULL;
 
@@ -856,7 +946,6 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
                                        LDB_SUCCESS);
             }
         }
-        talloc_free(tmp_ctx);
     }
 
     /* if it is a group add all members */
@@ -938,7 +1027,6 @@ static int mbof_add_operation(struct mbof_add_operation *addop)
         return LDB_ERR_OPERATIONS_ERROR;
     }
     for (i = 0, j = 0; i < parents->num; i++) {
-        if (ldb_dn_compare(parents->dns[i], msg->dn) == 0) continue;
         val = ldb_dn_get_linearized(parents->dns[i]);
         el->values[j].length = strlen(val);
         el->values[j].data = (uint8_t *)talloc_strdup(el->values, val);
