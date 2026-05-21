@@ -672,7 +672,6 @@ struct auth_state {
     struct sdap_auth_ctx *ctx;
     const char *username;
     struct sss_auth_token *authtok;
-    struct sdap_service *sdap_service;
 
     struct sss_failover_ldap_connection *conn;
 
@@ -718,12 +717,6 @@ static struct tevent_req *auth_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->username = username;
     state->authtok = authtok;
-    if (try_chpass_service && ctx->chpass_service != NULL &&
-        ctx->chpass_service->name != NULL) {
-        state->sdap_service = ctx->chpass_service;
-    } else {
-        state->sdap_service = ctx->service;
-    }
 
     ret = get_user_dn(state, state->ctx->be->domain, SDAP_TYPE_LDAP,
                       state->ctx->opts, state->username, &state->dn,
