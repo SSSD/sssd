@@ -47,4 +47,9 @@ errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
 
 errno_t get_ssh_key_from_derb64(TALLOC_CTX *mem_ctx, const char *derb64,
                                 uint8_t **key_blob, size_t *key_size);
+
+errno_t get_jwk_from_pkcs12(TALLOC_CTX *mem_ctx,
+                            const uint8_t *der_blob, size_t der_size,
+                            const char *password,
+                            char **_jwk);
 #endif /* __CERT_H__ */

@@ -1035,11 +1035,13 @@ libsss_cert_la_SOURCES = \
 libsss_cert_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(SSS_CERT_CFLAGS) \
+    $(JOSE_CFLAGS) \
     $(NULL)
 libsss_cert_la_LIBADD = \
     $(SSS_CERT_LIBS) \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
+    $(JOSE_LIBS) \
     libsss_crypt.la \
     libsss_debug.la \
     $(NULL)
@@ -2011,8 +2013,8 @@ libsss_certmap_la_SOURCES += \
     src/util/crypto/libcrypto/crypto_base64.c \
     src/util/cert/libcrypto/cert.c \
     $(NULL)
-libsss_certmap_la_CFLAGS += $(CRYPTO_CFLAGS)
-libsss_certmap_la_LIBADD += $(CRYPTO_LIBS)
+libsss_certmap_la_CFLAGS += $(CRYPTO_CFLAGS) $(JOSE_CFLAGS)
+libsss_certmap_la_LIBADD += $(CRYPTO_LIBS) $(JOSE_LIBS)
 
 dist_noinst_DATA += src/lib/certmap/sss_certmap.exports
 dist_noinst_HEADERS += src/lib/certmap/sss_certmap_int.h
@@ -4947,6 +4949,7 @@ oidc_child_SOURCES = \
     src/util/strtonum.c \
     src/util/sss_chain_id.c \
     src/util/sss_prctl.c \
+    src/util/cert/libcrypto/cert.c \
     $(NULL)
 oidc_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4954,6 +4957,8 @@ oidc_child_CFLAGS = \
     $(JANSSON_CFLAGS) \
     $(JOSE_CFLAGS) \
     $(CURL_CFLAGS) \
+    $(UUID_CFLAGS) \
+    $(CRYPTO_CFLAGS) \
     $(NULL)
 oidc_child_LDADD = \
     libsss_debug.la \
@@ -4962,6 +4967,8 @@ oidc_child_LDADD = \
     $(JANSSON_LIBS) \
     $(JOSE_LIBS) \
     $(CURL_LIBS) \
+    $(UUID_LIBS) \
+    $(CRYPTO_LIBS) \
     $(NULL)
 endif
 

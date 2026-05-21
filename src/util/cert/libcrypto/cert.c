@@ -18,14 +18,17 @@
 */
 
 #include <openssl/x509.h>
+#include <openssl/pkcs12.h>
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
 #include <openssl/core_names.h>
 #endif
 
+#include "jose/b64.h"
 #include "util/util.h"
 #include "util/sss_endian.h"
+#include "util/crypto/sss_crypto.h"
 
 errno_t sss_cert_der_to_pem(TALLOC_CTX *mem_ctx, const uint8_t *der_blob,
                             size_t der_size, char **pem, size_t *pem_size)
@@ -178,6 +181,465 @@ done:
 #define IDENTIFIER_NISTP256 "nistp256"
 #define IDENTIFIER_NISTP384 "nistp384"
 #define IDENTIFIER_NISTP521 "nistp521"
+
+
+static char *sss_jose_b64_enc_buf(TALLOC_CTX *mem_ctx,
+                                  unsigned char *in, size_t in_len)
+{
+    char *out = NULL;
+    size_t out_len;
+
+    out_len = jose_b64_enc_buf(in, in_len, NULL, 0);
+    if (out_len == 0 || out_len == SIZE_MAX) {
+        DEBUG(SSSDBG_OP_FAILURE, "jose_b64_enc_buf() failed.\n");
+        return NULL;
+    }
+
+    out = talloc_zero_size(mem_ctx, out_len + 1);
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size() failed.\n");
+        return NULL;
+    }
+
+    out_len = jose_b64_enc_buf(in, in_len, out, out_len);
+    if (out_len == 0 || out_len == SIZE_MAX) {
+        talloc_free(out);
+        DEBUG(SSSDBG_OP_FAILURE, "jose_b64_enc_buf() failed.\n");
+        return NULL;
+    }
+
+    return out;
+}
+
+static int sss_bn_to_base64(TALLOC_CTX *mem_ctx, const BIGNUM *in, char **_out)
+{
+    int len;
+    int ret;
+    unsigned char *buf;
+
+    len = BN_num_bytes(in);
+    if (len == 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Given BIGNUM has len 0.\n");
+        return EINVAL;
+    }
+
+    buf = talloc_size(mem_ctx, len);
+    if (buf == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_size() failed.\n");
+        return ENOMEM;
+    }
+
+    ret = BN_bn2bin(in, buf);
+    if (ret != len) {
+        DEBUG(SSSDBG_OP_FAILURE, "Return of BN_bn2bin and BN_num_bytes differ.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_out = sss_jose_b64_enc_buf(mem_ctx, buf, len);
+    if (*_out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_jose_b64_enc_buf() failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = EOK;
+done:
+    talloc_free(buf);
+
+    return ret;
+}
+
+static int sss_ec_get_x_y_d(BN_CTX *bn_ctx, const EVP_PKEY *cert_pub_key,
+                            EC_GROUP **_ec_group,
+                            BIGNUM **_x, BIGNUM **_y, BIGNUM **_d)
+{
+    int ret;
+    BIGNUM *x = NULL;
+    BIGNUM *y = NULL;
+    BIGNUM *d = NULL;
+    char curve_name[4096];
+    EC_GROUP *ec_group = NULL;
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_EC_PUB_X, &x);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve EC x coordinate.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_EC_PUB_Y, &y);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve EC y coordinate.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_PRIV_KEY, &d);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve EC private key.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_utf8_string_param(cert_pub_key,
+                                         OSSL_PKEY_PARAM_GROUP_NAME,
+                                         curve_name, sizeof(curve_name), NULL);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve EC group name.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    ec_group = EC_GROUP_new_by_curve_name(OBJ_sn2nid(curve_name));
+    if (ec_group == NULL) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_x = x;
+    *_y = y;
+    *_d = d;
+    *_ec_group = ec_group;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        BN_free(x);
+        BN_free(y);
+        BN_free(d);
+        EC_GROUP_free(ec_group);
+    }
+
+    return ret;
+}
+
+#define CRV_P256 "P-256"
+#define CRV_P384 "P-384"
+#define CRV_P521 "P-521"
+
+static errno_t ec_priv_key_jwk(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_priv_key,
+                               const char *cert_hash, char **_jwk)
+{
+    int ret;
+    BIGNUM *x = NULL;
+    BIGNUM *y = NULL;
+    BIGNUM *d = NULL;
+    EC_GROUP *ec_group = NULL;
+    const char *jwk_crv;
+    char *out = NULL;
+    char *x_str = NULL;
+    char *y_str = NULL;
+    char *d_str = NULL;
+    BN_CTX *bn_ctx = NULL;
+    const char *alg;
+
+    bn_ctx =  BN_CTX_new();
+    if (bn_ctx == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "BN_CTX_new failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_ec_get_x_y_d(bn_ctx, cert_priv_key, &ec_group, &x, &y, &d);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve EC parameters.\n");
+        goto done;
+    }
+
+    switch(EC_GROUP_get_curve_name(ec_group)) {
+    case NID_X9_62_prime256v1:
+        jwk_crv = CRV_P256;
+        alg  = "ES256";
+        break;
+    case NID_secp384r1:
+        jwk_crv = CRV_P384;
+        alg  = "ES384";
+        break;
+    case NID_secp521r1:
+        jwk_crv = CRV_P521;
+        alg = "ES512";
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported curve [%s]\n",
+              OBJ_nid2sn(EC_GROUP_get_curve_name(ec_group)));
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = sss_bn_to_base64(mem_ctx, x, &x_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    ret = sss_bn_to_base64(mem_ctx, y, &y_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    ret = sss_bn_to_base64(mem_ctx, d, &d_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    if (x_str == NULL || y_str == NULL || d_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to convert BIGNUM to base64.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    out = talloc_asprintf(mem_ctx,
+                          "\"kty\":\"EC\","
+                          "\"crv\":\"%s\","
+                          "\"alg\":\"%s\","
+                          "\"x\":\"%s\","
+                          "\"y\":\"%s\","
+                          "\"d\":\"%s\","
+                          "\"x5t#S256\":\"%s\"", jwk_crv, alg,
+                                                 x_str, y_str, d_str,
+                                                 cert_hash);
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate JSON snippet.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_jwk = out;
+
+    ret = EOK;
+done:
+    talloc_free(x_str);
+    talloc_free(y_str);
+    talloc_free(d_str);
+    BN_free(x);
+    BN_free(y);
+    BN_free(d);
+    EC_GROUP_free(ec_group);
+    BN_CTX_free(bn_ctx);
+    return ret;
+}
+
+static int sss_rsa_get_priv_comps(const EVP_PKEY *cert_pub_key,
+                                  BIGNUM **_n, BIGNUM **_e,
+                                  BIGNUM **_d,
+                                  BIGNUM **_p, BIGNUM **_q,
+                                  BIGNUM **_dp, BIGNUM **_dq,
+                                  BIGNUM **_qi)
+{
+    int ret;
+    BIGNUM *n = NULL;
+    BIGNUM *e = NULL;
+    BIGNUM *d = NULL;
+    BIGNUM *p = NULL;
+    BIGNUM *q = NULL;
+    BIGNUM *dp = NULL;
+    BIGNUM *dq = NULL;
+    BIGNUM *qi = NULL;
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_N, &n);
+    if (ret != 1) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_E, &e);
+    if (ret != 1) {
+        BN_clear_free(n);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_D, &d);
+    if (ret != 1) {
+        BN_clear_free(n);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_FACTOR1, &p);
+    if (ret != 1) {
+        BN_clear_free(n);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_FACTOR2, &q);
+    if (ret != 1) {
+        BN_clear_free(n);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_EXPONENT1, &dp);
+    if (ret != 1) {
+        BN_clear_free(n);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_EXPONENT2, &dq);
+    if (ret != 1) {
+        BN_clear_free(n);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_COEFFICIENT1, &qi);
+    if (ret != 1) {
+        BN_clear_free(n);
+        ret = EINVAL;
+        goto done;
+    }
+
+    *_e = e;
+    *_n = n;
+    *_d = d;
+    *_p = p;
+    *_q = q;
+    *_dp = dp;
+    *_dq = dq;
+    *_qi = qi;
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        BN_free(n);
+        BN_free(e);
+        BN_free(d);
+        BN_free(p);
+        BN_free(q);
+        BN_free(dp);
+        BN_free(dq);
+        BN_free(qi);
+    }
+
+    return ret;
+}
+
+errno_t rsa_priv_key_jwk(TALLOC_CTX *mem_ctx, EVP_PKEY *cert_priv_key,
+                         const char *cert_hash, char **_jwk)
+{
+    BIGNUM *n = NULL;
+    BIGNUM *e = NULL;
+    BIGNUM *d = NULL;
+    BIGNUM *p = NULL;
+    BIGNUM *q = NULL;
+    BIGNUM *dp = NULL;
+    BIGNUM *dq = NULL;
+    BIGNUM *qi = NULL;
+    int ret;
+    char *out = NULL;
+    char *n_str = NULL;
+    char *e_str = NULL;
+    char *d_str = NULL;
+    char *p_str = NULL;
+    char *q_str = NULL;
+    char *dp_str = NULL;
+    char *dq_str = NULL;
+    char *qi_str = NULL;
+
+    ret = sss_rsa_get_priv_comps(cert_priv_key, &n, &e, &d, &p, &q,
+                                 &dp, &dq, &qi);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve RSA parameters.\n");
+        goto done;
+    }
+
+    ret = sss_bn_to_base64(mem_ctx, n, &n_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    ret = sss_bn_to_base64(mem_ctx, e, &e_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    ret = sss_bn_to_base64(mem_ctx, d, &d_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    ret = sss_bn_to_base64(mem_ctx, p, &p_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    ret = sss_bn_to_base64(mem_ctx, q, &q_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    ret = sss_bn_to_base64(mem_ctx, dp, &dp_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    ret = sss_bn_to_base64(mem_ctx, dq, &dq_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    ret = sss_bn_to_base64(mem_ctx, qi, &qi_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_bn_to_base64() failed.\n");
+        goto done;
+    }
+    if (n_str == NULL || e_str == NULL || d_str == NULL || p_str == NULL
+                      || q_str == NULL || dp_str == NULL || dq_str == NULL
+                      || qi_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to convert BIGNUM to base64.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    out = talloc_asprintf(mem_ctx,
+                          "\"kty\":\"RSA\","
+                          "\"n\":\"%s\","
+                          "\"e\":\"%s\","
+                          "\"d\":\"%s\","
+                          "\"p\":\"%s\","
+                          "\"q\":\"%s\","
+                          "\"dp\":\"%s\","
+                          "\"dq\":\"%s\","
+                          "\"qi\":\"%s\","
+                          "\"alg\":\"%s\","
+                          "\"x5t#S256\":\"%s\"", n_str, e_str, d_str, p_str,
+                                                 q_str, dp_str, dq_str, qi_str,
+                                                 "RS256", cert_hash);
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate JSON snippet.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_jwk = out;
+
+    ret = EOK;
+done:
+
+    talloc_free(n_str);
+    talloc_free(e_str);
+    talloc_free(d_str);
+    talloc_free(p_str);
+    talloc_free(q_str);
+    talloc_free(dp_str);
+    talloc_free(dq_str);
+    talloc_free(qi_str);
+
+    BN_free(n);
+    BN_free(e);
+    BN_free(d);
+    BN_free(p);
+    BN_free(q);
+    BN_free(dp);
+    BN_free(dq);
+    BN_free(qi);
+
+    return ret;
+}
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
 static int sss_ec_get_key(BN_CTX *bn_ctx, EVP_PKEY *cert_pub_key,
@@ -567,6 +1029,128 @@ done:
 
     EVP_PKEY_free(cert_pub_key);
     X509_free(cert);
+
+    return ret;
+}
+
+static char *get_cert_sha256_hash(TALLOC_CTX *mem_ctx, X509 *cert)
+{
+    EVP_MD *md = NULL;
+    unsigned char md_value[EVP_MAX_MD_SIZE];
+    unsigned int md_len;
+    char *out;
+    int ret;
+
+    md = EVP_MD_fetch(NULL, "sha256", NULL);
+    if (md == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize hashing.\n");
+        return NULL;
+    }
+
+    ret = X509_digest(cert, md, md_value, &md_len);
+    EVP_MD_free(md);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to calculate hash.\n");
+        return NULL;
+    }
+
+    out = sss_jose_b64_enc_buf(mem_ctx, md_value, md_len);
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to base64-encode hash value.\n");
+        return NULL;
+    }
+
+    return out;
+}
+
+errno_t get_jwk_from_pkcs12(TALLOC_CTX *mem_ctx,
+                            const uint8_t *der_blob, size_t der_size,
+                            const char *password,
+                            char **_jwk)
+{
+    int ret;
+    const unsigned char *d;
+    PKCS12 *pkcs12 = NULL;
+    EVP_PKEY *pkey = NULL;
+    X509 *cert = NULL;
+    char *jwk_base = NULL;
+    char *jwk = NULL;
+    char *cert_hash = NULL;
+
+    if (der_blob == NULL || der_size == 0) {
+        return EINVAL;
+    }
+
+    d = (const unsigned char *) der_blob;
+
+    pkcs12 = d2i_PKCS12(NULL, &d, (int) der_size);
+    if (pkcs12 == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "d2i_PKCS12 failed.\n");
+        return EINVAL;
+    }
+
+    ret = PKCS12_parse(pkcs12, password, &pkey, &cert, NULL);
+    if (ret != 1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to extract private key.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    cert_hash = get_cert_sha256_hash(mem_ctx, cert);
+    if (cert_hash == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to get SHA-256 hash of certificate.\n");
+        ret = EIO;
+        goto done;
+    }
+
+    switch (EVP_PKEY_base_id(pkey)) {
+    case EVP_PKEY_RSA:
+        ret = rsa_priv_key_jwk(mem_ctx, pkey, cert_hash, &jwk_base);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "rsa_priv_key_jwk failed.\n");
+            goto done;
+        }
+        break;
+    case EVP_PKEY_EC:
+        ret = ec_priv_key_jwk(mem_ctx, pkey, cert_hash, &jwk_base);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "ec_priv_key_jwk failed.\n");
+            goto done;
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Expected RSA or EC public key, found unsupported [%d].\n",
+              EVP_PKEY_base_id(pkey));
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (jwk_base == NULL || *jwk_base == '\0') {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing JWK key data.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* optional "use" or "kid" items can be added here */
+    jwk = talloc_asprintf(mem_ctx, "{\"keys\":[{%s}]}", jwk_base);
+    talloc_free(jwk_base);
+    if (jwk == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate JWK.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_jwk = jwk;
+
+    ret = EOK;
+
+done:
+    EVP_PKEY_free(pkey);
+    PKCS12_free(pkcs12);
+    X509_free(cert);
+    talloc_free(cert_hash);
 
     return ret;
 }

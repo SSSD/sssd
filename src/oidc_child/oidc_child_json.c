@@ -27,8 +27,11 @@
 #include <jose/jws.h>
 #include <jose/b64.h>
 #include <jansson.h>
+#include <uuid.h>
+#include <fcntl.h>
 
 #include "util/strtonum.h"
+#include "util/cert.h"
 #include "oidc_child/oidc_child_util.h"
 
 static char *get_json_string(TALLOC_CTX *mem_ctx, const json_t *root,
@@ -51,6 +54,28 @@ static char *get_json_string(TALLOC_CTX *mem_ctx, const json_t *root,
     }
 
     return str;
+}
+
+static const char *get_json_const_string_from_keys(const json_t *root,
+                                                   const char *attr)
+{
+    json_t *keys;
+    json_t *tmp;
+
+    keys = json_object_get(root, "keys");
+    if (!json_is_array(keys)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing keys array.\n");
+        return NULL;
+    }
+
+    tmp = json_object_get(json_array_get(keys, 0), attr);
+    if (!json_is_string(tmp)) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Result does not contain the '%s' string.\n", attr);
+        return NULL;
+    }
+
+    return json_string_value(tmp);
 }
 
 static int get_json_integer(const json_t *root, const char *attr,
@@ -1093,4 +1118,184 @@ json_t *token_data_to_json(struct devicecode_ctx *dc_ctx)
 fail:
     json_decref(obj);
     return NULL;
+}
+
+json_t *get_jwk(struct rest_ctx *rest_ctx)
+{
+    int ret;
+    int fd = -1;
+    struct stat st;
+    char *jwk_str;
+    json_t *jwk = NULL;
+    uint8_t *buf = NULL;
+    json_error_t json_error;
+
+    fd = open(rest_ctx_get_pkcs12_client_creds(rest_ctx), O_RDONLY);
+    if (fd == -1) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "open() failed [%d][%s]\n", ret, strerror(ret));
+        goto done;
+    }
+    ret = fstat(fd, &st);
+    if (ret != 0) {
+        ret = errno;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "stat() failed [%d][%s]\n", ret, strerror(ret));
+        goto done;
+    }
+    buf = talloc_size(rest_ctx, st.st_size);
+    if (buf == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to allocate buffer for PKCS#12.\n");
+        goto done;
+    }
+    if (sss_atomic_read_s(fd, buf, st.st_size) != st.st_size) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_atomic_read_s() failed\n");
+        goto done;
+    }
+
+    ret = get_jwk_from_pkcs12(rest_ctx, buf, st.st_size,
+                              rest_ctx_get_key_passwd(rest_ctx), &jwk_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get JWK from PKCS#12.\n");
+        goto done;
+    }
+
+    jwk = json_loads(jwk_str, 0, &json_error);
+    if (jwk == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse JWK string on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
+        ret = EINVAL;
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(jwk_str);
+    talloc_free(buf);
+    if (fd != -1) {
+        close(fd);
+    }
+
+    return jwk;
+}
+
+static json_t *get_jwt_payload(const char *token_endpoint,
+                               const char *client_id)
+{
+    time_t iat = time(NULL);
+    time_t nbf = iat - 5;
+    time_t exp = iat + 60;
+    const char *aud = token_endpoint;
+    const char *iss = client_id;
+    const char *sub = client_id;
+    uuid_t uuid;
+    char jti[UUID_STR_LEN];
+    json_t *payload = NULL;
+    json_t *payload_b64 = NULL;
+    json_t *json = NULL;
+
+    uuid_generate(uuid);
+    uuid_unparse(uuid, jti);
+
+    payload = json_pack("{s:s, s:s, s:s, s:s, s:I, s:I, s:I}",
+                     "aud", aud,
+                     "iss", iss,
+                     "sub", sub,
+                     "jti", jti,
+                     "iat", (json_int_t) iat,
+                     "nbf", (json_int_t) nbf,
+                     "exp", (json_int_t) exp);
+    if (payload == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate JSON JWT payload.\n");
+        return NULL;
+    }
+
+    payload_b64 = jose_b64_enc_dump(payload);
+    json_decref(payload);
+    if (payload_b64 == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to encode payload.\n");
+        return NULL;
+    }
+
+    json = json_pack("{s:o}", "payload", payload_b64);
+    if (json == NULL) {
+        json_decref(payload_b64);
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate JSON payload.\n");
+        return NULL;
+    }
+
+    return json;
+}
+
+char *get_jwt(struct rest_ctx *rest_ctx, const char *token_endpoint,
+              const char *client_id)
+{
+    const char *payload_str = NULL;
+    const char *protected_str = NULL;
+    const char *signature_str = NULL;
+    json_t *payload = NULL;
+    json_t *signature_template = NULL;
+    json_t *jwk = NULL;
+    char *jwt = NULL;
+    const char *alg = NULL;
+    const char *cert_hash = NULL;
+
+    payload = get_jwt_payload(token_endpoint, client_id);
+    if (payload == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get JWT payload.\n");
+        goto done;
+    }
+
+    jwk = get_jwk(rest_ctx);
+    if (jwk == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get JWK.\n");
+        goto done;
+    }
+
+    alg = get_json_const_string_from_keys(jwk, "alg");
+    cert_hash = get_json_const_string_from_keys(jwk, "x5t#S256");
+    if (alg == NULL || cert_hash == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "JWK is missing required attributes.\n");
+        goto done;
+    }
+
+    signature_template = json_pack("{s:{s:s, s:s, s:s}}",
+                                   "protected",
+                                   "alg", alg,
+                                   "typ", "JWT",
+                                   "x5t#S256", cert_hash);
+    if (signature_template == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate signature template.\n");
+        goto done;
+    }
+
+    if (!jose_jws_sig(NULL, payload, signature_template, jwk)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to sign JWT.\n");
+        goto done;
+    }
+
+    if (json_unpack(payload, "{s:s, s:s, s:s}",
+                            "payload", &payload_str,
+                            "protected", &protected_str,
+                            "signature", &signature_str) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to extract JWT components.\n");
+        goto done;
+    }
+
+    jwt = talloc_asprintf(rest_ctx, "%s.%s.%s",
+                          protected_str, payload_str, signature_str);
+    if (jwt == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate JWT string.\n");
+        goto done;
+    }
+
+done:
+    json_decref(signature_template);
+    json_decref(jwk);
+    json_decref(payload);
+
+    return jwt;
 }

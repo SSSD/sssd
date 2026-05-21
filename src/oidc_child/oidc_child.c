@@ -283,7 +283,10 @@ static struct devicecode_ctx *get_dc_ctx(TALLOC_CTX *mem_ctx,
                                          const char *device_auth_endpoint,
                                          const char *token_endpoint,
                                          const char *userinfo_endpoint,
-                                         const char *jwks_uri, const char *scope)
+                                         const char *jwks_uri, const char *scope,
+                                         const char *pkcs12_client_creds,
+                                         enum client_auth_method client_auth_method,
+                                         const char *key_passwd)
 {
     struct devicecode_ctx *dc_ctx = NULL;
     int ret;
@@ -295,7 +298,9 @@ static struct devicecode_ctx *get_dc_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    dc_ctx->rest_ctx = get_rest_ctx(dc_ctx, libcurl_debug, ca_db);
+    dc_ctx->rest_ctx = get_rest_ctx(dc_ctx, libcurl_debug, ca_db,
+                                    pkcs12_client_creds, client_auth_method,
+                                    key_passwd);
     if (dc_ctx->rest_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get curl context.\n");
         ret = ENOMEM;
@@ -353,6 +358,8 @@ struct cli_opts {
     char *search_str;
     char *idp_type;
     bool return_tokens;
+    char *pkcs12_client_creds;
+    enum client_auth_method client_auth_method;
 };
 
 static void free_cli_opts_members(struct cli_opts *opts)
@@ -372,6 +379,72 @@ static void free_cli_opts_members(struct cli_opts *opts)
     free(opts->user_identifier_attr);
     free(opts->search_str);
     free(opts->idp_type);
+    free(opts->pkcs12_client_creds);
+}
+
+static bool has_creds_client_secret(struct cli_opts *opts)
+{
+    return (opts->client_secret != NULL || opts->client_secret_stdin);
+}
+
+static bool has_creds_pkcs12(struct cli_opts *opts)
+{
+    return (has_creds_client_secret(opts) && opts->pkcs12_client_creds != NULL);
+}
+
+static bool check_client_auth(const char *tmp_cam, struct cli_opts *opts)
+{
+    if (tmp_cam != NULL) {
+        if (strcasecmp(tmp_cam, "none") == 0) {
+            opts->client_auth_method = CAM_NONE;
+        } else if (strcasecmp(tmp_cam, "secret") == 0) {
+            opts->client_auth_method = CAM_SECRET;
+        } else if (strcasecmp(tmp_cam, "mtls") == 0) {
+            opts->client_auth_method = CAM_MTLS;
+        } else if (strcasecmp(tmp_cam, "jwt") == 0) {
+            opts->client_auth_method = CAM_JWT;
+        } else {
+            fprintf(stderr,
+                    "\nUnsupported client authentication method [%s].\n",
+                    tmp_cam);
+            return false;
+        }
+    } else {
+        opts->client_auth_method = CAM_SECRET;
+    }
+
+    switch (opts->client_auth_method) {
+    case CAM_SECRET:
+        if (!has_creds_client_secret(opts)) {
+            fprintf(stderr, "\nMissing client secret.\n");
+            return false;
+        }
+        if (has_creds_pkcs12(opts)) {
+            fprintf(stderr, "\nPath to PKCS12 file is not needed for "
+                            "authentication with client secret.\n");
+            return false;
+        }
+        break;
+    case CAM_MTLS:
+    case CAM_JWT:
+        if (!has_creds_pkcs12(opts)) {
+            fprintf(stderr, "\nPath to PKCS12 file and password/secret "
+                            "are needed for client authentication.\n");
+            return false;
+        }
+        break;
+    case CAM_NONE:
+        if (has_creds_client_secret(opts)) {
+            fprintf(stderr, "\nClient secrets are not expected.\n");
+            return false;
+        }
+        break;
+    default:
+        fprintf(stderr, "\nUnsupported client authentication method.\n");
+        return false;
+    }
+
+    return true;
 }
 
 static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
@@ -382,6 +455,7 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
     bool print_usage = true;
     char *tmp_name = NULL;
     char *tmp_obj_id = NULL;
+    char *tmp_cam = NULL;
 
     struct poptOption long_options[] = {
         SSSD_BASIC_CHILD_OPTS
@@ -416,15 +490,19 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
                 _("Supported scope of the IdP to get userinfo"), NULL},
         {"client-id", 0, POPT_ARG_STRING, &opts->client_id, 0, _("Client ID"), NULL},
         {"client-secret", 0, POPT_ARG_STRING, &opts->client_secret, 0,
-                _("Client secret (if needed)"), NULL},
+                _("Client secret/PKCS#12 password (if needed)"), NULL},
         {"client-secret-stdin", 0, POPT_ARG_NONE, NULL, 's',
-                _("Read client secret from standard input"), NULL},
+                _("Read client secret/PKCS#12 password from standard input"), NULL},
         {"idp-type", 0, POPT_ARG_STRING, &opts->idp_type, 0,
                 _("Type of the IdP (entra_id, keycloak etc)"), NULL},
         {"name", 0, POPT_ARG_STRING, &tmp_name, 0, _("Name of user or group"),
                 NULL},
         {"object-id", 0, POPT_ARG_STRING, &tmp_obj_id, 0,
                 _("Object ID of user or group"), NULL},
+        {"pkcs12-client-creds", 0, POPT_ARG_STRING, &opts->pkcs12_client_creds, 0,
+                _("Client certificate and key in PKCS#12 format"), NULL},
+        {"client-auth-method", 0, POPT_ARG_STRING, &tmp_cam, 0,
+                _("Authentication method against IdP [secret, mtls, jwt]"), NULL},
         {"ca-db", 0, POPT_ARG_STRING, &opts->ca_db, 0,
                 _("Path to PEM file with CA certificates"), NULL},
         {"return-tokens", 0, POPT_ARG_NONE, NULL, 'r',
@@ -491,6 +569,10 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
         goto done;
     }
 
+    if (!check_client_auth(tmp_cam, opts)) {
+        goto done;
+    }
+
     if (tmp_name != NULL) {
         opts->search_str = tmp_name;
         opts->search_str_type = TYPE_NAME;
@@ -514,6 +596,7 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
     ret = EOK;
 
 done:
+    free(tmp_cam);
     if (print_usage) {
         poptPrintUsage(pc, stderr, 0);
         poptFreeContext(pc);
@@ -655,6 +738,8 @@ int main(int argc, const char *argv[])
                           opts.search_str, opts.search_str_type,
                           opts.libcurl_debug, opts.ca_db,
                           opts.client_id, opts.client_secret,
+                          opts.pkcs12_client_creds,
+                          opts.client_auth_method,
                           opts.token_endpoint, opts.scope, &out);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Id lookup failed.\n");
@@ -675,7 +760,11 @@ int main(int argc, const char *argv[])
         dc_ctx = get_dc_ctx(main_ctx, opts.libcurl_debug, opts.ca_db,
                             opts.issuer_url,
                             opts.device_auth_endpoint, opts.token_endpoint,
-                            opts.userinfo_endpoint, opts.jwks_uri, opts.scope);
+                            opts.userinfo_endpoint, opts.jwks_uri, opts.scope,
+                            opts.pkcs12_client_creds,
+                            opts.client_auth_method,
+                            opts.pkcs12_client_creds == NULL ? NULL
+                                                             : opts.client_secret);
         if (dc_ctx == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize main context.\n");
             goto done;
