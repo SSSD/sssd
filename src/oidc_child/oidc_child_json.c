@@ -39,8 +39,19 @@ static char *get_json_string(TALLOC_CTX *mem_ctx, const json_t *root,
 
     tmp = json_object_get(root, attr);
     if (!json_is_string(tmp)) {
+        if (json_is_integer(tmp)) {
+            char buffer[64];
+            json_int_t i_val = json_integer_value(tmp);
+            snprintf(buffer, sizeof(buffer), "%" JSON_INTEGER_FORMAT, i_val);
+            str = talloc_strdup(mem_ctx, buffer);
+            if (str == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to copy '%s' string.\n", attr);
+                return NULL;
+            }
+            return str;
+        }
         DEBUG(SSSDBG_OP_FAILURE,
-              "Result does not contain the '%s' string.\n", attr);
+              "Result does not contain the field '%s'.\n", attr);
         return NULL;
     }
 
@@ -508,13 +519,17 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
 {
     json_t *id_object = NULL;
     const char *user_identifier = NULL;
-    const char *id_attr_list[] = { "sub", "id", NULL };
+    const char *id_attr_list[4];
+    int id_attr_index = 0;
     size_t c;
 
     if (user_identifier_attr != NULL) {
-        id_attr_list[0] = user_identifier_attr;
-        id_attr_list[1] = NULL;
+        id_attr_list[id_attr_index++] = user_identifier_attr;
     }
+    id_attr_list[id_attr_index++] = "sub";
+    id_attr_list[id_attr_index++] = "id";
+    id_attr_list[id_attr_index] = NULL;
+
 
     for (c = 0; id_attr_list[c] != NULL; c++) {
         id_object = json_object_get(userinfo, id_attr_list[c]);

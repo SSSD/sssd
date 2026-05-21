@@ -465,6 +465,170 @@ done:
     return ret;
 }
 
+/* The following function will lookup users and groups based on Authentik's
+ * REST API as described in
+ * https://api.goauthentik.io/ */
+errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
+                        char *base_url,
+                        char *input, enum search_str_type input_type,
+                        bool libcurl_debug, const char *ca_db,
+                        const char *client_id, const char *client_secret,
+                        const char *token_endpoint, const char *scope,
+                        const char *bearer_token, struct rest_ctx *rest_ctx,
+                        char **out)
+{
+    errno_t ret;
+    char *uri;
+    char *filter;
+    char *input_enc;
+    const char *obj_id;
+    char *sep;
+    char *tmp;
+    struct name_and_type_identifier authentik_name_and_type_identifier = {
+                            .user_identifier_attr = "username",
+                            .group_identifier_attr = "name",
+                            .user_name_attr = "username",
+                            .group_name_attr = "name" };
+
+    if (base_url == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing base URL in IdP type [authentik].\n");
+        return EINVAL;
+    }
+
+    input_enc = url_encode_string(rest_ctx, input);
+    if (input_enc == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to encode input [%s].\n", input);
+        return EINVAL;
+    }
+
+    switch (oidc_cmd) {
+    case GET_USER:
+    case GET_USER_GROUPS:
+        filter = talloc_asprintf(rest_ctx, "username=%s", input_enc);
+        break;
+    case GET_GROUP:
+    case GET_GROUP_MEMBERS:
+        sep = strrchr(input, '@');
+        if (sep == NULL || sep == input) {
+            filter = talloc_asprintf(rest_ctx, "include_users=true&name=%s", input_enc);
+        } else {
+            filter = talloc_asprintf(rest_ctx, "include_users=true&search=%s" , input_enc);
+        }
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (filter == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create user search filter.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    switch (oidc_cmd) {
+    case GET_USER:
+    case GET_USER_GROUPS:
+        uri = talloc_asprintf(rest_ctx, "%s/users/?%s" ,base_url, filter);
+        break;
+    case GET_GROUP:
+    case GET_GROUP_MEMBERS:
+        uri = talloc_asprintf(rest_ctx, "%s/groups/?%s" ,base_url, filter);
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (uri == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate lookup URI.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    clean_http_data(rest_ctx);
+    ret = do_http_request(rest_ctx, uri, NULL, bearer_token);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "User search request failed.\n");
+        goto done;
+    }
+
+    if (oidc_cmd == GET_USER || oidc_cmd == GET_GROUP) {
+        ret = EOK;
+        goto done;
+    }
+
+    obj_id = get_str_attr_from_embed_json_string(
+        rest_ctx, get_http_data(rest_ctx), "results", "pk");
+
+    if (obj_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to read mandatory object id.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    switch (oidc_cmd) {
+    case GET_USER_GROUPS:
+        uri = talloc_asprintf(rest_ctx,
+            "%s/groups/?include_users=false&members_by_pk=%s&page=1&page_size=2000", base_url, obj_id);
+        break;
+    case GET_GROUP_MEMBERS:
+        uri = talloc_asprintf(rest_ctx,
+            "%s/users/?groups_by_pk=%s&include_groups=false&include_roles=false&page=1&page_size=2000", base_url, obj_id);
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (uri == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate lookup URI.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    clean_http_data(rest_ctx);
+    switch (oidc_cmd) {
+    case GET_USER_GROUPS:
+    case GET_GROUP_MEMBERS:
+        ret = do_http_request_json_data(rest_ctx, uri, NULL, bearer_token);
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Member(of) search request failed.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK && out != NULL) {
+        tmp = get_json_string_array_from_json_string(
+            mem_ctx, get_http_data(rest_ctx), "results");
+
+        if (tmp == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to copy output data.\n");
+            return ENOMEM;
+        }
+        ret = add_posix_to_json_string_array(mem_ctx,
+                                                &authentik_name_and_type_identifier,
+                                                0, tmp, out);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add POSIX data.\n");
+        }
+    }
+
+    return ret;
+}
+
 errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     char *idp_type,
                     char *input, enum search_str_type input_type,
@@ -519,6 +683,11 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
 
     if (idp_type != NULL && strncasecmp(idp_type, "keycloak:",9) == 0) {
         ret = keycloak_lookup(mem_ctx, oidc_cmd, base_url, input, input_type,
+                              libcurl_debug, ca_db, client_id, client_secret,
+                              token_endpoint, scope, bearer_token, rest_ctx,
+                              out);
+    } else if (idp_type != NULL && strncasecmp(idp_type, "authentik:",10) == 0) {
+        ret = authentik_lookup(mem_ctx, oidc_cmd, base_url, input, input_type,
                               libcurl_debug, ca_db, client_id, client_secret,
                               token_endpoint, scope, bearer_token, rest_ctx,
                               out);
