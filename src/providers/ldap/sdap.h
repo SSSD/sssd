@@ -86,14 +86,6 @@ struct sdap_handle {
     bool release_memory;
 };
 
-struct sdap_service {
-    char *name;
-    char *uri;
-    char *kinit_service_name;
-    struct sockaddr *sockaddr;
-    socklen_t sockaddr_len;
-};
-
 struct sdap_ppolicy_data {
     int grace;
     int expire;
