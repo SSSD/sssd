@@ -54,6 +54,7 @@
 
 static struct tevent_req *
 ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
                      struct be_ctx *be_ctx,
                      struct sysdb_attrs *user,
                      struct sysdb_attrs *host,
@@ -709,7 +710,8 @@ static errno_t selinux_child_recv(struct tevent_req *req)
 struct ipa_get_selinux_state {
     struct be_ctx *be_ctx;
     struct ipa_selinux_ctx *selinux_ctx;
-    struct sdap_id_op *op;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
 
     struct sysdb_attrs *host;
     struct sysdb_attrs *user;
@@ -727,13 +729,13 @@ ipa_get_selinux_maps_offline(struct tevent_req *req);
 
 static struct tevent_req *
 ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
+                     struct tevent_context *ev,
                      struct be_ctx *be_ctx,
                      struct sysdb_attrs *user,
                      struct sysdb_attrs *host,
                      struct ipa_selinux_ctx *selinux_ctx)
 {
     struct tevent_req *req;
-    struct tevent_req *subreq;
     struct ipa_get_selinux_state *state;
     bool offline;
     int ret = EOK;
@@ -749,10 +751,12 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
 
     state->be_ctx = be_ctx;
     state->selinux_ctx = selinux_ctx;
+    state->fctx = selinux_ctx->id_ctx->sdap_id_ctx->fctx;
     state->user = user;
     state->host = host;
 
-    offline = be_is_offline(be_ctx);
+    offline = state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE;
+
     DEBUG(SSSDBG_TRACE_INTERNAL, "Connection status is [%s].\n",
                                   offline ? "offline" : "online");
 
@@ -769,23 +773,11 @@ ipa_get_selinux_send(TALLOC_CTX *mem_ctx,
     }
 
     if (!offline) {
-        state->op = sdap_id_op_create(state,
-                        selinux_ctx->id_ctx->sdap_id_ctx->conn->conn_cache);
-        if (!state->op) {
-            DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-            ret = ENOMEM;
+        ret = sss_failover_transaction_send(state, ev, state->fctx, req,
+                                            ipa_get_selinux_connect_done);
+        if (ret != EOK) {
             goto immediate;
         }
-
-        subreq = sdap_id_op_connect_send(state->op, state, &ret);
-        if (!subreq) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send failed: "
-                                        "%d(%s).\n", ret, strerror(ret));
-            talloc_zfree(state->op);
-            goto immediate;
-        }
-
-        tevent_req_set_callback(subreq, ipa_get_selinux_connect_done, req);
     } else {
         ret = ipa_get_selinux_maps_offline(req);
         goto immediate;
@@ -809,27 +801,27 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
                                                   struct tevent_req);
     struct ipa_get_selinux_state *state = tevent_req_data(req,
                                                   struct ipa_get_selinux_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
     struct ipa_id_ctx *id_ctx = state->selinux_ctx->id_ctx;
     struct dp_module *access_mod;
     struct dp_module *selinux_mod;
     const char *hostname;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
 
-    if (dp_error == DP_ERR_OFFLINE) {
-        talloc_zfree(state->op);
+    if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
         ret = ipa_get_selinux_maps_offline(req);
         if (ret == EOK) {
             tevent_req_done(req);
             return;
         }
-        goto fail;
-    }
-
-    if (ret != EOK) {
         goto fail;
     }
 
@@ -850,7 +842,7 @@ static void ipa_get_selinux_connect_done(struct tevent_req *subreq)
     }
 
     subreq = ipa_host_info_send(state, state->be_ctx->ev,
-                                sdap_id_op_handle(state->op),
+                                state->conn->sh,
                                 id_ctx->sdap_id_ctx->opts,
                                 hostname,
                                 id_ctx->ipa_options->id->host_map,
@@ -1002,7 +994,7 @@ static void ipa_get_config_step(struct tevent_req *req)
     domain = dp_opt_get_string(state->selinux_ctx->id_ctx->ipa_options->basic,
                                IPA_KRB5_REALM);
     subreq = ipa_get_config_send(state, state->be_ctx->ev,
-                                 sdap_id_op_handle(state->op),
+                                 state->conn->sh,
                                  id_ctx->sdap_id_ctx->opts,
                                  domain, attrs, NULL, NULL);
     if (subreq == NULL) {
@@ -1029,10 +1021,10 @@ static void ipa_get_selinux_config_done(struct tevent_req *subreq)
 
     subreq = ipa_selinux_get_maps_send(state, state->be_ctx->ev,
                                        state->be_ctx->domain->sysdb,
-                                     sdap_id_op_handle(state->op),
-                                     id_ctx->opts,
-                                     state->selinux_ctx->id_ctx->ipa_options,
-                                     state->selinux_ctx->selinux_search_bases);
+                                       state->conn->sh,
+                                       id_ctx->opts,
+                                       state->selinux_ctx->id_ctx->ipa_options,
+                                       state->selinux_ctx->selinux_search_bases);
     if (!subreq) {
         ret = ENOMEM;
         goto done;
@@ -1113,7 +1105,7 @@ static void ipa_get_selinux_maps_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_TRACE_FUNC, "SELinux maps referenced an HBAC rule. "
               "Need to refresh HBAC rules\n");
         subreq = ipa_hbac_rule_info_send(state, state->be_ctx->ev,
-                                         sdap_id_op_handle(state->op),
+                                         state->conn->sh,
                                          id_ctx->sdap_id_ctx->opts,
                                          state->selinux_ctx->hbac_search_bases,
                                          state->host);
@@ -1452,7 +1444,7 @@ ipa_selinux_handler_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    subreq = ipa_get_selinux_send(state, params->be_ctx, state->user,
+    subreq = ipa_get_selinux_send(state, params->ev, params->be_ctx, state->user,
                                   state->host, selinux_ctx);
     if (subreq == NULL) {
         goto immediately;

@@ -205,6 +205,7 @@ struct ipa_auth_ctx {
 struct ipa_id_ctx {
     struct sdap_id_ctx *sdap_id_ctx;
     struct ipa_options *ipa_options;
+    struct sss_failover_ctx *fctx;
 
     char *view_name;
     /* Only used with server mode */

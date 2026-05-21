@@ -192,7 +192,6 @@ errno_t
 sbus_call_dp_dp_getAccountDomain_recv
     (TALLOC_CTX *mem_ctx,
      struct tevent_req *req,
-     uint16_t* _dp_error,
      uint32_t* _error,
      const char ** _domain_name);
 
@@ -211,11 +210,8 @@ sbus_call_dp_dp_getAccountInfo_send
 
 errno_t
 sbus_call_dp_dp_getAccountInfo_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     uint16_t* _dp_error,
-     uint32_t* _error,
-     const char ** _error_message);
+    (struct tevent_req *req,
+     uint32_t* _error);
 
 struct tevent_req *
 sbus_call_dp_dp_getDomains_send
@@ -227,11 +223,8 @@ sbus_call_dp_dp_getDomains_send
 
 errno_t
 sbus_call_dp_dp_getDomains_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     uint16_t* _dp_error,
-     uint32_t* _error,
-     const char ** _error_message);
+    (struct tevent_req *req,
+     uint32_t* _error);
 
 struct tevent_req *
 sbus_call_dp_dp_hostHandler_send
@@ -246,11 +239,8 @@ sbus_call_dp_dp_hostHandler_send
 
 errno_t
 sbus_call_dp_dp_hostHandler_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     uint16_t* _dp_error,
-     uint32_t* _error,
-     const char ** _error_message);
+    (struct tevent_req *req,
+     uint32_t* _error);
 
 struct tevent_req *
 sbus_call_dp_dp_pamHandler_send
@@ -280,11 +270,8 @@ sbus_call_dp_dp_resolverHandler_send
 
 errno_t
 sbus_call_dp_dp_resolverHandler_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     uint16_t* _dp_error,
-     uint32_t* _error,
-     const char ** _error_message);
+    (struct tevent_req *req,
+     uint32_t* _error);
 
 struct tevent_req *
 sbus_call_dp_dp_sudoHandler_send
@@ -294,11 +281,8 @@ sbus_call_dp_dp_sudoHandler_send
 
 errno_t
 sbus_call_dp_dp_sudoHandler_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     uint16_t* _dp_error,
-     uint32_t* _error,
-     const char ** _error_message);
+    (struct tevent_req *req,
+     uint32_t* _error);
 
 struct tevent_req *
 sbus_call_monitor_RegisterService_send

@@ -29,10 +29,13 @@
 #include "providers/ipa/ipa_dyndns.h"
 #include "providers/data_provider.h"
 #include "providers/be_dyndns.h"
+#include "providers/failover/ldap/failover_ldap.h"
+#include "providers/failover/failover_transaction.h"
 
 struct ipa_dyndns_update_state {
     struct ipa_options *ipa_ctx;
-    struct sdap_id_op *sdap_op;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
 };
 
 static void
@@ -53,7 +56,8 @@ ipa_dyndns_update_connect_done(struct tevent_req *subreq);
 
 
 errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
-                        struct ipa_options *ctx)
+                        struct ipa_options *ctx,
+                        struct sdap_id_ctx *sdap_id_ctx)
 {
     errno_t ret;
     const time_t ptask_first_delay = 10;
@@ -61,6 +65,7 @@ errno_t ipa_dyndns_init(struct be_ctx *be_ctx,
     int offset;
     uint32_t extraflags = 0;
 
+    ctx->id_ctx->fctx = sdap_id_ctx->fctx;
     ctx->be_res = be_ctx->be_res;
     if (ctx->be_res == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Resolver must be initialized in order "
@@ -102,8 +107,8 @@ ipa_dyndns_update_send(TALLOC_CTX *mem_ctx,
 {
     int ret;
     struct ipa_options *ctx;
+    struct tevent_req *req;
     struct ipa_dyndns_update_state *state;
-    struct tevent_req *req, *subreq;
     struct sdap_id_ctx *sdap_ctx;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Performing update\n");
@@ -127,22 +132,11 @@ ipa_dyndns_update_send(TALLOC_CTX *mem_ctx,
     }
     state->ipa_ctx->dyndns_ctx->last_refresh = time(NULL);
 
-    /* Make sure to have a valid LDAP connection */
-    state->sdap_op = sdap_id_op_create(state, sdap_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
-        ret = ENOMEM;
+    ret = sss_failover_transaction_send(state, ev, sdap_ctx->fctx, req,
+                                        ipa_dyndns_update_connect_done);
+    if (ret != EOK) {
         goto done;
     }
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (!subreq) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: [%d](%s)\n",
-              ret, sss_strerror(ret));
-        ret = ENOMEM;
-        goto done;
-    }
-    tevent_req_set_callback(subreq, ipa_dyndns_update_connect_done, req);
     ret = EOK;
 done:
     if (ret != EOK) {
@@ -155,7 +149,6 @@ done:
 static void
 ipa_dyndns_update_connect_done(struct tevent_req *subreq)
 {
-    int dp_error;
     int ret;
     struct ipa_options *ctx;
     struct tevent_req *req;
@@ -165,25 +158,24 @@ ipa_dyndns_update_connect_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_dyndns_update_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-
-    if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "No server is available, "
-                  "dynamic DNS update is skipped in offline mode.\n");
-            tevent_req_error(req, ERR_DYNDNS_OFFLINE);
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to LDAP server: [%d](%s)\n",
-                  ret, sss_strerror(ret));
-            tevent_req_error(req, ERR_NETWORK_IO);
-        }
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
         return;
     }
 
     ctx = state->ipa_ctx;
     sdap_ctx = ctx->id_ctx->sdap_id_ctx;
+
+    if (sdap_ctx->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "No server is available, "
+              "dynamic DNS update is skipped in offline mode.\n");
+        tevent_req_error(req, ERR_DYNDNS_OFFLINE);
+        return;
+    }
 
     /* The following three checks are here to prevent SEGFAULT
      * from ticket #3076. */
@@ -199,13 +191,13 @@ ipa_dyndns_update_connect_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (ctx->service->sdap->uri == NULL) {
+    if (state->conn->uri == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "LDAP uri not set\n");
         ret = EINVAL;
         goto done;
     }
 
-    if (strncmp(ctx->service->sdap->uri,
+    if (strncmp(state->conn->uri,
                 "ldap://", 7) != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unexpected format of LDAP URI.\n");
         ret = EIO;
@@ -232,7 +224,7 @@ ipa_dyndns_update_connect_done(struct tevent_req *subreq)
     if (!subreq) {
         ret = EIO;
         DEBUG(SSSDBG_OP_FAILURE,
-              "sdap_id_op_connect_send failed: [%d](%s)\n",
+              "sdap_dyndns_update_send failed: [%d](%s)\n",
                ret, sss_strerror(ret));
         goto done;
     }

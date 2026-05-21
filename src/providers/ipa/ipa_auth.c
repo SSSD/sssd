@@ -34,8 +34,9 @@
 
 struct get_password_migration_flag_state {
     struct tevent_context *ev;
-    struct sdap_id_op *sdap_op;
     struct sdap_id_ctx *sdap_id_ctx;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct fo_server *srv;
     char *ipa_realm;
     bool password_migration;
@@ -50,7 +51,7 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
                                             char *ipa_realm)
 {
     int ret;
-    struct tevent_req *req, *subreq;
+    struct tevent_req *req;
     struct get_password_migration_flag_state *state;
 
     if (sdap_id_ctx == NULL || ipa_realm == NULL) {
@@ -67,25 +68,16 @@ static struct tevent_req *get_password_migration_flag_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->sdap_id_ctx = sdap_id_ctx;
+    state->fctx = sdap_id_ctx->fctx;
     state->srv = NULL;
     state->password_migration = false;
     state->ipa_realm = ipa_realm;
 
-    state->sdap_op = sdap_id_op_create(state,
-                                       state->sdap_id_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed.\n");
+    ret = sss_failover_transaction_send(state, ev, state->fctx, req,
+                                        get_password_migration_flag_auth_done);
+    if (ret != EOK) {
         goto fail;
     }
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (!subreq) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed: %d(%s).\n",
-                                  ret, strerror(ret));
-        goto fail;
-    }
-
-    tevent_req_set_callback(subreq, get_password_migration_flag_auth_done, req);
 
     return req;
 
@@ -101,27 +93,28 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
     struct get_password_migration_flag_state *state = tevent_req_data(req,
                                       struct get_password_migration_flag_state);
     static const char *attrs[] = {IPA_CONFIG_MIGRATION_ENABLED, NULL};
-    int ret, dp_error;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
-    if (ret) {
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE,
-                  "No IPA server is available, cannot get the "
-                   "migration flag while offline\n");
-        } else {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to connect to IPA server: [%d](%s)\n",
-                   ret, strerror(ret));
-        }
 
-        tevent_req_error(req, ret);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
+
+    if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "No IPA server is available, cannot get the "
+               "migration flag while offline\n");
+
+        tevent_req_error(req, ERR_SERVER_FAILURE);
         return;
     }
 
     subreq = ipa_get_config_send(state, state->ev,
-                                 sdap_id_op_handle(state->sdap_op),
+                                 state->conn->sh,
                                  state->sdap_id_ctx->opts, state->ipa_realm,
                                  attrs, NULL, NULL);
 
@@ -246,7 +239,6 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
 {
     struct ipa_pam_auth_handler_state *state;
     struct tevent_req *req;
-    int dp_err;
     char *realm;
     errno_t ret;
 
@@ -254,7 +246,7 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct ipa_pam_auth_handler_state);
 
     state->pd->pam_status = PAM_SYSTEM_ERR;
-    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status);
     talloc_free(subreq);
     if (ret != EOK && state->pd->pam_status != PAM_CRED_ERR) {
         DEBUG(SSSDBG_OP_FAILURE, "KRB5 auth failed [%d]: %s\n",
@@ -262,9 +254,6 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (dp_err != DP_ERR_OK) {
-        goto done;
-    }
     if (state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM
         && state->pd->pam_status == PAM_TRY_AGAIN) {
         /* Reset this to fork a new krb5_child in handle_child_send() */
@@ -332,7 +321,7 @@ static void ipa_pam_auth_handler_flag_done(struct tevent_req *subreq)
         subreq = sdap_cli_resolve_and_connect_send(state, state->ev,
                                                    sdap_auth_ctx->opts,
                                                    sdap_auth_ctx->be,
-                                                   sdap_auth_ctx->service,
+                                                   NULL,
                                                    true, CON_TLS_ON, true);
         if (subreq == NULL) {
             state->pd->pam_status = PAM_SYSTEM_ERR;
@@ -468,13 +457,12 @@ static void ipa_pam_auth_handler_retry_done(struct tevent_req *subreq)
 {
     struct ipa_pam_auth_handler_state *state;
     struct tevent_req *req;
-    int dp_err;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_pam_auth_handler_state);
 
-    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status);
     talloc_free(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv request failed.\n");

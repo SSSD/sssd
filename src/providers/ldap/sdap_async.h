@@ -28,8 +28,11 @@
 #include <tevent.h>
 #include "providers/backend.h"
 #include "providers/ldap/sdap.h"
-#include "providers/ldap/sdap_id_op.h"
+#include "providers/ldap/ldap_common.h"
 #include "providers/fail_over.h"
+#include "providers/failover/failover.h"
+#include "providers/failover/ldap/failover_ldap.h"
+#include "providers/failover/failover_transaction.h"
 
 #define AD_TOKENGROUPS_ATTR "tokenGroups"
 
@@ -100,6 +103,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
                                        struct sdap_domain *sdom,
                                        struct sdap_options *opts,
+                                       struct sss_failover_ctx *fctx,
                                        struct sdap_handle *sh,
                                        const char **attrs,
                                        const char *filter,
@@ -161,7 +165,7 @@ struct tevent_req *sdap_get_initgr_send(TALLOC_CTX *memctx,
                                         struct sdap_id_ctx *id_ctx,
                                         struct sdap_attr_map *user_map,
                                         size_t user_map_cnt,
-                                        struct sdap_id_conn_ctx *conn,
+                                        struct sss_failover_ctx *fctx,
                                         struct sdap_search_base **search_bases,
                                         const char *name,
                                         int filter_type,
@@ -411,7 +415,7 @@ struct tevent_req *
 enum_services_send(TALLOC_CTX *memctx,
                    struct tevent_context *ev,
                    struct sdap_id_ctx *id_ctx,
-                   struct sdap_id_op *op,
+                   struct sss_failover_ldap_connection *conn,
                    bool purge);
 
 errno_t
@@ -438,7 +442,7 @@ struct tevent_req *
 enum_iphosts_send(TALLOC_CTX *memctx,
                   struct tevent_context *ev,
                   struct sdap_id_ctx *id_ctx,
-                  struct sdap_id_op *op,
+                  struct sss_failover_ldap_connection *conn,
                   bool purge);
 
 errno_t
@@ -466,7 +470,7 @@ struct tevent_req *
 enum_ipnetworks_send(TALLOC_CTX *memctx,
                      struct tevent_context *ev,
                      struct sdap_id_ctx *id_ctx,
-                     struct sdap_id_op *op,
+                     struct sss_failover_ldap_connection *conn,
                      bool purge);
 
 errno_t
@@ -476,7 +480,7 @@ struct tevent_req *
 sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     struct sdap_id_ctx *id_ctx,
-                                    struct sdap_id_conn_ctx *conn,
+                                    struct sss_failover_ctx *fctx,
                                     struct sdap_options *opts,
                                     struct sysdb_ctx *sysdb,
                                     struct sss_domain_info *domain,

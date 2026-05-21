@@ -30,6 +30,7 @@
 #include "providers/ad/ad_gpo.h"
 #include "src/providers/ad/ad_common.h"
 #include "src/providers/ldap/sdap_access.h"
+#include "providers/ldap/sdap_idmap.h"
 
 /*
  * More advanced format can be used to restrict the filter to a specific
@@ -236,14 +237,15 @@ struct ad_access_state {
     struct pam_data *pd;
     struct be_ctx *be_ctx;
     struct sss_domain_info *domain;
+    struct sss_failover_ctx *fctx;
 
     char *filter;
-    struct sdap_id_conn_ctx **clist;
     int cindex;
+    bool retried;
 };
 
 static errno_t
-ad_sdap_access_step(struct tevent_req *req, struct sdap_id_conn_ctx *conn);
+ad_sdap_access_step(struct tevent_req *req);
 static void
 ad_sdap_access_done(struct tevent_req *req);
 
@@ -253,6 +255,7 @@ ad_access_send(TALLOC_CTX *mem_ctx,
                struct be_ctx *be_ctx,
                struct sss_domain_info *domain,
                struct ad_access_ctx *ctx,
+               struct sss_failover_ctx *fctx,
                struct pam_data *pd)
 {
     struct tevent_req *req;
@@ -268,7 +271,9 @@ ad_access_send(TALLOC_CTX *mem_ctx,
     state->ctx = ctx;
     state->pd = pd;
     state->be_ctx = be_ctx;
+    state->fctx = fctx;
     state->domain = domain;
+    state->retried = false;
 
     ret = ad_parse_access_filter(state, domain, ctx->sdap_access_ctx->filter,
                                  &state->filter);
@@ -278,13 +283,7 @@ ad_access_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    state->clist = ad_gc_conn_list(state, ctx->ad_id_ctx, domain);
-    if (state->clist == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = ad_sdap_access_step(req, state->clist[state->cindex]);
+    ret = ad_sdap_access_step(req);
     if (ret != EOK) {
         goto done;
     }
@@ -300,7 +299,7 @@ done:
 }
 
 static errno_t
-ad_sdap_access_step(struct tevent_req *req, struct sdap_id_conn_ctx *conn)
+ad_sdap_access_step(struct tevent_req *req)
 {
     struct tevent_req *subreq;
     struct ad_access_state *state;
@@ -320,7 +319,7 @@ ad_sdap_access_step(struct tevent_req *req, struct sdap_id_conn_ctx *conn)
 
     subreq = sdap_access_send(state, state->ev, state->be_ctx,
                               state->domain, req_ctx,
-                              conn, state->pd);
+                              state->fctx, state->pd);
     if (subreq == NULL) {
         talloc_free(req_ctx);
         return ENOMEM;
@@ -346,42 +345,26 @@ ad_sdap_access_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        switch (ret) {
-        case ERR_ACCOUNT_EXPIRED:
+        if (ret == ERR_ACCOUNT_EXPIRED || ret == ERR_NO_MORE_SERVERS) {
             tevent_req_error(req, ret);
             return;
+        } else {
+            if (state->retried) {
+                tevent_req_error(req, ret);
+                return;
+            /* Even with access denied, retry with LDAP to make sure that we don't
+             * miss out any attributes not present in GC */
+            } else {
+                state->retried = true;
+                state->fctx = state->ctx->fctx;
 
-        case ERR_ACCESS_DENIED:
-            /* Retry on ACCESS_DENIED, too, to make sure that we don't
-             * miss out any attributes not present in GC
-             * FIXME - this is slow. We should retry only if GC failed
-             * and LDAP succeeded after the first ACCESS_DENIED
-             */
-            break;
-
-        default:
-            break;
+                ret = ad_sdap_access_step(req);
+                if (ret != EOK) {
+                    tevent_req_error(req, ret);
+                    return;
+                }
+            }
         }
-
-        /* If possible, retry with LDAP */
-        state->cindex++;
-        if (state->clist[state->cindex] == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Error retrieving access check result: %s\n",
-                  sss_strerror(ret));
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        ret = ad_sdap_access_step(req, state->clist[state->cindex]);
-        if (ret != EOK) {
-            tevent_req_error(req, ret);
-            return;
-        }
-
-        /* Another check in progress */
-
-        return;
     }
 
     switch (state->ctx->gpo_access_control_mode) {
@@ -402,6 +385,7 @@ ad_sdap_access_done(struct tevent_req *subreq)
                                 state->be_ctx->ev,
                                 state->domain,
                                 state->ctx,
+                                state->fctx,
                                 state->pd->user,
                                 state->pd->service);
 
@@ -435,7 +419,29 @@ ad_gpo_access_done(struct tevent_req *subreq)
     } else {
         DEBUG(SSSDBG_OP_FAILURE, "GPO-based access control failed.\n");
         if (mode == GPO_ACCESS_CONTROL_ENFORCING) {
-            tevent_req_error(req, ret);
+            if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+                DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
+                ret = process_offline_gpos(state,
+                                           state->pd->user,
+                                           dp_opt_get_bool(state->ctx->ad_options, AD_GPO_IMPLICIT_DENY),
+                                           mode,
+                                           state->domain,
+                                           get_domains_head(state->domain),
+                                           state->ctx->sdap_access_ctx->id_ctx->opts->idmap_ctx->map,
+                                           GPO_MAP_INTERACTIVE);
+
+                if (ret == EOK) {
+                    DEBUG(SSSDBG_TRACE_FUNC, "process_offline_gpos succeeded.\n");
+                    tevent_req_done(req);
+                } else {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "process_offline_gpos failed [%d](%s).\n",
+                          ret, sss_strerror(ret));
+                    tevent_req_error(req, ret);
+               }
+            } else {
+                tevent_req_error(req, ret);
+            }
         } else {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Ignoring error: [%d](%s); GPO-based access control failed, "
@@ -483,7 +489,9 @@ ad_pam_access_handler_send(TALLOC_CTX *mem_ctx,
     state->pd = pd;
 
     subreq = ad_access_send(state, params->ev, params->be_ctx,
-                            params->domain, access_ctx, pd);
+                            params->domain, access_ctx,
+                            access_ctx->gc_fctx,
+                            pd);
     if (subreq == NULL) {
         pd->pam_status = PAM_SYSTEM_ERR;
         goto immediately;

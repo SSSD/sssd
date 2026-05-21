@@ -86,7 +86,8 @@ struct ipa_fetch_hbac_state {
     struct be_ctx *be_ctx;
     struct sdap_id_ctx *sdap_ctx;
     struct ipa_access_ctx *access_ctx;
-    struct sdap_id_op *sdap_op;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
     struct dp_option *ipa_options;
 
     struct sdap_search_base **search_bases;
@@ -102,7 +103,6 @@ struct ipa_fetch_hbac_state {
     struct ipa_common_entries *services;
 };
 
-static errno_t ipa_fetch_hbac_retry(struct tevent_req *req);
 static void ipa_fetch_hbac_connect_done(struct tevent_req *subreq);
 static errno_t ipa_fetch_hbac_hostinfo(struct tevent_req *req);
 static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq);
@@ -118,7 +118,7 @@ ipa_fetch_hbac_send(TALLOC_CTX *mem_ctx,
     struct ipa_fetch_hbac_state *state;
     struct tevent_req *req;
     time_t now, refresh_interval;
-    bool offline;
+    bool offline = false;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -132,6 +132,7 @@ ipa_fetch_hbac_send(TALLOC_CTX *mem_ctx,
     state->be_ctx = be_ctx;
     state->access_ctx = access_ctx;
     state->sdap_ctx = access_ctx->sdap_ctx;
+    state->fctx = access_ctx->fctx;
     state->ipa_options = access_ctx->ipa_options;
     state->search_bases = access_ctx->hbac_search_bases;
     state->hosts = talloc_zero(state, struct ipa_common_entries);
@@ -156,14 +157,16 @@ ipa_fetch_hbac_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    state->sdap_op = sdap_id_op_create(state, state->sdap_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
-        ret = ENOMEM;
+    ret = sss_failover_transaction_send(state,state->ev, state->fctx, req,
+                                        ipa_fetch_hbac_connect_done);
+    if (ret != EOK) {
         goto immediately;
     }
 
-    offline = be_is_offline(be_ctx);
+    if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+        offline = true;
+    }
+
     DEBUG(SSSDBG_TRACE_ALL, "Connection status is [%s].\n",
           offline ? "offline" : "online");
 
@@ -173,11 +176,6 @@ ipa_fetch_hbac_send(TALLOC_CTX *mem_ctx,
     if (offline || now < access_ctx->last_update + refresh_interval) {
         DEBUG(SSSDBG_TRACE_FUNC, "Performing cached HBAC evaluation\n");
         ret = EOK;
-        goto immediately;
-    }
-
-    ret = ipa_fetch_hbac_retry(req);
-    if (ret != EAGAIN) {
         goto immediately;
     }
 
@@ -194,41 +192,27 @@ immediately:
     return req;
 }
 
-static errno_t ipa_fetch_hbac_retry(struct tevent_req *req)
-{
-    struct ipa_fetch_hbac_state *state;
-    struct tevent_req *subreq;
-    int ret;
-
-    state = tevent_req_data(req, struct ipa_fetch_hbac_state);
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed: "
-                                   "%d(%s)\n", ret, strerror(ret));
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, ipa_fetch_hbac_connect_done, req);
-
-    return EAGAIN;
-}
-
 static void ipa_fetch_hbac_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = NULL;
-    int dp_error;
+    struct ipa_fetch_hbac_state *state = NULL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
+    state = tevent_req_data(req, struct ipa_fetch_hbac_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
+
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        goto done;
+
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
     }
 
-    if (dp_error == DP_ERR_OFFLINE) {
+    if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
         ret = EOK;
         goto done;
     }
@@ -274,7 +258,7 @@ static errno_t ipa_fetch_hbac_hostinfo(struct tevent_req *req)
     }
 
     subreq = ipa_host_info_send(state, state->ev,
-                                sdap_id_op_handle(state->sdap_op),
+                                state->conn->sh,
                                 state->sdap_ctx->opts, hostname,
                                 state->access_ctx->host_map,
                                 state->access_ctx->hostgroup_map,
@@ -293,7 +277,6 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
     struct ipa_fetch_hbac_state *state = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
-    int dp_error;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_fetch_hbac_state);
@@ -308,25 +291,12 @@ static void ipa_fetch_hbac_hostinfo_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        /* Only call sdap_id_op_done in case of an error to trigger a
-         * failover. In general changing the tevent_req layout would be better
-         * so that all searches are in another sub-request so that we can
-         * error out at any step and the parent request can call
-         * sdap_id_op_done just once. */
-        ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-        if (dp_error == DP_ERR_OK && ret != EOK) {
-            /* retry */
-            ret = ipa_fetch_hbac_retry(req);
-            if (ret != EAGAIN) {
-                goto done;
-            }
-            return;
-        }
-        goto done;
+        tevent_req_error(req, ERR_SERVER_FAILURE);
+        return;
     }
 
     subreq = ipa_hbac_service_info_send(state, state->ev,
-                                        sdap_id_op_handle(state->sdap_op),
+                                        state->conn->sh,
                                         state->sdap_ctx->opts,
                                         state->search_bases);
     if (subreq == NULL) {
@@ -379,7 +349,7 @@ static void ipa_fetch_hbac_services_done(struct tevent_req *subreq)
     }
 
     subreq = ipa_hbac_rule_info_send(state, state->ev,
-                                     sdap_id_op_handle(state->sdap_op),
+                                     state->conn->sh,
                                      state->sdap_ctx->opts,
                                      state->search_bases,
                                      state->ipa_host);
@@ -405,7 +375,6 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
 {
     struct ipa_fetch_hbac_state *state = NULL;
     struct tevent_req *req = NULL;
-    int dp_error;
     errno_t ret;
     bool found;
 
@@ -418,7 +387,6 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
     state->rules->entry_subdir = HBAC_RULES_SUBDIR;
     talloc_zfree(subreq);
     if (ret == ENOENT) {
-        /* Set ret to EOK so we can safely call sdap_id_op_done. */
         found = false;
         ret = EOK;
     } else if (ret == EOK) {
@@ -427,17 +395,9 @@ static void ipa_fetch_hbac_rules_done(struct tevent_req *subreq)
         goto done;
     }
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
-        /* retry */
-        ret = ipa_fetch_hbac_retry(req);
-        if (ret != EAGAIN) {
-            tevent_req_error(req, ret);
-        }
-        return;
-    } else if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
+    if (ret != EOK) {
+        ret = ERR_SERVER_FAILURE;
+        goto done;
     }
 
     if (found == false) {
@@ -592,7 +552,7 @@ ipa_pam_access_handler_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_access_send(state, params->ev, params->be_ctx,
                               params->domain, access_ctx->sdap_access_ctx,
-                              access_ctx->sdap_ctx->conn, pd);
+                              access_ctx->fctx, pd);
     if (subreq == NULL) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
         goto immediately;

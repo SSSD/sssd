@@ -305,6 +305,7 @@ if HAVE_CMOCKA
         test_sbus_message \
         test_sbus_opath \
         test_fo_srv \
+        test_failover_server \
         pam-srv-tests \
         ssh-srv-tests \
         test_ipa_subdom_util \
@@ -662,6 +663,24 @@ SSSD_FAILOVER_OBJ = \
     src/providers/fail_over_srv.c \
     $(SSSD_RESOLV_OBJ)
 
+# Make sure to build new failover code to test compilation even though it is
+# not used anywhere yet.
+SSSD_NEW_FAILOVER_OBJ = \
+    src/providers/failover/failover.c \
+    src/providers/failover/failover_callback.c \
+    src/providers/failover/failover_refresh_candidates.c \
+    src/providers/failover/failover_group.c \
+    src/providers/failover/failover_server_resolve.c \
+    src/providers/failover/failover_server.c \
+    src/providers/failover/failover_srv.c \
+    src/providers/failover/failover_transaction.c \
+    src/providers/failover/failover_vtable_op.c \
+    src/providers/failover/failover_vtable.c \
+    src/providers/failover/ldap/failover_ldap_connect.c \
+    src/providers/failover/ldap/failover_ldap_kinit.c \
+    $(SSSD_RESOLV_OBJ) \
+    $(NULL)
+
 SSSD_LIBS = \
     $(TALLOC_LIBS) \
     $(TEVENT_LIBS) \
@@ -854,6 +873,16 @@ dist_noinst_HEADERS = \
     src/providers/be_refresh.h \
     src/providers/fail_over.h \
     src/providers/fail_over_srv.h \
+    src/providers/failover/failover.h \
+    src/providers/failover/failover_group.h \
+    src/providers/failover/failover_refresh_candidates.h \
+    src/providers/failover/failover_server.h \
+    src/providers/failover/failover_server_resolve.h \
+    src/providers/failover/failover_srv.h \
+    src/providers/failover/failover_transaction.h \
+    src/providers/failover/failover_vtable.h \
+    src/providers/failover/failover_vtable_op.h \
+    src/providers/failover/ldap/failover_ldap.h \
     src/util/child_common.h \
     src/util/child_bootstrap.h \
     src/providers/simple/simple_access.h \
@@ -873,7 +902,6 @@ dist_noinst_HEADERS = \
     src/providers/ldap/sdap_sudo.h \
     src/providers/ldap/sdap_sudo_shared.h \
     src/providers/ldap/sdap_autofs.h \
-    src/providers/ldap/sdap_id_op.h \
     src/providers/ldap/ldap_opts.h \
     src/providers/ldap/ldap_auth.h \
     src/providers/ldap/sdap_range.h \
@@ -3515,6 +3543,24 @@ test_fo_srv_LDADD = \
     libsss_test_common.la \
     $(NULL)
 
+test_failover_server_SOURCES = \
+    src/tests/cmocka/test_failover_server.c \
+    src/providers/failover/failover_server.c \
+    $(SSSD_RESOLV_TESTS_OBJ) \
+    $(NULL)
+test_failover_server_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(NULL)
+test_failover_server_LDADD = \
+    $(CARES_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(POPT_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(TALLOC_LIBS) \
+    libsss_test_common.la \
+    $(NULL)
+
 test_sdap_initgr_SOURCES = \
     src/tests/cmocka/common_mock_sdap.c \
     src/tests/cmocka/common_mock_sysdb_objects.c \
@@ -4357,12 +4403,10 @@ libsss_ldap_common_la_SOURCES = \
     src/providers/ldap/sdap_async_services.c \
     src/providers/ldap/sdap_async_iphost.c \
     src/providers/ldap/sdap_async_ipnetwork.c \
-    src/providers/ldap/sdap_online_check.c \
     src/providers/ldap/sdap_ad_groups.c \
     src/providers/ldap/sdap_child_helpers.c \
     src/providers/ldap/sdap_fd_events.c \
     src/providers/ldap/sdap_hostid.h \
-    src/providers/ldap/sdap_id_op.c \
     src/providers/ldap/sdap_certmap.c \
     src/providers/ldap/sdap_idmap.c \
     src/providers/ldap/sdap_idmap.h \
@@ -4379,6 +4423,7 @@ libsss_ldap_common_la_SOURCES = \
     src/util/sss_sockets.c \
     src/util/sss_ldap.c \
     src/util/cert_derb64_to_ldap_filter.c \
+    $(SSSD_NEW_FAILOVER_OBJ) \
     $(NULL)
 libsss_ldap_common_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4458,7 +4503,8 @@ libsss_krb5_common_la_LDFLAGS = \
 
 libsss_ldap_la_SOURCES = \
     src/providers/ldap/ldap_init.c \
-    src/providers/ldap/ldap_access.c
+    src/providers/ldap/ldap_access.c \
+    $(SSSD_NEW_FAILOVER_OBJ)
 libsss_ldap_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(OPENLDAP_CFLAGS)
@@ -4587,6 +4633,7 @@ libsss_ipa_la_SOURCES = \
     src/providers/ad/ad_srv.c \
     src/providers/ad/ad_domain_info.c \
     src/providers/ad/ad_cldap_ping.c \
+    $(SSSD_NEW_FAILOVER_OBJ) \
     $(NULL)
 libsss_ipa_la_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4652,6 +4699,7 @@ libsss_ad_la_SOURCES = \
     src/providers/ad/ad_refresh.c \
     src/providers/ad/ad_resolver.c \
     src/providers/ad/ad_cldap_ping.c \
+    $(SSSD_NEW_FAILOVER_OBJ) \
     $(NULL)
 
 

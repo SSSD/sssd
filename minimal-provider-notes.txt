@@ -1,0 +1,88 @@
+# Minimal SSSD provider
+
+This is used as a proof of concept for the new failover implementation. It can
+also be used to see what changes are required in order to switch to the new
+code, however it really does only minimum amount of changes to get it working.
+It would be very good to provide more thorough refactoring in the real
+providers.
+
+The minimal provider supports:
+- services lookup (getent services)
+- user authentication
+
+## Populate LDAP
+
+```
+$ vim objects.ldif
+dn: ou=users,dc=ldap,dc=test
+objectClass: top
+objectClass: organizationalUnit
+ou: users
+
+# Password is Secret123
+dn: cn=user-1,ou=users,dc=ldap,dc=test
+uid: user-1
+uidNumber: 10000
+homeDirectory: /home/user-1
+gidNumber: 100000
+cn: user-1
+objectClass: posixAccount
+objectClass: top
+userPassword:: e1BCS0RGMi1TSEE1MTJ9MTAwMDAwJEVZU2lqOFgxTTVFZUIrMXlHQzdvZkhwZzd
+ XZXpYRGJwJG0vTVUyMUIrTGNNb2tkRVcvUFJ6YWlhc21zdlNDeVJWdGxPU3c3c05YbHk2NUxBcUcz
+ ODJqQUJWUEp2N1ZnOUtRdXhEamVlbmxEV3V5Ylg5UFdKMW5nPT0=
+
+dn: ou=services,dc=ldap,dc=test
+objectClass: top
+objectClass: organizationalUnit
+ou: services
+
+dn: cn=service0,ou=services,dc=ldap,dc=test
+objectClass: ipService
+cn: service0
+ipServiceProtocol: tcp
+ipServicePort: 12345
+
+$ ldapadd -D "cn=Directory Manager" -w Secret123 -H ldap://master.ldap.test -f objects.ldif -vv
+```
+
+## Verify LDAP contents
+
+```
+$ ldapsearch -D "cn=Directory Manager" -w Secret123 -H ldap://master.ldap.test -b dc=ldap,dc=test
+```
+
+## Configure SSSD for services lookup
+
+```
+[sssd]
+domains = minimal
+
+[domain/minimal]
+debug_level = 9
+id_provider = minimal
+
+$ getent services -s sss service0
+service0              12345/tcp
+```
+
+## Configure SSSD for user authentication
+
+Note: user lookup is done by id provider
+
+```
+[sssd]
+services = nss, pam
+domains = minimal
+
+[domain/minimal]
+debug_level = 9
+id_provider = ldap
+auth_provider = minimal
+ldap_uri = _srv_
+dns_discovery_domain = ldap.test
+ldap_tls_reqcert = never
+
+$ su user-1
+Password: Secret123
+```

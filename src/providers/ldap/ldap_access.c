@@ -56,7 +56,7 @@ sdap_pam_access_handler_send(TALLOC_CTX *mem_ctx,
 
     subreq = sdap_access_send(state, params->ev, params->be_ctx,
                               params->domain, access_ctx,
-                              access_ctx->id_ctx->conn, pd);
+                              access_ctx->id_ctx->fctx, pd);
     if (subreq == NULL) {
         pd->pam_status = PAM_SYSTEM_ERR;
         goto immediately;

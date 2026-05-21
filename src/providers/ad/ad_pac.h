@@ -71,14 +71,13 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
                                              struct be_ctx *be_ctx,
                                              struct dp_id_data *ar,
                                              struct sdap_id_ctx *id_ctx,
+                                             struct sss_failover_ctx *fctx,
                                              struct sdap_domain *sdom,
-                                             struct sdap_id_conn_ctx *conn,
                                              bool noexist_delete,
                                              struct ldb_message *msg);
 
 errno_t ad_handle_pac_initgr_recv(struct tevent_req *req,
-                                  int *_dp_error, const char **_err,
-                                  int *sdap_ret);
+                                   const char **_err);
 
 errno_t check_upn_and_sid_from_user_and_pac(struct ldb_message *msg,
                                           struct sss_idmap_ctx *ctx,
