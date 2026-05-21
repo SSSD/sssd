@@ -90,12 +90,12 @@ class TestKcm(object):
         for _ in range(12):
             time.sleep(10)
             grep_cmd = multihost.client[0].run_command(
-                f"grep 'calling ldap_search_ext with' {log_location}",
+                f"grep 'ldap_search_ext called:' {log_location}",
                 raiseonerr=False)
             if grep_cmd.returncode == 0:
                 break
         else:
-            pytest.fail("Failed to find 'calling ldap_search_ext with' in log file")
+            pytest.fail("Failed to find 'ldap_search_ext called:' in log file")
         assert 'modifyTimestamp>=' not in grep_cmd.stdout_text
 
     @pytest.mark.tier1_2
