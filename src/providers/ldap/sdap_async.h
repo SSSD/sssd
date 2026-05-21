@@ -229,16 +229,6 @@ int sdap_cli_connect_recv(struct tevent_req *req,
                           struct sdap_handle **gsh,
                           struct sdap_server_opts **srv_opts);
 
-struct tevent_req *
-sdap_cli_resolve_and_connect_send(TALLOC_CTX *mem_ctx,
-                                  struct tevent_context *ev,
-                                  struct sdap_options *opts,
-                                  struct be_ctx *be,
-                                  struct sdap_service *service,
-                                  bool skip_rootdse,
-                                  enum connect_tls force_tls,
-                                  bool skip_auth);
-
 errno_t
 sdap_cli_resolve_and_connect_recv(struct tevent_req *req,
                                   TALLOC_CTX *memctx,
