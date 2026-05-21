@@ -156,3 +156,31 @@ def test_connectivity__sssd_goes_offline_when_ldap_is_unreachable(client: Client
     assert client.sssd.default_domain is not None, "No default domain?"
     status = client.sssctl.domain_status(client.sssd.default_domain, online=True)
     assert "Offline" in status.stdout, "SSSD is not offline!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.ticket(gh=8709)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+def test_connectivity__sssd_fails_to_start_when_client_cannot_be_resolve(client: Client, provider: GenericProvider):
+    """
+    :title: SSSD fails to start when the client hostname cannot be resolved
+    :setup:
+        1. Block outbound dns traffic
+        2. Remove records in /etc/hosts
+        3. Remove resolved from /etc/nsswitch.conf
+    :steps:
+        1. Start SSSD
+    :expectedresults:
+        1. SSSD starts
+    :customerscenario: False
+    """
+    client.firewall.outbound.drop_port((53, "tcp"))
+    client.firewall.outbound.drop_port((53, "udp"))
+
+    client.fs.backup("/etc/hosts")
+    client.fs.write("/etc/hosts", f"::1 localhost\n127.0.0.1 localhost\n")
+
+    client.fs.backup("/etc/nsswitch.conf")
+    client.fs.sed(path="/etc/nsswitch.conf", command="s/^\s*hosts:.*/hosts:      files dns/", args=["-i"])
+
+    assert client.sssd.start(), "SSSD did not start!"
