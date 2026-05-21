@@ -312,6 +312,7 @@ jobs:
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           -k "not test_logging__offline_errors_are_written_to_logs_and_syslog and not test_failover and not test_logging__dns_resolution_issue_in_logs and not test_ad__user_authentication_when_provider_is_set_to_ldap_with_gss_spnego and not test_multithreaded_pac_client and not test_autofs__propagate_offline_status and not test_failover__ and not test_ipa__subids_configured" \
+          --mh-topology=ipa \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
     - name: Run tests
@@ -333,6 +334,7 @@ jobs:
           --output-polarion-testrun=$GITHUB_WORKSPACE/artifacts/testrun.xml \
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
           -k "not test_logging__offline_errors_are_written_to_logs_and_syslog and not test_failover and not test_logging__dns_resolution_issue_in_logs and not test_ad__user_authentication_when_provider_is_set_to_ldap_with_gss_spnego and not test_multithreaded_pac_client and not test_autofs__propagate_offline_status and not test_failover__ and not test_ipa__subids_configured" \
+          --mh-topology=ipa \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
 
     - name: Upload artifacts
