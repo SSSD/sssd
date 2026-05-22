@@ -69,7 +69,8 @@ class Analyzer:
         """
         # top level parser
         formatter = argparse.RawTextHelpFormatter
-        parser = argparse.ArgumentParser(description='Analyzer tool to assist '
+        parser = argparse.ArgumentParser(prog='sssctl analyze',
+                                         description='Analyzer tool to assist '
                                          'with SSSD log parsing',
                                          formatter_class=formatter)
         parser.add_argument('--source', default='files', choices=['files',
