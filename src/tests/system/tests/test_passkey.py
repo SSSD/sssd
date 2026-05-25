@@ -673,12 +673,9 @@ def test_passkey__su_with_12_mappings(client: Client, ipa: IPA):
     assert rc == 0, "Authentication failed"
     assert "Ticket cache" in output, "Failed to get the TGT"
     assert (
-        not (
-            "No Kerberos TGT granted as the server does not support this method. "
-            "Your single-sign on(SSO) experience will be affected"
-        )
-        in output
-    ), "Get the console message about TGT"
+        "No Kerberos TGT granted as the server does not support this method. "
+        "Your single-sign on(SSO) experience will be affected"
+    ) not in output, "Get the console message about TGT"
 
 
 @pytest.mark.importance("critical")
@@ -720,13 +717,10 @@ def test_passkey__su_no_pin_set(client: Client, ipa: IPA):
 
     assert rc == 0, "Authentication failed"
     assert "Ticket cache" in output, "Failed to get the TGT"
-    assert not (
-        (
-            "No Kerberos TGT granted as the server does not support this method. "
-            "Your single-sign on(SSO) experience will be affected"
-        )
-        in output
-    ), "Got the console message about No Kerberos TGT granted"
+    assert (
+        "No Kerberos TGT granted as the server does not support this method. "
+        "Your single-sign on(SSO) experience will be affected"
+    ) not in output, "Got the console message about No Kerberos TGT granted"
 
 
 @pytest.mark.importance("medium")
@@ -774,12 +768,9 @@ def test_passkey__prompt_options(client: Client, ipa: IPA):
     assert rc == 0, "Authentication failed"
     assert "Ticket cache" in output, "Failed to get the TGT"
     assert (
-        not (
-            "No Kerberos TGT granted as the server does not support this method."
-            "Your single-sign on(SSO) experience will be affected"
-        )
-        in output
-    ), "Got the console message about No Kerberos TGT granted"
+        "No Kerberos TGT granted as the server does not support this method."
+        "Your single-sign on(SSO) experience will be affected"
+    ) not in output, "Got the console message about No Kerberos TGT granted"
 
 
 @pytest.mark.importance("critical")
@@ -820,9 +811,6 @@ def test_passkey__su_fallback_to_password(client: Client, ipa: IPA):
     assert rc == 0, "Authentication failed"
     assert "Ticket cache" in output, "Failed to get the TGT"
     assert (
-        not (
-            "No Kerberos TGT granted as the server does not support this method."
-            " Your single-sign on(SSO) experience will be affected"
-        )
-        in output
-    ), "Got the console message about No Kerberos TGT granted"
+        "No Kerberos TGT granted as the server does not support this method."
+        " Your single-sign on(SSO) experience will be affected"
+    ) not in output, "Got the console message about No Kerberos TGT granted"
