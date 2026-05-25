@@ -154,7 +154,7 @@ prepare:
         ssh -i /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa \
             -o StrictHostKeyChecking=no \
             root@client.test "
-          $COPR_ENABLE_CMD
+          $COPR_ENABLE_CMD && \
           dnf upgrade -y --refresh sssd*
         "
 
@@ -162,7 +162,7 @@ prepare:
         ssh -i /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa \
             -o StrictHostKeyChecking=no \
             root@master.ipa.test "
-          $COPR_ENABLE_CMD
+          $COPR_ENABLE_CMD && \
           dnf upgrade -y --refresh sssd*
         "
 
