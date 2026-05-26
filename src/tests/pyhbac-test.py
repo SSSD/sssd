@@ -18,8 +18,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
-
 import unittest
 import sys
 import os
@@ -29,35 +27,6 @@ import tempfile
 BUILD_DIR = os.getenv('builddir') or "."
 TEST_DIR = os.path.realpath(os.getenv('SSS_TEST_DIR') or ".")
 MODPATH = tempfile.mkdtemp(prefix="tp_pyhbac_", dir=TEST_DIR)
-
-
-if sys.version_info[0] > 2:
-    unicode = str
-
-
-def compat_assertIsInstance(this, obj, cls, msg=None):
-    return this.assertTrue(isinstance(obj, cls))
-
-
-def compat_assertItemsEqual(this, expected_seq, actual_seq, msg=None):
-    return this.assertEqual(sorted(expected_seq), sorted(actual_seq))
-
-
-# add compat assertIsInstance for old unittest.TestCase versions
-# (python < 2.7, RHEL6 for instance)
-if not hasattr(unittest.TestCase, "assertIsInstance"):
-    setattr(unittest.TestCase, "assertIsInstance", compat_assertIsInstance)
-
-# Python3 renamed assertItemsEqual to assertCountEqual but at the same time
-# Python2 doesn't have assertCountEqual, see http://bugs.python.org/issue17866
-if not hasattr(unittest.TestCase, "assertCountEqual"):
-    if not hasattr(unittest.TestCase, "assertItemsEqual"):
-        # This is RHEL-6
-        setattr(unittest.TestCase, "assertItemsEqual", compat_assertItemsEqual)
-
-    setattr(unittest.TestCase,
-            "assertCountEqual",
-            unittest.TestCase.assertItemsEqual)
 
 
 class PyHbacImport(unittest.TestCase):
@@ -75,10 +44,7 @@ class PyHbacImport(unittest.TestCase):
         try:
             dest_module_path = MODPATH + "/pyhbac.so"
 
-            if sys.version_info[0] > 2:
-                src_module_path = BUILD_DIR + "/.libs/_py3hbac.so"
-            else:
-                src_module_path = BUILD_DIR + "/.libs/_py2hbac.so"
+            src_module_path = BUILD_DIR + "/.libs/_py3hbac.so"
 
             src_module_path = os.path.abspath(src_module_path)
             os.symlink(src_module_path, dest_module_path)
@@ -176,10 +142,10 @@ class PyHbacRuleTest(unittest.TestCase):
         new_name = "testGetNewRule"
 
         rule = pyhbac.HbacRule(name)
-        self.assertEqual(rule.name, unicode(name))
+        self.assertEqual(rule.name, str(name))
 
         rule.name = new_name
-        self.assertEqual(rule.name, unicode(new_name))
+        self.assertEqual(rule.name, str(new_name))
 
     def testRuleGetSetEnabled(self):
         rule = pyhbac.HbacRule("testRuleGetSetEnabled")
@@ -526,7 +492,7 @@ class PyHbacModuleTest(unittest.TestCase):
                    pyhbac.HBAC_EVAL_ERROR]
         for r in results:
             s = pyhbac.hbac_result_string(r)
-            self.assertIsInstance(s, unicode)
+            self.assertIsInstance(s, str)
             assert len(s) > 0
 
     def testHbacErrorString(self):
@@ -537,7 +503,7 @@ class PyHbacModuleTest(unittest.TestCase):
                   pyhbac.HBAC_ERROR_UNPARSEABLE_RULE]
         for e in errors:
             s = pyhbac.hbac_error_string(e)
-            self.assertIsInstance(s, unicode)
+            self.assertIsInstance(s, str)
             assert len(s) > 0
 
 

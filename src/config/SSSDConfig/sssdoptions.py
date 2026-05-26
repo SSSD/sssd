@@ -1,14 +1,10 @@
-import sys
 import gettext
 
 PACKAGE = 'sss_daemon'
 LOCALEDIR = '/usr/share/locale'
 
 translation = gettext.translation(PACKAGE, LOCALEDIR, fallback=True)
-if sys.version_info[0] > 2:
-    _ = translation.gettext
-else:
-    _ = translation.ugettext
+_ = translation.gettext
 
 
 class SSSDOptions(object):

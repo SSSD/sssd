@@ -167,7 +167,6 @@ WITH_KRB5_PLUGIN_PATH
 WITH_KRB5_RCACHE_DIR
 WITH_KRB5AUTHDATA_PLUGIN_PATH
 WITH_KRB5_CONF
-WITH_PYTHON2_BINDINGS
 WITH_PYTHON3_BINDINGS
 WITH_CIFS_PLUGIN_PATH
 WITH_WINBIND_PLUGIN_PATH
@@ -343,39 +342,9 @@ AM_CONDITIONAL([HAVE_PROFILE_CATALOGS], [test "x$HAVE_PROFILE_CATALOGS" != "x"])
 AM_CONDITIONAL([HAVE_MANPAGES], [test "x$HAVE_MANPAGES" != "x"])
 AM_CONDITIONAL([HAVE_PO4A], [test "x$PO4A" != "xno"])
 
-AC_CHECK_PROG(HAVE_PYTHON2, python2, yes, no)
-AS_IF([test x$HAVE_PYTHON2 = xyes],
-      [AC_PATH_PROG(PYTHON2, python2)])
-
 AC_CHECK_PROG(HAVE_PYTHON3, python3, yes, no)
 AS_IF([test x$HAVE_PYTHON3 = xyes],
       [AC_PATH_PROG(PYTHON3, python3)])
-
-AS_IF([test x$HAVE_PYTHON2_BINDINGS = xyes],
-      [AS_IF([test x$HAVE_PYTHON2 != xyes],
-             [AC_MSG_ERROR([
-The program python2 was not found in search path.
-Please ensure that it is installed and its directory is included in the search
-path. It is required for building python2 bindings. If you do not want to build
-them please use argument --without-python2-bindings when running configure.])])
-
-    PYTHON=$PYTHON2
-    AM_PATH_PYTHON([2.6])
-    AM_PYTHON_CONFIG([python2])
-    AM_CHECK_PYTHON_HEADERS([],
-                            AC_MSG_ERROR([Could not find python2 headers]))
-
-    AC_SUBST([py2execdir], [$pyexecdir])
-    AC_SUBST([python2dir], [$pythondir])
-    AC_SUBST([PYTHON2_CFLAGS], [$PYTHON_CFLAGS])
-    AC_SUBST([PYTHON2_LIBS], [$PYTHON_LIBS])
-    AC_SUBST([PYTHON2_INCLUDES], [$PYTHON_INCLUDES])
-    AC_SUBST([PYTHON2_VERSION], [$PYTHON_VERSION])
-    AC_SUBST([PYTHON2_PREFIX], [$PYTHON_PREFIX])
-    AC_SUBST([PYTHON2_EXEC_PREFIX], [$PYTHON_EXEC_PREFIX])
-
-    SSS_CLEAN_PYTHON_VARIABLES
-])
 
 AS_IF([test x$HAVE_PYTHON3_BINDINGS = xyes],
       [AS_IF([test x$HAVE_PYTHON3 != xyes],
@@ -403,16 +372,13 @@ them please use argument --without-python3-bindings when running configure.])])
     SSS_CLEAN_PYTHON_VARIABLES
 ])
 
-AS_IF([test x$HAVE_PYTHON3 = xyes], [
-    PYTHON_EXEC=$PYTHON3
-], [
-    PYTHON_EXEC=$PYTHON2
-])
+AS_IF([test x$HAVE_PYTHON3 != xyes],
+      [AC_MSG_ERROR([Python 3 is required to build SSSD.])])
+PYTHON_EXEC=$PYTHON3
 AC_SUBST(PYTHON_EXEC)
 
 AM_CONDITIONAL([BUILD_PYTHON_BINDINGS],
-               [test x"$with_python2_bindings" = xyes \
-                     -o x"$with_python3_bindings" = xyes])
+               [test x"$with_python3_bindings" = xyes])
 
 AS_IF([test x$HAVE_SELINUX != x], [
     AM_CHECK_SELINUX

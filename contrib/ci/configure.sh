@@ -32,7 +32,6 @@ declare -a CONFIGURE_ARG_LIST=(
     "--enable-systemtap"
     "--with-subid"
     "--with-passkey"
-    "--without-python2-bindings"
 )
 
 # Different versions of Debian might need different versions here but this is
