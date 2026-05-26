@@ -111,12 +111,6 @@ struct so {
     { "libsss_idp.so", { LIBPFX"libdlopen_test_providers.so",
                          LIBPFX"libsss_idp.so", NULL } },
 #endif /* BUILD_ID_PROVIDER_IDP */
-#ifdef HAVE_PYTHON2_BINDINGS
-    { "_py2hbac.so", { LIBPFX"_py2hbac.so", NULL } },
-    { "_py2sss.so", { LIBPFX"_py2sss.so", NULL } },
-    { "_py2sss_murmur.so", { LIBPFX"_py2sss_murmur.so", NULL } },
-    { "_py2sss_nss_idmap.so", { LIBPFX"_py2sss_nss_idmap.so", NULL } },
-#endif
 #ifdef HAVE_PYTHON3_BINDINGS
 #ifdef PYTHON_DLOPEN_LIB
     { "_py3hbac.so", { PYTHON_DLOPEN_LIB, LIBPFX"_py3hbac.so", NULL } },
