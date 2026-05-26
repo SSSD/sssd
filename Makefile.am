@@ -409,6 +409,10 @@ sssdlib_LTLIBRARIES = \
     libsss_simple.la \
     $(NULL)
 
+if BUILD_HIMMELBLAU
+sssdlib_LTLIBRARIES += libsss_himmelblau.la
+endif
+
 if BUILD_SAMBA
 sssdlib_LTLIBRARIES += \
     libsss_ipa.la \
@@ -1076,6 +1080,30 @@ EXTRA_DIST += \
     src/sss_iface/external_iface.xml \
     src/responder/ifp/ifp_iface/ifp_iface.xml \
     $(NULL)
+
+if BUILD_VENDORED_HIMMELBLAU
+
+build-vendored-libhimmelblau:
+	@echo "Building vendored libhimmelblau..."
+	cd $(top_srcdir)/src/external/libhimmelblau && \
+	$(CARGO) cbuild --release --prefix=$(prefix) --libdir=$(libdir)
+	@touch $@
+
+clean-vendored-libhimmelblau:
+	cd $(top_srcdir)/src/external/libhimmelblau && \
+	$(CARGO) clean || true
+	rm -f build-vendored-libhimmelblau
+
+install-vendored-libhimmelblau:
+	cd $(top_srcdir)/src/external/libhimmelblau && \
+	$(CARGO) cinstall --release --destdir=$(DESTDIR) \
+	    --prefix=$(prefix) --libdir=$(libdir)
+
+BUILT_SOURCES += build-vendored-libhimmelblau
+
+.PHONY: build-vendored-libhimmelblau clean-vendored-libhimmelblau install-vendored-libhimmelblau
+
+endif # BUILD_VENDORED_HIMMELBLAU
 
 pkglib_LTLIBRARIES += libsss_sbus.la
 libsss_sbus_la_SOURCES = \
@@ -4515,6 +4543,37 @@ libsss_simple_la_LDFLAGS = \
     -avoid-version \
     -module
 
+if BUILD_HIMMELBLAU
+libsss_himmelblau_la_SOURCES = \
+    src/providers/himmelblau/himmelblau_init.c \
+    src/providers/himmelblau/himmelblau_auth.c \
+    src/providers/himmelblau/himmelblau_id.c \
+    src/providers/himmelblau/himmelblau_opts.c \
+    src/providers/himmelblau/himmelblau_device.c \
+    src/providers/himmelblau/himmelblau_util.c \
+    $(NULL)
+
+libsss_himmelblau_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(HIMMELBLAU_CFLAGS)
+
+libsss_himmelblau_la_LIBADD = \
+    $(TALLOC_LIBS) \
+    $(TEVENT_LIBS) \
+    $(HIMMELBLAU_LIBS) \
+    $(SSSD_INTERNAL_LTLIBS) \
+    $(NULL)
+
+libsss_himmelblau_la_LDFLAGS = \
+    -avoid-version \
+    -module
+
+if BUILD_VENDORED_HIMMELBLAU
+libsss_himmelblau_la_DEPENDENCIES = build-vendored-libhimmelblau
+endif
+
+endif # BUILD_HIMMELBLAU
+
 libsss_krb5_la_SOURCES = \
     src/providers/krb5/krb5_init.c
 libsss_krb5_la_CFLAGS = \
@@ -5542,6 +5601,9 @@ endif
 all-local: ldb_mod_test_dir $(SSSDCONFIG_MODULES)
 
 install-exec-hook: installsssddirs
+if BUILD_VENDORED_HIMMELBLAU
+	$(MAKE) install-vendored-libhimmelblau
+endif
 if BUILD_PYTHON2_BINDINGS
 	$(MKDIR_P) "$(DESTDIR)$(python2dir)/SSSDConfig"
 	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/__init__.py \
@@ -5641,6 +5703,9 @@ if BUILD_SAMBA
 endif
 
 clean-local:
+if BUILD_VENDORED_HIMMELBLAU
+	$(MAKE) clean-vendored-libhimmelblau
+endif
 if BUILD_PYTHON2_BINDINGS
 	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
 		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \

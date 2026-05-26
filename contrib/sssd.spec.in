@@ -8,6 +8,8 @@
 %global build_idp 0
 %endif
 
+%global with_himmelblau 0
+
 # we don't want to provide private python extension libs
 %define __provides_exclude_from %{python3_sitearch}/.*\.so$
 
@@ -91,6 +93,9 @@ BuildRequires: krb5-devel
 BuildRequires: libcmocka-devel >= 1.0.0
 BuildRequires: libdhash-devel >= 0.4.2
 BuildRequires: libfido2-devel
+%if 0%{?with_himmelblau}
+BuildRequires: libhimmelblau-devel >= 0.8.0
+%endif
 BuildRequires: libini_config-devel >= 1.3
 BuildRequires: libldb-devel
 BuildRequires: libnfsidmap-devel
@@ -522,6 +527,11 @@ autoreconf -ivf
     --with-test-dir=/dev/shm \
     --with-subid \
     --with-passkey \
+%if 0%{?with_himmelblau}
+    --with-himmelblau \
+%else
+    --without-himmelblau \
+%endif
 %if ! %{build_idp}
     --with-id-provider-idp=no \
 %endif
@@ -698,6 +708,9 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 
 %dir %{_libdir}/%{name}
 %{_libdir}/%{name}/libsss_simple.so
+%if 0%{?with_himmelblau}
+%{_libdir}/%{name}/libsss_himmelblau.so
+%endif
 
 #Internal shared libraries
 %{_libdir}/%{name}/libsss_child.so
