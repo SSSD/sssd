@@ -6,10 +6,8 @@ tag: passkey
 
 provision:
     how: virtual
-    # Testing Farm provides a maximum of 4GB RAM,
-    # but 16GB allows smoother operation by avoiding memory swap
-    # when running locally or if memory limits increase
-    memory: 16384
+    hardware:
+      memory: ">= 16 GB"
 
 prepare:
     - name: Install general dependencies
