@@ -2873,10 +2873,10 @@ static errno_t ipa_subdomains_write_kdcinfo_recv(struct tevent_req *req)
 struct ipa_subdomains_refresh_state {
     struct tevent_context *ev;
     struct ipa_subdomains_ctx *sd_ctx;
-    struct sdap_id_op *sdap_op;
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_ldap_connection *conn;
 };
 
-static errno_t ipa_subdomains_refresh_retry(struct tevent_req *req);
 static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq);
@@ -2907,20 +2907,15 @@ ipa_subdomains_refresh_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->sd_ctx = sd_ctx;
+    state->fctx = sd_ctx->ipa_id_ctx->fctx;
 
-    state->sdap_op = sdap_id_op_create(state,
-                                       sd_ctx->sdap_id_ctx->conn->conn_cache);
-    if (state->sdap_op == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create() failed\n");
-        ret = ENOMEM;
+    ret = sss_failover_transaction_send(state, state->ev, state->fctx, req,
+                                        ipa_subdomains_refresh_connect_done);
+    if (ret != EOK) {
         goto immediately;
     }
 
-    ret = ipa_subdomains_refresh_retry(req);
-    if (ret == EAGAIN) {
-        /* asynchronous processing */
-        return req;
-    }
+    return req;
 
 immediately:
     if (ret == EOK) {
@@ -2933,53 +2928,34 @@ immediately:
     return req;
 }
 
-static errno_t ipa_subdomains_refresh_retry(struct tevent_req *req)
-{
-    struct ipa_subdomains_refresh_state *state;
-    struct tevent_req *subreq;
-    int ret;
-
-    state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
-
-    subreq = sdap_id_op_connect_send(state->sdap_op, state, &ret);
-    if (subreq == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap_id_op_connect_send() failed "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        return ret;
-    }
-
-    tevent_req_set_callback(subreq, ipa_subdomains_refresh_connect_done, req);
-
-    return EAGAIN;
-}
-
 static void ipa_subdomains_refresh_connect_done(struct tevent_req *subreq)
 {
     struct ipa_subdomains_refresh_state *state;
     struct tevent_req *req;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    state->conn = sss_failover_transaction_connected_recv(state, subreq,
+                                        struct sss_failover_ldap_connection);
     talloc_zfree(subreq);
+    if (state->conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: No connection?\n");
+        tevent_req_error(req, EINVAL);
+        return;
+    }
 
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to LDAP "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        if (dp_error == DP_ERR_OFFLINE) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "No IPA server is available, "
-                  "cannot get the subdomain list while offline\n");
-            ret = ERR_OFFLINE;
-        }
+    if (state->fctx->active_server->state == SSS_FAILOVER_SERVER_STATE_OFFLINE) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "No IPA server available, "
+              "cannot get the subdomain list while offline\n");
+        ret = ERR_OFFLINE;
         tevent_req_error(req, ret);
         return;
     }
 
     subreq = ipa_subdomains_ranges_send(state, state->ev, state->sd_ctx,
-                                        sdap_id_op_handle(state->sdap_op));
+                                        state->conn->sh);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -3007,7 +2983,7 @@ static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq)
     }
 
     subreq = ipa_subdomains_certmap_send(state, state->ev, state->sd_ctx,
-                                         sdap_id_op_handle(state->sdap_op));
+                                         state->conn->sh);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -3035,7 +3011,7 @@ static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq)
     }
 
     subreq = ipa_subdomains_master_send(state, state->ev, state->sd_ctx,
-                                        sdap_id_op_handle(state->sdap_op));
+                                        state->conn->sh);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -3063,7 +3039,7 @@ static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq)
     }
 
     subreq = ipa_subdomains_slave_send(state, state->ev, state->sd_ctx,
-                                       sdap_id_op_handle(state->sdap_op));
+                                       state->conn->sh);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -3091,7 +3067,7 @@ static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq)
     }
 
     subreq = ipa_subdomains_view_name_send(state, state->ev, state->sd_ctx,
-                                           sdap_id_op_handle(state->sdap_op));
+                                           state->conn->sh);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -3121,7 +3097,7 @@ static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq)
     }
 
     subreq = ipa_subdomains_view_template_send(state, state->ev, state->sd_ctx,
-                                           sdap_id_op_handle(state->sdap_op));
+                                               state->conn->sh);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -3154,7 +3130,7 @@ static void ipa_subdomains_refresh_view_template_done(struct tevent_req *subreq)
                                             state,
                                             state->ev,
                                             state->sd_ctx,
-                                            sdap_id_op_handle(state->sdap_op));
+                                            state->conn->sh);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -3185,7 +3161,7 @@ ipa_subdomains_refresh_view_domain_resolution_order_done(struct tevent_req *subr
     }
 
     subreq = ipa_domain_resolution_order_send(state, state->ev, state->sd_ctx,
-                                            sdap_id_op_handle(state->sdap_op));
+                                              state->conn->sh);
     if (subreq == NULL) {
         tevent_req_error(req, ENOMEM);
         return;
@@ -3201,7 +3177,6 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
 {
     struct ipa_subdomains_refresh_state *state;
     struct tevent_req *req;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -3209,25 +3184,16 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
 
     ret = ipa_domain_resolution_order_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+
+    if (ret == ERR_NO_MORE_SERVERS) {
+        ret = ERR_OFFLINE;
+        tevent_req_error(req, ret);
+        return;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get the domains order resolution [%d]: %s\n",
               ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
-    }
-
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
-        /* retry */
-        ret = ipa_subdomains_refresh_retry(req);
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        ret = ERR_OFFLINE;
-    }
-
-    if (ret != EOK) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Unable to refresh subdomains [%d]: %s\n",
-              ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
+        tevent_req_error(req, ERR_SERVER_FAILURE);
         return;
     }
 
@@ -3313,7 +3279,7 @@ ipa_subdomains_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -3339,7 +3305,7 @@ static void ipa_subdomains_handler_done(struct tevent_req *subreq)
     }
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
     tevent_req_done(req);
 }
 

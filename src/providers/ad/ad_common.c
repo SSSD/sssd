@@ -25,6 +25,7 @@
 #include "providers/ad/ad_opts.h"
 #include "providers/be_dyndns.h"
 #include "providers/fail_over.h"
+#include "providers/failover/ldap/failover_ldap.h"
 
 struct ad_server_data {
     bool gc;
@@ -795,6 +796,93 @@ static void ad_online_cb(void *pvt)
     DEBUG(SSSDBG_TRACE_FUNC, "The AD provider is online\n");
 }
 
+struct sss_failover_ctx *
+ad_init_failover(TALLOC_CTX *mem_ctx,
+                      struct be_ctx *be_ctx,
+                      struct sdap_options *opts,
+                      const char *service,
+                      uint16_t port)
+{
+    struct sss_failover_ctx *fctx;
+    struct sss_failover_group *group;
+    struct sss_failover_server *server;
+    errno_t ret;
+
+    /* Setup new failover. */
+    fctx = sss_failover_init(mem_ctx, be_ctx->ev, service,
+                             be_ctx->be_res->resolv,
+                             be_ctx->be_res->family_order);
+    if (fctx == NULL) {
+        return NULL;
+    }
+
+    /* Add primary servers */
+    group = sss_failover_group_new(fctx, "primary");
+    if (group == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_1.samba.test",
+                                     "ldap://fake_1.samba.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "fake_2.samba.test",
+                                     "ldap://fake_2.samba.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    server = sss_failover_server_new(fctx, "dc.samba.test",
+                                     "ldap://dc.samba.test", port, 1, 1);
+    if (server == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sss_failover_group_add_server(group, server);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    /* kinit ctx needs to be set to call kinit vtable functions */
+    fctx->kinit_ctx = fctx;
+
+    sss_failover_vtable_set_kinit(fctx,
+                                  sss_failover_ldap_kinit_send,
+                                  sss_failover_ldap_kinit_recv,
+                                  opts);
+
+    sss_failover_vtable_set_connect(fctx,
+                                    sss_failover_ldap_connect_send,
+                                    sss_failover_ldap_connect_recv,
+                                    opts);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(fctx);
+        return NULL;
+    }
+
+    return fctx;
+}
+
 errno_t
 ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                  const char *primary_servers,
@@ -1492,19 +1580,12 @@ ad_id_ctx_init(struct ad_options *ad_opts, struct be_ctx *bectx)
     }
     ad_ctx->ad_options = ad_opts;
 
-    sdap_ctx = sdap_id_ctx_new(ad_ctx, bectx, ad_opts->service->sdap);
+    sdap_ctx = sdap_id_ctx_new(ad_ctx, bectx);
     if (sdap_ctx == NULL) {
         talloc_free(ad_ctx);
         return NULL;
     }
     ad_ctx->sdap_id_ctx = sdap_ctx;
-    ad_ctx->ldap_ctx = sdap_ctx->conn;
-
-    ad_ctx->gc_ctx = sdap_id_ctx_conn_add(sdap_ctx, ad_opts->service->gc);
-    if (ad_ctx->gc_ctx == NULL) {
-        talloc_free(ad_ctx);
-        return NULL;
-    }
 
     return ad_ctx;
 }
@@ -1534,105 +1615,6 @@ ad_resolver_ctx_init(TALLOC_CTX *mem_ctx,
     *out_ctx = ad_ctx;
 
     return EOK;
-}
-
-struct sdap_id_conn_ctx *
-ad_get_dom_ldap_conn(struct ad_id_ctx *ad_ctx, struct sss_domain_info *dom)
-{
-    struct sdap_id_conn_ctx *conn;
-    struct sdap_domain *sdom;
-    struct ad_id_ctx *subdom_id_ctx;
-
-    sdom = sdap_domain_get(ad_ctx->sdap_id_ctx->opts, dom);
-    if (sdom == NULL || sdom->pvt == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No ID ctx available for [%s].\n",
-                                    dom->name);
-        return NULL;
-    }
-    subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
-    conn = subdom_id_ctx->ldap_ctx;
-
-    if (IS_SUBDOMAIN(sdom->dom) == true && conn != NULL) {
-        /* Regardless of connection types, a subdomain error must not be
-         * allowed to set the whole back end offline, rather report an error
-         * and let the caller deal with it (normally disable the subdomain
-         */
-        conn->ignore_mark_offline = true;
-    }
-
-    return conn;
-}
-
-struct sdap_id_conn_ctx **
-ad_gc_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
-                struct sss_domain_info *dom)
-{
-    struct sdap_id_conn_ctx **clist;
-    int cindex = 0;
-
-    clist = talloc_zero_array(mem_ctx, struct sdap_id_conn_ctx *, 3);
-    if (clist == NULL) return NULL;
-
-    /* Always try GC first */
-    if (dp_opt_get_bool(ad_ctx->ad_options->basic, AD_ENABLE_GC)) {
-        clist[cindex] = ad_ctx->gc_ctx;
-        clist[cindex]->ignore_mark_offline = true;
-        clist[cindex]->no_mpg_user_fallback = true;
-        cindex++;
-    }
-
-    clist[cindex] = ad_get_dom_ldap_conn(ad_ctx, dom);
-
-    return clist;
-}
-
-struct sdap_id_conn_ctx **
-ad_ldap_conn_list(TALLOC_CTX *mem_ctx,
-                  struct ad_id_ctx *ad_ctx,
-                  struct sss_domain_info *dom)
-{
-    struct sdap_id_conn_ctx **clist;
-
-    clist = talloc_zero_array(mem_ctx, struct sdap_id_conn_ctx *, 2);
-    if (clist == NULL) {
-        return NULL;
-    }
-
-    clist[0] = ad_get_dom_ldap_conn(ad_ctx, dom);
-
-    clist[1] = NULL;
-    return clist;
-}
-
-struct sdap_id_conn_ctx **
-ad_user_conn_list(TALLOC_CTX *mem_ctx,
-                  struct ad_id_ctx *ad_ctx,
-                  struct sss_domain_info *dom)
-{
-    struct sdap_id_conn_ctx **clist;
-    int cindex = 0;
-
-    clist = talloc_zero_array(mem_ctx, struct sdap_id_conn_ctx *, 3);
-    if (clist == NULL) {
-        return NULL;
-    }
-
-    /* Try GC first for users from trusted domains, but go to LDAP
-     * for users from non-trusted domains to get all POSIX attrs
-     */
-    if (dp_opt_get_bool(ad_ctx->ad_options->basic, AD_ENABLE_GC)
-            && IS_SUBDOMAIN(dom)) {
-        clist[cindex] = ad_ctx->gc_ctx;
-        clist[cindex]->ignore_mark_offline = true;
-        cindex++;
-    }
-
-    /* Users from primary domain can be just downloaded from LDAP.
-     * The domain's LDAP connection also works as a fallback
-     */
-    clist[cindex] = ad_get_dom_ldap_conn(ad_ctx, dom);
-
-    return clist;
 }
 
 errno_t subdom_inherit_opts_if_needed(struct dp_option *parent_opts,

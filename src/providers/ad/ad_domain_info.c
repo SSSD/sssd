@@ -177,9 +177,8 @@ done:
 
 struct ad_domain_info_state {
     struct tevent_context *ev;
-    struct sdap_id_conn_ctx *conn;
+    struct sss_failover_ldap_connection *conn;
     struct sdap_id_op *id_op;
-    struct sdap_id_ctx *id_ctx;
     struct sdap_options *opts;
     struct sdap_domain *sdom;
 
@@ -199,8 +198,8 @@ static void ad_domain_info_netlogon_done(struct tevent_req *req);
 struct tevent_req *
 ad_domain_info_send(TALLOC_CTX *mem_ctx,
                     struct tevent_context *ev,
-                    struct sdap_id_conn_ctx *conn,
-                    struct sdap_id_op *op,
+                    struct sdap_options *opts,
+                    struct sss_failover_ldap_connection *conn,
                     const char *dom_name)
 {
     errno_t ret;
@@ -211,10 +210,8 @@ ad_domain_info_send(TALLOC_CTX *mem_ctx,
     if (!req) return NULL;
 
     state->ev = ev;
-    state->id_op = op;
     state->conn = conn;
-    state->id_ctx = conn->id_ctx;
-    state->opts = conn->id_ctx->opts;
+    state->opts = opts;
     state->dom_name = dom_name;
     state->sdom = sdap_domain_get_by_name(state->opts, state->dom_name);
     /* The first domain in the list is the domain configured in sssd.conf and
@@ -272,8 +269,8 @@ ad_domain_info_next(struct tevent_req *req)
     }
 
     subreq = sdap_get_generic_send(state, state->ev,
-                                   state->id_ctx->opts,
-                                   sdap_id_op_handle(state->id_op),
+                                   state->opts,
+                                   state->conn->sh,
                                    base->basedn, LDAP_SCOPE_BASE,
                                    MASTER_DOMAIN_SID_FILTER, master_sid_attrs,
                                    NULL, 0,
@@ -373,8 +370,8 @@ ad_domain_info_next_done(struct tevent_req *subreq)
     }
 
     subreq = sdap_get_generic_send(state, state->ev,
-                                   state->id_ctx->opts,
-                                   sdap_id_op_handle(state->id_op),
+                                   state->opts,
+                                   state->conn->sh,
                                    "", LDAP_SCOPE_BASE, filter, attrs, NULL, 0,
                                    dp_opt_get_int(state->opts->basic,
                                                   SDAP_SEARCH_TIMEOUT),

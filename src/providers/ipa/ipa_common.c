@@ -899,16 +899,16 @@ int ipa_get_auth_options(struct ipa_options *ipa_opts,
     /* Set flag that controls whether we want to write the
      * kdcinfo files at all
      */
-    ipa_opts->service->krb5_service->write_kdcinfo = \
+    ipa_opts->krb5_service->write_kdcinfo = \
         dp_opt_get_bool(ipa_opts->auth, KRB5_USE_KDCINFO);
     DEBUG(SSSDBG_CONF_SETTINGS, "Option %s set to %s\n",
           ipa_opts->auth[KRB5_USE_KDCINFO].opt_name,
-          ipa_opts->service->krb5_service->write_kdcinfo ? "true" : "false");
-    if (ipa_opts->service->krb5_service->write_kdcinfo) {
+          ipa_opts->krb5_service->write_kdcinfo ? "true" : "false");
+    if (ipa_opts->krb5_service->write_kdcinfo) {
         sss_krb5_parse_lookahead(
             dp_opt_get_string(ipa_opts->auth, KRB5_KDCINFO_LOOKAHEAD),
-            &ipa_opts->service->krb5_service->lookahead_primary,
-            &ipa_opts->service->krb5_service->lookahead_backup);
+            &ipa_opts->krb5_service->lookahead_primary,
+            &ipa_opts->krb5_service->lookahead_backup);
     }
 
     *_opts = ipa_opts->auth;
@@ -922,271 +922,30 @@ done:
     return ret;
 }
 
-static void ipa_resolve_callback(void *private_data, struct fo_server *server)
-{
-    TALLOC_CTX *tmp_ctx = NULL;
-    struct ipa_service *service;
-    struct resolv_hostent *srvaddr;
-    struct sockaddr *sockaddr;
-    char *new_uri;
-    const char *srv_name;
-    socklen_t sockaddr_len;
-    int ret;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed\n");
-        return;
-    }
-
-    service = talloc_get_type(private_data, struct ipa_service);
-    if (!service) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "FATAL: Bad private_data\n");
-        talloc_free(tmp_ctx);
-        return;
-    }
-
-    srvaddr = fo_get_server_hostent(server);
-    if (!srvaddr) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "No hostent available for server (%s)\n",
-                  fo_get_server_str_name(server));
-        talloc_free(tmp_ctx);
-        return;
-    }
-
-    sockaddr = resolv_get_sockaddr_address(tmp_ctx, srvaddr, LDAP_PORT, &sockaddr_len);
-    if (sockaddr == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "resolv_get_sockaddr_address failed.\n");
-        talloc_free(tmp_ctx);
-        return;
-    }
-
-    srv_name = fo_get_server_name(server);
-    if (srv_name == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Could not get server host name\n");
-        talloc_free(tmp_ctx);
-        return;
-    }
-
-    new_uri = talloc_asprintf(service, "ldap://%s", srv_name);
-    if (!new_uri) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to copy URI ...\n");
-        talloc_free(tmp_ctx);
-        return;
-    }
-    DEBUG(SSSDBG_TRACE_FUNC, "Constructed uri '%s'\n", new_uri);
-
-    /* free old one and replace with new one */
-    talloc_zfree(service->sdap->uri);
-    service->sdap->uri = new_uri;
-    talloc_zfree(service->sdap->sockaddr);
-    service->sdap->sockaddr = talloc_steal(service, sockaddr);
-    service->sdap->sockaddr_len = sockaddr_len;
-
-    if (service->krb5_service->write_kdcinfo) {
-        ret = write_krb5info_file_from_fo_server(service->krb5_service,
-                                                 server,
-                                                 true,
-                                                 SSS_KRB5KDC_FO_SRV,
-                                                 NULL);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "write to %s/kdcinfo.%s failed, authentication might fail.\n",
-                  PUBCONF_PATH, service->krb5_service->realm);
-        }
-    }
-
-    talloc_free(tmp_ctx);
-}
-
-static errno_t _ipa_servers_init(struct be_ctx *ctx,
-                                 const char *fo_service,
-                                 struct ipa_service *service,
-                                 struct ipa_options *options,
-                                 const char *servers,
-                                 bool primary)
-{
-    TALLOC_CTX *tmp_ctx;
-    char **list = NULL;
-    char *ipa_domain;
-    int ret = 0;
-    int i;
-    int j;
-
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    /* split server param into a list */
-    ret = split_on_separator(tmp_ctx, servers, ',', true, true, &list, NULL);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to parse server list!\n");
-        goto done;
-    }
-
-    for (j = 0; list[j]; j++) {
-        if (resolv_is_address(list[j])) {
-            DEBUG(SSSDBG_IMPORTANT_INFO,
-                  "ipa_server [%s] is detected as IP address, "
-                  "this can cause GSSAPI problems\n", list[j]);
-        }
-    }
-
-    /* now for each one add a new server to the failover service */
-    for (i = 0; list[i]; i++) {
-
-        talloc_steal(service, list[i]);
-
-        if (be_fo_is_srv_identifier(list[i])) {
-            if (!primary) {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      "Failed to add server [%s] to failover service: "
-                       "SRV resolution only allowed for primary servers!\n",
-                       list[i]);
-                continue;
-            }
-
-            ipa_domain = dp_opt_get_string(options->basic, IPA_DOMAIN);
-            ret = be_fo_add_srv_server(ctx, fo_service, "ldap", ipa_domain,
-                                       BE_FO_PROTO_TCP, false, NULL);
-            if (ret) {
-                DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add server\n");
-                goto done;
-            }
-
-            DEBUG(SSSDBG_TRACE_FUNC, "Added service lookup for service [%s]\n",
-                                     fo_service);
-            continue;
-        }
-
-        /* It could be ipv6 address in square brackets. Remove
-         * the brackets if needed. */
-        ret = remove_ipv6_brackets(list[i]);
-        if (ret != EOK) {
-            goto done;
-        }
-
-        ret = be_fo_add_server(ctx, fo_service, list[i], 0, NULL, primary);
-        if (ret && ret != EEXIST) {
-            DEBUG(SSSDBG_FATAL_FAILURE, "Failed to add server\n");
-            goto done;
-        }
-
-        DEBUG(SSSDBG_TRACE_FUNC, "Added Server %s\n", list[i]);
-    }
-
-done:
-    talloc_free(tmp_ctx);
-    return ret;
-}
-
-static inline errno_t
-ipa_primary_servers_init(struct be_ctx *ctx, const char *fo_service,
-                         struct ipa_service *service, struct ipa_options *options,
-                         const char *servers)
-{
-    return _ipa_servers_init(ctx, fo_service, service, options, servers, true);
-}
-
-static inline errno_t
-ipa_backup_servers_init(struct be_ctx *ctx, const char *fo_service,
-                        struct ipa_service *service, struct ipa_options *options,
-                        const char *servers)
-{
-    return _ipa_servers_init(ctx, fo_service, service, options, servers, false);
-}
-
-static int ipa_user_data_cmp(void *ud1, void *ud2)
-{
-    return strcasecmp((char*) ud1, (char*) ud2);
-}
-
 int ipa_service_init(TALLOC_CTX *memctx, struct be_ctx *ctx,
                      const char *primary_servers,
                      const char *backup_servers,
                      const char *realm,
                      const char *ipa_service,
-                     struct ipa_options *options,
-                     struct ipa_service **_service)
+                     struct ipa_options *options)
 {
     TALLOC_CTX *tmp_ctx;
-    struct ipa_service *service;
     int ret;
 
-    tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) {
-        return ENOMEM;
-    }
-
-    service = talloc_zero(tmp_ctx, struct ipa_service);
-    if (!service) {
-        ret = ENOMEM;
-        goto done;
-    }
-    service->sdap = talloc_zero(service, struct sdap_service);
-    if (!service->sdap) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    service->krb5_service = krb5_service_new(service, ctx,
+    options->krb5_service = krb5_service_new(memctx, ctx,
                                              ipa_service, realm,
                                              true,   /* The configured value */
                                              0,      /* will be set later when */
                                              0);     /* the auth provider is set up */
 
-    if (!service->krb5_service) {
+    if (!options->krb5_service) {
         ret = ENOMEM;
-        goto done;
-    }
-
-    ret = be_fo_add_service(ctx, ipa_service, ipa_user_data_cmp);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create failover service!\n");
-        goto done;
-    }
-
-    service->sdap->name = talloc_strdup(service, ipa_service);
-    if (!service->sdap->name) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    service->sdap->kinit_service_name = service->krb5_service->name;
-
-    if (!primary_servers) {
-        DEBUG(SSSDBG_CONF_SETTINGS,
-              "No primary servers defined, using service discovery\n");
-        primary_servers = BE_SRV_IDENTIFIER;
-    }
-
-    ret = ipa_primary_servers_init(ctx, ipa_service, service, options, primary_servers);
-    if (ret != EOK) {
-        goto done;
-    }
-
-    if (backup_servers) {
-        ret = ipa_backup_servers_init(ctx, ipa_service, service, options, backup_servers);
-        if (ret != EOK) {
-            goto done;
-        }
-    }
-
-    ret = be_fo_service_add_callback(memctx, ctx, ipa_service,
-                                     ipa_resolve_callback, service);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Failed to add failover callback!\n");
         goto done;
     }
 
     ret = EOK;
 
 done:
-    if (ret == EOK) {
-        *_service = talloc_steal(memctx, service);
-    }
     talloc_zfree(tmp_ctx);
     return ret;
 }
@@ -1359,8 +1118,7 @@ ipa_create_trust_options(TALLOC_CTX *mem_ctx,
 
     ret = ipa_service_init(ipa_options, be_ctx, ipa_servers,
                            ipa_backup_servers, subdom->realm,
-                           service_name, ipa_options,
-                           &ipa_options->service);
+                           service_name, ipa_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to init IPA service [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -1374,7 +1132,7 @@ ipa_create_trust_options(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    sdap_id_ctx = sdap_id_ctx_new(mem_ctx, be_ctx, ipa_options->service->sdap);
+    sdap_id_ctx = sdap_id_ctx_new(mem_ctx, be_ctx);
     if (sdap_id_ctx == NULL) {
         ret = ENOMEM;
         goto done;

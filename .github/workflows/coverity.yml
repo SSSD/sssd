@@ -10,6 +10,7 @@ on:
   pull_request_target:
     branches:
       - master
+      - failover
     types:
       - labeled
   workflow_dispatch:

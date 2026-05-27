@@ -141,24 +141,38 @@ enum sssd_exit_status {
 #endif
 #endif
 
-#define TEVENT_REQ_RETURN_ON_ERROR(req) do { \
-    enum tevent_req_state TRROEstate; \
-    uint64_t TRROEuint64; \
-    errno_t TRROEerr; \
+#define TEVENT_REQ_ERROR_TO_ERRNO(req) ({ \
+    enum tevent_req_state __TRETE_state; \
+    uint64_t __TRETE_uint64; \
+    errno_t __TRETE_err; \
+    errno_t __TRETE_ret = EOK; \
     \
-    if (tevent_req_is_error(req, &TRROEstate, &TRROEuint64)) { \
-        TRROEerr = (errno_t)TRROEuint64; \
-        switch (TRROEstate) { \
+    if (tevent_req_is_error(req, &__TRETE_state, &__TRETE_uint64)) { \
+        __TRETE_err = (errno_t)__TRETE_uint64; \
+        switch (__TRETE_state) { \
             case TEVENT_REQ_USER_ERROR:  \
-                if (TRROEerr == 0) { \
-                    return ERR_INTERNAL; \
+                if (__TRETE_err == 0) { \
+                    __TRETE_ret = ERR_INTERNAL; \
                 } \
-                return TRROEerr; \
+                __TRETE_ret = __TRETE_err; \
+                break; \
             case TEVENT_REQ_TIMED_OUT: \
-                return ETIMEDOUT; \
+                __TRETE_ret = ETIMEDOUT; \
+                break; \
+            case TEVENT_REQ_NO_MEMORY: \
+                __TRETE_ret = ENOMEM; \
+                break; \
             default: \
-                return ERR_INTERNAL; \
+                __TRETE_ret = ERR_INTERNAL; \
         } \
+    } \
+    __TRETE_ret; \
+})
+
+#define TEVENT_REQ_RETURN_ON_ERROR(req) do { \
+    errno_t TRROEret = TEVENT_REQ_ERROR_TO_ERRNO(req); \
+    if (TRROEret != EOK) { \
+        return TRROEret; \
     } \
 } while (0)
 
