@@ -405,8 +405,16 @@ static void sdap_connect_done(struct sdap_op *op,
         return;
     }
 
+    // Elevate to read the certificates
+    if (sss_set_cap_effective(CAP_DAC_READ_SEARCH, true) != 0) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Failed to elevate CAP_DAC_READ_SEARCH to effective set\n");
+    }
+
 /* FIXME: take care that ldap_install_tls might block */
     ret = ldap_install_tls(state->sh->ldap);
+    if (sss_set_cap_effective(CAP_DAC_READ_SEARCH, false) != 0) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Failed to drop CAP_DAC_READ_SEARCH from effective set\n");
+    }
     if (ret != LDAP_SUCCESS) {
         sss_ldap_error_debug(SSSDBG_MINOR_FAILURE, "ldap_install_tls failed",
                              state->sh->ldap, ret);
@@ -2412,7 +2420,14 @@ static int synchronous_tls_setup(LDAP *ldap)
         goto done;
     }
 
+    // Elevate to read the certificates
+    if (sss_set_cap_effective(CAP_DAC_READ_SEARCH, true) != 0) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Failed to elevate CAP_DAC_READ_SEARCH to effective set\n");
+    }
     lret = ldap_install_tls(ldap);
+    if (sss_set_cap_effective(CAP_DAC_READ_SEARCH, false) != 0) {
+        DEBUG(SSSDBG_IMPORTANT_INFO, "Failed to drop CAP_DAC_READ_SEARCH from effective set\n");
+    }
     if (lret != LDAP_SUCCESS) {
         sss_ldap_error_debug(SSSDBG_MINOR_FAILURE, "ldap_install_tls failed",
                              ldap, lret);

@@ -278,7 +278,16 @@ static void sss_ldap_init_sys_connect_done(struct tevent_req *subreq)
 
     if (ldap_is_ldaps_url(state->uri)) {
         ticks_before_install = get_watchdog_ticks();
+
+        // Elevate to read the certificates
+        if (sss_set_cap_effective(CAP_DAC_READ_SEARCH, true) != 0) {
+            DEBUG(SSSDBG_IMPORTANT_INFO, "Failed to elevate CAP_DAC_READ_SEARCH to effective set\n");
+        }
         lret = ldap_install_tls(state->ldap);
+        if (sss_set_cap_effective(CAP_DAC_READ_SEARCH, false) != 0) {
+            DEBUG(SSSDBG_IMPORTANT_INFO, "Failed to drop CAP_DAC_READ_SEARCH from effective set\n");
+        }
+
         ticks_after_install = get_watchdog_ticks();
         if (lret != LDAP_SUCCESS) {
             if (lret == LDAP_LOCAL_ERROR) {
