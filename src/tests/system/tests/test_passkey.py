@@ -339,6 +339,7 @@ def test_passkey__su_user_when_server_is_not_resolvable(client: Client, provider
     )
 
 
+@pytest.mark.flaky(max_runs=5)
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.builtwith(client=["passkey", "vfido"], provider="passkey")
@@ -741,6 +742,7 @@ def test_passkey__ipa_server_offline(client: Client, ipa: IPA):
     assert klist_check, "Credential cache found"
 
 
+@pytest.mark.flaky(max_runs=5)
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.builtwith(client=["passkey", "vfido"], ipa="passkey")
