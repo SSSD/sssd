@@ -687,7 +687,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_tmpfilesdir}/%{name}.conf
 
 %dir %{_libexecdir}/%{servicename}
-%{_libexecdir}/%{servicename}/sssd_be
+%attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/sssd_be
 %{_libexecdir}/%{servicename}/sssd_nss
 %attr(0750,root,sssd) %caps(cap_dac_read_search=p) %{_libexecdir}/%{servicename}/sssd_pam
 %{_libexecdir}/%{servicename}/sssd_autofs
