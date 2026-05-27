@@ -177,20 +177,6 @@ ipa_dyndns_update_connect_done(struct tevent_req *subreq)
         return;
     }
 
-    /* The following three checks are here to prevent SEGFAULT
-     * from ticket #3076. */
-    if (ctx->service == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "service structure not initialized\n");
-        ret = EINVAL;
-        goto done;
-    }
-
-    if (ctx->service->sdap == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "sdap structure not initialized\n");
-        ret = EINVAL;
-        goto done;
-    }
-
     if (state->conn->uri == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "LDAP uri not set\n");
         ret = EINVAL;
