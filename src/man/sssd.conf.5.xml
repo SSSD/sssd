@@ -3873,7 +3873,12 @@ pam_json_services = gdm-switchable-auth
                     <term>override_gid (integer)</term>
                     <listitem>
                         <para>
-                            Override the primary GID value with the one specified.
+                            Override the primary GID value for all users in the
+                            domain with specified value.
+                        </para>
+                        <para>
+                            Default: not set (Use the primary GID value retrieved
+                            from the identity provider)
                         </para>
                     </listitem>
                 </varlistentry>
