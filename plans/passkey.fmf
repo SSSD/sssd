@@ -10,6 +10,13 @@ provision:
       memory: ">= 16 GB"
 
 prepare:
+    - name: Enable EPEL repository for CentOS Stream
+      how: shell
+      script: |
+        if grep -q "CentOS Stream" /etc/os-release 2>/dev/null; then
+          dnf install -y epel-release
+        fi
+
     - name: Install general dependencies
       how: install
       package:
@@ -31,11 +38,13 @@ prepare:
           ln -sf $(command -v podman-compose) /usr/local/bin/docker-compose
         fi
 
-    - name: Install and load kernel module for passkey testing
+    - name: Install and load kernel module for passkey testing on Fedora
       how: shell
       script: |
-        dnf install -y kernel-modules-extra-$(uname -r)
-        modprobe vhci_hcd
+        if grep -q "^ID=fedora" /etc/os-release 2>/dev/null; then
+          dnf install -y kernel-modules-extra-$(uname -r)
+          modprobe vhci_hcd
+        fi
 
     - name: Clone sssd
       how: shell
@@ -76,11 +85,11 @@ prepare:
         setsebool container_manage_cgroup true
         cp env.example .env
 
-        # Use CONTAINER_TARGET from packit if provided, otherwise use Fedora
-        if [ -n "$CONTAINER_TARGET" ]; then
-            CONTAINER_TAG="$CONTAINER_TARGET"
+        # Detect system distribution and set appropriate container tag
+        . /tmp/sssd/contrib/ci/distro.sh
+        if [ "$DISTRO_ID" = "centos" ]; then
+            CONTAINER_TAG="centos-$DISTRO_RELEASE"
         else
-            . /tmp/sssd/contrib/ci/distro.sh
             CONTAINER_TAG="fedora-$DISTRO_RELEASE"
         fi
         echo "Using container tag: $CONTAINER_TAG"
@@ -142,7 +151,9 @@ prepare:
 
         echo "Using COPR repo: $COPR_REPO"
 
-        if [[ "$CONTAINER_TARGET" == "centos-10" ]]; then
+        # Detect system distribution and set appropriate COPR command
+        . /tmp/sssd/contrib/ci/distro.sh
+        if [ "$DISTRO_ID" = "centos" ] && [ "$DISTRO_RELEASE" = "10" ]; then
           COPR_ENABLE_CMD="dnf copr enable -y $COPR_REPO centos-stream-10-x86_64"
         else
           COPR_ENABLE_CMD="dnf copr enable -y $COPR_REPO"
