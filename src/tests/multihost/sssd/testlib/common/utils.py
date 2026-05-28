@@ -1220,8 +1220,11 @@ class LdapOperations(object):
         self.uri = uri if not port else '%s:%s' % (uri, port)
         self.binddn = binddn
         self.bindpw = bindpw
-        self.conn = ldap.initialize(uri)
+        self.conn = ldap.initialize(self.uri)
         self.conn = self.bind()
+        if isinstance(self.conn, tuple):
+            raise LdapException("Failed to bind to ldap server, Error: %s"
+                                % self.conn[0])
 
     def bind(self):
         """ Bind to ldap server
