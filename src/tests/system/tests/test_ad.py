@@ -294,3 +294,107 @@ def test_ad__user_authenticates_with_smartcard_certificate(client: Client, ad: A
     client.sssd.start()
 
     assert client.auth.su.smartcard(username, SMARTCARD_PIN), "Smart card authentication failed!"
+
+
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.ticket(jira="RHEL-75484")
+@pytest.mark.importance("high")
+def test_ad__range_retrieval_lookup_users_that_exceed_max_range(client: Client, ad: AD):
+    """
+    :title: Groups with more users than MaxValRange can be retrieved
+    :description:
+        Under certain circumstances in an AD environment, SSSD retrieves
+        a group object with a multi-valued member attribute. For groups
+        with many members, AD may return an incomplete object due to
+        the MaxValRange policy. SSSD must retrieve the remaining members
+        through subsequent LDAP requests.
+    :setup:
+        1. Set MaxValRange in lDAPAdminLimits on AD.
+        2. Create an ad group with number of users > MaxValRange
+        3. Clear SSSD cache
+    :steps:
+        1. Retrieve all users one by one using getent passwd
+        2. Retrieve the group running getent group and check cached content
+    :expectedresults:
+        1. Users are evaluated
+        2. No users are missing from the group
+    :customerscenario: True
+    """
+    size = 152
+    maxvalrange = 50
+    # The lDAPAdminLimits list contains mutiple items in key=value format.
+    # We retrieve the current lDAPAdminLimits, remove MaxValRange from it.
+    # Then we append new MaxValRange and write it back.
+    ad.host.conn.run(rf"""
+            $basedn = '{ad.naming_context}'
+            $policyDN = "CN=Default Query Policy,CN=Query-Policies,CN=Directory"+
+            " Service,CN=Windows NT,CN=Services,CN=Configuration,$basedn"
+            $currentLimits = (Get-ADObject -Identity $policyDN `
+            -Properties lDAPAdminLimits).lDAPAdminLimits
+            Write-Output "Current limits: $currentLimits"
+            $regexPattern = "MaxValRange=.*"
+            $newLimits = @()
+            $newLimits += $currentLimits -notmatch $regexPattern
+            $newLimits += "MaxValRange={maxvalrange}"
+            Write-Output "New limits: $newLimits"
+            Set-ADObject -Identity $policyDN -Replace @{{lDAPAdminLimits = $newLimits}}
+            """)
+    try:
+        # Provisioning groups one by one using the framework takes too long.
+        ad.host.conn.run(rf"""
+                Import-Module ActiveDirectory
+                $basedn = '{ad.naming_context}'
+                $gidNumber = 30000
+                New-ADGroup -Name "big-group" -GroupScope 'Global' -GroupCategory `
+                'Security' -OtherAttributes @{{"gidNumber"="$gidNumber"}} -Path "cn=users,$basedn"
+                $count = 0
+                while ($count -lt {size}) {{
+                    $uidNumber = 10001 + $count
+                    $userName = "user-$count"
+                    New-ADUser -Name $userName -AccountPassword (ConvertTo-SecureString `
+                    "Secret123" -AsPlainText -force) -OtherAttributes @{{"uid"=$userName`
+                    ;"uidNumber"=$uidNumber;"gidNumber"=20001;"gecos"=$userName;"loginShell"=`
+                    "/bin/bash"}} -Enabled $True -Path "cn=users,$basedn" -EmailAddress `
+                    "$userName@$basedn" -GivenName dummyfirstname -Surname dummylastname `
+                    -UserPrincipalName "$userName@$basedn"
+                    Add-ADGroupMember -Identity "cn=big-group,cn=users,$basedn" `
+                    -Members "cn=$userName,cn=users,$basedn"
+                    $count++
+                }}
+                """)
+        client.sssd.clear()
+        client.sssd.domain["ldap_id_mapping"] = "false"
+        client.sssd.start()
+        # Populate cache with users.
+        for a in range(0, size):
+            user = client.tools.getent.passwd(f"user-{a}@{client.sssd.default_domain}")
+            assert user is not None, f"Failed to read user `user-{a}`, infrastructure issue?"
+        result = client.tools.getent.group(f"big-group@{client.sssd.default_domain}")
+        assert result is not None, "Failed to resolve big-group!"
+        assert len(result.members) == size, "Some users are missing in the group!"
+    finally:
+        # remove temporary users and group
+        ad.host.conn.run(rf"""
+                Import-Module ActiveDirectory
+                $basedn = '{ad.naming_context}'
+                $count = 0
+                while ($count -lt {size}) {{
+                    $userName = "user-$count"
+                    Remove-ADUser -Identity "cn=$userName,cn=users,$basedn" -Confirm:$false
+                    $count++
+                }}
+                Remove-ADGroup -Identity "cn=big-group,cn=users,$basedn" -Confirm:$false
+                """)
+        # restore MaxValRange
+        ad.host.conn.run(rf"""
+                $basedn = '{ad.naming_context}'
+                $policyDN = "CN=Default Query Policy,CN=Query-Policies,CN=Directory"+
+                " Service,CN=Windows NT,CN=Services,CN=Configuration,$basedn"
+                $currentLimits = (Get-ADObject -Identity $policyDN `
+                -Properties lDAPAdminLimits).lDAPAdminLimits
+                $regexPattern = "MaxValRange=.*"
+                $newLimits = @()
+                $newLimits += $currentLimits -notmatch $regexPattern
+                $newLimits += "MaxValRange=1500"
+                Set-ADObject -Identity $policyDN -Replace @{{lDAPAdminLimits = $newLimits}}
+                """)
