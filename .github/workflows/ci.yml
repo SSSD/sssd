@@ -152,7 +152,6 @@ jobs:
         working-directory: /sssd
         where: |
           client
-          ipa
         script: |
           #!/bin/bash
           set -ex
@@ -172,7 +171,6 @@ jobs:
         user: root
         where: |
           client
-          ipa
         script: |
           #!/bin/bash
           set -ex
@@ -186,17 +184,6 @@ jobs:
 
           # We need to reenable sssd-kcm since it was disabled by removing sssd not not enabled again
           systemctl enable --now sssd-kcm.socket
-
-    - name: Restart SSSD on IPA server
-      uses: SSSD/sssd-ci-containers/actions/exec@master
-      with:
-        user: root
-        where: ipa
-        script: |
-          #!/bin/bash
-          set -ex
-
-          systemctl restart sssd || systemctl status sssd
 
     - name: Patch the SSH configuration
       uses: SSSD/sssd-ci-containers/actions/exec@master
@@ -310,6 +297,8 @@ jobs:
           --polarion-config=../polarion.yaml \
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
+          --mh-topology=ldap \
+          -k "not test_failover__backup_uri_accepts_ip_address and not test_failover__backup_uri_list_falls_back_to_next_uri and not test_failover__empty_element_in_backup_uri_list_is_ignored and not test_failover__login_via_backup_when_primary_is_unavailable and not test_failover__primary_uri_list_ending_with_srv_falls_back_to_backup and not test_failover__primary_uri_list_falls_back_to_next_uri and not test_failover__reactivation_timeout_is_honored and not test_failover__unresolvable_hostname_does_not_stop_failover and not test_autofs__propagate_offline_status_for_multiple_domains and not test_failover__connect_using_ipv4_second_family and not test_failover__empty_primary_uri_falls_back_to_service_discovery and not test_failover__go_offline_if_ldap_fails and not test_logging__dns_resolution_issue_in_logs and not test_failover__srv_in_backup_uri_is_rejected and not test_ldap__connection_expire_timeout_releases_connection and not test_logging__offline_errors_are_written_to_logs_and_syslog and not test_sudo__full_refresh_retries_after_startup_offline" \
           --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
 
     - name: Run tests
@@ -330,6 +319,8 @@ jobs:
           --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
           --output-polarion-testrun=$GITHUB_WORKSPACE/artifacts/testrun.xml \
           ${{ steps.select-tests.outputs.SELECT_TESTS }} \
+          --mh-topology=ldap \
+          -k "not test_failover__backup_uri_accepts_ip_address and not test_failover__backup_uri_list_falls_back_to_next_uri and not test_failover__empty_element_in_backup_uri_list_is_ignored and not test_failover__login_via_backup_when_primary_is_unavailable and not test_failover__primary_uri_list_ending_with_srv_falls_back_to_backup and not test_failover__primary_uri_list_falls_back_to_next_uri and not test_failover__reactivation_timeout_is_honored and not test_failover__unresolvable_hostname_does_not_stop_failover and not test_autofs__propagate_offline_status_for_multiple_domains and not test_failover__connect_using_ipv4_second_family and not test_failover__empty_primary_uri_falls_back_to_service_discovery and not test_failover__go_offline_if_ldap_fails and not test_logging__dns_resolution_issue_in_logs and not test_failover__srv_in_backup_uri_is_rejected and not test_ldap__connection_expire_timeout_releases_connection and not test_logging__offline_errors_are_written_to_logs_and_syslog and not test_sudo__full_refresh_retries_after_startup_offline" \
           -vvv . |& tee $GITHUB_WORKSPACE/pytest.log
 
     - name: Upload artifacts

@@ -1,0 +1,80 @@
+-- LDAP topology tests to exclude
+
+test_failover__backup_uri_accepts_ip_address
+test_failover__backup_uri_list_falls_back_to_next_uri
+test_failover__empty_element_in_backup_uri_list_is_ignored
+test_failover__login_via_backup_when_primary_is_unavailable
+test_failover__primary_uri_list_ending_with_srv_falls_back_to_backup
+test_failover__primary_uri_list_falls_back_to_next_uri
+test_failover__reactivation_timeout_is_honored
+test_failover__reactivation_timeout_is_honored
+test_failover__reactivation_timeout_is_honored
+test_failover__unresolvable_hostname_does_not_stop_failover
+test_autofs__propagate_offline_status_for_multiple_domains
+test_failover__connect_using_ipv4_second_family
+test_failover__empty_primary_uri_falls_back_to_service_discovery
+test_failover__go_offline_if_ldap_fails
+test_logging__dns_resolution_issue_in_logs
+test_failover__srv_in_backup_uri_is_rejected
+test_ldap__connection_expire_timeout_releases_connection
+test_logging__offline_errors_are_written_to_logs_and_syslog
+test_sudo__full_refresh_retries_after_startup_offline
+
+-- Filter command to pass to pytest:
+
+-k "not test_failover__backup_uri_accepts_ip_address and not test_failover__backup_uri_list_falls_back_to_next_uri and not test_failover__empty_element_in_backup_uri_list_is_ignored and not test_failover__login_via_backup_when_primary_is_unavailable and not test_failover__primary_uri_list_ending_with_srv_falls_back_to_backup and not test_failover__primary_uri_list_falls_back_to_next_uri and not test_failover__reactivation_timeout_is_honored and not test_failover__unresolvable_hostname_does_not_stop_failover and not test_autofs__propagate_offline_status_for_multiple_domains and not test_failover__connect_using_ipv4_second_family and not test_failover__empty_primary_uri_falls_back_to_service_discovery and not test_failover__go_offline_if_ldap_fails and not test_logging__dns_resolution_issue_in_logs and not test_failover__srv_in_backup_uri_is_rejected and not test_ldap__connection_expire_timeout_releases_connection and not test_logging__offline_errors_are_written_to_logs_and_syslog and not test_sudo__full_refresh_retries_after_startup_offline"
+
+
+Reason for exclusion:
+
+-- test_failover__backup_uri_accepts_ip_address
+-- test_failover__backup_uri_list_falls_back_to_next_uri
+-- test_failover__empty_element_in_backup_uri_list_is_ignored
+-- test_failover__login_via_backup_when_primary_is_unavailable
+-- test_failover__primary_uri_list_ending_with_srv_falls_back_to_backup
+-- test_failover__primary_uri_list_falls_back_to_next_uri
+-- test_failover__reactivation_timeout_is_honored-15-31
+-- test_failover__reactivation_timeout_is_honored-60-60
+-- test_failover__reactivation_timeout_is_honored-None
+-- test_failover__unresolvable_hostname_does_not_stop_failover
+
+Each of these tests assert some expected 'sssctl domain-status' output. These tests fail because dp_failover_list_services() needs to be adapted to work with the new failover code, current
+failover code 'sssctl domain-status' returns 'This domain has no active servers.' Also some of these test the 'failover_primary_timeout' option which is not implemented in the new failover.
+
+
+-- test_autofs__propagate_offline_status_for_multiple_domains:
+
+This test will fail as long as 'DO NOT PUSH TO MASTER ldap: Initialization for new failover' commit exists. This test expects SSSD to go offline but with 'master.ldap.test' hardcoded in this commit we this doesn't happen.
+
+-- test_failover__connect_using_ipv4_second_family
+
+New failover implementation does not handle 'second family' switch from ipv6 to ipv4 properly.
+
+    client.sssd.domain["lookup_family_order"] = "ipv6_first"
+
+-- test_failover__empty_primary_uri_falls_back_to_service_discovery
+
+This checks for "No primary servers defined, using service discovery" log message which is no longer present in new failover.
+It also will fail as long as servers hardcoded in 'DO NOT PUSH TO MASTER ldap: Initialization for new failover' commit exists.
+
+-- test_failover__go_offline_if_ldap_fails
+-- test_logging__offline_errors_are_written_to_logs_and_syslog
+
+These tests runs 'sssctl domain-status' and expects it to return "Offline" but because of hardcoded 'master.ldap.test' server SSSD never goes offline.
+
+-- test_logging__dns_resolution_issue_in_logs
+
+Asserting log message that is no longer logged in the new failover "Failed to resolve server 'typo.invalid': Domain name not found"
+
+-- test_failover__srv_in_backup_uri_is_rejected
+
+asserting log message "SRV resolution only allowed for primary servers" that will is no longer used in new failover
+
+-- test_ldap__connection_expire_timeout_releases_connection
+
+ldap_connection_expire_timeout needs to be implemented in the new failover. Log message "Connection is about to expire, releasing it" was removed
+as part of removal of src/providers/ldap/sdap_id_op.c
+
+-- test_sudo__full_refresh_retries_after_startup_offline
+
+This test brings SSSD offline then backonline but ldap online check handler is removed, it will be reworked for new failover.
