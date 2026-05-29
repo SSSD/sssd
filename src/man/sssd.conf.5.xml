@@ -39,7 +39,10 @@
 
         <para>
             The data types used are string (no quotes needed), integer
-            and bool (with values of <quote>TRUE/FALSE</quote>).
+            and boolean (with values of <quote>TRUE/FALSE</quote>).
+            Boolean values are case-insensitive; for example, <quote>TRUE</quote>,
+            <quote>True</quote> and <quote>true</quote> are all equivalent and
+            valid; the same applies to <quote>FALSE</quote>.
         </para>
 
         <para>
