@@ -207,7 +207,6 @@ ad_handle_acct_info_step(struct tevent_req *req)
             subreq = ad_handle_pac_initgr_send(state, state->ctx->be,
                                                state->ar, state->ctx,
                                                state->sdom,
-                                               state->conn[state->cindex],
                                                noexist_delete,
                                                msg);
             if (subreq == NULL) {

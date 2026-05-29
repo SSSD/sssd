@@ -938,9 +938,6 @@ ad_failover_reset(struct be_ctx *bectx,
         DEBUG(SSSDBG_CRIT_FAILURE, "NULL service\n");
         return;
     }
-
-    sdap_service_reset_fo(bectx, adsvc->sdap);
-    sdap_service_reset_fo(bectx, adsvc->gc);
 }
 
 static bool
