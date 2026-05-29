@@ -1727,7 +1727,7 @@ struct sdap_get_groups_state {
 };
 
 static errno_t sdap_get_groups_next_base(struct tevent_req *req);
-static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq);
+//static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq);
 static void sdap_get_groups_process(struct tevent_req *subreq);
 static void sdap_get_groups_done(struct tevent_req *subreq);
 
@@ -1744,9 +1744,9 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
 {
     errno_t ret;
     struct tevent_req *req;
-    struct tevent_req *subreq;
+    //struct tevent_req *subreq;
     struct sdap_get_groups_state *state;
-    struct sdap_id_conn_ctx *ldap_conn = NULL;
+    //struct sdap_id_conn_ctx *ldap_conn = NULL;
 
     req = tevent_req_create(memctx, &state, struct sdap_get_groups_state);
     if (!req) return NULL;
@@ -1778,6 +1778,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
     /* With AD by default the Global Catalog is used for lookup. But the GC
      * group object might not have full group membership data. To make sure we
      * connect to an LDAP server of the group's domain. */
+    /* FIXME: AD use case
     ldap_conn = get_ldap_conn_from_sdom_pvt(state->opts, sdom);
     if (ldap_conn != NULL) {
         state->op = sdap_id_op_create(state, ldap_conn->conn_cache);
@@ -1798,6 +1799,7 @@ struct tevent_req *sdap_get_groups_send(TALLOC_CTX *memctx,
                                 req);
         return req;
     }
+    */
 
     ret = sdap_get_groups_next_base(req);
 
@@ -1810,6 +1812,7 @@ done:
     return req;
 }
 
+/*
 static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
@@ -1836,6 +1839,7 @@ static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq)
 
     return;
 }
+*/
 
 static errno_t sdap_get_groups_next_base(struct tevent_req *req)
 {
