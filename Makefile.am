@@ -4946,6 +4946,7 @@ oidc_child_SOURCES = \
     src/util/strtonum.c \
     src/util/sss_chain_id.c \
     src/util/sss_prctl.c \
+    src/util/cert/libcrypto/cert.c \
     $(NULL)
 oidc_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4953,6 +4954,8 @@ oidc_child_CFLAGS = \
     $(JANSSON_CFLAGS) \
     $(JOSE_CFLAGS) \
     $(CURL_CFLAGS) \
+    $(UUID_CFLAGS) \
+    $(CRYPTO_CFLAGS) \
     $(NULL)
 oidc_child_LDADD = \
     libsss_debug.la \
@@ -4961,6 +4964,8 @@ oidc_child_LDADD = \
     $(JANSSON_LIBS) \
     $(JOSE_LIBS) \
     $(CURL_LIBS) \
+    $(UUID_LIBS) \
+    $(CRYPTO_LIBS) \
     $(NULL)
 endif
 
