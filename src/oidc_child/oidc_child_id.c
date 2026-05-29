@@ -471,6 +471,7 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     bool libcurl_debug, const char *ca_db,
                     const char *client_id, const char *client_secret,
                     const char *pkcs12_client_creds,
+                    enum client_auth_method client_auth_method,
                     const char *token_endpoint, const char *scope, char **out)
 {
     errno_t ret;
@@ -490,7 +491,8 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     }
 
     rest_ctx = get_rest_ctx(mem_ctx, libcurl_debug, ca_db,
-                            pkcs12_client_creds, client_secret);
+                            pkcs12_client_creds, client_auth_method,
+                            client_secret);
     if (rest_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get REST context.\n");
         return ENOMEM;
