@@ -3681,8 +3681,24 @@ pam_json_services = gdm-switchable-auth
                         </para>
                         <para>
                             Please see the section <quote>FAILOVER</quote>
-                            for more information about the service
-                            resolution.
+                            in
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>,
+                            <citerefentry>
+                                <refentrytitle>sssd-krb5</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>,
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                           </citerefentry> or
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information about the
+                            service resolution.
                         </para>
                         <para>
                             Default: 1000
@@ -3701,8 +3717,24 @@ pam_json_services = gdm-switchable-auth
                         </para>
                         <para>
                             Please see the section <quote>FAILOVER</quote>
-                            for more information about the service
-                            resolution.
+                            in
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>,
+                            <citerefentry>
+                                <refentrytitle>sssd-krb5</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>,
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> or
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information about the
+                            service resolution.
                         </para>
                         <para>
                             Default: 3
@@ -3722,8 +3754,24 @@ pam_json_services = gdm-switchable-auth
                         </para>
                         <para>
                             Please see the section <quote>FAILOVER</quote>
-                            for more information about the service
-                            resolution.
+                            in
+                            <citerefentry>
+                                <refentrytitle>sssd-ldap</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>,
+                            <citerefentry>
+                                <refentrytitle>sssd-krb5</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>,
+                            <citerefentry>
+                                <refentrytitle>sssd-ipa</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> or
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information about the
+                            service resolution.
                         </para>
                         <para>
                             Default: 6
