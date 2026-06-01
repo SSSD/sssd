@@ -512,7 +512,7 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
         if (sep == NULL || sep == input) {
             filter = talloc_asprintf(rest_ctx, "include_users=true&name=%s", input_enc);
         } else {
-            filter = talloc_asprintf(rest_ctx, "include_users=true&search=%s" , input_enc);
+            filter = talloc_asprintf(rest_ctx, "include_users=true&search=%s", input_enc);
         }
         break;
     default:
@@ -576,7 +576,8 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
         break;
     case GET_GROUP_MEMBERS:
         uri = talloc_asprintf(rest_ctx,
-            "%s/users/?groups_by_pk=%s&include_groups=false&include_roles=false&page=1&page_size=2000", base_url, obj_id);
+            "%s/users/?groups_by_pk=%s&include_groups=false&include_roles=false&page=1&page_size=2000",
+            base_url, obj_id);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
@@ -685,12 +686,12 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
         goto done;
     }
 
-    if (idp_type != NULL && strncasecmp(idp_type, "keycloak:",9) == 0) {
+    if (idp_type != NULL && strncasecmp(idp_type, "keycloak:", 9) == 0) {
         ret = keycloak_lookup(mem_ctx, oidc_cmd, base_url, input, input_type,
                               libcurl_debug, ca_db, client_id, client_secret,
                               token_endpoint, scope, bearer_token, rest_ctx,
                               out);
-    } else if (idp_type != NULL && strncasecmp(idp_type, "authentik:",10) == 0) {
+    } else if (idp_type != NULL && strncasecmp(idp_type, "authentik:", 10) == 0) {
         ret = authentik_lookup(mem_ctx, oidc_cmd, base_url, input, input_type,
                               libcurl_debug, ca_db, client_id, client_secret,
                               token_endpoint, scope, bearer_token, rest_ctx,

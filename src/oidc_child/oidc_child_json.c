@@ -554,7 +554,6 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
     id_attr_list[id_attr_index++] = "id";
     id_attr_list[id_attr_index] = NULL;
 
-
     for (c = 0; id_attr_list[c] != NULL; c++) {
         id_object = json_object_get(userinfo, id_attr_list[c]);
         if (id_object != NULL) {
