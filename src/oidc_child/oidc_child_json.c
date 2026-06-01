@@ -614,6 +614,25 @@ const char *get_str_attr_from_json_string(TALLOC_CTX *mem_ctx,
     return attr;
 }
 
+int get_authentik_pagination(const char *json_str)
+{
+    json_error_t json_error;
+    json_t *result = NULL;
+    json_t *pagination_data = NULL;
+    int page_count;
+
+    result = json_loads(json_str, 0, &json_error);
+    if (result == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+            "Failed to parse json data on line [%d]: [%s].\n",
+            json_error.line, json_error.text);
+        return ENOMEM;
+    }
+    pagination_data = json_object_get(result, "pagination");
+    page_count = get_json_integer(pagination_data, "total_pages", true);
+    return page_count;
+}
+
 const char *get_str_attr_from_json_array_string(TALLOC_CTX *mem_ctx,
                                                 const char *json_str,
                                                 const char *attr_name)
