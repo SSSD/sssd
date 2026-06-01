@@ -484,6 +484,7 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     const char *obj_id;
     char *sep;
     char *tmp;
+    int page_count;
     struct name_and_type_identifier authentik_name_and_type_identifier = {
                             .user_identifier_attr = "username",
                             .group_identifier_attr = "name",
@@ -572,11 +573,12 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     switch (oidc_cmd) {
     case GET_USER_GROUPS:
         uri = talloc_asprintf(rest_ctx,
-            "%s/groups/?include_users=false&members_by_pk=%s&page=1&page_size=2000", base_url, obj_id);
+            "%s/groups/?include_users=false&members_by_pk=%s&page=1&page_size=100",
+            base_url, obj_id);
         break;
     case GET_GROUP_MEMBERS:
         uri = talloc_asprintf(rest_ctx,
-            "%s/users/?groups_by_pk=%s&include_groups=false&include_roles=false&page=1&page_size=2000",
+            "%s/users/?groups_by_pk=%s&include_groups=false&include_roles=false&page=1&page_size=100",
             base_url, obj_id);
         break;
     default:
@@ -612,16 +614,21 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
 
 done:
     if (ret == EOK && out != NULL) {
+        page_count = get_authentik_pagination(get_http_data(rest_ctx));
+        if (page_count > 1) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "WARNING: Authentik results have been "
+            "truncated. User or Group information might not be complete.\n");
+        }
+
         tmp = get_json_string_array_from_json_string(
             mem_ctx, get_http_data(rest_ctx), "results");
-
         if (tmp == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to copy output data.\n");
             return ENOMEM;
         }
         ret = add_posix_to_json_string_array(mem_ctx,
-                                                &authentik_name_and_type_identifier,
-                                                0, tmp, out);
+                                             &authentik_name_and_type_identifier,
+                                             0, tmp, out);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to add POSIX data.\n");
         }
