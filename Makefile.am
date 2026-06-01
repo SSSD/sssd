@@ -5037,6 +5037,7 @@ sssd_krb5_idp_plugin_la_LIBADD = \
 sssd_krb5_idp_plugin_la_LDFLAGS = \
     -avoid-version \
     -module \
+    -export-symbols-regex '.*_idp_initvt$$' \
     $(NULL)
 
 dist_noinst_HEADERS += src/krb5_plugin/idp/idp.h
@@ -5065,6 +5066,7 @@ sssd_krb5_passkey_plugin_la_LIBADD = \
 sssd_krb5_passkey_plugin_la_LDFLAGS = \
     -avoid-version \
     -module \
+    -export-symbols-regex '.*_passkey_initvt$$' \
     $(NULL)
 
 dist_noinst_HEADERS += src/krb5_plugin/passkey/passkey.h
