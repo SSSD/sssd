@@ -477,10 +477,6 @@ static int add_oid_to_san_list(TALLOC_CTX *mem_ctx,
     return 0;
 }
 
-/* Due to CVE-2023-0286 the type of the x400Address member of the
- * GENERAL_NAME struct was changed from ASN1_TYPE to ASN1_STRING. The
- * following code tries to make sure that the x400Address can be extracted from
- * the certificate in either case. */
 static int get_x400address_data(TALLOC_CTX *mem_ctx, GENERAL_NAME *current,
                                 unsigned char **_data, int *_len)
 {
@@ -488,7 +484,6 @@ static int get_x400address_data(TALLOC_CTX *mem_ctx, GENERAL_NAME *current,
     unsigned char *data = NULL;
     int len;
 
-#ifdef HAVE_X400ADDRESS_STRING
     len = ASN1_STRING_length(current->d.x400Address);
     if (len <= 0) {
         ret = EINVAL;
@@ -506,27 +501,6 @@ static int get_x400address_data(TALLOC_CTX *mem_ctx, GENERAL_NAME *current,
     /* just make sure we have the right length in case the original
      * x400Address contained some unexpected \0-bytes. */
     len = strlen((char *) data);
-#else
-    unsigned char *p;
-
-    len = i2d_ASN1_TYPE(current->d.x400Address, NULL);
-
-    if (len <= 0) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    data = talloc_size(mem_ctx, len);
-    if (data == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* i2d_ASN1_TYPE increment the second argument so that it points to the end
-     * of the written data hence we cannot use data directly. */
-    p = data;
-    len = i2d_ASN1_TYPE(current->d.x400Address, &p);
-#endif
 
     ret = 0;
 
