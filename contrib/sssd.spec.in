@@ -111,8 +111,8 @@ BuildRequires: m4
 BuildRequires: make
 BuildRequires: nss_wrapper
 BuildRequires: openldap-devel
-BuildRequires: openssl >= 1.0.1
-BuildRequires: openssl-devel >= 1.0.1
+BuildRequires: openssl >= 3.0.8
+BuildRequires: openssl-devel >= 3.0.8
 BuildRequires: p11-kit-devel
 BuildRequires: pam_wrapper
 BuildRequires: pam-devel
