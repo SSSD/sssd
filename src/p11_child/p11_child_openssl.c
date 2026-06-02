@@ -424,8 +424,8 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
     }
 
     ocsp_basic = OCSP_response_get1_basic(ocsp_resp);
-    if (ocsp_resp == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "OCSP_response_get1_basic failed.\n");
+    if (ocsp_basic == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "OCSP_response_get1_basic() failed.\n");
         ret = EIO;
         goto done;
     }
