@@ -391,6 +391,8 @@ def test_passkey__lookup_user_from_cache(
         2. Successfully get the user from ldbsearch command.
     :customerscenario: False
     """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
 
     suffix = type(provider).__name__.lower()
 

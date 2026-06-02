@@ -206,7 +206,7 @@ def test_sss_override__root_user_cannot_be_used(client: Client, provider: Generi
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
 def test_sss_override__export_then_import_override_data(client: Client, provider: GenericProvider):
     """
-        :title: Export then  import override data
+    :title: Export then  import override data
     :setup:
         1. Create user, groups and start SSSD
         2. Create user and group overrides and restart SSSD
@@ -223,6 +223,9 @@ def test_sss_override__export_then_import_override_data(client: Client, provider
     :customerscenario: False
     :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: import export user override
     """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
+
     provider.user("user1").add(
         uid=999011, gid=999011, home="/home/user1", gecos="user", shell="/bin/bash", password="Secret123"
     )
