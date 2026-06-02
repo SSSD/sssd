@@ -1222,9 +1222,9 @@ static int do_sha512(TALLOC_CTX *mem_ctx, CK_BYTE *in, size_t in_len,
         };
     const unsigned int info_len = add_info ? sizeof(info) : 0;
 
-    md_ctx = EVP_MD_CTX_create();
+    md_ctx = EVP_MD_CTX_new();
     if (md_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "EVP_MD_CTX_create failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "EVP_MD_CTX_new failed.\n");
         return ENOMEM;
     }
 
@@ -1599,9 +1599,9 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
         goto done;
     }
 
-    md_ctx = EVP_MD_CTX_create();
+    md_ctx = EVP_MD_CTX_new();
     if (md_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "EVP_MD_CTX_create failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "EVP_MD_CTX_new failed.\n");
         ret = ENOMEM;
         goto done;
     }
@@ -1646,7 +1646,7 @@ static int sign_data(CK_FUNCTION_LIST *module, CK_SESSION_HANDLE session,
     ret = EOK;
 
 done:
-    EVP_MD_CTX_destroy(md_ctx);
+    EVP_MD_CTX_free(md_ctx);
     talloc_free(hash_val);
     talloc_free(signature);
     EVP_PKEY_free(cert_pub_key);
