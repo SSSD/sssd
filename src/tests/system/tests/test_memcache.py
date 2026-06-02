@@ -8,9 +8,243 @@ from __future__ import annotations
 
 import pytest
 from sssd_test_framework.roles.client import Client
+<<<<<<< HEAD
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
+=======
+from sssd_test_framework.roles.generic import GenericGroup, GenericProvider, GenericUser
+from sssd_test_framework.topology import KnownTopology
+
+
+# The following functions are created to help parametrize the memcache tests.
+def add_objects(provider: GenericProvider) -> dict[str, list[GenericUser | GenericGroup]]:
+    """
+    Create objects.
+
+    The word objects is used because it may add 'users' or 'groups'. It returns a dict of lists of objects,
+    so they can be used to retrieve uidNumber and gidNumbers.
+
+    :param provider: GenericProvider object.
+    :type provider: GenericProvider
+    :return: Dict of objects.
+    :rtype: dict[str, list[GenericUser | GenericGroup]]
+    """
+    user1 = provider.user("user1").add()
+    user2 = provider.user("user2").add()
+    user3 = provider.user("user3").add()
+
+    group1 = provider.group("group1").add().add_members([user1, user2, user3])
+    group2 = provider.group("group2").add().add_members([user2, user3])
+    group3 = provider.group("group3").add().add_members([user3])
+
+    return {"users": [user1, user2, user3], "groups": [group1, group2, group3]}
+
+
+def assert_objects(
+    client: Client, objects: dict[str, list[GenericUser | GenericGroup]], cache: str, by_id: bool = False
+) -> None:
+    """
+    Check the existence of objects, either users, groups, or initgroups.
+
+    This is a helper function to parameterize the memcache test. The assertions for each
+    cache type are different. Looking up 'users, will use 'id', groups will use 'getent group',
+    and initgroups will use 'getent initgroups'.
+
+    If 'id' bool is True, the lookup perform will by uid or gid.
+
+    The assertion compares the command output against the 'GenericUser|GenericGroup|GenericInitGroups' objects
+    created at setup. Constructing a new list from the objects to easily compare the results.
+
+    :param client: Client object.
+    :type client: Client
+    :param objects: Dict of object lists.
+    :type objects: dict[str, list[GenericUser | GenericGroup]]
+    :param cache: Cache type, 'user', 'group' or 'initgroups'
+    :type cache: str
+    :param by_id: Lookup object by id, default is False
+    :type by_id: bool
+    """
+    if cache == "users":
+        for user in objects.get("users", []):
+            if by_id:
+                attrs = user.get(["uidNumber"])
+                assert attrs is not None, f"'{user.name}' has no attributes!"
+                _result_user = attrs.get("uidNumber")
+                assert (
+                    isinstance(_result_user, list) and len(_result_user) >= 1
+                ), "uidNumber is not a list or is empty!"
+                result_user = client.tools.id(_result_user[-1])
+            else:
+                result_user = client.tools.id(user.name)
+            assert result_user is not None, f"User '{user.name}' was not found!"
+
+    if cache == "groups":
+        for group in objects.get("groups", []):
+            if by_id:
+                attrs = group.get(["gidNumber"])
+                assert attrs is not None, f"'{group.name}' has no attributes!"
+                _result_group = attrs.get("gidNumber")
+                assert (
+                    isinstance(_result_group, list) and len(_result_group) >= 1
+                ), "gidNumber is not a list or is empty!"
+                result_group = client.tools.getent.group(_result_group[-1])
+            else:
+                result_group = client.tools.getent.group(group.name)
+            assert result_group is not None, f"Group {group.name} was not found!"
+
+    if cache == "initgroups":
+        for initgroup in objects.get("users", []):
+            result_initgroup = client.tools.getent.initgroups(str(initgroup.name))
+            assert result_initgroup is not None, f"User '{initgroup.name}' was not found in initgroups!"
+
+
+def assert_objects_not_found(client: Client, objects: dict[str, list[GenericUser | GenericGroup]], cache: str) -> None:
+    """
+    Check for non-existence of objects.
+
+    This helper function is used to parameterize the memcache test.
+    The assertion for each cache type is different.
+
+    :param client: Client object.
+    :type client: Client
+    :param objects: Dict of objects.
+    :type objects: dict[str, list[GenericUser | GenericGroup]]
+    :param cache: Cache type, 'user', 'group' or 'initgroups'
+    :type cache: str
+    """
+    if cache == "users":
+        for user in objects.get("users", []):
+            result_user = client.tools.id(user.name)
+            assert result_user is None, f"User '{user.name}' was found!"
+
+    if cache == "groups":
+        for group in objects.get("groups", []):
+            result_group = client.tools.getent.group(group.name)
+            assert result_group is None, f"Group {group.name} was found!"
+
+    if cache == "initgroups":
+        for initgroup in objects.get("users", []):
+            _group = objects.get("groups", [])[-1].name
+            result_initgroup = client.tools.getent.initgroups(initgroup.name)
+            assert not result_initgroup.memberof(_group), f"User '{initgroup.name}' was found in initgroups!"
+
+
+def assert_group_membership(
+    client: Client, objects: dict[str, list[GenericUser | GenericGroup]], cache: str, by_id: bool = False
+) -> None:
+    """
+    Checks group membership.
+
+    Helper function to help parameterize the memcache test. The assertion for each cache type is different.
+    All the users and groups are created during setup. 'user_map' is the expected group membership.
+
+    Each cache type the user membership is checked differently. For 'users' cache, it will use 'id' and check the
+    memberof attribute. For 'groups' cache, it will use 'getent group' and check the members attribute. For
+    'initgroups' cache, it will use 'getent initgroups' and check the memberof attribute with group ids. Importantly,
+    for 'initgroups' the results are ids; using the user_map, a lookup is performed to get the correct GIDs.
+
+    :param client: Client object.
+    :type client: Client
+    :param objects: Dict of objects.
+    :type objects: dict[str, list[GenericUser | GenericGroup]]
+    :param cache: Cache type, 'user', 'group' or 'initgroups'
+    :type cache: str
+    :param by_id: Lookup object by id, default is False
+    :type by_id: bool
+    """
+    user_map = {"user1": ["group1"], "user2": ["group1", "group2"], "user3": ["group1", "group2", "group3"]}
+
+    if cache == "users":
+        for user in objects.get("users", []):
+            expected_groups = user_map.get(user.name, [])
+            if by_id:
+                attrs = user.get(["uidNumber"])
+                assert attrs is not None, f"'{user.name}' has no attributes!"
+                _result_user = attrs.get("uidNumber")
+                assert (
+                    isinstance(_result_user, list) and len(_result_user) >= 1
+                ), "uidNumber is not a list or is empty!"
+                result_user = client.tools.id(str(_result_user[-1]))
+            else:
+                result_user = client.tools.id(user.name)
+
+            assert result_user is not None, f"User '{user.name}' was not found!"
+            expected_names = set(expected_groups)
+            actual_names = {g.name for g in result_user.groups if g.name is not None}
+            assert actual_names == expected_names, (
+                f"User '{user.name}' group names from id {sorted(actual_names)!r} "
+                f"!= expected {sorted(expected_names)!r}"
+            )
+
+    if cache == "groups":
+        for group in objects.get("groups", []):
+            expected_members = [user for user, groups in user_map.items() if group.name in groups]
+            if by_id:
+                attrs = group.get(["gidNumber"])
+                assert attrs is not None, f"'{group.name}' has no attributes!"
+                _result_group = attrs.get("gidNumber")
+                assert (
+                    isinstance(_result_group, list) and len(_result_group) >= 1
+                ), "gidNumber is not a list or is empty!"
+                result_group = client.tools.getent.group(str(_result_group[-1]))
+            else:
+                result_group = client.tools.getent.group(group.name)
+
+            assert result_group is not None, f"Group {group.name} was not found!"
+            assert result_group.members == expected_members, f"Group '{group.name}' has incorrect members!"
+
+    if cache == "initgroups":
+        for user in objects.get("users", []):
+            expected_groups = user_map.get(user.name, [])
+            expected_ids: list[int] = []
+
+            for ids in expected_groups:
+                for group in objects.get("groups", []):
+                    if group.name == ids:
+                        attrs = group.get(["gidNumber"])
+                        assert attrs is not None, f"'{group.name}' has no attributes!"
+                        _result_gid = attrs.get("gidNumber")
+                        assert (
+                            isinstance(_result_gid, list) and len(_result_gid) > 0
+                        ), "gidNumber list should not be empty!"
+                        expected_ids.append(int(_result_gid[-1]))
+            result_initgroup = client.tools.getent.initgroups(user.name)
+
+            assert result_initgroup is not None, f"User '{user.name}' was not found in initgroups!"
+            assert set(result_initgroup.groups) == set(expected_ids), f"User '{user.name}' groups are wrong!"
+
+
+def invalidate_cache_stop_sssd(client: Client, order: str, cache: str) -> None:
+    """
+    Helpful function to parameterize when the cache is invalidated,
+    which is either before or after stopping SSSD.
+
+    :param client: Client object.
+    :type client: Client
+    :param order: Before or after SSSD stopping.
+    :type order: str
+    :param cache: Cache type, 'user', 'group', leave blank for all.
+    :type cache: str
+    """
+    if order == "before":
+        if cache == "users":
+            client.sssctl.cache_expire(users=True)
+        elif cache == "groups" or cache == "initgroups":
+            client.sssctl.cache_expire(users=False, groups=True)
+        else:
+            client.sssctl.cache_expire(everything=True)
+        client.sssd.stop()
+
+    if order == "after":
+        client.sssd.stop()
+        if cache == "users":
+            client.sssctl.cache_expire(users=True, groups=False)
+        elif cache == "groups" or cache == "initgroups":
+            client.sssctl.cache_expire(users=False, groups=True)
+        else:
+            client.sssctl.cache_expire(everything=True)
+>>>>>>> e5b407ccd (tests: fixing mypy linting errors)
 
 
 @pytest.mark.importance("critical")
