@@ -576,8 +576,6 @@ static int p11_ctx_destructor(struct p11_ctx *p11_ctx)
 {
     X509_STORE_free(p11_ctx->x509_store);
 
-    CRYPTO_cleanup_all_ex_data();
-
     return 0;
 }
 

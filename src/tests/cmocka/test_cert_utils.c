@@ -935,7 +935,5 @@ int main(int argc, const char *argv[])
 
     ret = cmocka_run_group_tests(tests, NULL, NULL);
 
-    CRYPTO_cleanup_all_ex_data(); /* to make Valgrind happy */
-
     return ret;
 }
