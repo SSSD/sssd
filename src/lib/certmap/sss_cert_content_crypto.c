@@ -484,10 +484,13 @@ static int get_x400address_data(TALLOC_CTX *mem_ctx, GENERAL_NAME *current,
     unsigned char *data = NULL;
     int len;
 
+    if ((current == NULL) || (current->d.x400Address == NULL)) {
+        return EINVAL;
+    }
+
     len = ASN1_STRING_length(current->d.x400Address);
     if (len <= 0) {
-        ret = EINVAL;
-        goto done;
+        return EINVAL;
     }
 
     data = (unsigned char *) talloc_strndup(mem_ctx,
