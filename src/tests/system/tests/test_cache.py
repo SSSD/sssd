@@ -43,6 +43,9 @@ def test_cache__entries_are_refreshed_as_configured(client: Client, provider: LD
         2. Objects 'lastUpdate' timestamp value has been refreshed
     :customerscenario: False
     """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
+
     user = provider.user("test_user").add()
     provider.group("test_group").add().add_member(user)
     provider.netgroup("test_netgroup").add().add_member(user=user)
@@ -110,6 +113,9 @@ def test_cache__writes_to_both_database_files(client: Client, provider: LDAP):
         4. User found
     :customerscenario: False
     """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
+
     provider.user("user1").add()
     client.sssd.start()
     client.tools.getent.passwd("user1")
@@ -143,6 +149,9 @@ def test_cache__writes_to_both_database_files_when_using_fully_qualified_names(c
         3. User found
     :customerscenario: False
     """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
+
     provider.user("user1").add()
     client.sssd.domain["use_fully_qualified_names"] = "True"
     client.sssd.start()
@@ -269,6 +278,9 @@ def test_cache__invalidate_entries_in_domain_and_timestamps_caches(
         3. Attribute is found and the value is '[1]' meaning it is cleared
     :customerscenario: False
     """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
+
     # Unable to parametrize provider method when adding objects, so all object types are created
     user = provider.user("user").add()
     provider.group("group").add().add_member(user)
@@ -320,6 +332,9 @@ def test_cache__extra_attributes_are_stored(client: Client, provider: LDAP):
         2. User is found and cache contains correct attributes and values
     :customerscenario: True
     """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
+
     provider.user("user1").add(gid=111111, uid=100110, gecos="gecos user1", shell="/bin/sh", home="/home/user1")
     client.sssd.domain["ldap_user_extra_attrs"] = (
         "description:gecos, userID:uidNumber, shell:loginShell, groupID:gidNumber"
@@ -359,6 +374,9 @@ def test_cache__extra_attributes_with_empty_values_are_ignored(client: Client, p
         2. User is found and does not have the extra numbers attribute
     :customerscenario: False
     """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
+
     provider.user("user1").add()
     client.sssd.domain["ldap_user_extra_attrs"] = "number:telephonenumber"
     client.sssd.start()
@@ -394,6 +412,9 @@ def test_cache__both_ldap_user_email_and_extra_attribute_email_are_stored(client
         2. User is found with description, mail and email attributes
     :customerscenario: False
     """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
+
     ldap.user("user1").add(gecos="gecos1", mail="user1@example.test")
 
     client.sssd.domain["ldap_user_email"] = "mail"
