@@ -20,9 +20,7 @@
 #include <openssl/x509.h>
 #include <openssl/bio.h>
 #include <openssl/pem.h>
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
 #include <openssl/core_names.h>
-#endif
 
 #include "util/util.h"
 #include "util/sss_endian.h"
@@ -179,18 +177,12 @@ done:
 #define IDENTIFIER_NISTP384 "nistp384"
 #define IDENTIFIER_NISTP521 "nistp521"
 
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
-static int sss_ec_get_key(BN_CTX *bn_ctx, EVP_PKEY *cert_pub_key,
-#else
 static int sss_ec_get_key(BN_CTX *bn_ctx, const EVP_PKEY *cert_pub_key,
-#endif
                           EC_GROUP **_ec_group, EC_POINT **_ec_public_key)
 {
     EC_GROUP *ec_group = NULL;
     EC_POINT *ec_public_key = NULL;
     int ret;
-
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
     static char curve_name[4096];
     static unsigned char pubkey[4096];
     size_t len;
@@ -232,35 +224,6 @@ static int sss_ec_get_key(BN_CTX *bn_ctx, const EVP_PKEY *cert_pub_key,
         ret = EINVAL;
         goto done;
     }
-
-#else
-    EC_KEY *ec_key = NULL;
-    const EC_GROUP *gr;
-    const EC_POINT *pk;
-
-    ec_key = EVP_PKEY_get0_EC_KEY(cert_pub_key);
-    if (ec_key == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    gr = EC_KEY_get0_group(ec_key);
-
-    pk = EC_KEY_get0_public_key(ec_key);
-
-    ec_group = EC_GROUP_dup(gr);
-    if (ec_group == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ec_public_key = EC_POINT_dup(pk, gr);
-    if (ec_public_key == NULL) {
-        EC_GROUP_free(ec_group);
-        ret = ENOMEM;
-        goto done;
-    }
-#endif
 
     *_ec_group = ec_group;
     *_ec_public_key = ec_public_key;
@@ -379,17 +342,13 @@ done:
 #define SSH_RSA_HEADER "ssh-rsa"
 #define SSH_RSA_HEADER_LEN (sizeof(SSH_RSA_HEADER) - 1)
 
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
-static int sss_rsa_get_key(EVP_PKEY *cert_pub_key,
-#else
 static int sss_rsa_get_key(const EVP_PKEY *cert_pub_key,
-#endif
                            BIGNUM **_n, BIGNUM **_e)
 {
     int ret;
     BIGNUM *n = NULL;
     BIGNUM *e = NULL;
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+
     ret = EVP_PKEY_get_bn_param(cert_pub_key, OSSL_PKEY_PARAM_RSA_N, &n);
     if (ret != 1) {
         ret = EINVAL;
@@ -402,34 +361,6 @@ static int sss_rsa_get_key(const EVP_PKEY *cert_pub_key,
         ret = EINVAL;
         goto done;
     }
-
-#else
-
-    const BIGNUM *tmp_n;
-    const BIGNUM *tmp_e;
-    const RSA *rsa_pub_key = NULL;
-    rsa_pub_key = EVP_PKEY_get0_RSA(cert_pub_key);
-    if (rsa_pub_key == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    RSA_get0_key(rsa_pub_key, &tmp_n, &tmp_e, NULL);
-
-    n = BN_dup(tmp_n);
-    if (n == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
-    e = BN_dup(tmp_e);
-    if (e == NULL) {
-        BN_clear_free(n);
-        ret = ENOMEM;
-        goto done;
-    }
-
-#endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
 
     *_e = e;
     *_n = n;
