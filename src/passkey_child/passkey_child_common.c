@@ -39,11 +39,6 @@
 
 #include "passkey_child.h"
 
-#if OPENSSL_VERSION_NUMBER >= 0x30000000
-#define get_id(x)   EVP_PKEY_get_base_id((x))
-#else
-#define get_id(x)   EVP_PKEY_base_id((x))
-#endif /* OPENSSL_VERSION_NUMBER */
 
 errno_t
 cose_str_to_int(const char *type, int *out)
@@ -642,7 +637,7 @@ public_key_to_libfido2(const char *pem_public_key, struct pk_data_t *_pk_data)
         goto done;
     }
 
-    base_id = get_id(evp_pkey);
+    base_id = EVP_PKEY_get_base_id(evp_pkey);
     if (base_id == EVP_PKEY_EC) {
         _pk_data->type = COSE_ES256;
         ret = evp_pkey_to_es256_pubkey(evp_pkey, _pk_data);
