@@ -183,8 +183,8 @@ static int sss_ec_get_key(BN_CTX *bn_ctx, const EVP_PKEY *cert_pub_key,
     EC_GROUP *ec_group = NULL;
     EC_POINT *ec_public_key = NULL;
     int ret;
-    static char curve_name[4096];
-    static unsigned char pubkey[4096];
+    char curve_name[4096];
+    unsigned char pubkey[4096];
     size_t len;
 
     ret = EVP_PKEY_get_utf8_string_param(cert_pub_key,
