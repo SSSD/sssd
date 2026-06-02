@@ -32,12 +32,6 @@
 
 #include "lib/certmap/sss_certmap_int.h"
 
-#if OPENSSL_VERSION_NUMBER < 0x30000000L
-#define discard_const(ptr) ((void *)((uintptr_t)(ptr)))
-#define EVP_MD_free(ctx)
-#define EVP_MD_fetch(ctx, algorithm, properties) discard_const(EVP_get_digestbyname(algorithm))
-#endif
-
 #define DATA_STEP_SIZE 30
 
 struct get_digest_data {
