@@ -63,7 +63,9 @@ def assert_objects(
     if cache == "users":
         for user in objects.get("users", []):
             if by_id:
-                _result_user = user.get(["uidNumber"]).get("uidNumber")
+                attrs = user.get(["uidNumber"])
+                assert attrs is not None, f"'{user.name}' has no attributes!"
+                _result_user = attrs.get("uidNumber")
                 assert (
                     isinstance(_result_user, list) and len(_result_user) >= 1
                 ), "uidNumber is not a list or is empty!"
@@ -75,7 +77,9 @@ def assert_objects(
     if cache == "groups":
         for group in objects.get("groups", []):
             if by_id:
-                _result_group = group.get(["gidNumber"]).get("gidNumber")
+                attrs = group.get(["gidNumber"])
+                assert attrs is not None, f"'{group.name}' has no attributes!"
+                _result_group = attrs.get("gidNumber")
                 assert (
                     isinstance(_result_group, list) and len(_result_group) >= 1
                 ), "gidNumber is not a list or is empty!"
@@ -150,7 +154,9 @@ def assert_group_membership(
         for user in objects.get("users", []):
             expected_groups = user_map.get(user.name, [])
             if by_id:
-                _result_user = user.get(["uidNumber"]).get("uidNumber")
+                attrs = user.get(["uidNumber"])
+                assert attrs is not None, f"'{user.name}' has no attributes!"
+                _result_user = attrs.get("uidNumber")
                 assert (
                     isinstance(_result_user, list) and len(_result_user) >= 1
                 ), "uidNumber is not a list or is empty!"
@@ -170,7 +176,9 @@ def assert_group_membership(
         for group in objects.get("groups", []):
             expected_members = [user for user, groups in user_map.items() if group.name in groups]
             if by_id:
-                _result_group = group.get(["gidNumber"]).get("gidNumber")
+                attrs = group.get(["gidNumber"])
+                assert attrs is not None, f"'{group.name}' has no attributes!"
+                _result_group = attrs.get("gidNumber")
                 assert (
                     isinstance(_result_group, list) and len(_result_group) >= 1
                 ), "gidNumber is not a list or is empty!"
@@ -184,12 +192,14 @@ def assert_group_membership(
     if cache == "initgroups":
         for user in objects.get("users", []):
             expected_groups = user_map.get(user.name, [])
-            expected_ids = []
+            expected_ids: list[int] = []
 
             for ids in expected_groups:
                 for group in objects.get("groups", []):
                     if group.name == ids:
-                        _result_gid = group.get(["gidNumber"]).get("gidNumber")
+                        attrs = group.get(["gidNumber"])
+                        assert attrs is not None, f"'{group.name}' has no attributes!"
+                        _result_gid = attrs.get("gidNumber")
                         assert (
                             isinstance(_result_gid, list) and len(_result_gid) > 0
                         ), "gidNumber list should not be empty!"
