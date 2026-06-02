@@ -497,4 +497,8 @@ def test_nss__user_login_with_overriding_home_directory(client: Client, provider
     with client.ssh("user1", "Secret123") as ssh:
         result = ssh.run("pwd").stdout
         assert result is not None, "Getting path failed!"
-        assert result == home_exp, f"Current path {result} is not {home_exp}!"
+        # In image mode, the home prefix is /var/home
+        assert result in (
+            home_exp,
+            f"/var{home_exp}",
+        ), f"Current path {result} is neither {home_exp} nor /var{home_exp}!"
