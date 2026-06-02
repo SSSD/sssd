@@ -471,7 +471,7 @@ errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    switch (EVP_PKEY_base_id(cert_pub_key)) {
+    switch (EVP_PKEY_get_base_id(cert_pub_key)) {
     case EVP_PKEY_RSA:
         ret = rsa_pub_key_to_ssh(mem_ctx, cert_pub_key, key_blob, key_size);
         if (ret != EOK) {
@@ -489,7 +489,7 @@ errno_t get_ssh_key_from_cert(TALLOC_CTX *mem_ctx,
     default:
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Expected RSA or EC public key, found unsupported [%d].\n",
-              EVP_PKEY_base_id(cert_pub_key));
+              EVP_PKEY_get_base_id(cert_pub_key));
         ret = EINVAL;
         goto done;
     }
