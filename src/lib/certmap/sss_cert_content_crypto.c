@@ -1091,7 +1091,6 @@ done:
 
     X509_free(cert);
     BIO_free_all(bio_mem);
-    CRYPTO_cleanup_all_ex_data();
 
     if (ret == EOK) {
         *content = cont;
