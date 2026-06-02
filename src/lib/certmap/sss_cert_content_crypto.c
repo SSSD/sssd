@@ -227,13 +227,6 @@ done:
     return ret;
 }
 
-void *ASN1_TYPE_unpack_sequence(const ASN1_ITEM *it, const ASN1_TYPE *t)
-{
-    if (t == NULL || t->type != V_ASN1_SEQUENCE || t->value.sequence == NULL)
-        return NULL;
-    return ASN1_item_unpack(t->value.sequence, it);
-}
-
 static int add_pkinit_princ_to_san_list(TALLOC_CTX *mem_ctx,
                                         enum san_opt san_opt,
                                         GENERAL_NAME *current,
