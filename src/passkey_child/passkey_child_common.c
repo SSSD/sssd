@@ -27,11 +27,7 @@
 #include <openssl/err.h>
 #include <openssl/pem.h>
 
-#include <openssl/err.h>
-#include <openssl/pem.h>
-
 #include "util/child_bootstrap.h"
-#include "util/crypto/sss_crypto.h"
 #include "util/debug.h"
 #include "util/util.h"
 #include "util/crypto/sss_crypto.h"
