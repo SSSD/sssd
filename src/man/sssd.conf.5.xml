@@ -254,7 +254,7 @@
                 <variablelist>
                     <title>Section parameters</title>
                     <varlistentry>
-                        <term>services</term>
+                        <term>services (string)</term>
                         <listitem>
                             <para>
                                 Comma separated list of services that are
@@ -282,7 +282,7 @@
                         </listitem>
                     </varlistentry>
                     <varlistentry>
-                        <term>domains</term>
+                        <term>domains (string)</term>
                         <listitem>
                             <para>
                                 A domain is a database containing user
@@ -623,7 +623,7 @@
                         </listitem>
                     </varlistentry>
                     <varlistentry>
-                        <term>domain_resolution_order</term>
+                        <term>domain_resolution_order (string)</term>
                         <listitem>
                             <para>
                                 Comma separated list of domains and subdomains
@@ -755,7 +755,7 @@
             </para>
             <variablelist>
                 <varlistentry>
-                    <term>fd_limit</term>
+                    <term>fd_limit (integer)</term>
                     <listitem>
                         <para>
                             This option specifies the maximum number of file
@@ -770,7 +770,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>client_idle_timeout</term>
+                    <term>client_idle_timeout (integer)</term>
                     <listitem>
                         <para>
                             This option specifies the number of seconds that
@@ -787,7 +787,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>responder_idle_timeout</term>
+                    <term>responder_idle_timeout (integer)</term>
                     <listitem>
                         <para>
                             This option specifies the number of seconds that
@@ -809,7 +809,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>cache_first</term>
+                    <term>cache_first (boolean)</term>
                     <listitem>
                         <para>
                             This option specifies whether the responder should
@@ -1028,7 +1028,7 @@ fallback_homedir = /home/%u
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>default_shell</term>
+                    <term>default_shell (string)</term>
                     <listitem>
                         <para>
                             The default shell to use if the provider does
@@ -1775,7 +1775,7 @@ p11_uri = pkcs11:library-description=OpenSC%20smartcard%20framework;slot-id=2
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>pam_initgroups_scheme</term>
+                    <term>pam_initgroups_scheme (string)</term>
                     <listitem>
                         <para>
                             The PAM responder can force an online lookup to get
@@ -1807,7 +1807,7 @@ p11_uri = pkcs11:library-description=OpenSC%20smartcard%20framework;slot-id=2
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>pam_gssapi_services</term>
+                    <term>pam_gssapi_services (string)</term>
                     <listitem>
                         <para>
                             Comma separated list of PAM services that are
@@ -1836,7 +1836,7 @@ pam_gssapi_services = sudo, sudo-i
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>pam_gssapi_check_upn</term>
+                    <term>pam_gssapi_check_upn (boolean)</term>
                     <listitem>
                         <para>
                             If True, SSSD will require that the Kerberos user
@@ -1861,7 +1861,7 @@ pam_gssapi_services = sudo, sudo-i
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>pam_gssapi_indicators_map</term>
+                    <term>pam_gssapi_indicators_map (string)</term>
                     <listitem>
                         <para>
                            Comma separated list of authentication indicators required
@@ -1928,7 +1928,7 @@ pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit
                     </listitem>
                 </varlistentry>
                 <varlistentry condition="with_samba">
-                    <term>pam_gssapi_indicators_apply</term>
+                    <term>pam_gssapi_indicators_apply (string)</term>
                     <listitem>
                         <para>
                             Comma separated list of triples to assign
@@ -2486,7 +2486,7 @@ pam_json_services = gdm-switchable-auth
             <quote>[domain/<replaceable>NAME</replaceable>]</quote>
             <variablelist>
                 <varlistentry>
-                    <term>enabled</term>
+                    <term>enabled (boolean)</term>
                     <listitem>
                         <para>
                             Explicitly enable or disable the domain. If
