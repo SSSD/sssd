@@ -1056,7 +1056,8 @@ static void ipa_add_trusted_memberships_get_next(struct tevent_req *req)
                                  NULL,
                                  fq_name,
                                  BE_FILTER_NAME,
-                                 false, false, false);
+                                 false, false, false,
+                                 false);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "groups_get_send failed.\n");
         ret = ENOMEM;
