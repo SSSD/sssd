@@ -721,6 +721,16 @@ resolv_gethostbyname_files_send(TALLOC_CTX *mem_ctx,
                                             &hostent);
 
     if (state->status == ARES_SUCCESS) {
+        /* The address list can be NULL or empty when '/etc/hosts' has
+         * an IPv6 only entry and IPv4 was requested or vice versa.
+         */
+        if (hostent->h_addr_list == NULL
+                || hostent->h_addr_list[0] == NULL) {
+            state->status = ARES_ENODATA;
+            tevent_req_error(req, ENOENT);
+            goto done;
+        }
+
         state->rhostent = resolv_copy_hostent(state, hostent);
         if (state->rhostent == NULL) {
             tevent_req_error(req, ENOMEM);
