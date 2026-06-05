@@ -6,7 +6,7 @@
 SSSD provides a set of daemons to manage access to remote directories and
 authentication mechanisms such as LDAP, Kerberos or FreeIPA. It provides
 an NSS and PAM interface toward the system and a pluggable backend system
-to connect to multiple different account sources.
+to connect to multiple different account sources
 
 More information about SSSD can be found on its project page -
 https://github.com/SSSD/sssd.
