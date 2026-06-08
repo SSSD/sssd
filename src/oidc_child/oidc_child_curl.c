@@ -91,6 +91,8 @@ struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
             goto fail;
         }
 
+        /* Just copy the reference not the value to avoid multiple copies of
+         * the password/secret in memory. */
         rest_ctx->key_passwd = key_passwd;
     }
     rest_ctx->client_auth_method = client_auth_method;
