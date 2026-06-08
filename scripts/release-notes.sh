@@ -45,11 +45,15 @@ if [ -z "$GH_TOKEN" ]; then
     gh auth login --with-token < .token
     rm -f .token
 fi
+
+# Authenticate git commands
+gh auth setup-git
+
 set -x
 
 # Clone repository and fetch the pull request
 git clone "https://github.com/$OWNER/$REPOSITORY.git" .
-git remote add "$FORK_USER" "https://$FORK_USER:$FORK_TOKEN@github.com/$FORK_USER/$REPOSITORY.git"
+git remote add "$FORK_USER" "https://github.com/$FORK_USER/$REPOSITORY.git"
 git checkout "$TARGET"
 gh repo set-default "$GITHUB_REPOSITORY"
 
