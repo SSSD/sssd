@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2026-04-20 11:06+0000\n"
+"POT-Creation-Date: 2026-05-11 20:09+0000\n"
 "PO-Revision-Date: 2026-02-20 05:58+0000\n"
 "Last-Translator: Oğuz Ersen <oguz@ersen.moe>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
@@ -2137,39 +2137,39 @@ msgstr "SSSD 'monitor' işlemi başlatılamadı: %s"
 msgid "Out of memory\n"
 msgstr "Yetersiz bellek!\n"
 
-#: src/providers/krb5/krb5_child.c:4309
+#: src/providers/krb5/krb5_child.c:4308
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "FAST kimlik bilgilerini istemek için anonim PKINIT kullanın"
 
-#: src/providers/krb5/krb5_child.c:4311
+#: src/providers/krb5/krb5_child.c:4310
 msgid "Kerberos realm to use"
 msgstr "Kullanılacak Kerberos bölgesi"
 
-#: src/providers/krb5/krb5_child.c:4313
+#: src/providers/krb5/krb5_child.c:4312
 msgid "Requested lifetime of the ticket"
 msgstr "Biletin talep edilen kullanım ömrü"
 
-#: src/providers/krb5/krb5_child.c:4315
+#: src/providers/krb5/krb5_child.c:4314
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Biletin talep edilen yenilenebilir kullanım ömrü"
 
-#: src/providers/krb5/krb5_child.c:4317
+#: src/providers/krb5/krb5_child.c:4316
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST seçenekleri ('never', 'try', 'demand')"
 
-#: src/providers/krb5/krb5_child.c:4320
+#: src/providers/krb5/krb5_child.c:4319
 msgid "Specifies the server principal to use for FAST"
 msgstr "FAST için kullanılacak sunucu sorumlusunu belirtir"
 
-#: src/providers/krb5/krb5_child.c:4322
+#: src/providers/krb5/krb5_child.c:4321
 msgid "Requests canonicalization of the principal name"
 msgstr "Ana adın standartlaştırılmasını ister"
 
-#: src/providers/krb5/krb5_child.c:4324
+#: src/providers/krb5/krb5_child.c:4323
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "krb5_get_init_creds_password'ün özel sürümünü kullanın"
 
-#: src/providers/krb5/krb5_child.c:4326
+#: src/providers/krb5/krb5_child.c:4325
 msgid "Check PAC flags"
 msgstr "PAC bayraklarını denetleyin"
 
@@ -2205,16 +2205,16 @@ msgstr "Bir hata oluştu, ancak açıklama bulunamadı."
 msgid "Unexpected error while looking for an error description"
 msgstr "Hata açıklaması aranırken beklenmeyen hata"
 
-#: src/sss_client/pam_sss.c:74
+#: src/sss_client/pam_sss.c:96
 msgid "Permission denied. "
 msgstr "İzin reddedildi. "
 
-#: src/sss_client/pam_sss.c:75 src/sss_client/pam_sss.c:845
-#: src/sss_client/pam_sss.c:856
+#: src/sss_client/pam_sss.c:97 src/sss_client/pam_sss.c:879
+#: src/sss_client/pam_sss.c:890
 msgid "Server message: "
 msgstr "Sunucu iletisi: "
 
-#: src/sss_client/pam_sss.c:76
+#: src/sss_client/pam_sss.c:98
 msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
@@ -2222,50 +2222,50 @@ msgstr ""
 "Kerberos TGT oturum açma sırasında verilmeyecek, kullanıcı deneyimi "
 "etkilenecektir."
 
-#: src/sss_client/pam_sss.c:77
+#: src/sss_client/pam_sss.c:99
 msgid "Enter PIN:"
 msgstr "PIN girin:"
 
-#: src/sss_client/pam_sss.c:320
+#: src/sss_client/pam_sss.c:343
 msgid "Passwords do not match"
 msgstr "Parolalar eşleşmiyor"
 
-#: src/sss_client/pam_sss.c:508
+#: src/sss_client/pam_sss.c:542
 msgid "Password reset by root is not supported."
 msgstr "Yönetici tarafından parola sıfırlama desteklenmez."
 
-#: src/sss_client/pam_sss.c:549
+#: src/sss_client/pam_sss.c:583
 msgid "Authenticated with cached credentials"
 msgstr "Önbelleğe alınmış kimlik bilgileriyle doğrulandı"
 
-#: src/sss_client/pam_sss.c:550
+#: src/sss_client/pam_sss.c:584
 msgid ", your cached password will expire at: "
 msgstr ", önbelleğe alınmış parolanızın süresi şu tarihte sona erecek: "
 
-#: src/sss_client/pam_sss.c:580
+#: src/sss_client/pam_sss.c:614
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "Parolanızın süresi doldu. %1$d ek oturum açma hakkınız kaldı."
 
-#: src/sss_client/pam_sss.c:630
+#: src/sss_client/pam_sss.c:664
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Parolanızın süresi %1$d %2$s içinde dolacak."
 
-#: src/sss_client/pam_sss.c:633
+#: src/sss_client/pam_sss.c:667
 #, c-format
 msgid "Your password has expired."
 msgstr "Parolanızın süresi doldu."
 
-#: src/sss_client/pam_sss.c:684
+#: src/sss_client/pam_sss.c:718
 msgid "Authentication is denied until: "
 msgstr "Kimlik doğrulama şu ana kadar reddedilir: "
 
-#: src/sss_client/pam_sss.c:705
+#: src/sss_client/pam_sss.c:739
 msgid "System is offline, password change not possible"
 msgstr "Sistem çevrimdışı, şifre değişikliği mümkün değil"
 
-#: src/sss_client/pam_sss.c:720
+#: src/sss_client/pam_sss.c:754
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
@@ -2273,11 +2273,11 @@ msgstr ""
 "OTP şifresini değiştirdikten sonra bilet almak için oturumu kapatıp tekrar "
 "açmanız gerekir"
 
-#: src/sss_client/pam_sss.c:737
+#: src/sss_client/pam_sss.c:771
 msgid "PIN locked"
 msgstr "PIN kilitli"
 
-#: src/sss_client/pam_sss.c:752
+#: src/sss_client/pam_sss.c:786
 msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
@@ -2285,65 +2285,65 @@ msgstr ""
 "Sunucu bu yöntemi desteklemediği için Kerberos TGT verilmedi. Ortak oturum "
 "açma (SSO) deneyiminiz etkilenecektir."
 
-#: src/sss_client/pam_sss.c:842 src/sss_client/pam_sss.c:855
+#: src/sss_client/pam_sss.c:876 src/sss_client/pam_sss.c:889
 msgid "Password change failed. "
 msgstr "Parola değişikliği başarısız oldu. "
 
-#: src/sss_client/pam_sss.c:1866
+#: src/sss_client/pam_sss.c:1918
 #, fuzzy, c-format
 msgid "Authenticate at \"%1$s\"."
 msgstr "%1$s'de kimlik doğrulaması yapın ve ENTER'a basın."
 
-#: src/sss_client/pam_sss.c:1869
+#: src/sss_client/pam_sss.c:1921
 #, fuzzy, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
 msgstr "%2$s'de %1$s PIN'i ile kimlik doğrulaması yapın ve ENTER'a basın."
 
-#: src/sss_client/pam_sss.c:2303
+#: src/sss_client/pam_sss.c:2358
 msgid "Please (re)insert (different) Smartcard"
 msgstr "Lütfen (farklı bir) Akıllı Kartı (yeniden) yerleştirin"
 
-#: src/sss_client/pam_sss.c:2504
+#: src/sss_client/pam_sss.c:2574
 msgid "New Password: "
 msgstr "Yeni Parola: "
 
-#: src/sss_client/pam_sss.c:2505
+#: src/sss_client/pam_sss.c:2575
 msgid "Reenter new Password: "
 msgstr "Yeni parolayı tekrar giriniz: "
 
-#: src/sss_client/pam_sss.c:2680
+#: src/sss_client/pam_sss.c:2750
 msgid "Press ENTER to continue."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:2701 src/sss_client/pam_sss.c:2704
+#: src/sss_client/pam_sss.c:2771 src/sss_client/pam_sss.c:2774
 msgid "First Factor: "
 msgstr "Birinci Etken: "
 
-#: src/sss_client/pam_sss.c:2702 src/sss_client/pam_sss.c:2876
+#: src/sss_client/pam_sss.c:2772 src/sss_client/pam_sss.c:2946
 msgid "Second Factor (optional): "
 msgstr "İkinci Etken (isteğe bağlı): "
 
-#: src/sss_client/pam_sss.c:2705 src/sss_client/pam_sss.c:2880
+#: src/sss_client/pam_sss.c:2775 src/sss_client/pam_sss.c:2950
 msgid "Second Factor: "
 msgstr "İkinci Etken: "
 
-#: src/sss_client/pam_sss.c:2709
+#: src/sss_client/pam_sss.c:2779
 msgid "Insert your passkey device, then press ENTER."
 msgstr "Geçiş anahtarı aygıtınızı girin ve ardından ENTER'a basın."
 
-#: src/sss_client/pam_sss.c:2713 src/sss_client/pam_sss.c:2721
+#: src/sss_client/pam_sss.c:2783 src/sss_client/pam_sss.c:2791
 msgid "Password: "
 msgstr "Parola: "
 
-#: src/sss_client/pam_sss.c:2875 src/sss_client/pam_sss.c:2879
+#: src/sss_client/pam_sss.c:2945 src/sss_client/pam_sss.c:2949
 msgid "First Factor (Current Password): "
 msgstr "Birinci Etken (Geçerli Parola): "
 
-#: src/sss_client/pam_sss.c:2899
+#: src/sss_client/pam_sss.c:2969
 msgid "Current Password: "
 msgstr "Geçerli Parola: "
 
-#: src/sss_client/pam_sss.c:3273
+#: src/sss_client/pam_sss.c:3343
 msgid "Password expired. Change your password now."
 msgstr "Parolanızın zamanı doldu. Parolanızı şimdi değiştirin."
 

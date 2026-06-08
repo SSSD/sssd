@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2026-04-20 11:06+0000\n"
+"POT-Creation-Date: 2026-05-11 20:09+0000\n"
 "PO-Revision-Date: 2026-01-17 19:58+0000\n"
 "Last-Translator: Américo Monteiro <a_monteiro@gmx.com>\n"
 "Language-Team: Portuguese <https://translate.fedoraproject.org/projects/sssd/"
@@ -2132,39 +2132,39 @@ msgstr "Falhou ao impulsionar o processo 'monitor' do SSSD: %s"
 msgid "Out of memory\n"
 msgstr "Memória esgotada\n"
 
-#: src/providers/krb5/krb5_child.c:4309
+#: src/providers/krb5/krb5_child.c:4308
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "Usa PKINIT anônimo para requisitar bilhete armadura FAST"
 
-#: src/providers/krb5/krb5_child.c:4311
+#: src/providers/krb5/krb5_child.c:4310
 msgid "Kerberos realm to use"
 msgstr "Reino Kerberos a usar"
 
-#: src/providers/krb5/krb5_child.c:4313
+#: src/providers/krb5/krb5_child.c:4312
 msgid "Requested lifetime of the ticket"
 msgstr "Tempo de vida requisitado do bilhete"
 
-#: src/providers/krb5/krb5_child.c:4315
+#: src/providers/krb5/krb5_child.c:4314
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Tempo de vida renovável requisitado do bilhete"
 
-#: src/providers/krb5/krb5_child.c:4317
+#: src/providers/krb5/krb5_child.c:4316
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "Opções FAST ('never', 'try', 'demand')"
 
-#: src/providers/krb5/krb5_child.c:4320
+#: src/providers/krb5/krb5_child.c:4319
 msgid "Specifies the server principal to use for FAST"
 msgstr "Especifica o principal do servidor a usar para FAST"
 
-#: src/providers/krb5/krb5_child.c:4322
+#: src/providers/krb5/krb5_child.c:4321
 msgid "Requests canonicalization of the principal name"
 msgstr "Requisita canonização do nome do principal"
 
-#: src/providers/krb5/krb5_child.c:4324
+#: src/providers/krb5/krb5_child.c:4323
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Usa versão personalizada do krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:4326
+#: src/providers/krb5/krb5_child.c:4325
 msgid "Check PAC flags"
 msgstr "Verifica bandeiras PAC"
 
@@ -2200,16 +2200,16 @@ msgstr "Ocorreu um erro, mas nenhuma descrição foi encontrada."
 msgid "Unexpected error while looking for an error description"
 msgstr "Erro inesperado ao procurar por uma descrição de erro"
 
-#: src/sss_client/pam_sss.c:74
+#: src/sss_client/pam_sss.c:96
 msgid "Permission denied. "
 msgstr "Permissão negada. "
 
-#: src/sss_client/pam_sss.c:75 src/sss_client/pam_sss.c:845
-#: src/sss_client/pam_sss.c:856
+#: src/sss_client/pam_sss.c:97 src/sss_client/pam_sss.c:879
+#: src/sss_client/pam_sss.c:890
 msgid "Server message: "
 msgstr "Mensagem do Servidor: "
 
-#: src/sss_client/pam_sss.c:76
+#: src/sss_client/pam_sss.c:98
 msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
@@ -2217,51 +2217,51 @@ msgstr ""
 "TGT de Kerberos não será concedido após login, a experiência do utilizador "
 "será afetada."
 
-#: src/sss_client/pam_sss.c:77
+#: src/sss_client/pam_sss.c:99
 msgid "Enter PIN:"
 msgstr "Insira PIN:"
 
-#: src/sss_client/pam_sss.c:320
+#: src/sss_client/pam_sss.c:343
 msgid "Passwords do not match"
 msgstr "Palavras passe não coincidem"
 
-#: src/sss_client/pam_sss.c:508
+#: src/sss_client/pam_sss.c:542
 msgid "Password reset by root is not supported."
 msgstr "Não é suportado reiniciar a palavra passe pelo root."
 
-#: src/sss_client/pam_sss.c:549
+#: src/sss_client/pam_sss.c:583
 msgid "Authenticated with cached credentials"
 msgstr "Autenticado com credenciais em cache"
 
-#: src/sss_client/pam_sss.c:550
+#: src/sss_client/pam_sss.c:584
 msgid ", your cached password will expire at: "
 msgstr ", a sua palavra passe guardada em cache irá expirar em: "
 
-#: src/sss_client/pam_sss.c:580
+#: src/sss_client/pam_sss.c:614
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr ""
 "A sua palavra passe expirou. Você tem %1$d login(s) de graça restantes."
 
-#: src/sss_client/pam_sss.c:630
+#: src/sss_client/pam_sss.c:664
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "A sua palavra irá expirar em %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:633
+#: src/sss_client/pam_sss.c:667
 #, c-format
 msgid "Your password has expired."
 msgstr "A sua palavra passe expirou."
 
-#: src/sss_client/pam_sss.c:684
+#: src/sss_client/pam_sss.c:718
 msgid "Authentication is denied until: "
 msgstr "A autenticação é negada até: "
 
-#: src/sss_client/pam_sss.c:705
+#: src/sss_client/pam_sss.c:739
 msgid "System is offline, password change not possible"
 msgstr "O sistema está offline, a mudança de palavra passe não é possível"
 
-#: src/sss_client/pam_sss.c:720
+#: src/sss_client/pam_sss.c:754
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
@@ -2269,11 +2269,11 @@ msgstr ""
 "Após mudar a palavra passe OTP, você precisa de terminar sessão e regressar "
 "de modo a adquirir um bilhete"
 
-#: src/sss_client/pam_sss.c:737
+#: src/sss_client/pam_sss.c:771
 msgid "PIN locked"
 msgstr "PIN trancado"
 
-#: src/sss_client/pam_sss.c:752
+#: src/sss_client/pam_sss.c:786
 msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
@@ -2281,65 +2281,65 @@ msgstr ""
 "Nenhum TGT de Kerberos concedido pois o servidor não suporta este método. A "
 "sua experiência de única-assinatura on (SSO) irá ser afetada."
 
-#: src/sss_client/pam_sss.c:842 src/sss_client/pam_sss.c:855
+#: src/sss_client/pam_sss.c:876 src/sss_client/pam_sss.c:889
 msgid "Password change failed. "
 msgstr "Alteração da palavra passe falhou. "
 
-#: src/sss_client/pam_sss.c:1866
+#: src/sss_client/pam_sss.c:1918
 #, fuzzy, c-format
 msgid "Authenticate at \"%1$s\"."
 msgstr "Autentique em %1$s e pressione ENTER."
 
-#: src/sss_client/pam_sss.c:1869
+#: src/sss_client/pam_sss.c:1921
 #, fuzzy, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
 msgstr "Autentique com PIN %1$s em %2$s e pressione ENTER."
 
-#: src/sss_client/pam_sss.c:2303
+#: src/sss_client/pam_sss.c:2358
 msgid "Please (re)insert (different) Smartcard"
 msgstr "Por favor (re)insira Smartcard (diferente)"
 
-#: src/sss_client/pam_sss.c:2504
+#: src/sss_client/pam_sss.c:2574
 msgid "New Password: "
 msgstr "Nova Palavra Passe: "
 
-#: src/sss_client/pam_sss.c:2505
+#: src/sss_client/pam_sss.c:2575
 msgid "Reenter new Password: "
 msgstr "Re-insira a nova Palavra Passe: "
 
-#: src/sss_client/pam_sss.c:2680
+#: src/sss_client/pam_sss.c:2750
 msgid "Press ENTER to continue."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:2701 src/sss_client/pam_sss.c:2704
+#: src/sss_client/pam_sss.c:2771 src/sss_client/pam_sss.c:2774
 msgid "First Factor: "
 msgstr "Primeiro Factor: "
 
-#: src/sss_client/pam_sss.c:2702 src/sss_client/pam_sss.c:2876
+#: src/sss_client/pam_sss.c:2772 src/sss_client/pam_sss.c:2946
 msgid "Second Factor (optional): "
 msgstr "Segundo Factor (opcional): "
 
-#: src/sss_client/pam_sss.c:2705 src/sss_client/pam_sss.c:2880
+#: src/sss_client/pam_sss.c:2775 src/sss_client/pam_sss.c:2950
 msgid "Second Factor: "
 msgstr "Segundo Factor: "
 
-#: src/sss_client/pam_sss.c:2709
+#: src/sss_client/pam_sss.c:2779
 msgid "Insert your passkey device, then press ENTER."
 msgstr "Insira o seu dispositivo passkey, depois pressione ENTER."
 
-#: src/sss_client/pam_sss.c:2713 src/sss_client/pam_sss.c:2721
+#: src/sss_client/pam_sss.c:2783 src/sss_client/pam_sss.c:2791
 msgid "Password: "
 msgstr "Palavra Passe: "
 
-#: src/sss_client/pam_sss.c:2875 src/sss_client/pam_sss.c:2879
+#: src/sss_client/pam_sss.c:2945 src/sss_client/pam_sss.c:2949
 msgid "First Factor (Current Password): "
 msgstr "Primeiro Factor (Palavra Passe Atual): "
 
-#: src/sss_client/pam_sss.c:2899
+#: src/sss_client/pam_sss.c:2969
 msgid "Current Password: "
 msgstr "Palavra Passe Actual: "
 
-#: src/sss_client/pam_sss.c:3273
+#: src/sss_client/pam_sss.c:3343
 msgid "Password expired. Change your password now."
 msgstr "A palavra passe expirou. Altere a sua palavra passe agora."
 

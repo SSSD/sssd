@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2026-04-20 11:06+0000\n"
+"POT-Creation-Date: 2026-05-11 20:09+0000\n"
 "PO-Revision-Date: 2026-04-15 14:58+0000\n"
 "Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
 "memory@weblate.org>\n"
@@ -2136,39 +2136,39 @@ msgstr "Fallito il bootstrap del processo 'monitor' di SSSD: %s"
 msgid "Out of memory\n"
 msgstr "Memoria esaurita\n"
 
-#: src/providers/krb5/krb5_child.c:4309
+#: src/providers/krb5/krb5_child.c:4308
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "Utilizza PKINIT anonimo per richiedere il ticket armatura FAST"
 
-#: src/providers/krb5/krb5_child.c:4311
+#: src/providers/krb5/krb5_child.c:4310
 msgid "Kerberos realm to use"
 msgstr "Realm Kerberos da utilizzare"
 
-#: src/providers/krb5/krb5_child.c:4313
+#: src/providers/krb5/krb5_child.c:4312
 msgid "Requested lifetime of the ticket"
 msgstr "Durata richiesta del ticket"
 
-#: src/providers/krb5/krb5_child.c:4315
+#: src/providers/krb5/krb5_child.c:4314
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Durata rinnovabile richiesta del ticket"
 
-#: src/providers/krb5/krb5_child.c:4317
+#: src/providers/krb5/krb5_child.c:4316
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "Opzioni FAST ('never', 'try', 'demand')"
 
-#: src/providers/krb5/krb5_child.c:4320
+#: src/providers/krb5/krb5_child.c:4319
 msgid "Specifies the server principal to use for FAST"
 msgstr "Specifica il principal del server da utilizzare per FAST"
 
-#: src/providers/krb5/krb5_child.c:4322
+#: src/providers/krb5/krb5_child.c:4321
 msgid "Requests canonicalization of the principal name"
 msgstr "Richiede la canonicalizzazione del nome del principal"
 
-#: src/providers/krb5/krb5_child.c:4324
+#: src/providers/krb5/krb5_child.c:4323
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Usa versione personalizzata di krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:4326
+#: src/providers/krb5/krb5_child.c:4325
 msgid "Check PAC flags"
 msgstr "Controlla flag PAC"
 
@@ -2205,16 +2205,16 @@ msgstr ""
 msgid "Unexpected error while looking for an error description"
 msgstr "Errore inatteso durante la ricerca di una descrizione dell'errore"
 
-#: src/sss_client/pam_sss.c:74
+#: src/sss_client/pam_sss.c:96
 msgid "Permission denied. "
 msgstr "Permesso negato. "
 
-#: src/sss_client/pam_sss.c:75 src/sss_client/pam_sss.c:845
-#: src/sss_client/pam_sss.c:856
+#: src/sss_client/pam_sss.c:97 src/sss_client/pam_sss.c:879
+#: src/sss_client/pam_sss.c:890
 msgid "Server message: "
 msgstr "Messaggio del server:"
 
-#: src/sss_client/pam_sss.c:76
+#: src/sss_client/pam_sss.c:98
 msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
@@ -2222,50 +2222,50 @@ msgstr ""
 "Il TGT Kerberos non verrà concesso al login, l'esperienza utente ne "
 "risentirà."
 
-#: src/sss_client/pam_sss.c:77
+#: src/sss_client/pam_sss.c:99
 msgid "Enter PIN:"
 msgstr "Inserire PIN:"
 
-#: src/sss_client/pam_sss.c:320
+#: src/sss_client/pam_sss.c:343
 msgid "Passwords do not match"
 msgstr "Le password non coincidono"
 
-#: src/sss_client/pam_sss.c:508
+#: src/sss_client/pam_sss.c:542
 msgid "Password reset by root is not supported."
 msgstr "Il reset della password da parte di root non è supportato."
 
-#: src/sss_client/pam_sss.c:549
+#: src/sss_client/pam_sss.c:583
 msgid "Authenticated with cached credentials"
 msgstr "Autenticato con le credenziali nella cache"
 
-#: src/sss_client/pam_sss.c:550
+#: src/sss_client/pam_sss.c:584
 msgid ", your cached password will expire at: "
 msgstr ", la password in cache scadrà il: "
 
-#: src/sss_client/pam_sss.c:580
+#: src/sss_client/pam_sss.c:614
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "La tua password è scaduta. Hai %1$d login di cortesia rimanenti."
 
-#: src/sss_client/pam_sss.c:630
+#: src/sss_client/pam_sss.c:664
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "La tua password scadrà tra %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:633
+#: src/sss_client/pam_sss.c:667
 #, c-format
 msgid "Your password has expired."
 msgstr "La tua password è scaduta."
 
-#: src/sss_client/pam_sss.c:684
+#: src/sss_client/pam_sss.c:718
 msgid "Authentication is denied until: "
 msgstr "L'autenticazione verrà negata fino al: "
 
-#: src/sss_client/pam_sss.c:705
+#: src/sss_client/pam_sss.c:739
 msgid "System is offline, password change not possible"
 msgstr "Il sistema è offline, non è possibile richiedere un cambio password"
 
-#: src/sss_client/pam_sss.c:720
+#: src/sss_client/pam_sss.c:754
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
@@ -2273,11 +2273,11 @@ msgstr ""
 "Dopo aver cambiato la password OTP, è necessario disconnettersi e "
 "riconnettersi per acquisire un ticket"
 
-#: src/sss_client/pam_sss.c:737
+#: src/sss_client/pam_sss.c:771
 msgid "PIN locked"
 msgstr "PIN bloccato"
 
-#: src/sss_client/pam_sss.c:752
+#: src/sss_client/pam_sss.c:786
 msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
@@ -2285,65 +2285,65 @@ msgstr ""
 "Nessun TGT Kerberos concesso poiché il server non supporta questo metodo. La "
 "tua esperienza di single-sign on (SSO) ne risentirà."
 
-#: src/sss_client/pam_sss.c:842 src/sss_client/pam_sss.c:855
+#: src/sss_client/pam_sss.c:876 src/sss_client/pam_sss.c:889
 msgid "Password change failed. "
 msgstr "Cambio password fallito."
 
-#: src/sss_client/pam_sss.c:1866
+#: src/sss_client/pam_sss.c:1918
 #, fuzzy, c-format
 msgid "Authenticate at \"%1$s\"."
 msgstr "Autenticati su %1$s e premi INVIO."
 
-#: src/sss_client/pam_sss.c:1869
+#: src/sss_client/pam_sss.c:1921
 #, fuzzy, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
 msgstr "Autenticati con il PIN %1$s su %2$s e premi INVIO."
 
-#: src/sss_client/pam_sss.c:2303
+#: src/sss_client/pam_sss.c:2358
 msgid "Please (re)insert (different) Smartcard"
 msgstr "Per favore (re)inserisci (un'altra) Smartcard"
 
-#: src/sss_client/pam_sss.c:2504
+#: src/sss_client/pam_sss.c:2574
 msgid "New Password: "
 msgstr "Nuova password: "
 
-#: src/sss_client/pam_sss.c:2505
+#: src/sss_client/pam_sss.c:2575
 msgid "Reenter new Password: "
 msgstr "Conferma nuova password: "
 
-#: src/sss_client/pam_sss.c:2680
+#: src/sss_client/pam_sss.c:2750
 msgid "Press ENTER to continue."
 msgstr ""
 
-#: src/sss_client/pam_sss.c:2701 src/sss_client/pam_sss.c:2704
+#: src/sss_client/pam_sss.c:2771 src/sss_client/pam_sss.c:2774
 msgid "First Factor: "
 msgstr "Primo Fattore: "
 
-#: src/sss_client/pam_sss.c:2702 src/sss_client/pam_sss.c:2876
+#: src/sss_client/pam_sss.c:2772 src/sss_client/pam_sss.c:2946
 msgid "Second Factor (optional): "
 msgstr "Secondo Fattore (opzionale): "
 
-#: src/sss_client/pam_sss.c:2705 src/sss_client/pam_sss.c:2880
+#: src/sss_client/pam_sss.c:2775 src/sss_client/pam_sss.c:2950
 msgid "Second Factor: "
 msgstr "Secondo Fattore: "
 
-#: src/sss_client/pam_sss.c:2709
+#: src/sss_client/pam_sss.c:2779
 msgid "Insert your passkey device, then press ENTER."
 msgstr "Inserisci il tuo dispositivo passkey, quindi premi INVIO."
 
-#: src/sss_client/pam_sss.c:2713 src/sss_client/pam_sss.c:2721
+#: src/sss_client/pam_sss.c:2783 src/sss_client/pam_sss.c:2791
 msgid "Password: "
 msgstr "Password: "
 
-#: src/sss_client/pam_sss.c:2875 src/sss_client/pam_sss.c:2879
+#: src/sss_client/pam_sss.c:2945 src/sss_client/pam_sss.c:2949
 msgid "First Factor (Current Password): "
 msgstr "Primo Fattore (Password attuale): "
 
-#: src/sss_client/pam_sss.c:2899
+#: src/sss_client/pam_sss.c:2969
 msgid "Current Password: "
 msgstr "Password corrente: "
 
-#: src/sss_client/pam_sss.c:3273
+#: src/sss_client/pam_sss.c:3343
 msgid "Password expired. Change your password now."
 msgstr "Password scaduta. Cambiare la password ora."
 
