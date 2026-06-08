@@ -578,6 +578,14 @@ errno_t get_jwk_from_pkcs12(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (pkey == NULL || cert == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to extract required data from PKCS#12 file, "
+              "certificate or private key is missing.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     cert_hash = get_cert_sha256_hash(mem_ctx, cert);
     if (cert_hash == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,

@@ -1129,6 +1129,12 @@ static json_t *get_jwk(struct rest_ctx *rest_ctx)
     uint8_t *buf = NULL;
     json_error_t json_error;
 
+    if (rest_ctx_get_pkcs12_client_creds(rest_ctx) == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing PKCS#12 file name.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     fd = open(rest_ctx_get_pkcs12_client_creds(rest_ctx), O_RDONLY);
     if (fd == -1) {
         ret = errno;
