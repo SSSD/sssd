@@ -1234,7 +1234,6 @@ static json_t *get_jwt_payload(const char *token_endpoint,
 
     json = json_pack("{s:o}", "payload", payload_b64);
     if (json == NULL) {
-        json_decref(payload_b64);
         DEBUG(SSSDBG_OP_FAILURE, "Failed to generate JSON payload.\n");
         return NULL;
     }
