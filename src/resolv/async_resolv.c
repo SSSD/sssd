@@ -2118,7 +2118,7 @@ resolv_gettxt_done(void *arg, int status, int timeouts, unsigned char *abuf, int
     }
 
     ret = ares_parse_txt_reply(abuf, alen, &reply_list);
-    if (status != ARES_SUCCESS) {
+    if (ret != ARES_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE,
               "TXT record parsing failed: %d: %s\n", ret, ares_strerror(ret));
         ret = return_code(ret);
