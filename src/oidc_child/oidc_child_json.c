@@ -629,8 +629,8 @@ int get_authentik_pagination(const char *json_str)
         return ENOMEM;
     }
     pagination_data = json_object_get(result, "pagination");
-    json_decref(result);
     page_count = get_json_integer(pagination_data, "total_pages", true);
+    json_decref(result);
     return page_count;
 }
 
