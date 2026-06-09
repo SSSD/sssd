@@ -155,7 +155,6 @@ done:
 static void
 ipa_dyndns_update_connect_done(struct tevent_req *subreq)
 {
-    int dp_error;
     int ret;
     struct ipa_options *ctx;
     struct tevent_req *req;
@@ -165,11 +164,14 @@ ipa_dyndns_update_connect_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_dyndns_update_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
+    ctx = state->ipa_ctx;
+    sdap_ctx = ctx->id_ctx->sdap_id_ctx;
+
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (be_is_offline(sdap_ctx->be)) {
             DEBUG(SSSDBG_MINOR_FAILURE, "No server is available, "
                   "dynamic DNS update is skipped in offline mode.\n");
             tevent_req_error(req, ERR_DYNDNS_OFFLINE);
@@ -181,9 +183,6 @@ ipa_dyndns_update_connect_done(struct tevent_req *subreq)
         }
         return;
     }
-
-    ctx = state->ipa_ctx;
-    sdap_ctx = ctx->id_ctx->sdap_id_ctx;
 
     /* The following three checks are here to prevent SEGFAULT
      * from ticket #3076. */

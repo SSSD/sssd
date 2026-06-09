@@ -180,7 +180,6 @@ done:
 
 static void ad_dyndns_update_connect_done(struct tevent_req *subreq)
 {
-    int dp_error;
     int ret;
     struct tevent_req *req;
     struct ad_dyndns_update_state *state;
@@ -191,11 +190,14 @@ static void ad_dyndns_update_connect_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_dyndns_update_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
+    ctx = state->ad_ctx;
+    sdap_ctx = ctx->id_ctx->sdap_id_ctx;
+
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (be_is_offline(sdap_ctx->be)) {
             DEBUG(SSSDBG_MINOR_FAILURE, "No server is available, "
                   "dynamic DNS update is skipped in offline mode.\n");
             tevent_req_error(req, ERR_DYNDNS_OFFLINE);
@@ -207,9 +209,6 @@ static void ad_dyndns_update_connect_done(struct tevent_req *subreq)
         }
         return;
     }
-
-    ctx = state->ad_ctx;
-    sdap_ctx = ctx->id_ctx->sdap_id_ctx;
 
     ret = ldap_url_parse(ctx->service->sdap->uri, &lud);
     if (ret != LDAP_SUCCESS) {

@@ -122,9 +122,7 @@ cache_req_well_known_sid_result(TALLOC_CTX *mem_ctx,
 bool
 cache_req_common_process_dp_reply(struct cache_req *cr,
                                   errno_t ret,
-                                  uint16_t err_maj,
-                                  uint32_t err_min,
-                                  const char *err_msg)
+                                  uint32_t err)
 {
     bool bret;
 
@@ -142,10 +140,10 @@ cache_req_common_process_dp_reply(struct cache_req *cr,
         goto done;
     }
 
-    if (err_maj) {
+    if (err) {
         CACHE_REQ_DEBUG(SSSDBG_IMPORTANT_INFO, cr,
-                        "Data Provider Error: %u, %u, %s\n",
-                        (unsigned int)err_maj, (unsigned int)err_min, err_msg);
+                        "Data Provider Error: %u, %s\n",
+                        (unsigned int)err, sss_strerror(err));
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                         "Due to an error we will return cached data\n");
 
@@ -163,16 +161,12 @@ bool
 cache_req_common_dp_recv(struct tevent_req *subreq,
                          struct cache_req *cr)
 {
-    const char *err_msg;
-    uint16_t err_maj;
-    uint32_t err_min;
+    uint32_t err;
     errno_t ret;
     bool bret;
 
-    /* Use subreq as memory context so err_msg is freed with it. */
-    ret = sss_dp_get_account_recv(subreq, subreq, &err_maj, &err_min, &err_msg);
-    bret = cache_req_common_process_dp_reply(cr, ret, err_maj,
-                                             err_min, err_msg);
+    ret = sss_dp_get_account_recv(subreq, subreq, &err);
+    bret = cache_req_common_process_dp_reply(cr, ret, err);
 
     return bret;
 }
