@@ -30,6 +30,9 @@
 struct rest_ctx {
     bool libcurl_debug;
     const char *ca_db;
+    const char *pkcs12_client_creds;
+    enum client_auth_method client_auth_method;
+    const char *key_passwd;
     char *http_data;
     CURL *curl_ctx;
 };
@@ -57,7 +60,10 @@ static CURL *init_curl(void)
 
 static int rest_ctx_destructor(void *p);
 struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
-                              const char *ca_db)
+                              const char *ca_db,
+                              const char *pkcs12_client_creds,
+                              enum client_auth_method client_auth_method,
+                              const char *key_passwd)
 {
     struct rest_ctx *rest_ctx;
 
@@ -76,6 +82,20 @@ struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
             goto fail;
         }
     }
+
+    if (pkcs12_client_creds != NULL) {
+        rest_ctx->pkcs12_client_creds = talloc_strdup(rest_ctx,
+                                                    pkcs12_client_creds);
+        if (rest_ctx->pkcs12_client_creds == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Failed to copy PKCS#12 path.\n");
+            goto fail;
+        }
+
+        /* Just copy the reference not the value to avoid multiple copies of
+         * the password/secret in memory. */
+        rest_ctx->key_passwd = key_passwd;
+    }
+    rest_ctx->client_auth_method = client_auth_method;
 
     rest_ctx->curl_ctx = init_curl();
     if (rest_ctx->curl_ctx == NULL) {
@@ -109,6 +129,16 @@ errno_t set_http_data(struct rest_ctx *rest_ctx, const char *str)
     rest_ctx->http_data = tmp;
 
     return EOK;
+}
+
+const char *rest_ctx_get_pkcs12_client_creds(const struct rest_ctx *rest_ctx)
+{
+    return (const char *) rest_ctx->pkcs12_client_creds;
+}
+
+const char *rest_ctx_get_key_passwd(const struct rest_ctx *rest_ctx)
+{
+    return (const char *) rest_ctx->key_passwd;
 }
 
 char *url_encode_string(struct rest_ctx *rest_ctx, const char *inp)
@@ -346,6 +376,27 @@ static errno_t set_http_opts(CURL *curl_ctx, struct rest_ctx *rest_ctx,
             ret = EIO;
             goto done;
         }
+    } else if (rest_ctx->client_auth_method == CAM_MTLS) {
+        res = curl_easy_setopt(curl_ctx, CURLOPT_SSLCERT,
+                               rest_ctx->pkcs12_client_creds);
+        if (res != CURLE_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set path the PKCS#12 file.\n");
+            ret = EIO;
+            goto done;
+        }
+        res = curl_easy_setopt(curl_ctx, CURLOPT_SSLCERTTYPE, "P12");
+        if (res != CURLE_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set cert type.\n");
+            ret = EIO;
+            goto done;
+        }
+        res = curl_easy_setopt(curl_ctx, CURLOPT_KEYPASSWD,
+                               rest_ctx->key_passwd);
+        if (res != CURLE_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set key password.\n");
+            ret = EIO;
+            goto done;
+        }
     }
 
     ret = EOK;
@@ -456,7 +507,8 @@ errno_t do_http_request(struct rest_ctx *rest_ctx, const char *uri,
         goto done;
     }
 
-    ret = set_http_opts(curl_ctx, rest_ctx, uri, post_data, token, headers);
+    ret = set_http_opts(curl_ctx, rest_ctx, uri, post_data,
+                        token, headers);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to set http options.\n");
         goto done;
@@ -488,6 +540,65 @@ done:
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl_ctx);
     return ret;
+}
+
+static char *append_jwt_to_postdata(char *str, struct rest_ctx *rest_ctx,
+                                    const char *token_endpoint,
+                                    const char *client_id)
+{
+    char *out = NULL;
+    char *jwt = NULL;
+
+    out = append_to_post_data(str, "client_assertion_type",
+                                   "urn:ietf:params:oauth:client-assertion-type:jwt-bearer");
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add client_assertion_type to POST data.\n");
+        return out;
+    }
+
+    jwt = get_jwt(rest_ctx, token_endpoint, client_id);
+    if (jwt == NULL) {
+        talloc_free(out);
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get JWT.\n");
+        return NULL;
+    }
+
+    out = append_to_post_data(out, "client_assertion", jwt);
+    talloc_free(jwt);
+    if (out == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add client_assertion to POST data.\n");
+        return NULL;
+    }
+
+    return out;
+}
+
+static char *append_to_creds_to_post_data(char *str,
+                                          struct rest_ctx *rest_ctx,
+                                          const char *token_endpoint,
+                                          const char *client_id,
+                                          const char *client_secret)
+{
+    char *out = str;
+
+    if (rest_ctx->client_auth_method == CAM_SECRET) {
+        out = append_to_post_data(out, "client_secret", client_secret);
+        if (out == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
+            return NULL;
+        }
+    } else if (rest_ctx->client_auth_method == CAM_JWT) {
+        out = append_jwt_to_postdata(out, rest_ctx, token_endpoint, client_id);
+        if (out == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add JWT client assertion to POST data.\n");
+            return NULL;
+        }
+    }
+
+    return out;
 }
 
 #define AZURE_EXPECT_CODE "The request body must contain the following parameter: 'code'."
@@ -527,13 +638,14 @@ errno_t get_token(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (client_secret != NULL) {
-        post_data = append_to_post_data(post_data, "client_secret", client_secret);
-        if (post_data == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
-            ret = ENOMEM;
-            goto done;
-        }
+    post_data = append_to_creds_to_post_data(post_data, dc_ctx->rest_ctx,
+                                             dc_ctx->token_endpoint,
+                                             client_id, client_secret);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add client credentials to POST data.\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     /* Remember the offset of the device code for the azure fallback later. */
@@ -685,14 +797,16 @@ errno_t get_devicecode(struct devicecode_ctx *dc_ctx,
         goto done;
     }
 
-    if (client_secret != NULL) {
-        post_data = append_to_post_data(post_data, "client_secret", client_secret);
-        if (post_data == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
-            ret = ENOMEM;
-            goto done;
-        }
+    post_data = append_to_creds_to_post_data(post_data, dc_ctx->rest_ctx,
+                                             dc_ctx->token_endpoint,
+                                             client_id, client_secret);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add client credentials to POST data.\n");
+        ret = ENOMEM;
+        goto done;
     }
+
 
     clean_http_data(dc_ctx->rest_ctx);
     ret = do_http_request(dc_ctx->rest_ctx,
@@ -769,7 +883,9 @@ errno_t client_credentials_grant(struct rest_ctx *rest_ctx,
         goto done;
     }
 
-    post_data = append_to_post_data(post_data, "client_secret", client_secret);
+    post_data = append_to_creds_to_post_data(post_data, rest_ctx,
+                                             token_endpoint, client_id,
+                                             client_secret);
     if (post_data == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
         ret = ENOMEM;
@@ -788,7 +904,8 @@ errno_t client_credentials_grant(struct rest_ctx *rest_ctx,
     clean_http_data(rest_ctx);
     ret = do_http_request(rest_ctx, token_endpoint, post_data, NULL);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to send device code request.\n");
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to send client credential grant request.\n");
     }
 
 done:
@@ -827,13 +944,14 @@ errno_t refresh_token(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (client_secret != NULL) {
-        post_data = append_to_post_data(post_data, "client_secret", client_secret);
-        if (post_data == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to add client_secret to POST data.\n");
-            ret = ENOMEM;
-            goto done;
-        }
+    post_data = append_to_creds_to_post_data(post_data, dc_ctx->rest_ctx,
+                                             dc_ctx->token_endpoint,
+                                             client_id, client_secret);
+    if (post_data == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add client credentials to POST data.\n");
+        ret = ENOMEM;
+        goto done;
     }
 
     post_data = append_to_post_data(post_data, "scope", scope);

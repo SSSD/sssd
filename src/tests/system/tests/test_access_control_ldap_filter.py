@@ -222,6 +222,10 @@ def test_access_filter__ldap_attributes_approximately_greater_and_less_than_perm
 
     access_filter = "(|(uidNumber>=10030)(uidNumber~=10029))"
 
+    # Approximate match implementation behavior is provider-specific (not defined in RFC):
+    #   AD: Returns true only if the values are equal. No approximation is performed
+    #   Samba: not supported, search returns LDAP_INAPPROPRIATE_MATCHING.
+    #   389ds: Phonetic/spelling approximation match only (uid 10029 and uid 10025 does not match)
     if isinstance(provider, (AD, Samba)):
         client.sssd.domain["access_provider"] = "ad"
         client.sssd.domain["ad_access_filter"] = access_filter
@@ -231,5 +235,8 @@ def test_access_filter__ldap_attributes_approximately_greater_and_less_than_perm
 
     client.sssd.start()
 
+    # SAMBA topology note: use of unsupported approx match filter means the 'user2' login triggers the SSSD backend
+    # to fail the access check operation with 'Error retrieving access check result.' In the 'user1' login case the
+    # (uidNumber>=10030) filter part is evaluated first and returns user1
     assert client.auth.ssh.password("user1", "Secret123"), "`user1` should be able to log in!"
     assert not client.auth.ssh.password("user2", "Secret123"), "`user2` should NOT be able to log in!"

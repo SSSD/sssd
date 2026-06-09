@@ -179,15 +179,6 @@ static errno_t ldap_init_misc(struct be_ctx *be_ctx,
         }
     }
 
-    setup_ldap_debug(options->basic);
-
-    ret = setup_tls_config(options->basic);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get TLS options [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
     /* Setup the ID mapping object */
     ret = sdap_idmap_init(id_ctx, id_ctx, &options->idmap_ctx);
     if (ret != EOK) {

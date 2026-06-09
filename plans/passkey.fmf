@@ -1,0 +1,243 @@
+summary: SSSD passkey tests
+description: |
+    Test passkey functionality with SSSD across different identity providers
+    (IPA, LDAP, Samba).
+tag: passkey
+
+provision:
+    how: virtual
+    hardware:
+      memory: ">= 16 GB"
+
+prepare:
+    - name: Enable EPEL repository for CentOS Stream
+      how: shell
+      script: |
+        if grep -q "CentOS Stream" /etc/os-release 2>/dev/null; then
+          dnf install -y epel-release
+        fi
+
+    - name: Install general dependencies
+      how: install
+      package:
+        - expect
+        - gcc
+        - git
+        - openldap-devel
+        - podman
+        - podman-compose
+        - podman-docker
+        - python3-devel
+        - python3-pip
+        - yq
+
+    - name: Setup docker-compose compatibility
+      how: shell
+      script: |
+        if ! command -v docker-compose >/dev/null 2>&1; then
+          ln -sf $(command -v podman-compose) /usr/local/bin/docker-compose
+        fi
+
+    - name: Install and load kernel module for passkey testing on Fedora
+      how: shell
+      script: |
+        if grep -q "^ID=fedora" /etc/os-release 2>/dev/null; then
+          dnf install -y kernel-modules-extra-$(uname -r)
+          modprobe vhci_hcd
+        fi
+
+    - name: Clone sssd
+      how: shell
+      script: |
+        if [ -n "$PACKIT_SOURCE_BRANCH" ] && [ -n "$PACKIT_SOURCE_URL" ]; then
+          echo "Direct PR branch clone: url $PACKIT_SOURCE_URL branch $PACKIT_SOURCE_BRANCH"
+          git clone --branch "$PACKIT_SOURCE_BRANCH" "$PACKIT_SOURCE_URL" /tmp/sssd
+        elif [ -n "$PACKIT_PR_ID" ]; then
+          echo "PR ID fetch: PR ID $PACKIT_PR_ID"
+          git clone https://github.com/SSSD/sssd.git /tmp/sssd
+          cd /tmp/sssd
+          git fetch origin "pull/$PACKIT_PR_ID/head:pr-$PACKIT_PR_ID"
+          git checkout "pr-$PACKIT_PR_ID"
+        else
+          echo "No PR context found, master branch fallback"
+          git clone https://github.com/SSSD/sssd.git /tmp/sssd
+        fi
+
+        cd /tmp/sssd
+        echo "Current branch: $(git branch --show-current)"
+        echo "Current commit: $(git rev-parse HEAD)"
+
+    - name: Clone sssd-ci-containers
+      how: shell
+      script:
+        - git clone https://github.com/SSSD/sssd-ci-containers.git /tmp/sssd-ci-containers
+
+    - name: Install test dependencies
+      how: shell
+      script:
+        - pip3 install --break-system-packages -r /tmp/sssd/src/tests/system/requirements.txt
+
+    - name: Setup containers
+      how: shell
+      script: |
+        cd /tmp/sssd-ci-containers
+        systemctl enable --now podman.socket
+        setsebool container_manage_cgroup true
+        cp env.example .env
+
+        # Detect system distribution and set appropriate container tag
+        . /tmp/sssd/contrib/ci/distro.sh
+        if [ "$DISTRO_ID" = "centos" ]; then
+            CONTAINER_TAG="centos-$DISTRO_RELEASE"
+        else
+            CONTAINER_TAG="fedora-$DISTRO_RELEASE"
+        fi
+        echo "Using container tag: $CONTAINER_TAG"
+        sed -i "s/TAG=latest/TAG=$CONTAINER_TAG/g" .env
+
+        make setup-dns-files
+        make up
+
+    - name: Fix SSH key permissions
+      how: shell
+      script:
+        - chmod 600 /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa
+
+    - name: Wait for client and IPA containers to be ready
+      how: shell
+      script: |
+        # Wait for client container
+        for i in $(seq 1 60); do
+            if ssh -i /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa \
+                   -o StrictHostKeyChecking=no \
+                   -o ConnectTimeout=5 \
+                   root@client.test "echo 'ready'" >/dev/null 2>&1; then
+                echo "Client container ready"
+                break
+            fi
+            if [ $i -eq 60 ]; then
+                echo "ERROR: Client container not ready after 60 attempts"
+                exit 1
+            fi
+            sleep 1
+        done
+
+        # Wait for IPA container
+        for i in $(seq 1 60); do
+            if ssh -i /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa \
+                   -o StrictHostKeyChecking=no \
+                   -o ConnectTimeout=5 \
+                   root@master.ipa.test "echo 'ready'" >/dev/null 2>&1; then
+                echo "IPA container ready"
+                break
+            fi
+            if [ $i -eq 60 ]; then
+                echo "ERROR: IPA container not ready after 60 attempts"
+                exit 1
+            fi
+            sleep 1
+        done
+
+    - name: Install SSSD from PR build into containers
+      how: shell
+      script: |
+        # Get COPR repo name from environment
+        if [ -n "$PACKIT_COPR_PROJECT" ]; then
+          COPR_REPO="$PACKIT_COPR_PROJECT"
+        else
+          echo "WARNING: No PACKIT_COPR_PROJECT found, using latest master build"
+          COPR_REPO="packit/SSSD-sssd-master"
+        fi
+
+        echo "Using COPR repo: $COPR_REPO"
+
+        # Detect system distribution and set appropriate COPR command
+        . /tmp/sssd/contrib/ci/distro.sh
+        if [ "$DISTRO_ID" = "centos" ] && [ "$DISTRO_RELEASE" = "10" ]; then
+          COPR_ENABLE_CMD="dnf copr enable -y $COPR_REPO centos-stream-10-x86_64"
+        else
+          COPR_ENABLE_CMD="dnf copr enable -y $COPR_REPO"
+        fi
+
+        # Install on client container
+        ssh -i /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa \
+            -o StrictHostKeyChecking=no \
+            root@client.test "
+          $COPR_ENABLE_CMD && \
+          dnf upgrade -y --refresh sssd*
+        "
+
+        # Install on IPA container
+        ssh -i /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa \
+            -o StrictHostKeyChecking=no \
+            root@master.ipa.test "
+          $COPR_ENABLE_CMD && \
+          dnf upgrade -y --refresh sssd*
+        "
+
+    - name: Restart SSSD services in containers
+      how: shell
+      script: |
+        # Restart SSSD on client container
+        ssh -i /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa \
+            -o StrictHostKeyChecking=no \
+            root@client.test "systemctl restart sssd"
+
+        # Restart SSSD on IPA container
+        ssh -i /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa \
+            -o StrictHostKeyChecking=no \
+            root@master.ipa.test "systemctl restart sssd"
+
+    - name: Remove ad from mhc.yaml
+      how: shell
+      script: |
+        cd /tmp/sssd/src/tests/system
+        yq -i 'del(.domains[0].hosts[] | select(.role == "ad"))' mhc.yaml
+
+    - name: Wait for samba domain connectivity
+      how: shell
+      script: |
+        echo "Wait for samba domain connectivity..."
+
+        for i in $(seq 1 90); do
+            # Check if we can resolve users from samba.test domain
+            if ssh -i /tmp/sssd-ci-containers/data/ssh-keys/root.id_rsa \
+                   -o StrictHostKeyChecking=no \
+                   -o ConnectTimeout=5 \
+                   root@client.test "
+                timeout 10s getent passwd Administrator@samba.test >/dev/null 2>&1
+            " 2>/dev/null; then
+                echo "Domain connectivity ready (${i}s)"
+                break
+            else
+                if [ $i -eq 90 ]; then
+                    echo "User resolution not ready after 90 attempts, proceeding with tests anyway"
+                fi
+                sleep 1
+            fi
+        done
+
+execute:
+    how: tmt
+    duration: 45m
+    script: |
+        mkdir -p /tmp/artifacts
+        cd /tmp/sssd/src/tests/system
+        pytest --durations=0 \
+               --color=yes \
+               --show-capture=no \
+               --mh-config=mhc.yaml \
+               --mh-artifacts-dir=/tmp/artifacts \
+               -vvv tests/test_passkey.py
+
+finish:
+    - name: Copy artifacts
+      how: shell
+      script: |
+        if [ -d "/tmp/artifacts" ] && [ "$(ls -A /tmp/artifacts 2>/dev/null)" ]; then
+          mkdir -p $TMT_PLAN_DATA/artifacts
+          cp -r /tmp/artifacts/* $TMT_PLAN_DATA/artifacts/
+          echo "Artifacts copied to: $TMT_PLAN_DATA/artifacts"
+        else
+          echo "No artifacts to copy"
+        fi

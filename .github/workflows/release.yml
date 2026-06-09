@@ -11,11 +11,14 @@ on:
         description: 'Release version'
         required: true
         type: string
-
-      previous_version:
-        description: 'Previous version, starting point for release notes generator'
+      create_stable_branch:
+        description: 'Create stable branch (auto = yes if branch is master)'
         required: true
-        type: string
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - 'no'
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -27,6 +30,10 @@ jobs:
       uses: actions/checkout@v6
       with:
         path: sssd
+        # Fetch full history and all tags so we can find previous
+        # version tags.
+        fetch-depth: 0
+        fetch-tags: true
 
     - name: Import GPG key
       uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd
@@ -55,11 +62,13 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
-        ./scripts/release.sh "${{ inputs.branch }}" "${{ inputs.version }}" "${{ inputs.previous_version }}"
+        ./scripts/release.sh "${{ inputs.branch }}" "${{ inputs.version }}" "${{ inputs.create_stable_branch }}"
 
     - name: Execute release notes script
       working-directory: sssd
       shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.BOT_TOKEN }}
       run: |
         # Release notes file is generated from the release script
-        ./scripts/release-notes.sh "${{ inputs.version }}" "/tmp/sssd-${{ inputs.version }}.rst" sssd-bot "${{ secrets.BOT_TOKEN }}"
+        ./scripts/release-notes.sh "${{ inputs.version }}" "/tmp/sssd-${{ inputs.version }}.rst" sssd-bot

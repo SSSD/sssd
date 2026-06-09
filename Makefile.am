@@ -33,11 +33,6 @@ builddir ?= .
 SETCAP = @SETCAP@
 DOXYGEN = @DOXYGEN@
 
-DISTSETUPOPTS =
-if HAVE_DEBIAN
-DISTSETUPOPTS += --install-layout=deb
-endif
-
 sssdlibexecdir = $(libexecdir)/sssd
 sssdlibdir = $(libdir)/sssd
 sssddefaultconfdir = $(sssdlibdir)/conf
@@ -383,13 +378,6 @@ endif # HAVE_CMOCKA
 
 PYTHON_TESTS =
 
-if BUILD_PYTHON2_BINDINGS
-PYTHON_TESTS += src/config/SSSDConfigTest.py2.sh \
-                src/tests/pyhbac-test.py2.sh \
-                src/tests/pysss-test.py2.sh \
-                src/tests/pysss_murmur-test.py2.sh \
-                $(NULL)
-endif
 if BUILD_PYTHON3_BINDINGS
 PYTHON_TESTS += src/config/SSSDConfigTest.py3.sh \
                 src/tests/pyhbac-test.py3.sh \
@@ -459,15 +447,6 @@ noinst_LTLIBRARIES =
 
 pkglib_LTLIBRARIES =
 
-if BUILD_PYTHON2_BINDINGS
-py2exec_LTLIBRARIES = \
-    _py2sss.la \
-    _py2hbac.la \
-    _py2sss_murmur.la \
-    _py2sss_nss_idmap.la \
-    $(NULL)
-endif
-
 if BUILD_PYTHON3_BINDINGS
 py3exec_LTLIBRARIES = \
     _py3sss.la \
@@ -483,12 +462,10 @@ sbin_SCRIPTS = \
 
 dist_noinst_SCRIPTS = \
     $(EXTRA_SCRIPTS) \
-    src/config/setup.py \
     src/config/SSSDConfig/ipachangeconf.py \
     src/config/SSSDConfig/sssdoptions.py \
     src/config/SSSDConfig/__init__.py \
     src/config/SSSDConfigTest.py \
-    src/config/SSSDConfigTest.py2.sh \
     src/config/SSSDConfigTest.py3.sh \
     contrib/fedora/bashrc_sssd \
     contrib/fedora/make_srpm.sh \
@@ -506,13 +483,10 @@ dist_noinst_SCRIPTS = \
     contrib/git/pre-push \
     contrib/vagrant/bootstrap.sh \
     src/tests/pyhbac-test.py \
-    src/tests/pyhbac-test.py2.sh \
     src/tests/pyhbac-test.py3.sh \
     src/tests/pysss-test.py \
-    src/tests/pysss-test.py2.sh \
     src/tests/pysss-test.py3.sh \
     src/tests/pysss_murmur-test.py \
-    src/tests/pysss_murmur-test.py2.sh \
     src/tests/pysss_murmur-test.py3.sh \
     src/tests/python-test.py \
     src/tests/whitespace_test \
@@ -3660,12 +3634,14 @@ test_cert_utils_SOURCES = \
     src/tests/cmocka/test_cert_utils.c \
     src/responder/ssh/ssh_cert_to_ssh_key.c \
     src/util/cert_derb64_to_ldap_filter.c \
+    src/oidc_child/libcrypto/oidc_child_get_jwk.c \
     $(NULL)
 test_cert_utils_CFLAGS = \
     $(AM_CFLAGS) \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     -I$(abs_builddir)/src \
     $(CRYPTO_CFLAGS) \
+    $(JOSE_CFLAGS) \
     $(CMOCKA_CFLAGS) \
     $(NULL)
 test_cert_utils_LDADD = \
@@ -3673,6 +3649,7 @@ test_cert_utils_LDADD = \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
     $(CRYPTO_LIBS) \
+    $(JOSE_LIBS) \
     libsss_debug.la \
     libsss_test_common.la \
     libsss_cert.la \
@@ -4940,6 +4917,7 @@ oidc_child_SOURCES = \
     src/oidc_child/oidc_child_curl.c \
     src/oidc_child/oidc_child_json.c \
     src/oidc_child/oidc_child_id.c \
+    src/oidc_child/libcrypto/oidc_child_get_jwk.c \
     src/util/child_bootstrap.c \
     src/util/atomic_io.c \
     src/util/memory.c \
@@ -4947,6 +4925,7 @@ oidc_child_SOURCES = \
     src/util/strtonum.c \
     src/util/sss_chain_id.c \
     src/util/sss_prctl.c \
+    src/util/cert/libcrypto/cert.c \
     $(NULL)
 oidc_child_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4954,6 +4933,8 @@ oidc_child_CFLAGS = \
     $(JANSSON_CFLAGS) \
     $(JOSE_CFLAGS) \
     $(CURL_CFLAGS) \
+    $(UUID_CFLAGS) \
+    $(CRYPTO_CFLAGS) \
     $(NULL)
 oidc_child_LDADD = \
     libsss_debug.la \
@@ -4962,6 +4943,8 @@ oidc_child_LDADD = \
     $(JANSSON_LIBS) \
     $(JOSE_LIBS) \
     $(CURL_LIBS) \
+    $(UUID_LIBS) \
+    $(CRYPTO_LIBS) \
     $(NULL)
 endif
 
@@ -5042,6 +5025,7 @@ sssd_krb5_idp_plugin_la_LIBADD = \
 sssd_krb5_idp_plugin_la_LDFLAGS = \
     -avoid-version \
     -module \
+    -export-symbols-regex '.*_idp_initvt$$' \
     $(NULL)
 
 dist_noinst_HEADERS += src/krb5_plugin/idp/idp.h
@@ -5070,6 +5054,7 @@ sssd_krb5_passkey_plugin_la_LIBADD = \
 sssd_krb5_passkey_plugin_la_LDFLAGS = \
     -avoid-version \
     -module \
+    -export-symbols-regex '.*_passkey_initvt$$' \
     $(NULL)
 
 dist_noinst_HEADERS += src/krb5_plugin/passkey/passkey.h
@@ -5099,16 +5084,6 @@ pysss_la_LDFLAGS = \
     -avoid-version \
     -module
 
-_py2sss_la_SOURCES = $(pysss_la_SOURCES)
-_py2sss_la_CFLAGS = \
-    $(AM_CFLAGS)  \
-    $(PYTHON2_CFLAGS)
-_py2sss_la_LIBADD = \
-    $(SSSD_INTERNAL_LTLIBS) \
-    $(PYTHON_BINDINGS_LIBS) \
-    $(PYTHON2_LIBS)
-_py2sss_la_LDFLAGS = $(pysss_la_LDFLAGS)
-
 _py3sss_la_SOURCES = $(pysss_la_SOURCES)
 _py3sss_la_CFLAGS = \
     $(AM_CFLAGS)  \
@@ -5127,15 +5102,6 @@ pyhbac_la_LDFLAGS = \
     -avoid-version \
     -module
 
-_py2hbac_la_SOURCES = $(pyhbac_la_SOURCES)
-_py2hbac_la_CFLAGS = \
-    $(AM_CFLAGS)  \
-    $(PYTHON2_CFLAGS)
-_py2hbac_la_LIBADD = \
-    $(PYTHON2_LIBS) \
-    libipa_hbac.la
-_py2hbac_la_LDFLAGS = $(pyhbac_la_LDFLAGS)
-
 _py3hbac_la_SOURCES = $(pyhbac_la_SOURCES)
 _py3hbac_la_CFLAGS = \
     $(AM_CFLAGS)  \
@@ -5153,14 +5119,6 @@ pysss_murmur_la_LDFLAGS = \
     -avoid-version \
     -module
 
-_py2sss_murmur_la_SOURCES = $(pysss_murmur_la_SOURCES)
-_py2sss_murmur_la_CFLAGS = \
-    $(AM_CFLAGS)  \
-    $(PYTHON2_CFLAGS)
-_py2sss_murmur_la_LIBADD = \
-    $(PYTHON2_LIBS)
-_py2sss_murmur_la_LDFLAGS = $(pysss_murmur_la_LDFLAGS)
-
 _py3sss_murmur_la_SOURCES = $(pysss_murmur_la_SOURCES)
 _py3sss_murmur_la_CFLAGS = \
     $(AM_CFLAGS)  \
@@ -5175,15 +5133,6 @@ pysss_nss_idmap_la_SOURCES = \
 pysss_nss_idmap_la_LDFLAGS = \
     -avoid-version \
     -module
-
-_py2sss_nss_idmap_la_SOURCES = $(pysss_nss_idmap_la_SOURCES)
-_py2sss_nss_idmap_la_CFLAGS = \
-    $(AM_CFLAGS)  \
-    $(PYTHON2_CFLAGS)
-_py2sss_nss_idmap_la_LIBADD = \
-    $(PYTHON2_LIBS) \
-    libsss_nss_idmap.la
-_py2sss_nss_idmap_la_LDFLAGS = $(pysss_nss_idmap_la_LDFLAGS)
 
 _py3sss_nss_idmap_la_SOURCES = $(pysss_nss_idmap_la_SOURCES)
 _py3sss_nss_idmap_la_CFLAGS = \
@@ -5546,50 +5495,16 @@ SSSSCONFIG_MODULES =
 endif
 
 all-local: ldb_mod_test_dir $(SSSDCONFIG_MODULES)
-if BUILD_PYTHON2_BINDINGS
-	cd $(builddir)/src/config; \
-	$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config
-endif
-if BUILD_PYTHON3_BINDINGS
-	cd $(builddir)/src/config; \
-	$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config
-endif
 
 install-exec-hook: installsssddirs
-if BUILD_PYTHON2_BINDINGS
-	if [ "$(DESTDIR)" = "" ]; then \
-		cd $(builddir)/src/config; \
-		$(MKDIR_P) "$(python2dir)"; \
-		PYTHONPATH="$(PYTHONPATH):$(python2dir)" $(PYTHON2) setup.py build \
-			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
-			--record=$(abs_builddir)/src/config/.files2; \
-	else \
-		cd $(builddir)/src/config; \
-		$(MKDIR_P) "$(python2dir)"; \
-		PYTHONPATH="$(PYTHONPATH):$(python2dir)" $(PYTHON2) setup.py build \
-			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
-			--record=$(abs_builddir)/src/config/.files2 --root=$(DESTDIR); \
-	fi
-	cd $(DESTDIR)$(py2execdir) && \
-		mv -f _py2sss.so pysss.so ; \
-		mv -f _py2hbac.so pyhbac.so ; \
-		mv -f _py2sss_murmur.so pysss_murmur.so ; \
-		mv -f _py2sss_nss_idmap.so pysss_nss_idmap.so
-endif
 if BUILD_PYTHON3_BINDINGS
-	if [ "$(DESTDIR)" = "" ]; then \
-		cd $(builddir)/src/config; \
-		$(MKDIR_P) "$(python3dir)"; \
-		PYTHONPATH="$(PYTHONPATH):$(python3dir)" $(PYTHON3) setup.py build \
-			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
-			--record=$(abs_builddir)/src/config/.files3; \
-	else \
-		cd $(builddir)/src/config; \
-		$(MKDIR_P) "$(python3dir)"; \
-		PYTHONPATH="$(PYTHONPATH):$(python3dir)" $(PYTHON3) setup.py build \
-			--build-base $(abs_builddir)/src/config install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
-			--record=$(abs_builddir)/src/config/.files3 --root=$(DESTDIR); \
-	fi
+	$(MKDIR_P) "$(DESTDIR)$(python3dir)/SSSDConfig"
+	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/__init__.py \
+		"$(DESTDIR)$(python3dir)/SSSDConfig/__init__.py"
+	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/ipachangeconf.py \
+		"$(DESTDIR)$(python3dir)/SSSDConfig/ipachangeconf.py"
+	$(INSTALL_DATA) $(builddir)/src/config/SSSDConfig/sssdoptions.py \
+		"$(DESTDIR)$(python3dir)/SSSDConfig/sssdoptions.py"
 	cd $(DESTDIR)$(py3execdir) && \
 		mv -f _py3sss.so pysss.so ; \
 		mv -f _py3hbac.so pyhbac.so ; \
@@ -5649,52 +5564,19 @@ endif
 endif
 
 uninstall-hook:
-	if [ -f $(abs_builddir)/src/config/.files2 ]; then \
-	    cat $(abs_builddir)/src/config/.files2 | xargs -iq rm -f $(DESTDIR)/q; \
-	    rm $(abs_builddir)/src/config/.files2 ; \
-	fi
-	if [ -f $(abs_builddir)/src/config/.files3 ]; then \
-	    cat $(abs_builddir)/src/config/.files3 | xargs -iq rm -f $(DESTDIR)/q; \
-	    rm $(abs_builddir)/src/config/.files3 ; \
-	fi
 	for doc in $(SSSD_DOCS); do \
 		rm -Rf $(DESTDIR)/$(docdir)/$$doc; \
 	done;
-if BUILD_PYTHON2_BINDINGS
-	cd $(DESTDIR)$(py2execdir) && \
-		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
-	rm -fr "$(DESTDIR)$(python2dir)/easy-install.pth"
-	rm -fr "$(DESTDIR)$(python2dir)/__pycache__"
-	rm -fr "$(DESTDIR)$(python2dir)/site.py"
-endif
 if BUILD_PYTHON3_BINDINGS
+	rm -rf "$(DESTDIR)$(python3dir)/SSSDConfig"
 	cd $(DESTDIR)$(py3execdir) && \
 		rm -f pysss.so pyhbac.so pysss_murmur.so pysss_nss_idmap.so
-	rm -fr "$(DESTDIR)$(python3dir)/easy-install.pth"
-	rm -fr "$(DESTDIR)$(python3dir)/__pycache__"
-	rm -fr "$(DESTDIR)$(python3dir)/site.py"
 endif
 if BUILD_SAMBA
 	rm $(DESTDIR)/$(winbindplugindir)/sss.so
 endif
 
 clean-local:
-if BUILD_PYTHON2_BINDINGS
-	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
-		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \
-	fi
-
-	if [ ! $(srcdir)/src/config/SSSDConfig/sssdoptions.py -ef $(builddir)/src/config/SSSDConfig/sssdoptions.py ]; then \
-		rm -f $(builddir)/src/config/SSSDConfig/sssdoptions.py ; \
-	fi
-
-	cd $(builddir)/src/config; $(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config clean --all
-
-	rm -fr "$(builddir)/src/config/dist"
-	rm -fr "$(builddir)/src/config/SSSDConfig.egg-info"
-	rm -fr "$(builddir)/src/config/SSSDConfig/__pycache__"
-	find "$(builddir)/src/config/SSSDConfig" -name "*.py[co]" -delete
-endif
 if BUILD_PYTHON3_BINDINGS
 	if [ ! $(srcdir)/src/config/SSSDConfig/ipachangeconf.py -ef $(builddir)/src/config/SSSDConfig/ipachangeconf.py ]; then \
 		rm -f $(builddir)/src/config/SSSDConfig/ipachangeconf.py ; \
@@ -5704,10 +5586,6 @@ if BUILD_PYTHON3_BINDINGS
 		rm -f $(builddir)/src/config/SSSDConfig/sssdoptions.py ; \
 	fi
 
-	cd $(builddir)/src/config; $(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config clean --all
-
-	rm -fr "$(builddir)/src/config/dist"
-	rm -fr "$(builddir)/src/config/SSSDConfig.egg-info"
 	rm -fr "$(builddir)/src/config/SSSDConfig/__pycache__"
 	find "$(builddir)/src/config/SSSDConfig" -name "*.py[co]" -delete
 endif

@@ -500,15 +500,6 @@ static errno_t ipa_init_auth_ctx(TALLOC_CTX *mem_ctx,
     }
     ipa_options->auth_ctx->sdap_auth_ctx = sdap_auth_ctx;
 
-    setup_ldap_debug(sdap_auth_ctx->opts->basic);
-
-    ret = setup_tls_config(sdap_auth_ctx->opts->basic);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "setup_tls_config failed [%d]: %s\n",
-              ret, sss_strerror(ret));
-        goto done;
-    }
-
     /* Initialize features needed by the krb5_child */
     ret = krb5_child_init(krb5_auth_ctx, be_ctx);
     if (ret != EOK) {
@@ -555,15 +546,6 @@ static errno_t ipa_init_misc(struct be_ctx *be_ctx,
     ret = ipa_init_dyndns(be_ctx, ipa_options);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to init dyndns [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
-    }
-
-    setup_ldap_debug(sdap_id_ctx->opts->basic);
-
-    ret = setup_tls_config(sdap_id_ctx->opts->basic);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get TLS options [%d]: %s\n",
               ret, sss_strerror(ret));
         return ret;
     }

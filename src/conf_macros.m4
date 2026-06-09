@@ -389,23 +389,6 @@ AC_DEFUN([WITH_KRB5_CONF],
     AC_DEFINE_UNQUOTED([KRB5_CONF_PATH], ["$KRB5_CONF_PATH"], [KRB5 configuration file])
   ])
 
-AC_DEFUN([WITH_PYTHON2_BINDINGS],
-  [ AC_ARG_WITH([python2-bindings],
-                [AC_HELP_STRING([--with-python2-bindings],
-                                [Whether to build python2 bindings [no]])
-                ],
-                [],
-                [with_python2_bindings=no]
-               )
-    if test x"$with_python2_bindings" = xyes; then
-        AC_SUBST([HAVE_PYTHON2_BINDINGS], [yes])
-        AC_DEFINE_UNQUOTED([HAVE_PYTHON2_BINDINGS], [1],
-                           [Build with python2 bindings])
-    fi
-    AM_CONDITIONAL([BUILD_PYTHON2_BINDINGS],
-                   [test x"$with_python2_bindings" = xyes])
-  ])
-
 AC_DEFUN([WITH_PYTHON3_BINDINGS],
   [ AC_ARG_WITH([python3-bindings],
                 [AC_HELP_STRING([--with-python3-bindings],

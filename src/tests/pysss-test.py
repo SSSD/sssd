@@ -18,8 +18,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function
-
 import unittest
 import sys
 import os
@@ -45,10 +43,7 @@ class PysssImport(unittest.TestCase):
         try:
             dest_module_path = MODPATH + "/pysss.so"
 
-            if sys.version_info[0] > 2:
-                src_module_path = BUILD_DIR + "/.libs/_py3sss.so"
-            else:
-                src_module_path = BUILD_DIR + "/.libs/_py2sss.so"
+            src_module_path = BUILD_DIR + "/.libs/_py3sss.so"
 
             src_module_path = os.path.abspath(src_module_path)
             os.symlink(src_module_path, dest_module_path)

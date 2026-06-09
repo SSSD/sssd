@@ -36,6 +36,7 @@ certs_h = $(addprefix SSSD_test_cert_x509_,$(addsuffix .h,$(ids)))
 pubkeys = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .pub,$(ids)))
 pubkeys_h = $(addprefix SSSD_test_cert_pubsshkey_,$(addsuffix .h,$(ids)))
 pkcs12 = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .pem,$(ids)))
+pkcs12_h = $(addprefix SSSD_test_cert_pkcs12_,$(addsuffix .h,$(ids)))
 
 
 extra = softhsm2_none softhsm2_one softhsm2_two softhsm2_2tokens softhsm2_ocsp softhsm2_2certs_same_id softhsm2_pss_one softhsm2_revoked SSSD_test_cert_x509_0001.der SSSD_test_cert_x509_0007.der
@@ -53,7 +54,7 @@ endif
 # If openssl is run in parallel there might be conflicts with the serial
 .NOTPARALLEL:
 
-ca_all: clean serial SSSD_test_CA.pem $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(extra)
+ca_all: clean serial SSSD_test_CA.pem $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(pkcs12_h) $(extra)
 
 $(pwdfile):
 	@echo "123456" > $@
@@ -120,6 +121,9 @@ SSSD_test_cert_x509_%.h: SSSD_test_cert_x509_%.pem
 
 SSSD_test_cert_pubsshkey_%.h: SSSD_test_cert_pubsshkey_%.pub
 	@echo "#define SSSD_TEST_CERT_SSH_KEY_$* \""$(shell cut -d' ' -f2 $<)"\"" > $@
+
+SSSD_test_cert_pkcs12_%.h: SSSD_test_cert_pkcs12_%.pem
+	@echo "#define SSSD_TEST_PKCS12_$* \""$(shell cat $< | base64 -w 0)"\"" > $@
 
 SSSD_test_CA_expired_crl.pem:
 	$(FAKETIME) -f '-7d' $(OPENSSL) ca -gencrl -out $@ -keyfile $(openssl_ca_key) -config ${openssl_ca_config} -crlhours 1
@@ -259,7 +263,7 @@ CLEANFILES = \
     serial  serial.old  \
     SSSD_test_CA.pem $(pwdfile) SSSD_test_CA_expired_crl.pem \
     SSSD_test_CA_crl.pem \
-    $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) \
+    $(certs) $(certs_h) $(pubkeys) $(pubkeys_h) $(pkcs12) $(pkcs12_h) \
     softhsm2_*.conf \
     SSSD_test_*.der \
     $(NULL)

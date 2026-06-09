@@ -4,8 +4,8 @@
 
 set -e -o pipefail
 
-# Usage
-if [ "$#" -ne 4 ]; then
+# Usage (note fork-token may be set as GH_TOKEN)
+if [ "$#" -ne 3 ]; then
   echo "Usage: $0 <version> <path-to-rn> <fork-user> <fork-token>" >&2
   exit 1
 fi
@@ -86,6 +86,14 @@ These are automatically generated release notes for sssd-$VERSION.
 
 Please review and edit the notes before merging.
 
+> [!TIP]
+> Instead of commenting to the pull request, you can suggest the requested
+> change directly so it can be easily committed from the Web UI and then
+> squashed. This will simplify the pull request updates significantly.
+>
+> Open a review comment as you are used to, then click on the "+-" button that
+> is on the left to the formatting buttons.
+
 **You can push changes to this pull request**
 
 \`\`\`
@@ -94,6 +102,10 @@ git fetch $FORK_USER refs/heads/$RN_BRANCH_NAME
 git checkout $RN_BRANCH_NAME
 git push $FORK_USER $RN_BRANCH_NAME --force
 \`\`\`
+
+> [!IMPORTANT]
+> When all changes are done, do not forget to squash them into the original
+> commit to keep the history simple.
 EOF
 
 gh pr create \

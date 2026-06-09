@@ -1248,6 +1248,7 @@ struct ipa_s2n_get_list_state {
     struct sss_domain_info *obj_domain;
     struct sysdb_attrs *override_attrs;
     struct sysdb_attrs *mapped_attrs;
+    TALLOC_CTX *step_ctx;
 };
 
 static errno_t ipa_s2n_get_list_step(struct tevent_req *req);
@@ -1331,11 +1332,19 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
     struct dp_id_data *ar;
     char *stat_info = NULL;
 
+    talloc_zfree(state->step_ctx);
+    talloc_zfree(state->override_attrs);
+    talloc_zfree(state->attrs);
+    state->step_ctx = talloc_new(state);
+    if (state->step_ctx == NULL) {
+        return ENOMEM;
+    }
+
     parent_domain = get_domains_head(state->dom);
     switch (state->req_input.type) {
     case REQ_INP_NAME:
 
-        ret = sss_parse_name(state, state->dom->names, state->list[state->list_idx],
+        ret = sss_parse_name(state->step_ctx, state->dom->names, state->list[state->list_idx],
                              &domain_name, &short_name);
         if (ret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse name '%s' [%d]: %s\n",
@@ -1362,7 +1371,7 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "Looking up IPA object [%s] from LDAP.\n",
                   state->list[state->list_idx]);
-            ret = get_dp_id_data_for_user_name(state,
+            ret = get_dp_id_data_for_user_name(state->step_ctx,
                                                state->list[state->list_idx],
                                                state->obj_domain->name,
                                                &ar);
@@ -1374,7 +1383,7 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
             }
             ar->entry_type = state->entry_type;
 
-            subreq = ipa_id_get_account_info_send(state, state->ev,
+            subreq = ipa_id_get_account_info_send(state->step_ctx, state->ev,
                                                   state->ipa_ctx, ar);
             if (subreq == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE,
@@ -1416,9 +1425,10 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
         return EINVAL;
     }
 
-    ret = s2n_encode_request(state, state->obj_domain->name, state->entry_type,
-                             state->request_type, &state->req_input,
-                             state->protocol, &bv_req, &stat_info);
+    ret = s2n_encode_request(state->step_ctx, state->obj_domain->name,
+                             state->entry_type, state->request_type,
+                             &state->req_input, state->protocol,
+                             &bv_req, &stat_info);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n_encode_request failed.\n");
         return ret;
@@ -1437,8 +1447,9 @@ static errno_t ipa_s2n_get_list_step(struct tevent_req *req)
               state->list[state->list_idx]);
     }
 
-    subreq = ipa_s2n_exop_send(state, state->ev, state->sh, state->protocol,
-                               state->exop_timeout, bv_req, stat_info);
+    subreq = ipa_s2n_exop_send(state->step_ctx, state->ev, state->sh,
+                               state->protocol, state->exop_timeout,
+                               bv_req, stat_info);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ipa_s2n_exop_send failed.\n");
         return ENOMEM;
@@ -1463,7 +1474,7 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
 
     req_inp = &state->req_input;
 
-    ret = ipa_s2n_exop_recv(subreq, state, &retoid, &retdata);
+    ret = ipa_s2n_exop_recv(subreq, state->step_ctx, &retoid, &retdata);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n exop request failed.\n");
@@ -1473,6 +1484,8 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
     talloc_zfree(state->attrs);
     ret = s2n_response_to_attrs(state, state->dom, retoid, retdata,
                                 &state->attrs);
+    talloc_zfree(retoid);
+    talloc_zfree(retdata);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "s2n_response_to_attrs failed.\n");
         goto fail;
@@ -1516,13 +1529,14 @@ static void ipa_s2n_get_list_next(struct tevent_req *subreq)
         }
     }
 
-    ret = get_dp_id_data_for_sid(state, sid_str, state->obj_domain->name, &ar);
+    ret = get_dp_id_data_for_sid(state->step_ctx, sid_str,
+                                 state->obj_domain->name, &ar);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "get_dp_id_data_for_sid failed.\n");
         goto fail;
     }
 
-    subreq = ipa_get_trusted_override_send(state, state->ev,
+    subreq = ipa_get_trusted_override_send(state->step_ctx, state->ev,
                                            state->ipa_ctx->sdap_id_ctx,
                                            state->ipa_ctx->ipa_options,
                                            dp_opt_get_string(state->ipa_ctx->ipa_options->basic,

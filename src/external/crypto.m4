@@ -13,7 +13,7 @@ AC_COMPILE_IFELSE(
                       {
                           GENERAL_NAME gn = { 0 };
                           /* If the types are different, the compiler will error out. */
-                          gn.d.x400Address - (ASN1_STRING *)0;
+                          &gn.d.x400Address - (ASN1_STRING **)0;
                           return 0;
                       }
                   ])],
