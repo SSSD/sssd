@@ -27,9 +27,19 @@ prepare:
         - podman
         - podman-compose
         - podman-docker
+        - python3.12
+        - python3.12-devel
         - python3-devel
         - python3-pip
         - yq
+
+    - name: Install pip for Python 3.12
+      how: shell
+      script: |
+        # Install pip for Python 3.12 using ensurepip
+        python3.12 -m ensurepip --upgrade
+        echo "Python 3.12 version: $(python3.12 --version)"
+        echo "Python 3.12 pip version: $(python3.12 -m pip --version)"
 
     - name: Setup docker-compose compatibility
       how: shell
@@ -75,7 +85,7 @@ prepare:
     - name: Install test dependencies
       how: shell
       script:
-        - pip3 install -r /tmp/sssd/src/tests/system/requirements.txt
+        - python3.12 -m pip install -r /tmp/sssd/src/tests/system/requirements.txt
 
     - name: Setup containers
       how: shell
@@ -153,8 +163,8 @@ prepare:
 
         # Detect system distribution and set appropriate COPR command
         . /tmp/sssd/contrib/ci/distro.sh
-        if [ "$DISTRO_ID" = "centos" ] && [ "$DISTRO_RELEASE" = "10" ]; then
-          COPR_ENABLE_CMD="dnf copr enable -y $COPR_REPO centos-stream-10-x86_64"
+        if [ "$DISTRO_ID" = "centos" ] && [ "$DISTRO_RELEASE" = "9" ]; then
+          COPR_ENABLE_CMD="dnf copr enable -y $COPR_REPO centos-stream-9-x86_64"
         else
           COPR_ENABLE_CMD="dnf copr enable -y $COPR_REPO"
         fi
@@ -223,7 +233,7 @@ execute:
     script: |
         mkdir -p /tmp/artifacts
         cd /tmp/sssd/src/tests/system
-        pytest --durations=0 \
+        python3.12 -m pytest --durations=0 \
                --color=yes \
                --show-capture=no \
                --mh-config=mhc.yaml \
