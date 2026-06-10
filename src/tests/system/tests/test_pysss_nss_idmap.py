@@ -101,7 +101,9 @@ def test_user_by_name(client: Client, provider: GenericProvider):
     }, f"'{user.name}' has wrong SID {user_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbygroupname", user.name)
-    assert ast.literal_eval(output.stdout) == {}, f"'{user.name}' has wrong SID {user_sid}!"
+    assert (
+        ast.literal_eval(output.stdout) == {}
+    ), f"Unexpectedly found SID for user '{user.name}' when queried as group: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
@@ -133,7 +135,9 @@ def test_user_by_id(client: Client, provider: GenericProvider):
     }, f"'{user.name}' has wrong SID {user_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbygid", user_id)
-    assert ast.literal_eval(output.stdout) == {}, f"'{user.name}' has wrong SID {user_sid}!"
+    assert (
+        ast.literal_eval(output.stdout) == {}
+    ), f"Unexpectedly found SID for user ID '{user_id}' when queried as GID: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
@@ -160,7 +164,7 @@ def test_user_by_sid(client: Client, provider: GenericProvider):
     output = run_pysss_nss_idmap(client, "getnamebysid", user_sid)
     assert ast.literal_eval(output.stdout) == {
         user_sid: {"name": user.name, "type": 1}
-    }, f"'{user.name}' has wrong name {user.name}!"
+    }, f"Expected name '{user.name}' but got: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
@@ -192,7 +196,9 @@ def test_group_by_name(client: Client, provider: GenericProvider):
     }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyusername", group.name)
-    assert ast.literal_eval(output.stdout) == {}, f"'{group.name}' has wrong SID {group_sid}!"
+    assert (
+        ast.literal_eval(output.stdout) == {}
+    ), f"Unexpectedly found SID for group '{group.name}' when queried as username: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
@@ -224,7 +230,9 @@ def test_group_by_id(client: Client, provider: GenericProvider):
     }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyuid", group_id)
-    assert ast.literal_eval(output.stdout) == {}, f"'{group.name}' has wrong SID {group_sid}!"
+    assert (
+        ast.literal_eval(output.stdout) == {}
+    ), f"Unexpectedly found SID for group ID '{group_id}' when queried as UID: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
