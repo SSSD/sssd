@@ -316,6 +316,15 @@ int main(int argc, const char *argv[])
           "Running with real IDs [%"SPRIuid"][%"SPRIgid"].\n",
           getuid(), getgid());
 
+    /* Caching for smartcard.
+     * OpenSC benefits from this by a factor of 10. */
+    ret = setenv("XDG_CACHE_HOME", SSS_STATEDIR, 1);
+    if (ret != 0) {
+        /* Log, but do not abort -- authentication can (slower) continue. */
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Cannot set XDG_CACHE_HOME (%s).\n", strerror(errno));
+    }
+
     main_ctx = talloc_new(NULL);
     if (main_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_new failed.\n");

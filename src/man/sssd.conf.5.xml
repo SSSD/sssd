@@ -1574,6 +1574,31 @@ pam_account_locked_message = Account locked, please contact help desk.
                         <para>
                             Default: False
                         </para>
+                        <para>
+                            Note: In case OpenSC is used for Smartcard access
+                            SSSD supports the filesystem caching in OpenSC when
+                            enabled in opensc.conf. The cached files are located
+                            in a common <quote>opensc</quote> directory in SSSD's state directory.
+                            The behaviour can be changed in opensc.conf
+                        </para>
+                        <para>
+                            Example opensc.conf (*):
+                            <programlisting>
+app /usr/libexec/sssd/p11_child {
+        framework pkcs15 {
+                use_file_caching = no;
+        }
+}
+app /usr/libexec/sssd/krb5_child {
+        framework pkcs15 {
+                use_file_caching = no;
+        }
+}
+                            </programlisting>
+                        </para>
+                        <para>
+                            (*) The actual <quote>libexec</quote> directory for p11_child and krb5_child depends on the distribution.
+                        </para>
                     </listitem>
                 </varlistentry>
                 <varlistentry>
