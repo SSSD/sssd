@@ -4403,6 +4403,17 @@ int main(int argc, const char *argv[])
 
     sss_drop_all_caps();
 
+    /* In case of smartcard setup caching.
+     * OpenSC benefits from this by a factor of 10. */
+    if (IS_SC_AUTHTOK(kr->pd->authtok)) {
+        ret = setenv("XDG_CACHE_HOME", SSS_STATEDIR, 1);
+        if (ret != 0) {
+            /* Log, but do not abort -- authentication can (slower) continue. */
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Cannot set XDG_CACHE_HOME (%s).\n", strerror(errno));
+        }
+    }
+
     /* For PKINIT we might need access to the pcscd socket which by default
      * is only allowed for authenticated users. Since PKINIT is part of
      * the authentication and the user is not authenticated yet, we have
