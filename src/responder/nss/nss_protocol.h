@@ -66,6 +66,9 @@ struct sss_nss_cmd_ctx {
 
     /* For SID lookups. */
     enum sss_id_type sid_id_type;
+
+    /* Include group memberships in getorigbyname response. */
+    bool include_initgroups;
 };
 
 /**
