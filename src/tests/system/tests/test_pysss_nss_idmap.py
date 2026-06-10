@@ -29,16 +29,18 @@ def get_sid_name(provider: GenericProvider):
 
 def user_setup(provider: GenericProvider, client: Client):
     sid_name = get_sid_name(provider)
-    assert sid_name is not None
+    assert sid_name is not None, "SID name not found!"
 
     user = provider.user("user1").add()
-    user_sid = user.get([sid_name])[sid_name][0]
+    attrs = user.get([sid_name])
+    assert attrs is not None, f"'{user.name}' has no attributes!"
+    user_sid = attrs[sid_name][0]
 
     client.sssd.restart()
 
     result = client.tools.getent.passwd(user.name)
-    assert result is not None, f"'{user.name}' missing"
-    assert result.name == user.name, f"'{user.name}' has wrong name {result.name}"
+    assert result is not None, f"'{user.name}' missing!"
+    assert result.name == user.name, f"'{user.name}' has wrong name {result.name}!"
     user_id = result.uid
 
     return (user, user_id, user_sid)
@@ -46,16 +48,18 @@ def user_setup(provider: GenericProvider, client: Client):
 
 def group_setup(provider: GenericProvider, client: Client):
     sid_name = get_sid_name(provider)
-    assert sid_name is not None
+    assert sid_name is not None, "SID name not found!"
 
     group = provider.group("group1").add()
-    group_sid = group.get([sid_name])[sid_name][0]
+    attrs = group.get([sid_name])
+    assert attrs is not None, f"'{group.name}' has no attributes!"
+    group_sid = attrs[sid_name][0]
 
     client.sssd.restart()
 
     result = client.tools.getent.group(group.name)
-    assert result is not None, f"'{group.name}' missing"
-    assert result.name == group.name, f"'{group.name}' has wrong name {result.name}"
+    assert result is not None, f"'{group.name}' missing!"
+    assert result.name == group.name, f"'{group.name}' has wrong name {result.name}!"
     group_id = result.gid
 
     return (group, group_id, group_sid)
@@ -87,13 +91,19 @@ def test_user_by_name(client: Client, provider: GenericProvider):
     user, user_id, user_sid = user_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getsidbyname", user.name)
-    assert ast.literal_eval(output.stdout) == {user.name: {"sid": user_sid, "type": 1}}
+    assert ast.literal_eval(output.stdout) == {
+        user.name: {"sid": user_sid, "type": 1}
+    }, f"'{user.name}' has wrong SID {user_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyusername", user.name)
-    assert ast.literal_eval(output.stdout) == {user.name: {"sid": user_sid, "type": 1}}
+    assert ast.literal_eval(output.stdout) == {
+        user.name: {"sid": user_sid, "type": 1}
+    }, f"'{user.name}' has wrong SID {user_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbygroupname", user.name)
-    assert ast.literal_eval(output.stdout) == {}
+    assert (
+        ast.literal_eval(output.stdout) == {}
+    ), f"Unexpectedly found SID for user '{user.name}' when queried as group: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
@@ -115,13 +125,19 @@ def test_user_by_id(client: Client, provider: GenericProvider):
     user, user_id, user_sid = user_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getsidbyid", user_id)
-    assert ast.literal_eval(output.stdout) == {user_id: {"sid": user_sid, "type": 1}}
+    assert ast.literal_eval(output.stdout) == {
+        user_id: {"sid": user_sid, "type": 1}
+    }, f"'{user.name}' has wrong SID {user_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyuid", user_id)
-    assert ast.literal_eval(output.stdout) == {user_id: {"sid": user_sid, "type": 1}}
+    assert ast.literal_eval(output.stdout) == {
+        user_id: {"sid": user_sid, "type": 1}
+    }, f"'{user.name}' has wrong SID {user_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbygid", user_id)
-    assert ast.literal_eval(output.stdout) == {}
+    assert (
+        ast.literal_eval(output.stdout) == {}
+    ), f"Unexpectedly found SID for user ID '{user_id}' when queried as GID: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
@@ -141,10 +157,14 @@ def test_user_by_sid(client: Client, provider: GenericProvider):
     user, user_id, user_sid = user_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getidbysid", user_sid)
-    assert ast.literal_eval(output.stdout) == {user_sid: {"id": user_id, "type": 1}}
+    assert ast.literal_eval(output.stdout) == {
+        user_sid: {"id": user_id, "type": 1}
+    }, f"'{user.name}' has wrong ID {user_id}!"
 
     output = run_pysss_nss_idmap(client, "getnamebysid", user_sid)
-    assert ast.literal_eval(output.stdout) == {user_sid: {"name": user.name, "type": 1}}
+    assert ast.literal_eval(output.stdout) == {
+        user_sid: {"name": user.name, "type": 1}
+    }, f"Expected name '{user.name}' but got: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
@@ -166,13 +186,19 @@ def test_group_by_name(client: Client, provider: GenericProvider):
     group, group_id, group_sid = group_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getsidbyname", group.name)
-    assert ast.literal_eval(output.stdout) == {group.name: {"sid": group_sid, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group.name: {"sid": group_sid, "type": 2}
+    }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbygroupname", group.name)
-    assert ast.literal_eval(output.stdout) == {group.name: {"sid": group_sid, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group.name: {"sid": group_sid, "type": 2}
+    }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyusername", group.name)
-    assert ast.literal_eval(output.stdout) == {}
+    assert (
+        ast.literal_eval(output.stdout) == {}
+    ), f"Unexpectedly found SID for group '{group.name}' when queried as username: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
@@ -194,13 +220,19 @@ def test_group_by_id(client: Client, provider: GenericProvider):
     group, group_id, group_sid = group_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getsidbyid", group_id)
-    assert ast.literal_eval(output.stdout) == {group_id: {"sid": group_sid, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group_id: {"sid": group_sid, "type": 2}
+    }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbygid", group_id)
-    assert ast.literal_eval(output.stdout) == {group_id: {"sid": group_sid, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group_id: {"sid": group_sid, "type": 2}
+    }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyuid", group_id)
-    assert ast.literal_eval(output.stdout) == {}
+    assert (
+        ast.literal_eval(output.stdout) == {}
+    ), f"Unexpectedly found SID for group ID '{group_id}' when queried as UID: {output.stdout.strip()}!"
 
 
 @pytest.mark.importance("critical")
@@ -220,10 +252,14 @@ def test_group_by_sid(client: Client, provider: GenericProvider):
     group, group_id, group_sid = group_setup(provider, client)
 
     output = run_pysss_nss_idmap(client, "getidbysid", group_sid)
-    assert ast.literal_eval(output.stdout) == {group_sid: {"id": group_id, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group_sid: {"id": group_id, "type": 2}
+    }, f"'{group.name}' has wrong ID {group_id}!"
 
     output = run_pysss_nss_idmap(client, "getnamebysid", group_sid)
-    assert ast.literal_eval(output.stdout) == {group_sid: {"name": group.name, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group_sid: {"name": group.name, "type": 2}
+    }, f"'{group.name}' has wrong name {group.name}!"
 
 
 @pytest.mark.importance("critical")
@@ -244,25 +280,33 @@ def test_case_insensitive(client: Client, provider: GenericProvider):
     """
 
     sid_name = get_sid_name(provider)
-    assert sid_name is not None
+    assert sid_name is not None, "SID name not found!"
 
     group = provider.group("Group1").add()
-    group_sid = group.get([sid_name])[sid_name][0]
+    attrs = group.get([sid_name])
+    assert attrs is not None, f"'{group.name}' has no attributes!"
+    group_sid = attrs[sid_name][0]
 
     client.sssd.restart()
 
     result = client.tools.getent.group(group.name)
     assert result is not None, f"'{group.name}' missing"
-    assert result.name == group.name.lower(), f"'{group.name.lower()}' has wrong name {result.name}"
+    assert result.name == group.name.lower(), f"'{group.name.lower()}' has wrong name {result.name}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyname", group.name)
-    assert ast.literal_eval(output.stdout) == {group.name: {"sid": group_sid, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group.name: {"sid": group_sid, "type": 2}
+    }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyname", group.name.lower())
-    assert ast.literal_eval(output.stdout) == {group.name.lower(): {"sid": group_sid, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group.name.lower(): {"sid": group_sid, "type": 2}
+    }, f"'{group.name.lower()}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getnamebysid", group_sid)
-    assert ast.literal_eval(output.stdout) == {group_sid: {"name": group.name.lower(), "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group_sid: {"name": group.name.lower(), "type": 2}
+    }, f"'{group.name.lower()}' has wrong name {group.name.lower()}!"
 
 
 @pytest.mark.importance("critical")
@@ -291,7 +335,7 @@ def test_ignore_unreadable_references(client: Client, provider: GenericProvider)
     """
 
     sid_name = get_sid_name(provider)
-    assert sid_name is not None
+    assert sid_name is not None, "SID name not found!"
 
     group = provider.group("group1").add()
 
@@ -312,32 +356,44 @@ def test_ignore_unreadable_references(client: Client, provider: GenericProvider)
     client.sssd.restart()
 
     result = client.tools.getent.group(group.name)
-    assert result is None, f"'{group.name}' found unexpectedly"
+    assert result is None, f"'{group.name}' found unexpectedly!"
 
     client.sssd.domain["ldap_ignore_unreadable_references"] = "True"
-    client.sssd.config_apply
+    client.sssd.config_apply()
     client.sssd.restart()
 
     result = client.tools.getent.group(group.name)
-    assert result is not None, f"'{group.name}' missing"
-    assert result.name == group.name, f"'{group.name}' has wrong name {result.name}"
-    group_sid = group.get([sid_name])[sid_name][0]
+    assert result is not None, f"'{group.name}' missing!"
+    assert result.name == group.name, f"'{group.name}' has wrong name {result.name}!"
+    attrs = group.get([sid_name])
+    assert attrs is not None, f"'{group.name}' has no attributes!"
+    group_sid = attrs[sid_name][0]
     group_id = result.gid
 
     output = run_pysss_nss_idmap(client, "getsidbyname", group.name)
-    assert ast.literal_eval(output.stdout) == {group.name: {"sid": group_sid, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group.name: {"sid": group_sid, "type": 2}
+    }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyid", group_id)
-    assert ast.literal_eval(output.stdout) == {group_id: {"sid": group_sid, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group_id: {"sid": group_sid, "type": 2}
+    }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbygid", group_id)
-    assert ast.literal_eval(output.stdout) == {group_id: {"sid": group_sid, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group_id: {"sid": group_sid, "type": 2}
+    }, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getsidbyuid", group_id)
-    assert ast.literal_eval(output.stdout) == {}
+    assert ast.literal_eval(output.stdout) == {}, f"'{group.name}' has wrong SID {group_sid}!"
 
     output = run_pysss_nss_idmap(client, "getidbysid", group_sid)
-    assert ast.literal_eval(output.stdout) == {group_sid: {"id": group_id, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group_sid: {"id": group_id, "type": 2}
+    }, f"'{group.name}' has wrong ID {group_id}!"
 
     output = run_pysss_nss_idmap(client, "getnamebysid", group_sid)
-    assert ast.literal_eval(output.stdout) == {group_sid: {"name": group.name, "type": 2}}
+    assert ast.literal_eval(output.stdout) == {
+        group_sid: {"name": group.name, "type": 2}
+    }, f"'{group.name}' has wrong name {group.name}!"
