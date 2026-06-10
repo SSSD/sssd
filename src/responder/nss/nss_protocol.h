@@ -127,6 +127,16 @@ sss_nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
 			uint32_t *_addrlen,
 			uint8_t **_addr);
 
+/* Shared helper. */
+
+bool
+sss_nss_protocol_resolve_initgr_group(struct sss_nss_ctx *nss_ctx,
+                                      struct sss_domain_info *domain,
+                                      struct ldb_message *msg,
+                                      struct sss_domain_info **_grp_dom,
+                                      gid_t *_gid,
+                                      const char **_grp_name);
+
 /* Create response packet. */
 
 errno_t
