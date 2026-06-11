@@ -97,6 +97,11 @@ jobs:
           #!/bin/bash
           set -ex
 
+         # Remove cache to avoid error 'Lower version of database is expected!' with installing locally built rpms
+          systemctl stop sssd
+          rm -f /var/lib/sss/db/*
+          systemctl start sssd
+
           dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
           rm -fr /dev/shm/sssd
 
