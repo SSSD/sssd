@@ -222,14 +222,58 @@ execute:
     how: tmt
     duration: 45m
     script: |
+        # Function to check and display system resources
+        check_resources() {
+            echo "=== SYSTEM RESOURCES CHECK: $1 ==="
+            echo "Timestamp: $(date)"
+            echo "Memory usage:"
+            free -h
+            echo ""
+            echo "CPU load average:"
+            uptime
+            echo ""
+            echo "Disk usage:"
+            df -h /tmp /var/tmp
+            echo ""
+            echo "Process count:"
+            ps aux | wc -l
+            echo ""
+            echo "File descriptors (current process):"
+            ls /proc/$$/fd | wc -l
+            echo ""
+            echo "CPU information:"
+            nproc
+            echo ""
+            echo "Memory info from /proc/meminfo:"
+            grep -E '^(MemTotal|MemFree|MemAvailable|Buffers|Cached):' /proc/meminfo
+            echo ""
+            echo "System limits:"
+            ulimit -a | grep -E '(open files|max user processes|virtual memory)'
+            echo "=== END RESOURCES CHECK ==="
+            echo ""
+        }
+
+        # Check resources before test execution
+        check_resources "BEFORE TESTS"
+
         mkdir -p /tmp/artifacts
         cd /tmp/sssd/src/tests/system
+
+        # Run the tests
         pytest --durations=0 \
                --color=yes \
-               --show-capture=no \
                --mh-config=mhc.yaml \
                --mh-artifacts-dir=/tmp/artifacts \
+               --mh-collect-logs=always \
                -vvv tests/test_passkey.py
+
+        PYTEST_EXIT_CODE=$?
+
+        # Check resources after test execution
+        check_resources "AFTER TESTS"
+
+        echo "Pytest exit code: $PYTEST_EXIT_CODE"
+        exit $PYTEST_EXIT_CODE
 
 finish:
     - name: Copy artifacts

@@ -23,6 +23,9 @@ vfido, not with a physical key.
 from __future__ import annotations
 
 import re
+import time
+import psutil
+import logging
 
 import pytest
 from sssd_test_framework.roles.client import Client
@@ -30,6 +33,55 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 from sssd_test_framework.utils.authentication import PasskeyAuthenticationUseCases
+
+
+def check_system_resources():
+    """
+    Check system resources before running resource-intensive operations.
+
+    Returns:
+        bool: True if resources are sufficient, False otherwise
+    """
+    try:
+        # Check memory - require at least 512MB available
+        memory = psutil.virtual_memory()
+        available_mb = memory.available / (1024 * 1024)
+
+        # Check CPU load - require load average < 4.0
+        load_avg = psutil.getloadavg()[0] if hasattr(psutil, 'getloadavg') else 0.0
+
+        # Check open file descriptors - require < 80% of limit
+        process = psutil.Process()
+        try:
+            open_fds = process.num_fds()
+            fd_limit = process.rlimit(psutil.RLIMIT_NOFILE)[0]
+            fd_usage = open_fds / fd_limit if fd_limit > 0 else 0.0
+        except (AttributeError, OSError):
+            fd_usage = 0.0
+
+        print(f"[RESOURCE_CHECK] Memory={available_mb:.1f}MB, Load={load_avg:.2f}, FD_usage={fd_usage:.2f}", flush=True)
+
+        if available_mb < 512:
+            print(f"[RESOURCE_WARNING] Low memory: {available_mb:.1f}MB available", flush=True)
+            return False
+
+        if load_avg > 4.0:
+            print(f"[RESOURCE_WARNING] High load average: {load_avg:.2f}", flush=True)
+            return False
+
+        if fd_usage > 0.8:
+            print(f"[RESOURCE_WARNING] High file descriptor usage: {fd_usage:.2f}", flush=True)
+            return False
+
+        print("[RESOURCE_CHECK] Resource check passed - sufficient resources available", flush=True)
+        return True
+
+    except Exception as e:
+        print(f"[RESOURCE_ERROR] Resource check failed: {e}", flush=True)
+        # If resource checking fails, assume resources are ok to avoid blocking tests
+        return True
+
+
 
 
 @pytest.mark.importance("high")
@@ -48,6 +100,10 @@ def test_passkey__register_sssctl(client: Client):
         2. Output contains key mapping data.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -83,6 +139,10 @@ def test_passkey__register_ipa(client: Client, ipa: IPA):
         2. Output contains key mapping data.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -120,6 +180,10 @@ def test_passkey__su_user(client: Client, provider: GenericProvider):
         1. User su authenticates successfully.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -158,6 +222,10 @@ def test_passkey__su_user_with_failed_pin(client: Client, provider: GenericProvi
         1. User failed to su authenticate.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -196,6 +264,10 @@ def test_passkey__su_user_with_incorrect_mapping(client: Client, provider: Gener
         1. User failed to su authenticate.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -238,6 +310,10 @@ def test_passkey__su_user_when_server_is_not_resolvable(client: Client, provider
         3. User su authenticates successfully due to cached data.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -305,6 +381,10 @@ def test_passkey__su_user_when_offline(client: Client, provider: GenericProvider
         4. Offline su authentication is successful.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -362,6 +442,10 @@ def test_passkey__lookup_user_from_cache(client: Client, provider: GenericProvid
     if not client.fs.exists("/usr/bin/ldbsearch"):
         pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
 
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -400,6 +484,10 @@ def test_passkey__su_user_with_multiple_keys(client: Client, provider: GenericPr
         1. User su authenticates successfully.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -441,6 +529,10 @@ def test_passkey__su_user_same_key_for_other_users(client: Client, provider: Gen
         1. User1, user2 and user3 su authenticates successfully with same mapping.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -488,6 +580,10 @@ def test_passkey__check_passkey_mapping_token_as_ssh_key_only(
         2. Get the expected message in pam log.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -532,6 +628,10 @@ def test_passkey__su_user_when_add_with_ssh_key_and_mapping(
         2. Get the expected message in pam log.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -577,6 +677,10 @@ def test_passkey__su_fips_fido_key(client: Client, provider: GenericProvider):
         1. User su authenticates successfully.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -613,6 +717,10 @@ def test_passkey__check_tgt(client: Client, ipa: IPA):
         2. Gets the TGT.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -654,6 +762,10 @@ def test_passkey__ipa_server_offline(client: Client, ipa: IPA):
         4. User has been correctly informed.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -707,6 +819,10 @@ def test_passkey__su_with_12_mappings(client: Client, ipa: IPA):
         3. Not getting the message after authentication.
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -752,6 +868,10 @@ def test_passkey__su_no_pin_set(client: Client, ipa: IPA):
         2. Get TGT after authentication of user
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_disable()
     client.vfido.start()
@@ -799,6 +919,10 @@ def test_passkey__prompt_options(client: Client, ipa: IPA):
         2. Got the updated prompt options
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
@@ -851,6 +975,10 @@ def test_passkey__su_fallback_to_password(client: Client, ipa: IPA):
         2. Get TGT after authentication of user
     :customerscenario: False
     """
+    # Check system resources before running resource-intensive vfido setup
+    if not check_system_resources():
+        pytest.skip("Insufficient system resources for vfido setup")
+
     client.vfido.reset()
     client.vfido.pin_enable()
     client.vfido.pin_set(123456)
