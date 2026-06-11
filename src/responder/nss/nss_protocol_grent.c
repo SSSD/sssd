@@ -351,6 +351,12 @@ nss_protocol_resolve_initgr_group(struct sss_nss_ctx *nss_ctx,
     const char *grp_name;
 
     grp_dom = find_domain_by_msg(domain, msg);
+    if (grp_dom == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not determine domain for group [%s], skipping.\n",
+              ldb_dn_get_linearized(msg->dn));
+        return false;
+    }
     gid = sss_view_ldb_msg_find_attr_as_uint64(grp_dom, msg, SYSDB_GIDNUM, 0);
     posix = ldb_msg_find_attr_as_string(msg, SYSDB_POSIX, NULL);
     grp_name = sss_view_ldb_msg_find_attr_as_string(grp_dom, msg, SYSDB_NAME,
