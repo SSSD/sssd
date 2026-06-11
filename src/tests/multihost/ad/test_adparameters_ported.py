@@ -7,6 +7,7 @@
 :status: approved
 """
 # pylint: disable=too-many-lines
+import base64
 import time
 import random
 import re
@@ -163,29 +164,20 @@ def set_ssh_key_ldap(session_multihost, user, pubkey, operation="replace"):
     :returns whether command succeeded
     """
     myid = random.randint(999, 9999)
-    with tempfile.NamedTemporaryFile(mode='w', newline='\n') as tfile:
-        tfile.write(pubkey)
-        tfile.flush()
-        session_multihost.client[0].transport.put_file(
-            tfile.name, f'/tmp/pubkey.{myid}')
+    ldif_name = f'mod.{myid}.ldif'
+    encoded_key = base64.b64encode(pubkey.encode()).decode('ascii')
     with tempfile.NamedTemporaryFile(mode='w', newline='\n') as tfile:
         tfile.write(f"dn: cn={user},cn=Users,"
                     f"{session_multihost.ad[0].domain_basedn_entry}\n")
         tfile.write("changetype: modify\n")
         tfile.write(f"{operation}: msDS-cloudExtensionAttribute1\n")
-        tfile.write(f'msDS-cloudExtensionAttribute1:< file:'
-                    f'/tmp/pubkey.{myid}\n')
+        tfile.write(f'msDS-cloudExtensionAttribute1:: {encoded_key}\n')
+        tfile.write("-\n")
         tfile.flush()
-        session_multihost.client[0].transport.put_file(
-            tfile.name, f'/tmp/mod.{myid}.ldif')
-    ldap_cmd = (
-        f"ldapmodify -H ldap://{session_multihost.ad[0].hostname}"
-        f' -v -x -D "cn=Administrator,cn=Users,'
-        f'{session_multihost.ad[0].domain_basedn_entry}" -w '
-        f'"{session_multihost.ad[0].ssh_password}" '
-        f"-f /tmp/mod.{myid}.ldif"
-    )
-    cmd = session_multihost.client[0].run_command(ldap_cmd, raiseonerr=False)
+        session_multihost.ad[0].transport.put_file(
+            tfile.name, f'/home/Administrator/{ldif_name}')
+    cmd = session_multihost.ad[0].run_command(
+        f'ldifde.exe -i -f {ldif_name}')
     return cmd.returncode == 0
 
 
@@ -2372,23 +2364,19 @@ class TestADParamsPorted:
 
         # Create a subtree
         subtree = f'subtree-{random.randint(999, 9999)}'
-        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+        with tempfile.NamedTemporaryFile(mode='w', newline='\n') as tfile:
             tfile.write(f"dn: OU={subtree},"
                         f"{multihost.ad[0].domain_basedn_entry}\n")
-            tfile.write("objectClass: top\n")
             tfile.write("objectClass: organizationalUnit\n")
+            tfile.write("objectClass: top\n")
             tfile.write(f"ou: {subtree}\n")
             tfile.write(f"distinguishedName: OU={subtree},"
                         f"{multihost.ad[0].domain_basedn_entry}\n")
             tfile.write(f"name: {subtree}\n")
             tfile.flush()
-            multihost.client[0].transport.put_file(tfile.name, '/tmp/mod.ldif')
-        ldap_cmd = f'ldapadd -a -v -x -H ldap://{multihost.ad[0].hostname}' \
-            f' -D "cn=Administrator,cn=Users,' \
-            f'{multihost.ad[0].domain_basedn_entry}" -w ' \
-            f'"{multihost.ad[0].ssh_password}" -f /tmp/mod.ldif'
-
-        multihost.client[0].run_command(ldap_cmd)
+            multihost.ad[0].transport.put_file(
+                tfile.name, '/home/Administrator/mod.ldif')
+        multihost.ad[0].run_command('ldifde.exe -i -f mod.ldif')
 
         # Configure sssd to enable logging
         dom_section = f'domain/{client.get_domain_section_name()}'
@@ -2413,24 +2401,29 @@ class TestADParamsPorted:
         client.sssd_conf(dom_section, sssd_params)
         # Clear cache and restart SSSD
         client.clear_sssd_cache()
-        time.sleep(60)
 
         # Search for the AD user
-        usr_cmd = multihost.client[0].run_command(
-            f'id {aduser}@{ad_domain}', raiseonerr=False)
+        for _ in range(10):
+            time.sleep(15)
+            usr_cmd = multihost.client[0].run_command(
+                f'id {aduser}@{ad_domain}', raiseonerr=False)
+            if usr_cmd.returncode == 0:
+                break
 
         # Download the sssd domain log
         log_str = client.retrieve_file_content(
             f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log")
         # Teardown
         # Remove subtree from ldap
-        ldap_cmd = f'ldapdelete -v -x -H ldap://{multihost.ad[0].hostname}' \
-            f' -D "cn=Administrator,cn=Users,' \
-            f'{multihost.ad[0].domain_basedn_entry}" -w ' \
-            f'"{multihost.ad[0].ssh_password}" "OU={subtree},' \
-            f'{multihost.ad[0].domain_basedn_entry}"'
-
-        multihost.client[0].run_command(ldap_cmd, raiseonerr=False)
+        with tempfile.NamedTemporaryFile(mode='w', newline='\n') as tfile:
+            tfile.write(f"dn: OU={subtree},"
+                        f"{multihost.ad[0].domain_basedn_entry}\n")
+            tfile.write("changetype: delete\n")
+            tfile.flush()
+            multihost.ad[0].transport.put_file(
+                tfile.name, '/home/Administrator/mod.ldif')
+        # Prevent failure of the test on failed teardown
+        multihost.ad[0].run_command('ldifde.exe -i -f mod.ldif', raiseonerr=False)
 
         # Evaluate test results
         assert usr_cmd.returncode == 0, f"User {aduser} was not found."
@@ -2546,18 +2539,18 @@ class TestADParamsPorted:
         ad_op = ADOperations(multihost.ad[0])
         ad_op.create_ad_unix_group(test_group)
         # Modify group
-        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+        with tempfile.NamedTemporaryFile(mode='w', newline='\n') as tfile:
             tfile.write(f"dn: cn={test_group},cn=Users,"
                         f"{multihost.ad[0].domain_basedn_entry}\n")
+            tfile.write("changetype: modify\n")
             tfile.write("replace: sAMAccountName\n")
             tfile.write(f"sAMAccountName: {test_group_mod}\n")
+            tfile.write("-\n")
             tfile.flush()
-            multihost.client[0].transport.put_file(tfile.name, '/tmp/mod.ldif')
-        ldap_cmd = f'ldapmodify -v -x -H ldap://{multihost.ad[0].hostname}' \
-            f' -D "cn=Administrator,cn=Users,' \
-            f'{multihost.ad[0].domain_basedn_entry}" -w ' \
-            f'"{multihost.ad[0].ssh_password}" -f /tmp/mod.ldif'
-        multihost.client[0].run_command(ldap_cmd)
+            multihost.ad[0].transport.put_file(
+                tfile.name, '/home/Administrator/mod.ldif'
+            )
+        multihost.ad[0].run_command('ldifde.exe -i -f mod.ldif')
 
         # Search for the AD group
         grp1_cmd = multihost.client[0].run_command(
@@ -2628,18 +2621,18 @@ class TestADParamsPorted:
         ad_op.create_ad_unix_user_group(test_user, test_group)
 
         # Modify group
-        with tempfile.NamedTemporaryFile(mode='w') as tfile:
+        with tempfile.NamedTemporaryFile(mode='w', newline='\n') as tfile:
             tfile.write(f"dn: cn={test_group},cn=Users,"
                         f"{multihost.ad[0].domain_basedn_entry}\n")
+            tfile.write("changetype: modify\n")
             tfile.write("replace: sAMAccountName\n")
             tfile.write(f"sAMAccountName: {test_group}\n")
+            tfile.write("-\n")
             tfile.flush()
-            multihost.client[0].transport.put_file(tfile.name, '/tmp/mod.ldif')
-        ldap_cmd = f'ldapmodify -v -x -H ldap://{multihost.ad[0].hostname}' \
-            f' -D "cn=Administrator,cn=Users,' \
-            f'{multihost.ad[0].domain_basedn_entry}" -w ' \
-            f'"{multihost.ad[0].ssh_password}" -f /tmp/mod.ldif'
-        multihost.client[0].run_command(ldap_cmd)
+            multihost.ad[0].transport.put_file(
+                tfile.name, '/home/Administrator/mod.ldif'
+            )
+        multihost.ad[0].run_command('ldifde.exe -i -f mod.ldif')
 
         # Search for the AD user and group
         usr_cmd = multihost.client[0].run_command(
