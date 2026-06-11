@@ -3655,14 +3655,12 @@ test_cert_utils_SOURCES = \
     src/tests/cmocka/test_cert_utils.c \
     src/responder/ssh/ssh_cert_to_ssh_key.c \
     src/util/cert_derb64_to_ldap_filter.c \
-    src/oidc_child/libcrypto/oidc_child_get_jwk.c \
     $(NULL)
 test_cert_utils_CFLAGS = \
     $(AM_CFLAGS) \
     -U SSSD_LIBEXEC_PATH -DSSSD_LIBEXEC_PATH=\"$(abs_builddir)\" \
     -I$(abs_builddir)/src \
     $(CRYPTO_CFLAGS) \
-    $(JOSE_CFLAGS) \
     $(CMOCKA_CFLAGS) \
     $(NULL)
 test_cert_utils_LDADD = \
@@ -3670,13 +3668,17 @@ test_cert_utils_LDADD = \
     $(POPT_LIBS) \
     $(TALLOC_LIBS) \
     $(CRYPTO_LIBS) \
-    $(JOSE_LIBS) \
     libsss_debug.la \
     libsss_test_common.la \
     libsss_cert.la \
     libsss_crypt.la \
     libsss_certmap.la \
     $(NULL)
+if BUILD_OIDC_CHILD
+    test_cert_utils_SOURCES += src/oidc_child/libcrypto/oidc_child_get_jwk.c
+    test_cert_utils_CFLAGS += $(JOSE_CFLAGS)
+    test_cert_utils_LDADD += $(JOSE_LIBS)
+endif
 
 test_data_provider_be_SOURCES = \
     src/providers/data_provider_be.c \

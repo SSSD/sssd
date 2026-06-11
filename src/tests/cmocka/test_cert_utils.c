@@ -32,7 +32,9 @@
 #include "tests/cmocka/common_mock.h"
 #include "util/crypto/sss_crypto.h"
 #include "responder/ssh/ssh_private.h"
+#ifdef BUILD_OIDC_CHILD
 #include "oidc_child/oidc_child_util.h"
+#endif
 
 #ifdef HAVE_TEST_CA
 #include "tests/test_CA/SSSD_test_cert_pubsshkey_0001.h"
@@ -830,6 +832,7 @@ void test_cert_to_ssh_2keys_with_certmap_2_send(void **state)
     talloc_free(ev);
 }
 
+#ifdef BUILD_OIDC_CHILD
 void test_get_jwk_from_pkcs12(void **state)
 {
     int ret;
@@ -871,6 +874,7 @@ void test_get_jwk_from_pkcs12(void **state)
     talloc_free(pkcs12);
     talloc_free(jwk);
 }
+#endif
 
 int main(int argc, const char *argv[])
 {
@@ -911,8 +915,10 @@ int main(int argc, const char *argv[])
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_cert_to_ssh_2keys_with_certmap_2_send,
                                         setup, teardown),
+#ifdef BUILD_OIDC_CHILD
         cmocka_unit_test_setup_teardown(test_get_jwk_from_pkcs12,
                                         setup, teardown),
+#endif
 #endif
     };
 
