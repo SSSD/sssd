@@ -321,7 +321,7 @@ class TestADLoginAttributes:
         ssh_result = True
         try:
             ssh.login(
-                multihost.client[0].sys_hostname,
+                multihost.client[0].ip,
                 f'{aduser.upper()}@{multihost.ad[0].domainname}', 'Secret123')
             ssh.prompt(timeout=5)
             ssh.logout()
