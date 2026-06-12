@@ -97,6 +97,10 @@ jobs:
           #!/bin/bash
           set -ex
 
+          # Avoid error 'Lower version of database is expected!' for locally built installed rpms
+          systemctl stop sssd
+          rm -f /var/lib/sss/db/*
+
           dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
           rm -fr /dev/shm/sssd
           rm -rf /var/lib/sss/db/*
