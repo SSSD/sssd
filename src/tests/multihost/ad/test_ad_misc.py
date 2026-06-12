@@ -252,19 +252,28 @@ class TestADMisc:
         client = sssdTools(multihost.client[0], multihost.ad[0])
         dom_name = client.get_domain_section_name()
         ad_realm = multihost.ad[0].domainname.upper()
+        # SSSD runs as the sssd user and must be able to write krb5 snippets
+        # into krb5_confd_path (see also %attr(775,sssd,sssd) on pubconf path).
+        multihost.client[0].run_command(
+            'chgrp sssd /etc/krb5.conf.d && chmod g+w /etc/krb5.conf.d')
+        sssd_group = client.sssd_user
+        multihost.client[0].run_command(
+            f'chgrp {sssd_group} /etc/krb5.conf.d && chmod g+w /etc/krb5.conf.d')
         section = f"domain/{dom_name}"
         section_params = {
-            'krb5_confd_path': "/etc/krb5.conf.d/",
+            'krb5_confd_path': "/etc/krb5.conf.d",
             'debug_level': '9',
         }
         client.sssd_conf(section, section_params, action="update")
         client.clear_sssd_cache()
         ad_user = f'{aduser}@{dom_name}'
+        multihost.client[0].run_command(f'getent passwd {ad_user}')
+        ssh_host = multihost.client[0].ip
         ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
                           "UserKnownHostsFile": "/dev/null"})
         ssh.force_password = True
         try:
-            ssh.login(multihost.client[0].sys_hostname, f'{ad_user}', 'Secret123')
+            ssh.login(ssh_host, f'{ad_user}', 'Secret123')
             ssh.sendline('kdestroy -A -q')
             ssh.prompt(timeout=5)
             ssh.sendline(f'kinit {aduser}@{ad_realm}')
