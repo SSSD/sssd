@@ -241,7 +241,8 @@ static errno_t sss_nss_getby_svc(struct cli_ctx *cli_ctx,
                                  data, SSS_MC_NONE, NULL, 0);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_nss_get_object_send() failed\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     tevent_req_set_callback(subreq, sss_nss_getby_done, cmd_ctx);
