@@ -359,7 +359,7 @@ sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
 
     ret = sss_nss_get_id_type(cmd_ctx, result, &id_type);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
     if (nss_ctx->full_attribute_list != NULL) {
