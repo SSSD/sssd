@@ -406,7 +406,6 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     size_t body_len;
     size_t rp;
     gid_t gid;
-    const char *grp_name;
     gid_t orig_gid;
     errno_t ret;
     int i;
@@ -461,7 +460,7 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     for (i = 1; i < result->count; i++) {
         if (!nss_protocol_resolve_initgr_group(nss_ctx, domain,
                                                result->msgs[i],
-                                               &grp_dom, &gid, &grp_name)) {
+                                               &grp_dom, &gid, NULL)) {
             continue;
         }
 
