@@ -5,6 +5,8 @@ Tests where the ``id_provider`` is set to ``ldap`` and the ``auth_provider``
 is set to ``krb5``. They use ``KnownTopology.LDAP_KRB5`` (client + LDAP + KDC,
 host keytab provisioned by the topology controller).
 
+Misc krb cases ported from sssd-qe krb_misc are included in this module.
+
 :requirement: SSSD - Kerberos
 """
 
@@ -18,9 +20,20 @@ from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.kdc import KDC
 from sssd_test_framework.topology import KnownTopology
 
+# BZ 798655 helper: ``setuid((uid_t)-2)``. Linux treats ``(uid_t)-1`` as ``INVALID_UID``
+# (``setuid(-1)`` → ``EINVAL``); ``(uid_t)-2`` is not that sentinel, so ``setuid(-2)``
+# may succeed when permitted — see ``NOBODY_C_SOURCE`` below.
+NOBODY_C_SOURCE = (
+    "#include <unistd.h>\n"
+    "int main(void) {\n"
+    "    (void)setuid((uid_t)-2);\n"
+    "    while (1) { sleep(60); }\n"
+    "    return 0;\n"
+    "}\n"
+)
+
 
 @pytest.mark.importance("high")
-@pytest.mark.authentication
 @pytest.mark.ticket(bz=773660)
 @pytest.mark.topology(KnownTopology.LDAP_KRB5)
 def test_ldap_krb5__clock_skew_errors_logged_to_syslog(client: Client, provider: GenericProvider, kdc: KDC):
@@ -51,7 +64,7 @@ def test_ldap_krb5__clock_skew_errors_logged_to_syslog(client: Client, provider:
     if not client.chrony.is_available():
         pytest.skip("chronyc not available")
 
-    provider.user("a1m2user").add(uid=10341, gid=10341, password="Secret123")
+    provider.user("a1m2user").add(password="Secret123")
     kdc.principal("a1m2user").add(password="Secret123", requires_preauth=True)
 
     client.sssd.common.krb5_auth(kdc)
@@ -79,7 +92,6 @@ def test_ldap_krb5__clock_skew_errors_logged_to_syslog(client: Client, provider:
 
 
 @pytest.mark.importance("high")
-@pytest.mark.authentication
 @pytest.mark.ticket(bz=869150)
 @pytest.mark.topology(KnownTopology.LDAP_KRB5)
 def test_ldap_krb5__ldap_child_handles_missing_keytab_without_segfault(
@@ -104,8 +116,8 @@ def test_ldap_krb5__ldap_child_handles_missing_keytab_without_segfault(
         3. No ldap_child core dumps
     :customerscenario: True
     """
-    provider.user("puser1").add(uid=1001, gid=1001, password="12345678")
-    kdc.principal("puser1").add(password="12345678")
+    provider.user("puser1").add(password="Secret123")
+    kdc.principal("puser1").add(password="Secret123")
 
     client.sssd.common.krb5_auth(kdc)
     client.sssd.domain["ldap_sasl_mech"] = "GSSAPI"
@@ -131,7 +143,6 @@ def test_ldap_krb5__ldap_child_handles_missing_keytab_without_segfault(
 
 
 @pytest.mark.importance("high")
-@pytest.mark.authentication
 @pytest.mark.ticket(bz=805281)
 @pytest.mark.topology(KnownTopology.LDAP_KRB5)
 def test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms(
@@ -160,8 +171,8 @@ def test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms(
         4. Wrong nfs principal is not selected; correct host principal is in the log
     :customerscenario: True
     """
-    provider.user("puser1").add(uid=1001, gid=1001, password="12345678")
-    kdc.principal("puser1").add(password="12345678")
+    provider.user("puser1").add(password="Secret123")
+    kdc.principal("puser1").add(password="Secret123")
 
     # Topology provisions host keytab at /etc/krb5.keytab; copy for ktutil input.
     valid_keytab = "/tmp/sssd_client_valid.keytab"
@@ -209,3 +220,168 @@ def test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms(
     assert (
         selected_ok in log_content
     ), f"SSSD should select {correct_pattern}; log missing line after wait: {log_content[:500]!r}"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=847039)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__user_can_login_when_kpasswd_cannot_be_resolved(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: Auth succeeds when krb5_kpasswd is unresolvable
+
+    Login succeeds when krb5_kpasswd cannot be resolved (kpasswd not needed for auth)
+
+    :setup:
+        1. Add user
+        2. Configure SSSD with LDAP+KRB5
+        3. Set krb5_kpasswd to an unresolvable hostname and restart SSSD
+    :steps:
+        1. Check lookup
+        2. Authenticate puser1 with SSH password
+    :expectedresults:
+        1. `id` succeeds
+        2. SSH password authentication succeeds even though krb5_kpasswd does not resolve
+    :customerscenario: True
+    """
+    provider.user("puser1").add(password="Secret123")
+    kdc.principal("puser1").add(password="Secret123")
+
+    client.sssd.common.krb5_auth(kdc)
+    # krb5_realm / krb5_server come from krb5_auth(); override only kpasswd for this BZ.
+    client.sssd.domain["krb5_kpasswd"] = "invalid.cannotresolve.invalid"
+
+    client.sssd.restart(clean=True)
+
+    assert client.tools.id("puser1"), "id failed for puser1!"
+
+    assert client.auth.ssh.password("puser1", "Secret123"), "Auth failed when krb5_kpasswd is unresolvable!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=798655)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__auth_and_logs_clean_with_setuid_minus_two_helper(
+    client: Client, provider: GenericProvider, kdc: KDC
+):
+    """
+    :title: auth and logs stay clean while setuid((uid_t)-2) helper runs
+
+    BZ 798655 `strtol` regression: helper calls `setuid((uid_t)-2)`. Linux treats
+    `(uid_t)-1` as `INVALID_UID` (`setuid(-1)` → `EINVAL`); `(uid_t)-2` is not,
+    so `setuid(-2)` may succeed when permitted — see comment above `NOBODY_C_SOURCE`.
+    Built with `gcc` on the client (skipped if missing or compile fails).
+
+    :setup:
+        1. Add user puser1
+        2. Configure SSSD with LDAP+KRB5 and restart SSSD and clear cache
+        5. Build and start the helper under fixed paths under /tmp
+    :steps:
+        1. Run id for puser1 while the helper process is running (NSS via SSSD before SSH)
+        2. Authenticate puser1 over SSH while the helper process is still running
+        3. Check the SSSD domain log for `strtol failed [Numerical result out of range]`
+    :expectedresults:
+        1. id succeeds for puser1
+        2. SSH password authentication succeeds
+        3. That `strtol` message does not appear in the log
+    :customerscenario: True
+    """
+    provider.user("puser1").add(password="Secret123")
+    kdc.principal("puser1").add(password="Secret123")
+
+    client.sssd.common.krb5_auth(kdc)
+
+    client.sssd.restart(clean=True)
+
+    assert client.auth.ssh.password("puser1", "Secret123"), "Auth failed before starting setuid helper!"
+
+    result = client.host.conn.run("which gcc", raise_on_error=False)
+    if result.rc != 0:
+        pytest.skip("gcc not available")
+
+    nobody_src = "/tmp/sssd_test_bz798655_nobody.c"
+    nobody_bin = "/tmp/sssd_test_bz798655_nobody"
+    client.fs.write(nobody_src, NOBODY_C_SOURCE)
+    result = client.host.conn.run(
+        f"gcc -o {nobody_bin} {nobody_src}",
+        raise_on_error=False,
+    )
+    if result.rc != 0:
+        pytest.skip(f"Failed to compile nobody.c: {result.stderr}")
+
+    helper_pid = ""
+    proc = client.host.conn.run(
+        f"nohup {nobody_bin} </dev/null >/dev/null 2>&1 & echo $!",
+        raise_on_error=False,
+    )
+    if proc.stdout:
+        helper_pid = proc.stdout.strip()
+
+    try:
+        assert client.tools.id("puser1"), "id failed while setuid helper is running!"
+        assert (
+            client.auth.ssh.password("puser1", "Secret123")
+        ), "Auth failed while setuid((uid_t)-2) helper is running!"
+
+        domain = client.sssd.default_domain
+        log_content = client.fs.read(f"/var/log/sssd/sssd_{domain}.log")
+        assert (
+            "strtol failed [Numerical result out of range]" not in log_content
+        ), "strtol error found in SSSD log while helper was running!"
+    finally:
+        if helper_pid.isdigit():
+            client.host.conn.run(f"kill {helper_pid}", raise_on_error=False)
+        client.host.conn.run(
+            f"rm -f {nobody_bin} {nobody_src}",
+            raise_on_error=False,
+        )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__password_change_via_ssh(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: Password change via SSH triggers krb5_child initial auth
+
+    GH 677: SSH passwd with chpass_provider=krb5 logs initial auth in krb5_child.log
+
+    :setup:
+        1. Add user
+        2. Configure SSSD with LDAP+KRB5, chpass_provider=krb5
+        3. Restart SSSD and clear cache
+    :steps:
+        1. Check lookup and initial login for user
+        2. Change puser1 password via SSH passwd
+        3. Check krb5_child.log for the initial-auth line for password change
+        4. Authenticate over SSH using the new password
+    :expectedresults:
+        1. id and initial SSH login succeed
+        2. Password change succeeds
+        3. krb5_child.log contains 'Initial authentication for change password'
+        4. SSH login with the new password succeeds
+    :customerscenario: True
+    """
+    provider.user("puser1").add(password="Secret123")
+    kdc.principal("puser1").add(password="Secret123")
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["chpass_provider"] = "krb5"
+
+    client.sssd.restart(clean=True)
+
+    client.tools.id("puser1")
+
+    assert client.auth.ssh.password("puser1", "Secret123"), "Auth failed before password change!"
+
+    new_password = "NewSecret123!"
+
+    assert client.auth.ssh.passwd.password(
+        "puser1",
+        "Secret123",
+        new_password,
+    ), "Password change via SSH failed!"
+    log_content = client.fs.read("/var/log/sssd/krb5_child.log")
+    assert (
+        "Initial authentication for change password" in log_content
+    ), f"krb5_child initial auth message not found: {log_content[:500]}!"
+
+    assert client.auth.ssh.password("puser1", new_password), "Auth with new password failed after password change!"
