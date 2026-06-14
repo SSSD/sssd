@@ -542,18 +542,10 @@ class TestBugzillaAutomation(object):
         lkup = 'getent passwd %s@%s' % (aduser, domainname)
         cmd4 = multihost.client[0].run_command(lkup, raiseonerr=False)
         multihost.client[0].service_sssd('stop')
-        cmd = 'dnf install -y firewalld'
+        cmd = 'which iptables || dnf install -y iptables'
         multihost.client[0].run_command(cmd, raiseonerr=True)
-        cmd = 'systemctl start firewalld'
-        multihost.client[0].run_command(cmd, raiseonerr=True)
-        fw_add1 = 'firewall-cmd --permanent --direct --add-rule ipv4 '\
-                  'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
-        fw_add2 = 'firewall-cmd --permanent --direct --add-rule ipv4 '\
-                  'filter OUTPUT 1 -j ACCEPT'
-        multihost.client[0].run_command(fw_add1, raiseonerr=True)
-        multihost.client[0].run_command(fw_add2, raiseonerr=True)
-        fw_rld = 'firewall-cmd --reload'
-        multihost.client[0].run_command(fw_rld, raiseonerr=True)
+        fw_add = 'iptables -A OUTPUT -p tcp --dport 389 -j DROP'
+        multihost.client[0].run_command(fw_add, raiseonerr=True)
         domain_section = 'domain/{}'.format(domainname)
         sssd_params = {'ad_use_ldaps': 'True',
                        'ldap_id_mapping': 'True',
@@ -565,17 +557,8 @@ class TestBugzillaAutomation(object):
         time.sleep(3)
         lkup = 'getent passwd %s@%s' % (aduser, domainname)
         cmd4 = multihost.client[0].run_command(lkup, raiseonerr=False)
-        fw_r1 = 'firewall-cmd --permanent --direct --remove-rule ipv4 '\
-                'filter OUTPUT 0 -p tcp -m tcp --dport=389 -j DROP'
-        fw_r2 = 'firewall-cmd --permanent --direct --remove-rule ipv4 '\
-                'filter OUTPUT 1 -j ACCEPT'
-        multihost.client[0].run_command(fw_r1, raiseonerr=True)
-        multihost.client[0].run_command(fw_r2, raiseonerr=True)
-        multihost.client[0].run_command(fw_rld, raiseonerr=True)
-        cmd = 'systemctl stop firewalld'
-        multihost.client[0].run_command(cmd, raiseonerr=True)
-        cmd = 'dnf remove -y firewalld'
-        multihost.client[0].run_command(cmd, raiseonerr=True)
+        fw_del = 'iptables -D OUTPUT -p tcp --dport 389 -j DROP'
+        multihost.client[0].run_command(fw_del, raiseonerr=False)
         cert_restr = 'mv /etc/openldap.conf_bk /etc/openldap/ldap.conf'
         cmd = multihost.client[0].run_command(cert_restr, raiseonerr=False)
         multihost.client[0].service_sssd('stop')
