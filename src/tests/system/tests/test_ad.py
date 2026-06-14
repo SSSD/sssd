@@ -6,6 +6,8 @@ SSSD AD Provider Test Cases
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
@@ -111,3 +113,119 @@ def test_authentication__using_the_users_email_address(client: Client, ad: AD, m
     assert client.auth.parametrize(method).password(
         "uSEr_3@alias-dOMain.com", "Secret123"
     ), "User uSEr_3@alias-dOMain.com failed login!"
+<<<<<<< HEAD
+=======
+
+
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.importance("critical")
+def test_ad__group_with_fsp_member(client: Client, provider: GenericADProvider):
+    """
+    :title: Lookup a group which has a foreign security principal (FSP) as member
+    :description:
+        Testing groups lookups for AD/Samba groups which have a foreign
+        security principal as a member. Since SSSD currently cannot resolve the
+        FSPs e.g. to determine if it is a user or a group they should be ignored
+        by default without any extra setting in sssd.conf.
+    :setup:
+        1. Create a test user
+        2. Create a test group
+        3. Add test user and a FSP by SID to the test group
+    :steps:
+        1. Lookup test group
+    :expectedresults:
+        1. Lookup is successful and the test user is returned as a member of
+           the test group
+    :customerscenario: False
+    """
+
+    user = provider.user("testuser").add()
+    group = provider.group("testgroup").add().add_member(user)
+
+    # Samba automagically creates an FSP object if a random SID is added to a
+    # group. I didn't find a similar way in AD to add a FSP entry to a group.
+    # If someone finds a way, the test can be run against AD as well.
+    provider.host.conn.run(f"samba-tool group addmembers {group.name} S-1-5-21-123-456-789-1234")
+
+    client.sssd.start()
+
+    result = client.tools.getent.group(group.name)
+    assert result is not None, f"Failed to lookup group {group.name}!"
+    assert len(result.members) == 1, f"Expecing 1 member of group {group.name} found {len(result.members)}"
+    assert user.name in result.members, f"User {user.name} is not a member of {group.name}!"
+
+
+@pytest.mark.ticket(bz=1762415)
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.AD)
+def test_ad__force_ldaps_over_636(client: Client, ad: AD):
+    """
+    :title: Force LDAPS over 636 with AD provider
+    :description:
+        When plain LDAP port 389 is blocked, SSSD must use LDAPS on port 636 to
+        contact the AD domain controller.
+    :setup:
+        1. Create user
+        2. Install AD CA certificate and configure OpenLDAP for LDAPS channel bindings
+        3. Block outbound port 389
+        4. Configure ``ad_use_ldaps`` and ``ldap_id_mapping``
+    :steps:
+        1. Lookup user
+        2. Check SSSD domain logs
+    :expectedresults:
+        1. User information is returned correctly
+        2. Logs show connection to ldaps:// URI
+    :customerscenario: True
+    """
+    user = ad.user("ldapsuser").add()
+
+    # Remote CI labs may not resolve the DC; SSSD looks up ad_server via DNS.
+    ssh_target = ad.host.config.get("conn", {}).get("host", ad.server)
+    lookup = client.host.conn.run(f"getent ahostsv4 {ssh_target}", raise_on_error=False)
+    if lookup.rc == 0 and lookup.stdout.strip():
+        ad_ip = lookup.stdout.split()[0]
+        client.fs.write("/etc/resolv.conf", f"search {ad.domain}\nnameserver {ad_ip}\n")
+
+    # getadcacert.ps1: export enterprise CA for LDAPS channel bindings.
+    ca = ad.host.conn.run(
+        r"""
+Import-Module ActiveDirectory
+$c = Get-ChildItem cert:\LocalMachine\My | Where-Object { $_.Subject -like "*CA*" } | Select-Object -First 1
+if (-not $c) {
+    $c = Get-ChildItem Cert:\LocalMachine\Root | Where-Object {
+        $_.Issuer -eq $_.Subject -and $_.Subject -like '*CA*'
+    } | Select-Object -First 1
+}
+if (-not $c) { Write-Error "CA not found"; exit 1 }
+"-----BEGIN CERTIFICATE-----`r`n" + [Convert]::ToBase64String($c.RawData, 'InsertLineBreaks') `
+    + "`r`n-----END CERTIFICATE-----"
+""".strip(),
+        raise_on_error=False,
+    )
+    if ca.rc != 0 or "BEGIN CERTIFICATE" not in (ca.stdout or ""):
+        pytest.skip("AD CA certificate not available; install AD Certificate Services on the DC")
+
+    client.fs.mkdir_p("/etc/openldap/certs")
+    client.fs.write("/etc/openldap/certs/cacert.pem", ca.stdout.strip() + "\n")
+    client.fs.write(
+        "/etc/openldap/ldap.conf",
+        "SASL_CBINDING tls-endpoint\n" "TLS_CACERT /etc/openldap/certs/cacert.pem\n" "SASL_NOCANON on\n",
+    )
+
+    client.firewall.outbound.drop_port((389, "tcp"))
+
+    client.sssd.domain["ad_use_ldaps"] = "True"
+    client.sssd.domain["ldap_id_mapping"] = "true"
+    client.sssd.domain["debug_level"] = "9"
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.start()
+
+    time.sleep(3)
+
+    result = client.tools.getent.passwd(f"{user.name}@{ad.domain}")
+    assert result is not None, "User lookup failed when LDAPS is forced"
+    assert result.name == user.name
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert f"ldaps://{ad.server}" in log, f"Logs should show LDAPS connection to {ad.server}"
+>>>>>>> 20798e7d7 (tests: port force-LDAPS coverage to system tests)
