@@ -173,7 +173,7 @@ _sbus_sss_args_sssd_DataProvider_Failover_ListServices = {
 const struct sbus_method_arguments
 _sbus_sss_args_sssd_ProxyChild_Auth_PAM = {
     .input = (const struct sbus_argument[]){
-        {.type = "issssssuayuayiu", .name = "pam_data"},
+        {.type = "issssssuayuayiuuuay", .name = "pam_data"},
         {NULL}
     },
     .output = (const struct sbus_argument[]){
@@ -285,7 +285,7 @@ _sbus_sss_args_sssd_dataprovider_hostHandler = {
 const struct sbus_method_arguments
 _sbus_sss_args_sssd_dataprovider_pamHandler = {
     .input = (const struct sbus_argument[]){
-        {.type = "issssssuayuayiu", .name = "pam_data"},
+        {.type = "issssssuayuayiuuuay", .name = "pam_data"},
         {NULL}
     },
     .output = (const struct sbus_argument[]){
