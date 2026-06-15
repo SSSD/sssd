@@ -1260,6 +1260,7 @@ libsss_util_la_SOURCES = \
     src/util/atomic_io.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
+    src/util/client_envs.c \
     src/util/domain_info_utils.c \
     src/util/util_lock.c \
     src/util/util_errors.c \
@@ -1494,6 +1495,7 @@ endif
 sssd_pam_SOURCES = \
     src/responder/pam/pamsrv.c \
     src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_client_envs.c \
     src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_dp.c \
@@ -2547,6 +2549,7 @@ pam_srv_tests_SOURCES = \
     src/tests/cmocka/common_utils.c \
     src/sss_client/pam_message.c \
     src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_client_envs.c \
     src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_gssapi.c \
@@ -2599,6 +2602,7 @@ endif # BUILD_PASSKEY
 test_pamsrv_json_SOURCES = \
     $(TEST_MOCK_RESP_OBJ) \
     src/responder/pam/pamsrv_cmd.c \
+    src/responder/pam/pamsrv_client_envs.c \
     src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \
     src/responder/pam/pamsrv_gssapi.c \
@@ -4195,6 +4199,7 @@ pam_sss_la_SOURCES = \
     src/sss_client/sss_cli.h \
     src/util/atomic_io.c \
     src/util/authtok-utils.c \
+    src/util/client_envs.c \
     src/util/memory_erase.c \
     src/sss_client/sss_pam_macros.h \
     src/sss_client/sss_pam_compat.h
