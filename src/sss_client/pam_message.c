@@ -132,6 +132,8 @@ int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer)
             2*sizeof(uint32_t) + pi->json_auth_msg_size : 0;
     len += *pi->json_auth_selected != '\0' ?
             2*sizeof(uint32_t) + pi->json_auth_selected_size : 0;
+    len += (pi->client_envs != NULL && pi->client_envs_size > 0) ?
+            2*sizeof(uint32_t) + pi->client_envs_size : 0;
 
     /* optional child_pid */
     if(pi->child_pid > 0) {
@@ -186,6 +188,10 @@ int pack_message_v3(struct pam_items *pi, size_t *size, uint8_t **buffer)
                           pi->json_auth_msg_size, &buf[rp]);
     rp += add_string_item(SSS_PAM_ITEM_JSON_AUTH_SELECTED, pi->json_auth_selected,
                           pi->json_auth_selected_size, &buf[rp]);
+    if (pi->client_envs != NULL && pi->client_envs_size > 0) {
+        rp += add_string_item(SSS_PAM_ITEM_CLIENT_ENVS, (const char *)pi->client_envs,
+                              pi->client_envs_size, &buf[rp]);
+    }
 
     SAFEALIGN_SETMEM_UINT32(buf + rp, SSS_END_OF_PAM_REQUEST, &rp);
 
