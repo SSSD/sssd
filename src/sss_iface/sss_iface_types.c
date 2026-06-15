@@ -26,12 +26,59 @@
 
 #include "util/util.h"
 #include "util/sss_utf8.h"
+#include "util/sss_client_envs.h"
 #include "sss_iface/sss_iface_types.h"
 #include "sbus/interface/sbus_iterator_readers.h"
 #include "sbus/interface/sbus_iterator_writers.h"
 
+static errno_t sbus_iterator_read_client_envs(TALLOC_CTX *mem_ctx,
+                                              DBusMessageIter *iterator,
+                                              const char ***_envs)
+{
+    uint8_t *data = NULL;
+    size_t count;
+    errno_t ret;
+
+    ret = sbus_iterator_read_ay(mem_ctx, iterator, &data);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    if (data == NULL) {
+        *_envs = NULL;
+        return EOK;
+    }
+
+    ret = parse_client_env_list(mem_ctx, data,
+                                talloc_array_length(data),
+                                _envs, &count);
+    talloc_free(data);
+
+    return ret;
+}
+
+static errno_t sbus_iterator_write_client_envs(DBusMessageIter *iterator,
+                                               TALLOC_CTX *tmp_ctx,
+                                               const char **envs)
+{
+    uint8_t *buf = NULL;
+    size_t len = 0;
+    errno_t ret;
+
+    ret = serialize_client_env_list(tmp_ctx, envs, &buf, &len);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sbus_iterator_write_basic_array_len(iterator, DBUS_TYPE_BYTE,
+                                              uint8_t, buf, (int) len);
+    talloc_free(buf);
+
+    return ret;
+}
+
 /**
- * D-Bus signature: issssssuayuayiu
+ * D-Bus signature: issssssuayuayiuuuay
  */
 errno_t sbus_iterator_read_pam_data(TALLOC_CTX *mem_ctx,
                                     DBusMessageIter *iterator,
@@ -124,6 +171,11 @@ errno_t sbus_iterator_read_pam_data(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    ret = sbus_iterator_read_client_envs(pd, iterator, &pd->client_envs);
+    if (ret != EOK) {
+        goto done;
+    }
+
     pd->authtok = sss_authtok_new(pd);
     if (pd->authtok == NULL) {
         ret = ENOMEM;
@@ -167,7 +219,7 @@ done:
 }
 
 /**
- * D-Bus signature: issssssuayuayiu
+ * D-Bus signature: issssssuayuayiuuuay
  */
 errno_t sbus_iterator_write_pam_data(DBusMessageIter *iterator,
                                      struct pam_data *pd)
@@ -260,6 +312,11 @@ errno_t sbus_iterator_write_pam_data(DBusMessageIter *iterator,
     }
 
     ret = sbus_iterator_write_u(iterator, pd->client_id_num);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sbus_iterator_write_client_envs(iterator, pd, pd->client_envs);
     if (ret != EOK) {
         goto done;
     }

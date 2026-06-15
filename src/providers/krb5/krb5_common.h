@@ -245,5 +245,6 @@ krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
 
 errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
                        struct sss_domain_info *domain,
+                       struct pam_data *pd,
                        const char ***krb5_child_extra_args);
 #endif /* __KRB5_COMMON_H__ */

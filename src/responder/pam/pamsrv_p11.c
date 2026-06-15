@@ -771,7 +771,8 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     struct tevent_req *subreq;
     struct pam_check_cert_state *state;
-    const char *extra_args[22] = { NULL };
+    const char **extra_args = NULL;
+    size_t num_extra_args;
     uint8_t *write_buf = NULL;
     size_t write_buf_len = 0;
     size_t arg_c;
@@ -799,6 +800,18 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     state->pctx = pctx;
 
     state->pam_data = pd;
+
+    num_extra_args = 22; /* base slots for existing args + NULL terminator */
+    if (pd->client_envs != NULL) {
+        for (size_t i = 0; pd->client_envs[i] != NULL; i++) {
+            num_extra_args += 2; /* --set-env + value */
+        }
+    }
+    extra_args = talloc_zero_array(state, const char *, num_extra_args);
+    if (extra_args == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* extra_args are added in revers order */
     arg_c = 0;
@@ -880,6 +893,13 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    if (pd->client_envs != NULL) {
+        for (size_t i = 0; pd->client_envs[i] != NULL; i++) {
+            extra_args[arg_c++] = pd->client_envs[i];
+            extra_args[arg_c++] = "--set-env";
+        }
+    }
+
     state->ev = ev;
 
     ret = sss_child_start(state, ev,
@@ -933,6 +953,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     ret = EOK;
 
 done:
+    talloc_free(extra_args);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         tevent_req_post(req, ev);

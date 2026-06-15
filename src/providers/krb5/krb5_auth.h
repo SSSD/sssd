@@ -46,6 +46,7 @@
 #define CHILD_OPT_CANONICALIZE "canonicalize"
 #define CHILD_OPT_SSS_CREDS_PASSWORD "sss-creds-password"
 #define CHILD_OPT_CHECK_PAC "check-pac"
+#define CHILD_OPT_SET_ENV "set-env"
 
 struct krb5child_req {
     struct pam_data *pd;
