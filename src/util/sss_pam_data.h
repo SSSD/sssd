@@ -77,6 +77,7 @@ struct pam_data {
     bool passkey_local_done;
     char *json_auth_msg;
     char *json_auth_selected;
+    const char **client_envs;
 };
 
 /**
