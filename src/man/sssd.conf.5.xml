@@ -877,7 +877,8 @@
             <title>NSS configuration options</title>
             <para>
                 These options can be used to configure the
-                Name Service Switch (NSS) service.
+                Name Service Switch (NSS) service and should be
+                specified under the <quote>[nss]</quote> section.
             </para>
             <variablelist>
                 <varlistentry>
@@ -1303,7 +1304,8 @@ fallback_homedir = /home/%u
             <title>PAM configuration options</title>
             <para>
                 These options can be used to configure the
-                Pluggable Authentication Module (PAM) service.
+                Pluggable Authentication Module (PAM) service and should be
+                specified under the <quote>[pam]</quote> section.
             </para>
             <variablelist>
                 <varlistentry>
@@ -2055,7 +2057,10 @@ pam_json_services = gdm-switchable-auth
         <refsect2 id='SUDO' condition="with_sudo">
             <title>SUDO configuration options</title>
             <para>
-                These options can be used to configure the sudo service.
+                These options can be used to configure the sudo service
+                and should be specified under the <quote>[sudo]</quote> section.
+            </para>
+            <para>
                 The detailed instructions for configuration of
                 <citerefentry>
                     <refentrytitle>sudo</refentrytitle>
@@ -2111,7 +2116,9 @@ pam_json_services = gdm-switchable-auth
         <refsect2 id='AUTOFS' condition="with_autofs">
             <title>AUTOFS configuration options</title>
             <para>
-                These options can be used to configure the autofs service.
+                These options can be used to configure the autofs service
+                and should be specified under the <quote>[autofs]</quote>
+                section.
             </para>
             <variablelist>
                 <varlistentry>
@@ -2136,7 +2143,9 @@ pam_json_services = gdm-switchable-auth
         <refsect2 id='SSH' condition="with_ssh">
             <title>SSH configuration options</title>
             <para>
-                These options can be used to configure the SSH service.
+                These options can be used to configure the SSH service
+                and should be specified under the <quote>[ssh]</quote>
+                section.
             </para>
             <variablelist>
                 <varlistentry>
@@ -2267,7 +2276,8 @@ pam_json_services = gdm-switchable-auth
                 </itemizedlist>
             </para>
             <para>
-                These options can be used to configure the PAC responder.
+                These options can be used to configure the PAC responder
+                and should be specified under the <quote>[pac]</quote> section.
             </para>
             <variablelist>
                 <varlistentry>
@@ -2436,7 +2446,9 @@ pam_json_services = gdm-switchable-auth
                 </citerefentry>.
             </para>
             <para>
-                These options can be used to configure session recording.
+                These options can be used to configure session recording
+                and should be specified under the
+                <quote>[session_recording]</quote> section.
             </para>
             <variablelist>
                 <varlistentry>
