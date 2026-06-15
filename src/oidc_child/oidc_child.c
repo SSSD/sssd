@@ -410,7 +410,11 @@ static bool set_client_auth_method(const char *tmp_cam, struct cli_opts *opts)
             return false;
         }
     } else {
-        opts->client_auth_method = CAM_SECRET;
+        if (has_creds_client_secret(opts)) {
+            opts->client_auth_method = CAM_SECRET;
+        } else {
+            opts->client_auth_method = CAM_NONE;
+        }
     }
 
     switch (opts->client_auth_method) {
@@ -502,7 +506,8 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
         {"pkcs12-client-creds", 0, POPT_ARG_STRING, &opts->pkcs12_client_creds, 0,
                 _("Client certificate and key in PKCS#12 format"), NULL},
         {"client-auth-method", 0, POPT_ARG_STRING, &tmp_cam, 0,
-                _("Authentication method against IdP [secret (default), mtls, jwt, none]"),
+                _("Authentication method against IdP [secret, mtls, jwt, none] "
+                  "(default: secret if client secret given, none otherwise)"),
                 NULL},
         {"ca-db", 0, POPT_ARG_STRING, &opts->ca_db, 0,
                 _("Path to PEM file with CA certificates"), NULL},
