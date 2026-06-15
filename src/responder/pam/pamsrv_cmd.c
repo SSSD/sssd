@@ -40,6 +40,7 @@
 #include "responder/pam/pamsrv_json.h"
 #include "responder/pam/pamsrv_passkey.h"
 #include "responder/pam/pam_helpers.h"
+#include "util/sss_client_envs.h"
 #include "responder/common/cache_req/cache_req.h"
 
 enum pam_verbosity {
@@ -279,6 +280,29 @@ static int pd_set_primary_name(const struct ldb_message *msg,struct pam_data *pd
     return EOK;
 }
 
+static int extract_client_envs(TALLOC_CTX *mem_ctx,
+                               const char ***_envs, size_t size, uint8_t *body,
+                               size_t blen, size_t *c)
+{
+    const char **envs = NULL;
+    uint8_t *data;
+    size_t count;
+    int ret;
+
+    if (*c + size > blen || SIZE_T_OVERFLOW(*c, size)) return EINVAL;
+
+    data = body + (*c);
+    if (size == 0 || data[size - 1] != '\0') return EINVAL;
+
+    ret = parse_client_env_list(mem_ctx, data, size, &envs, &count);
+    if (ret != EOK) return ret;
+
+    *_envs = envs;
+    *c += size;
+
+    return EOK;
+}
+
 static int pam_parse_in_data_v2(struct pam_data *pd,
                                 uint8_t *body, size_t blen)
 {
@@ -406,6 +430,11 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                     json_auth_set = true;
                     ret = extract_string(&pd->json_auth_selected, size, body,
                                          blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
+                case SSS_PAM_ITEM_CLIENT_ENVS:
+                    ret = extract_client_envs(pd, &pd->client_envs,
+                                              size, body, blen, &c);
                     if (ret != EOK) return ret;
                     break;
                 default:

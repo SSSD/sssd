@@ -73,6 +73,7 @@
 
 #include "sss_pam_compat.h"
 #include "sss_pam_macros.h"
+#include "util/client_envs.h"
 
 #include "sss_cli.h"
 #include "pam_message.h"
@@ -252,6 +253,9 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
 
     pc_list_free(pi->pc);
     pi->pc = NULL;
+
+    free(pi->client_envs);
+    pi->client_envs = NULL;
 }
 
 static int null_strcmp(const char *s1, const char *s2) {
@@ -1453,6 +1457,71 @@ bool is_string_empty_or_whitespace(const char *str)
     return true;
 }
 
+static int collect_client_envs(pam_handle_t *pamh, struct pam_items *pi)
+{
+    const size_t n_envs = get_allowed_client_envs_count();
+    char *found_envs[n_envs];
+    uint8_t *client_envs;
+    uint8_t *p;
+    size_t total_size;
+    int ret;
+
+    pi->client_envs = NULL;
+    pi->client_envs_size = 0;
+
+    /* Initialize all elements to NULL (0) */
+    memset(found_envs, 0, sizeof(found_envs));
+
+    total_size = 0;
+    for (size_t i = 0; i < n_envs; i++) {
+        const char *env = allowed_client_envs[i];
+        const char *val = getenv(env);
+
+        if (val != NULL) {
+            char *found = NULL;
+
+            if (asprintf(&found, "%s=%s", env, val) == -1) {
+                D(("asprintf failed."));
+                ret = PAM_BUF_ERR;
+                goto done;
+            }
+            total_size += strlen(found) + 1;
+            found_envs[i] = found;
+        }
+    }
+
+    if (total_size == 0) {
+        ret = PAM_SUCCESS;
+        goto done;
+    }
+
+    client_envs = malloc(total_size);
+    if (client_envs == NULL) {
+        D(("malloc failed."));
+        ret = PAM_BUF_ERR;
+        goto done;
+    }
+    p = client_envs;
+    for (size_t i = 0; i < n_envs; i++) {
+        if (found_envs[i] != NULL) {
+            size_t len = strlen(found_envs[i]) + 1;
+            memcpy(p, found_envs[i], len);
+            p += len;
+        }
+    }
+
+    pi->client_envs_size = total_size;
+    pi->client_envs = client_envs;
+
+    ret = PAM_SUCCESS;
+
+done:
+    for (size_t i = 0; i < n_envs; i++) {
+        free(found_envs[i]);
+    }
+    return ret;
+}
+
 static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
                          struct pam_items *pi)
 {
@@ -1543,6 +1612,9 @@ static int get_pam_items(pam_handle_t *pamh, uint32_t flags,
     pi->json_auth_msg_size = strlen(pi->json_auth_msg) + 1;
     if (pi->json_auth_selected == NULL) pi->json_auth_selected = "";
     pi->json_auth_selected_size = strlen(pi->json_auth_selected) + 1;
+
+    ret = collect_client_envs(pamh, pi);
+    if (ret != PAM_SUCCESS) return ret;
 
     return PAM_SUCCESS;
 }

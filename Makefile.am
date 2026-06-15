@@ -717,6 +717,8 @@ dist_noinst_HEADERS = \
     src/util/safe-format-string.h \
     src/util/session_recording.h \
     src/util/strtonum.h \
+    src/util/client_envs.h \
+    src/util/sss_client_envs.h \
     src/util/sss_cli_cmd.h \
     src/util/sss_chain_id_tevent.h \
     src/util/sss_chain_id.h \
@@ -1282,6 +1284,8 @@ libsss_util_la_SOURCES = \
     src/util/atomic_io.c \
     src/util/authtok.c \
     src/util/authtok-utils.c \
+    src/util/client_envs.c \
+    src/util/sss_client_envs.c \
     src/util/domain_info_utils.c \
     src/util/util_lock.c \
     src/util/util_errors.c \
@@ -4216,6 +4220,7 @@ pam_sss_la_SOURCES = \
     src/sss_client/sss_cli.h \
     src/util/atomic_io.c \
     src/util/authtok-utils.c \
+    src/util/client_envs.c \
     src/util/memory_erase.c \
     src/sss_client/sss_pam_macros.h \
     src/sss_client/sss_pam_compat.h
@@ -4746,6 +4751,7 @@ krb5_child_SOURCES = \
     src/util/sss_chain_id.c \
     src/util/strtonum.c \
     src/util/util_errors.c \
+    src/util/client_envs.c \
     src/sss_client/common.c \
     src/krb5_plugin/common/utils.c \
     src/krb5_plugin/idp/idp_utils.c \
@@ -4881,6 +4887,7 @@ p11_child_SOURCES = \
     src/util/util_ext.c \
     src/util/sss_chain_id.c \
     src/util/sss_prctl.c \
+    src/util/client_envs.c \
     $(NULL)
 p11_child_SOURCES += src/p11_child/p11_child_openssl.c
 
