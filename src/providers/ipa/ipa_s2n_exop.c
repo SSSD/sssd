@@ -174,7 +174,7 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
                                   bv, NULL, NULL, &msgid);
     if (ret == -1 || msgid == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_extended_operation failed\n");
-        ret = ERR_NETWORK_IO;
+        ret = ERR_SERVER_FAILURE;
         goto fail;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_extended_operation sent, msgid = %d\n",
@@ -228,7 +228,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n",
                                  sdap_op_get_msgid(state->op));
-        ret = ERR_NETWORK_IO;
+        ret = ERR_SERVER_FAILURE;
         goto done;
     }
 
@@ -243,7 +243,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
         } else {
             DEBUG(SSSDBG_OP_FAILURE, "ldap_extended_operation failed, server " \
                                      "logs might contain more details.\n");
-            ret = ERR_NETWORK_IO;
+            ret = ERR_SERVER_FAILURE;
         }
         goto done;
     }
@@ -253,7 +253,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_extendend_result failed (%d)\n",
                                  ret);
-        ret = ERR_NETWORK_IO;
+        ret = ERR_SERVER_FAILURE;
         goto done;
     }
     if (retdata == NULL) {
@@ -1721,7 +1721,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Extdom not supported on the server, "
                               "cannot resolve objects from trusted domains.\n");
-        ret = EIO;
+        ret = ERR_SERVER_FAILURE;
         goto fail;
     }
 
