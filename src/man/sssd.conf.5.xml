@@ -3148,6 +3148,22 @@ pam_json_services = gdm-switchable-auth
                             </citerefentry> for more information on
                             configuring Active Directory.
                         </para>
+<<<<<<< HEAD
+=======
+                        <para condition="with_idp_provider">
+                            <quote>idp</quote>: Provider for OAuth 2.0/OIDC
+                            based Identity Providers (IdP). See
+                            <citerefentry>
+                                <refentrytitle>sssd-idp</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry> for more information.
+                        </para>
+                        <para>
+                            Default: Not set (This is a mandatory setting that
+                            must be explicitly defined for each configured
+                            domain).
+                        </para>
+>>>>>>> 731246d93 (sssd man-page: Add Default for id_provider)
                     </listitem>
                 </varlistentry>
 
