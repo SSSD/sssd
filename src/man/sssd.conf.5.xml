@@ -3057,6 +3057,11 @@ pam_json_services = gdm-switchable-auth
                                 <manvolnum>5</manvolnum>
                             </citerefentry> for more information.
                         </para>
+                        <para>
+                            Default: Not set (This is a mandatory setting that
+                            must be explicitly defined for each configured
+                            domain).
+                        </para>
                     </listitem>
                 </varlistentry>
 
