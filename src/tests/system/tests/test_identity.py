@@ -95,7 +95,7 @@ def test_identity__lookup_uid_with_id_command(client: Client, provider: GenericP
 @pytest.mark.ticket(bz=[1364118, 1199445])
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 def test_identity__lookup_groupname_with_getent(
-    client: Client, provider: GenericProvider, parameterize_group_name: str
+    client: Client, provider: GenericProvider, parametrize_group_name: str
 ):
     """
     :title: Resolve group by name with getent
@@ -110,11 +110,11 @@ def test_identity__lookup_groupname_with_getent(
         2. Results have the correct names and GIDs
     :customerscenario: False
     """
-    if provider.name == "ipa" and parameterize_group_name != "group1":
+    if provider.name == "ipa" and parametrize_group_name != "group1":
         pytest.skip("Skipping test for IPA provider, the characters in the name are not supported!")
-    ids = [(parameterize_group_name, 10001), ("group2", 10002), ("group3", 10003)]
+    ids = [(parametrize_group_name, 10001), ("group2", 10002), ("group3", 10003)]
     for group_name, id in ids:
-        provider.group(parameterize_group_name).add(gid=id)
+        provider.group(parametrize_group_name).add(gid=id)
 
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
