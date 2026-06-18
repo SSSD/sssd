@@ -203,7 +203,7 @@ static void ad_dyndns_update_connect_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to connect to LDAP server: [%d](%s)\n",
                   ret, sss_strerror(ret));
-            tevent_req_error(req, ERR_NETWORK_IO);
+            tevent_req_error(req, ERR_SERVER_FAILURE);
         }
         return;
     }
