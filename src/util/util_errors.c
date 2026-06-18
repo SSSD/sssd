@@ -157,6 +157,7 @@ struct err_string error_to_str[] = {
     { "Certificate authority file not found"}, /* ERR_CA_DB_NOT_FOUND */
 
     { "Server failure"}, /* ERR_SERVER_FAILURE */
+    { "No more servers to try"}, /* ERR_NO_MORE_SERVERS */
 
     { "ERR_LAST" } /* ERR_LAST */
 };
