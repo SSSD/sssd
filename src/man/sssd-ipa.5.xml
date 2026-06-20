@@ -253,7 +253,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>dyndns_update_ptr (bool)</term>
+                    <term>dyndns_update_ptr (boolean)</term>
                     <listitem>
                         <para>
                             Whether the PTR record should also be explicitly
@@ -278,7 +278,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>dyndns_force_tcp (bool)</term>
+                    <term>dyndns_force_tcp (boolean)</term>
                     <listitem>
                         <para>
                             Whether the nsupdate utility should default to using
