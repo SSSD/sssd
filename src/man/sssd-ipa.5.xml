@@ -138,6 +138,7 @@
                             <quote>dyndns_iface</quote> option.
                         </para>
                         <para>
+<<<<<<< HEAD
                             NOTE: On older systems (such as RHEL 5), for this
                             behavior to work reliably, the default Kerberos
                             realm must be set properly in /etc/krb5.conf
@@ -149,6 +150,8 @@
                             in their config file.
                         </para>
                         <para>
+=======
+>>>>>>> e98665e6a (man: Remove obsolete RHEL 5 krb5.conf note from sssd-ipa)
                             Default: false
                         </para>
                     </listitem>
