@@ -646,7 +646,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ipa_hbac_selinux (integer)</term>
+                    <term>ipa_selinux_refresh (integer)</term>
                     <listitem>
                         <para>
                             The amount of time between lookups of the SELinux
