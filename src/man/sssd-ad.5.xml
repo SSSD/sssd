@@ -1193,11 +1193,6 @@ ad_gpo_map_deny = +my_pam_service
                             by using the <quote>dyndns_iface</quote> option.
                         </para>
                         <para>
-                            NOTE: On older systems (such as RHEL 5), for this
-                            behavior to work reliably, the default Kerberos
-                            realm must be set properly in /etc/krb5.conf
-                        </para>
-                        <para>
                             Default: true
                         </para>
                     </listitem>
