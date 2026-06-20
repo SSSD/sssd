@@ -138,11 +138,6 @@
                             <quote>dyndns_iface</quote> option.
                         </para>
                         <para>
-                            NOTE: On older systems (such as RHEL 5), for this
-                            behavior to work reliably, the default Kerberos
-                            realm must be set properly in /etc/krb5.conf
-                        </para>
-                        <para>
                             NOTE: While it is still possible to use the old
                             <emphasis>ipa_dyndns_update</emphasis> option, users
                             should migrate to using <emphasis>dyndns_update</emphasis>
