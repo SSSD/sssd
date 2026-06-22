@@ -539,7 +539,10 @@ unset CK_TIMEOUT_MULTIPLIER
 
 %install
 
-%make_install
+# Serial install: libtool relinks sssdlib modules against pkglib
+# libraries during install.  Parallel install can relink before the
+# target libraries are in place, causing missing .so files.
+%make_install -j1
 
 # Prepare language files
 /usr/lib/rpm/find-lang.sh $RPM_BUILD_ROOT sssd
