@@ -53,7 +53,7 @@ struct tevent_req *sdap_id_op_connect_send(struct sdap_id_op *op,
  *
  * Data provider error code is returned:
  *   ERR_OK - connection established
- *   ERR_OFFLINE - backend is offline, operation result is set EAGAIN
+ *   ERR_OFFLINE - backend is offline
  *   ERR_SERVER_FAILURE - operation failed
  */
 int sdap_id_op_connect_recv(struct tevent_req *req);
