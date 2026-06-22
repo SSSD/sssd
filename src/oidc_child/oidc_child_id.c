@@ -572,6 +572,7 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
 
     switch (oidc_cmd) {
     case GET_USER_GROUPS:
+        free(uri);
         uri = talloc_asprintf(rest_ctx,
             "%s/groups/?include_users=false&members_by_pk=%s&page=1&page_size=100",
             base_url, obj_id);
