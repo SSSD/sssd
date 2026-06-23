@@ -250,37 +250,33 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     } else {
         ret = sdap_handle_acct_req_recv(subreq, &err);
     }
+    talloc_zfree(subreq);
+
     if (ret == ERR_OFFLINE
         && state->conn[state->cindex+1] != NULL
         && state->conn[state->cindex]->ignore_mark_offline) {
-         /* This is a special case: GC does not work.
-          *  We need to Fall back to ldap
-          */
+        /* This is a special case: GC does not work.
+         * We need to fall back to LDAP
+         */
         ret = ENOENT;
-    }
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* if GC was not used error should be set */
-        state->err = err;
-
-        goto fail;
     }
 
     if (ret == EOK) {
         tevent_req_done(req);
         return;
-    } else if (ret != ENOENT) {
-        ret = EIO;
+    }
+
+    if (ret != ENOENT) {
+        /* Non-ENOENT errors should be propagated */
+        state->err = err;
         goto fail;
     }
 
-    /* Ret is only ENOENT now. Try the next connection */
+    /* ret is ENOENT - try the next connection */
     state->cindex++;
     ret = ad_handle_acct_info_step(req);
     if (ret != EAGAIN) {
-        /* No additional search in progress. Save the last
-         * error status, we'll be returning it.
-         */
+        /* No additional search in progress. Save the last error */
         state->err = err;
 
         if (ret == EOK) {
