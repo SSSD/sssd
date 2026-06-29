@@ -749,7 +749,7 @@ done:
 
 struct pam_check_cert_state {
     struct tevent_context *ev;
-    struct sss_certmap_ctx *sss_certmap_ctx;
+    struct pam_ctx *pctx;
     struct child_io_fds *io;
     struct cert_auth_info *cert_list;
     struct pam_data *pam_data;
@@ -763,7 +763,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
                                        const char *ca_db,
                                        time_t timeout,
                                        const char *verify_opts,
-                                       struct sss_certmap_ctx *sss_certmap_ctx,
+                                       struct pam_ctx *pctx,
                                        const char *uri,
                                        struct pam_data *pd)
 {
@@ -791,11 +791,12 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    if (sss_certmap_ctx == NULL) {
+    if (pctx == NULL || pctx->sss_certmap_ctx == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing certificate matching context.\n");
         ret = EINVAL;
         goto done;
     }
+    state->pctx = pctx;
 
     state->pam_data = pd;
 
@@ -880,7 +881,6 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     }
 
     state->ev = ev;
-    state->sss_certmap_ctx = sss_certmap_ctx;
 
     ret = sss_child_start(state, ev,
                           P11_CHILD_PATH, extra_args, false,
@@ -985,7 +985,8 @@ static void p11_child_done(struct tevent_req *subreq)
 
     FD_CLOSE(state->io->read_from_child_fd);
 
-    ret = parse_p11_child_response(state, buf, buf_len, state->sss_certmap_ctx,
+    ret = parse_p11_child_response(state, buf, buf_len,
+                                   state->pctx->sss_certmap_ctx,
                                    &state->cert_list);
     if (ret != EOK) {
         if (ret == ERR_P11_PIN_LOCKED) {

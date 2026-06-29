@@ -1945,7 +1945,7 @@ static errno_t check_cert(TALLOC_CTX *mctx,
 
     req = pam_check_cert_send(mctx, ev,
                               pctx->ca_db, p11_child_timeout,
-                              cert_verification_opts, pctx->sss_certmap_ctx,
+                              cert_verification_opts, pctx,
                               uri, pd);
     if (req == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "pam_check_cert_send failed.\n");
