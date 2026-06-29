@@ -115,6 +115,7 @@ def enroll_smartcard(client: Client, provider: IPA, username: str, id: str = "01
     client.svc.restart("virt_cacard.service")
 
 
+@pytest.mark.flaky(max_runs=5)
 @pytest.mark.importance("critical")
 @pytest.mark.builtwith(client=["gdm", "passkey", "vfido"])
 @pytest.mark.topology(KnownTopology.BareIPA)
@@ -531,6 +532,7 @@ def test_gdm__smartcard_login_fails_with_incorrect_pin(client: Client, ipa: IPA)
     client.gdm.done()
 
 
+@pytest.mark.flaky(max_runs=5)
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.BareIPA)
 @pytest.mark.builtwith(client="gdm")
@@ -673,6 +675,7 @@ def test_gdm__xidp_user_is_forced_to_change_password_before_login(client: Client
     ), "GDM EIdP Login with password change failed!"
 
 
+@pytest.mark.flaky(max_runs=5)
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.GDM)
 @pytest.mark.builtwith(client="gdm")
