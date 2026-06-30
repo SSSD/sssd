@@ -22,7 +22,6 @@
 #include "util/client_envs.h"
 
 const char *allowed_client_envs[] = {
-    "LIBPCSCLITE_DELEGATE",
     "GRD_PCSCD_SESSION_ID",
 };
 

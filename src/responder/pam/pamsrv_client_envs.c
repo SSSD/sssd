@@ -21,6 +21,7 @@
 
 #include <ctype.h>
 
+#include "responder/pam/pamsrv.h"
 #include "util/util.h"
 #include "util/client_envs.h"
 
@@ -173,6 +174,77 @@ int filter_client_envs(TALLOC_CTX *mem_ctx, const char **client_envs,
 
     *_filtered_envs = filtered_envs;
     *_count = n;
+
+    return EOK;
+}
+
+static bool has_client_env(const char **client_envs, size_t count,
+                           const char *name)
+{
+    size_t name_len = strlen(name);
+
+    for (size_t i = 0; i < count; i++) {
+        if (strncmp(client_envs[i], name, name_len) == 0 &&
+            client_envs[i][name_len] == '=')
+            return true;
+    }
+
+    return false;
+}
+
+int append_derived_client_envs(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx,
+                               const char **client_envs, size_t count,
+                               const char ***_result_envs, size_t *_count)
+{
+    bool can_use_grd_pcsc_lib;
+    const char **result;
+    size_t n_derived_envs;
+    size_t result_count;
+    size_t idx;
+
+    if (client_envs == NULL || count == 0) {
+        *_count = 0;
+        *_result_envs = NULL;
+        return EOK;
+    }
+
+    can_use_grd_pcsc_lib = has_client_env(client_envs, count,
+                                           "GRD_PCSCD_SESSION_ID") &&
+                            strcmp(pctx->grd_pcsc_lib, "-") != 0;
+
+    n_derived_envs = 0;
+    if (can_use_grd_pcsc_lib)
+        n_derived_envs++;
+
+    result_count = count + n_derived_envs;
+    result = talloc_zero_array(mem_ctx, const char *, result_count + 1);
+    if (result == NULL)
+        return ENOMEM;
+
+    idx = 0;
+    while (idx < count) {
+        result[idx] = talloc_strdup(result, client_envs[idx]);
+        if (result[idx] == NULL) {
+            talloc_free(result);
+            return ENOMEM;
+        }
+        idx++;
+    }
+
+    if (can_use_grd_pcsc_lib) {
+        result[idx] = talloc_asprintf(result, "LIBPCSCLITE_DELEGATE=%s",
+                                      pctx->grd_pcsc_lib);
+        if (result[idx] == NULL) {
+            talloc_free(result);
+            return ENOMEM;
+        }
+        idx++;
+    }
+
+    result[idx] = NULL;
+
+    *_result_envs = result;
+    *_count = result_count;
 
     return EOK;
 }

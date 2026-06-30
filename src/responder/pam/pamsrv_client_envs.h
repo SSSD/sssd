@@ -39,4 +39,10 @@ int filter_client_envs(TALLOC_CTX *mem_ctx, const char **client_envs,
                        size_t count, const char ***_filtered_envs,
                        size_t *_count);
 
+/* Copy client_envs and append any derived environment variables.
+ * Returns a NULL-terminated array. Returns EOK on success. */
+int append_derived_client_envs(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx,
+                               const char **client_envs, size_t count,
+                               const char ***_result_envs, size_t *_count);
+
 #endif /* _PAMSRV_CLIENT_ENVS_H_ */
