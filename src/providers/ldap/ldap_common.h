@@ -301,7 +301,8 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
                                    bool noexist_delete,
                                    bool no_members,
                                    bool set_non_posix);
-int groups_get_recv(struct tevent_req *req);
+int groups_get_recv(struct tevent_req *req,
+                    int *sdap_ret);
 
 struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
                                        struct tevent_context *ev,
