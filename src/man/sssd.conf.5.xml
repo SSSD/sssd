@@ -143,6 +143,11 @@
         <refsect2 id='all-section-options'>
             <title>Options usable in all sections</title>
             <para>
+            Note: Below options are ignored in <quote>[session_recording]</quote>
+            section, see <quote>Session recording configuration options</quote>
+            section for more details.
+            </para>
+            <para>
               <variablelist>
                 <varlistentry>
                     <term>debug_level (integer)</term>
@@ -2374,6 +2379,13 @@ pam_json_services = gdm-switchable-auth
                 These options can be used to configure session recording
                 and should be specified under the
                 <quote>[session_recording]</quote> section.
+            </para>
+            <para>
+            Note: Unlike other sections, the <quote>[session_recording]</quote>
+            section ignores <replaceable>debug*</replaceable> options and suitable
+            <replaceable>debug*</replaceable> options must be set in
+            <quote>[pam]</quote>, <quote>[nss]</quote> and
+            <quote>[domain/<replaceable>NAME</replaceable>]</quote> sections.
             </para>
             <variablelist>
                 <varlistentry>
