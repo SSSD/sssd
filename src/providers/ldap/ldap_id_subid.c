@@ -36,7 +36,7 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
                                   const char *extra_value,
                                   bool noexist_delete,
                                   bool set_non_posix);
-int users_get_recv(struct tevent_req *req);
+int users_get_recv(struct tevent_req *req, bool *sdap_enoent);
 
 static int subid_ranges_get_retry(struct tevent_req *req);
 static void subid_ranges_get_connect_done(struct tevent_req *subreq);
@@ -58,6 +58,7 @@ struct subid_ranges_get_state {
     char *owner_name;
     char *owner_dn;
     const char **attrs;
+    bool sdap_enoent;
 };
 
 struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
@@ -80,6 +81,7 @@ struct tevent_req *subid_ranges_get_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->sdom = sdom;
     state->conn = conn;
+    state->sdap_enoent = false;
     state->owner_name = talloc_strdup(state, filter_value);
     if (!state->owner_name) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed\n");
@@ -212,7 +214,7 @@ static void subid_ranges_resolve_owner_done(struct tevent_req *subreq)
                                                      struct subid_ranges_get_state);
     int ret;
 
-    ret = users_get_recv(subreq);
+    ret = users_get_recv(subreq, NULL);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -303,6 +305,10 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
         return;
     }
 
+    if (ret == ENOENT) {
+        state->sdap_enoent = true;
+    }
+
     if (ret && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to retrieve subid ranges.\n");
         tevent_req_error(req, ret);
@@ -328,8 +334,14 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-int subid_ranges_get_recv(struct tevent_req *req)
+int subid_ranges_get_recv(struct tevent_req *req, bool *sdap_enoent)
 {
+    struct subid_ranges_get_state *state = tevent_req_data(req,
+                                                         struct subid_ranges_get_state);
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
+    }
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;

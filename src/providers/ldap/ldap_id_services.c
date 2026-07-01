@@ -48,6 +48,7 @@ struct sdap_services_get_state {
     int filter_type;
 
     bool noexist_delete;
+    bool sdap_enoent;
 };
 
 static errno_t
@@ -88,6 +89,7 @@ services_get_send(TALLOC_CTX *mem_ctx,
     state->protocol = protocol;
     state->filter_type = filter_type;
     state->noexist_delete = noexist_delete;
+    state->sdap_enoent = false;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
@@ -237,6 +239,10 @@ services_get_done(struct tevent_req *subreq)
         return;
     }
 
+    if (ret == ENOENT) {
+        state->sdap_enoent = true;
+    }
+
     /* An error occurred. */
     if (ret && ret != ENOENT) {
         tevent_req_error(req, ret);
@@ -280,8 +286,14 @@ services_get_done(struct tevent_req *subreq)
 }
 
 errno_t
-services_get_recv(struct tevent_req *req)
+services_get_recv(struct tevent_req *req, bool *sdap_enoent)
 {
+    struct sdap_services_get_state *state = tevent_req_data(req,
+                                                            struct sdap_services_get_state);
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
+    }
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;

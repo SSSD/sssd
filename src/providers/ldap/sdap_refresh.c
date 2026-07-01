@@ -155,7 +155,7 @@ static void sdap_refresh_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_refresh_state);
 
-    ret = sdap_handle_acct_req_recv(subreq, &err_msg);
+    ret = sdap_handle_acct_req_recv(subreq, &err_msg, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s [errno: %d]: %s\n",

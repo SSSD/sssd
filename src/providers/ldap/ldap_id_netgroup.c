@@ -49,6 +49,7 @@ struct ldap_netgroup_get_state {
     struct sysdb_attrs **netgroups;
 
     bool noexist_delete;
+    bool sdap_enoent;
 };
 
 static int ldap_netgroup_get_retry(struct tevent_req *req);
@@ -76,6 +77,7 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
     state->sdom = sdom;
     state->conn = conn;
     state->noexist_delete = noexist_delete;
+    state->sdap_enoent = true;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
@@ -194,6 +196,10 @@ static void ldap_netgroup_get_done(struct tevent_req *subreq)
         return;
     }
 
+    if (ret == ENOENT) {
+        state->sdap_enoent = true;
+    }
+
     if (ret && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
@@ -219,8 +225,14 @@ static void ldap_netgroup_get_done(struct tevent_req *subreq)
     return;
 }
 
-int ldap_netgroup_get_recv(struct tevent_req *req)
+int ldap_netgroup_get_recv(struct tevent_req *req, bool *sdap_enoent)
 {
+    struct ldap_netgroup_get_state *state = tevent_req_data(req,
+                                                            struct ldap_netgroup_get_state);
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
+    }
+
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;

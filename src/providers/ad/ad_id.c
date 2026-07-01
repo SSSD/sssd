@@ -240,6 +240,7 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
 {
     errno_t ret;
     const char *err;
+    bool sdap_enoent = false;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct ad_handle_acct_info_state *state = tevent_req_data(req,
@@ -248,33 +249,32 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     if (state->using_pac) {
         ret = ad_handle_pac_initgr_recv(subreq, &err);
     } else {
-        ret = sdap_handle_acct_req_recv(subreq, &err);
+        ret = sdap_handle_acct_req_recv(subreq, &err, &sdap_enoent);
     }
+    talloc_zfree(subreq);
+
     if (ret == ERR_OFFLINE
         && state->conn[state->cindex+1] != NULL
         && state->conn[state->cindex]->ignore_mark_offline) {
          /* This is a special case: GC does not work.
           *  We need to Fall back to ldap
           */
-        ret = ENOENT;
+        ret = EOK;
+        sdap_enoent = true;
     }
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        /* if GC was not used error should be set */
-        state->err = err;
 
+    if (ret != EOK) {
+        state->err = err;
         goto fail;
     }
 
-    if (ret == EOK) {
+    if (!sdap_enoent) {
+        /* Success - entry found */
         tevent_req_done(req);
         return;
-    } else if (ret != ENOENT) {
-        ret = EIO;
-        goto fail;
     }
 
-    /* Ret is only ENOENT now. Try the next connection */
+    /* Entry not found (ENOENT). Try the next connection */
     state->cindex++;
     ret = ad_handle_acct_info_step(req);
     if (ret != EAGAIN) {
