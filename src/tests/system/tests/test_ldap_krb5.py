@@ -390,3 +390,51 @@ def test_ldap_krb5__password_change_via_ssh(client: Client, provider: GenericPro
     ), f"krb5_child initial auth message not found: {log_content[:500]}!"
 
     assert client.auth.ssh.password("puser1", new_password), "Auth with new password failed after password change!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.authentication
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__pam_sss_domains_option_skips_non_matching_domains(
+    client: Client, provider: GenericProvider, kdc: KDC
+):
+    """
+    :title: pam_sss.so 'domains' option only authenticates against the listed SSSD domain
+    :description:
+        'domains=' behaves the same way regardless of how many other domains are configured,
+        so this uses a single non-matching line followed by the real domain's line.
+    :setup:
+        1. Add user to LDAP and KDC, configure SSSD with LDAP+KRB5
+        2. Replace the 'su-l' PAM service (used by 'su -') with two 'sufficient' pam_sss.so
+           lines: one restricted to a non-existent domain, one restricted to the real SSSD
+           domain
+    :steps:
+        1. Authenticate as the user via 'su -'
+    :expectedresults:
+        1. Authentication succeeds because the second, matching 'domains=' line is used
+    :customerscenario: True
+    """
+    provider.user("puser1").add(uid=50001, gid=50001, password="12345678")
+    kdc.principal("puser1").add(password="12345678")
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.start()
+
+    domain = client.sssd.default_domain
+    client.fs.backup("/etc/pam.d/su-l")
+    client.fs.write(
+        "/etc/pam.d/su-l",
+        f"""
+        auth        required    pam_env.so
+        auth        sufficient  pam_sss.so forward_pass domains=nonexistent.dom
+        auth        sufficient  pam_sss.so forward_pass domains={domain}
+        auth        required    pam_deny.so
+        account     required    pam_sss.so
+        password    required    pam_sss.so
+        session     required    pam_sss.so
+        """,
+    )
+
+    assert client.auth.su.password(
+        "puser1", "12345678"
+    ), "Authentication should succeed via the matching 'domains=' line!"
