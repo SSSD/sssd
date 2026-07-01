@@ -384,3 +384,35 @@ def test_ensure_localauth_plugin_is_not_configured(client: Client, provider: Gen
 
     with pytest.raises(Exception):
         client.fs.read("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.parametrize(
+    "prompting_section",
+    ["prompting/password", "prompting/password/su-l"],
+    ids=["global_prompt", "service_prompt"],
+)
+def test_authentication__custom_password_prompt(client: Client, provider: GenericProvider, prompting_section: str):
+    """
+    :title: Custom password prompt text is shown at login
+    :description:
+        Ported from sssd/src/tests/intg/test_pam_responder.py#test_password_prompting_config_global
+        and #test_password_prompting_config_srv.
+    :setup:
+        1. Create user
+        2. Set a custom 'password_prompt', either globally or for the 'su -' PAM service ('su-l')
+        3. Start SSSD
+    :steps:
+        1. Authenticate as the user via 'su'
+    :expectedresults:
+        1. The custom prompt text is shown and authentication succeeds
+    :customerscenario: True
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.section(prompting_section)["password_prompt"] = "My custom prompt"
+    client.sssd.start()
+
+    result = client.host.conn.run("su - user1 -c 'su - user1 -c whoami'", input="Secret123")
+    assert "My custom prompt" in result.stderr, "Custom password prompt was not shown!"
+    assert "user1" in result.stdout, "'user1' failed to log in!"

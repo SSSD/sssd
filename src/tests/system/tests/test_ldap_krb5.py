@@ -13,6 +13,7 @@ Misc krb cases ported from sssd-qe krb_misc are included in this module.
 from __future__ import annotations
 
 import time
+from inspect import cleandoc
 
 import pytest
 from sssd_test_framework.roles.client import Client
@@ -388,5 +389,57 @@ def test_ldap_krb5__password_change_via_ssh(client: Client, provider: GenericPro
     assert (
         "Initial authentication for change password" in log_content
     ), f"krb5_child initial auth message not found: {log_content[:500]}!"
-
     assert client.auth.ssh.password("puser1", new_password), "Auth with new password failed after password change!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.authentication
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__pam_sss_domains_option_skips_non_matching_domains(
+    client: Client, provider: GenericProvider, kdc: KDC
+):
+    """
+    :title: pam_sss.so 'domains' option only authenticates against the listed SSSD domain
+
+    Ported from sssd/src/tests/intg/test_pam_responder.py#test_krb5_auth_domains. The legacy
+    case stacked one 'pam_sss.so ... domains=X' line per configured SSSD domain (three
+    non-matching domains plus the real one, all 'sufficient'); since 'domains=' behaves
+    identically per line regardless of how many other domains are configured, this is condensed
+    to a single non-matching line followed by the real domain's line.
+
+    :setup:
+        1. Add user to LDAP and KDC, configure SSSD with LDAP+KRB5
+        2. Back up the PAM stack via authselect
+        3. Replace the 'su-l' PAM service with two 'sufficient' pam_sss.so lines: one restricted
+           to a non-existent domain, one restricted to the real SSSD domain
+    :steps:
+        1. Authenticate as the user via 'su -'
+    :expectedresults:
+        1. Authentication succeeds because the second, matching 'domains=' line is used
+    :customerscenario: True
+    """
+    provider.user("puser1").add(uid=50002, gid=50002, password="12345678")
+    kdc.principal("puser1").add(password="12345678")
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.start()
+
+    domain = client.sssd.default_domain
+    client.host.conn.exec(["authselect", "apply-changes", "--backup=mybackup"])
+    custom_pam_stack = f"""
+    auth        required    pam_env.so
+    auth        sufficient  pam_sss.so forward_pass domains=nonexistent.dom
+    auth        sufficient  pam_sss.so forward_pass domains={domain}
+    auth        required    pam_deny.so
+    account     required    pam_sss.so
+    password    required    pam_sss.so
+    session     required    pam_sss.so
+    """
+    client.fs.write("/etc/pam.d/su-l", cleandoc(custom_pam_stack))
+
+    try:
+        assert client.auth.su.password(
+            "puser1", "12345678"
+        ), "Authentication should succeed via the matching 'domains=' line!"
+    finally:
+        client.host.conn.exec(["authselect", "backup-restore", "mybackup"])
