@@ -2290,7 +2290,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
-    ret = groups_by_user_recv(subreq);
+    ret = groups_by_user_recv(subreq, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         if (ret == ERR_OFFLINE) {

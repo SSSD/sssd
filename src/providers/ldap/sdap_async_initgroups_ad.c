@@ -361,14 +361,15 @@ static void sdap_ad_resolve_sids_done(struct tevent_req *subreq)
     struct sdap_ad_resolve_sids_state *state = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
+    bool sdap_enoent = false;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_ad_resolve_sids_state);
 
-    ret = groups_get_recv(subreq);
+    ret = groups_get_recv(subreq, &sdap_enoent);
     talloc_zfree(subreq);
 
-    if (ret == ENOENT) {
+    if (sdap_enoent) {
         /* Group was not found, we will ignore the error and continue with
          * next group. This may happen for example if the group is built-in,
          * but a custom search base is provided. */

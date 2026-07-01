@@ -1078,7 +1078,7 @@ static void ipa_add_trusted_memberships_get_group_done(struct tevent_req *subreq
                                                 struct add_trusted_membership_state);
     int ret;
 
-    ret = groups_get_recv(subreq);
+    ret = groups_get_recv(subreq, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to read group [%s] from LDAP [%d](%s)\n",
