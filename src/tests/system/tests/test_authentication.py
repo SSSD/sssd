@@ -228,3 +228,158 @@ def test_authentication__user_login_when_the_provider_is_offline(
 
     assert client.auth.parametrize(method).password(user, correct), "User failed login!"
     assert not client.auth.parametrize(method).password(user, wrong), "User logged in with an incorrect password!"
+<<<<<<< HEAD
+=======
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.parametrize("method", ["ssh", "su"])
+@pytest.mark.parametrize("sssd_service_user", ("root", "sssd"))
+@pytest.mark.importance("medium")
+@pytest.mark.require(
+    lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
+    "SSSD was built without support for running under non-root",
+)
+def test_authentication__user_login_with_modified_PAM_stack_provider_is_offline(
+    client: Client, provider: GenericProvider, method: str, sssd_service_user: str
+):
+    """
+    :title: Authenticate with modified PAM when the provider is offline
+    :setup:
+        1. Create user
+        2. Configure SSSD with "cache_credentials = true" and "krb5_store_password_if_offline = true" and
+            "offline_credentials_expiration = 0"
+        3. Back up /etc/pam.d/system-auth and /etc/pam.d/password-auth files
+        3. Modify PAM configuration files /etc/pam.d/system-auth, and /etc/pam.d/password-auth so that pam_sss.so
+           is using the 'use_first_pass' option and allow another PAM module ask for the password.
+        4 Start SSSD
+    :steps:
+        1. Login as user
+        2. Offline, login as user
+        3. Offline, login as user with bad password
+    :expectedresults:
+        1. User can log in
+        2. User can log in
+        3. User cannot log in
+    :customerscenario: True
+    """
+    user = "user1"
+    correct = "Secret123"
+    wrong = "Wrong123"
+    provider.user(user).add(password=correct)
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["krb5_store_password_if_offline"] = "True"
+    client.sssd.pam["offline_credentials_expiration"] = "0"
+    try:
+        client.host.conn.exec(["authselect", "apply-changes", "--backup=mybackup"])
+
+        custom_pam_stack = """
+        auth		required	pam_env.so
+        auth		sufficient	pam_unix.so try_first_pass likeauth nullok
+        auth		required	pam_sss.so forward_pass use_first_pass
+        account		sufficient	pam_unix.so
+        account		required	pam_sss.so forward_pass
+        password	sufficient	pam_unix.so sha512 shadow
+        password	required	pam_krb5.so minimum_uid=1000
+        session		required	pam_limits.so
+        session		required	pam_mkhomedir.so umask=0077
+        session		required	pam_env.so
+        session		required	pam_unix.so
+        session		optional	pam_sss.so forward_pass\n
+        """
+        client.fs.write("/etc/pam.d/system-auth", cleandoc(custom_pam_stack))
+        client.fs.write("/etc/pam.d/password-auth", cleandoc(custom_pam_stack))
+
+        client.sssd.start(service_user=sssd_service_user)
+
+        assert client.auth.parametrize(method).password(user, correct), "User failed login!"
+
+        client.firewall.outbound.reject_host(provider)
+
+        # There might be active connections that are not terminated by creating firewall rule.
+        # We need to terminate it by forcing SSSD offline.
+        client.sssd.bring_offline()
+
+        assert client.auth.parametrize(method).password(user, correct), "User failed login!"
+        assert not client.auth.parametrize(method).password(user, wrong), "User logged in with an incorrect password!"
+
+    finally:
+        client.host.conn.exec(["authselect", "backup-restore", "mybackup"])
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.topology(KnownTopology.AD)
+def test_disable_an2ln(client: Client, provider: GenericProvider):
+    """
+    :title: Check localauth plugin config file (IPA/AD version)
+    :setup:
+        1. Create user
+    :steps:
+        1. Login as user
+        2. Run klist
+        3. Read localauth plugin config file
+    :expectedresults:
+        1. User can log in
+        2. Kerberos TGT is available
+        3. localauth plugin config file is present and has expected content
+    :customerscenario: False
+    """
+    provider.user("tuser").add()
+
+    pattern = (
+        r"\[plugins\]\n localauth = {\n  disable = an2ln\n"
+        "  module = sssd:/.*/sssd/modules/sssd_krb5_localauth_plugin.so\n }"
+    )
+
+    client.fs.rm("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+    client.sssd.start()
+
+    with client.ssh("tuser", "Secret123") as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            result = krb.klist()
+            assert f"krbtgt/{provider.realm}@{provider.realm}" in result.stdout
+
+    try:
+        out = client.fs.read("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+    except Exception as e:
+        assert False, f"Reading plugin config file caused exception: {e}"
+
+    assert re.match(pattern, out), "Content of plugin config file does not match"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ensure_localauth_plugin_is_not_configured(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: Check localauth plugin config file (LDAP with Kerberos version)
+    :setup:
+        1. Create user in LDAP and KDC
+        2. Setup SSSD to use Kerberos authentication
+    :steps:
+        1. Login as user
+        2. Run klist
+        3. Read localauth plugin config file
+    :expectedresults:
+        1. User can log in
+        2. Kerberos TGT is available
+        3. localauth plugin config file is not present
+    :customerscenario: False
+    """
+    provider.user("tuser").add()
+    kdc.principal("tuser").add()
+
+    client.sssd.common.krb5_auth(kdc)
+
+    client.fs.rm("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+    client.sssd.start()
+
+    with client.ssh("tuser", "Secret123") as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            result = krb.klist()
+            assert f"krbtgt/{kdc.realm}@{kdc.realm}" in result.stdout
+
+    with pytest.raises(Exception):
+        client.fs.read("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+>>>>>>> 72b30514e (tests: fixing authselect teardown order)
