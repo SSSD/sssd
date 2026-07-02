@@ -138,6 +138,7 @@
                             <quote>dyndns_iface</quote> option.
                         </para>
                         <para>
+<<<<<<< HEAD
                             NOTE: On older systems (such as RHEL 5), for this
                             behavior to work reliably, the default Kerberos
                             realm must be set properly in /etc/krb5.conf
@@ -149,6 +150,8 @@
                             in their config file.
                         </para>
                         <para>
+=======
+>>>>>>> e98665e6a (man: Remove obsolete RHEL 5 krb5.conf note from sssd-ipa)
                             Default: false
                         </para>
                     </listitem>
@@ -248,7 +251,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>dyndns_update_ptr (bool)</term>
+                    <term>dyndns_update_ptr (boolean)</term>
                     <listitem>
                         <para>
                             Whether the PTR record should also be explicitly
@@ -273,7 +276,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>dyndns_force_tcp (bool)</term>
+                    <term>dyndns_force_tcp (boolean)</term>
                     <listitem>
                         <para>
                             Whether the nsupdate utility should default to using
@@ -641,7 +644,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ipa_hbac_selinux (integer)</term>
+                    <term>ipa_selinux_refresh (integer)</term>
                     <listitem>
                         <para>
                             The amount of time between lookups of the SELinux
