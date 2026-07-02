@@ -40,6 +40,8 @@ struct idp_id_ctx {
     const char *client_secret;
     const char *token_endpoint;
     const char *scope;
+    bool use_gssapi;
+    const char *keytab;
 };
 
 struct tevent_req *
