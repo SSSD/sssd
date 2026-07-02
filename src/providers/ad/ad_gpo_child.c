@@ -322,6 +322,55 @@ static errno_t gpo_cache_store_file(const char *smb_path,
         goto done;
     }
 
+    /* Defense-in-depth: verify the resolved path stays within the cache
+     * directory (when updating existing files). This catches any bypass
+     * of the ".." check in the parser, including encoding tricks, symlink
+     * attacks, or future regressions.
+     *
+     * The trailing-slash comparison prevents prefix-collision attacks:
+     * without it, a path resolving to "/var/lib/sss/gpo_cache_evil/"
+     * would incorrectly match the prefix "/var/lib/sss/gpo_cache".
+     */
+    {
+        char *resolved = realpath(filename, NULL);
+        if (resolved != NULL) {
+            /* Resolve GPO_CACHE_PATH too so the comparison works
+             * even when the cache path contains symlinks. */
+            char *resolved_cache = realpath(GPO_CACHE_PATH, NULL);
+            if (resolved_cache == NULL) {
+                ret = errno;
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "realpath(\"%s\") failed: [%d][%s]\n",
+                      GPO_CACHE_PATH, ret, strerror(ret));
+                free(resolved);
+                goto done;
+            }
+
+            /* Check that resolved path starts with resolved cache + "/" */
+            size_t cache_len = strlen(resolved_cache);
+            bool inside = ((strlen(resolved) >= cache_len) &&
+                           (strncmp(resolved, resolved_cache, cache_len) == 0) &&
+                           (resolved[cache_len] == '/' || resolved[cache_len] == '\0'));
+            if (!inside) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "GPO cache path escapes cache directory: [%s] "
+                      "resolves to [%s] which is outside [%s]. "
+                      "Rejecting.\n",
+                      filename, resolved, resolved_cache);
+                free(resolved_cache);
+                free(resolved);
+                ret = EINVAL;
+                goto done;
+            }
+            free(resolved_cache);
+            free(resolved);
+        }
+        /* If realpath returns NULL, the path doesn't exist yet.
+         * prepare_gpo_cache() will create it — the mkdir calls
+         * are validated by SELinux MAC policy.
+         */
+    }
+
     tmp_name = talloc_asprintf(tmp_ctx, "%sXXXXXX", filename);
     if (tmp_name == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
