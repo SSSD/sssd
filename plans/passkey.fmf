@@ -23,6 +23,7 @@ prepare:
         - expect
         - gcc
         - git
+        - libssh-devel
         - openldap-devel
         - podman
         - podman-compose
@@ -94,6 +95,12 @@ prepare:
         fi
         echo "Using container tag: $CONTAINER_TAG"
         sed -i "s/TAG=latest/TAG=$CONTAINER_TAG/g" .env
+
+        # Remove unnecessary containers to reduce resource usage
+        sed -i '/^  ipa2:/,/^  ldap:/{ /^  ldap:/!d; }' docker-compose.yml
+        sed -i '/^  kdc:/,/^  keycloak:/{ /^  keycloak:/!d; }' docker-compose.yml
+        sed -i '/^  keycloak:/,/^networks:/{ /^networks:/!d; }' docker-compose.yml
+        echo "Removed ipa2, kdc, and keycloak containers from configuration"
 
         make setup-dns-files
         make up
@@ -188,11 +195,14 @@ prepare:
             -o StrictHostKeyChecking=no \
             root@master.ipa.test "systemctl restart sssd"
 
-    - name: Remove ad from mhc.yaml
+    - name: Remove unused hosts from mhc.yaml
       how: shell
       script: |
         cd /tmp/sssd/src/tests/system
         yq -i 'del(.domains[0].hosts[] | select(.role == "ad"))' mhc.yaml
+        yq -i 'del(.domains[0].hosts[] | select(.role == "kdc"))' mhc.yaml
+        yq -i 'del(.domains[0].hosts[] | select(.role == "keycloak"))' mhc.yaml
+        echo "Removed ad, kdc, and keycloak hosts from mhc.yaml"
 
     - name: Wait for samba domain connectivity
       how: shell
