@@ -90,7 +90,7 @@ jobs:
                 ldb25 popt samba416 talloc tdb tevent adcli realmd libfido2 \
                 bind-tools c-ares ding-libs git jose libinotify libuuid libxml2 \
                 libxslt krb5 pcre2 python3 xmlcatmgr docbook-xsl \
-                py311-setuptools \
+                py312-setuptools \
                 check cmocka cwrap softhsm2
             echo "::endgroup::"
 
