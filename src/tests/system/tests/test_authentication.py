@@ -7,7 +7,6 @@ SSSD Authentication Test Cases
 from __future__ import annotations
 
 import re
-from inspect import cleandoc
 
 import pytest
 from sssd_test_framework.roles.client import Client
@@ -195,43 +194,36 @@ def test_authentication__user_login_when_the_provider_is_offline(
     client: Client, provider: GenericProvider, method: str, sssd_service_user: str
 ):
     """
-    :title: Authenticate with default settings when the provider is offline
+    :title: Offline user login
     :setup:
         1. Create user
-        2. Configure SSSD with "cache_credentials = true" and "krb5_store_password_if_offline = true" and
+        2. Configure SSSD with "cache_credentials" and "krb5_store_password_if_offline" to true,
             "offline_credentials_expiration = 0"
-        3 Start SSSD
+        3. Start SSSD and login as user to cache credentials
     :steps:
-        1. Login as user
-        2. Offline, login as user
-        3. Offline, login as user with bad password
+        1. Block outbound traffic and bring SSSD offline
+        2. Login as user but enter an invalid password first
     :expectedresults:
-        1. User can log in
-        2. User can log in
-        3. User cannot log in
-    :customerscenario: False
+        1. SSSD is offline
+        2. User cannot login with the wrong password
+    :customerscenario: True
     """
-    user = "user1"
-    correct = "Secret123"
-    wrong = "Wrong123"
-    provider.user(user).add(password=correct)
-    if method == "ssh" and "ssh" not in client.sssd.sssd["services"]:
-        client.sssd.sssd["services"] = "nss, pam, ssh"
+    provider.user("user1").add()
     client.sssd.domain["cache_credentials"] = "True"
     client.sssd.domain["krb5_store_password_if_offline"] = "True"
     client.sssd.pam["offline_credentials_expiration"] = "0"
-    client.sssd.start(service_user=sssd_service_user)
 
-    assert client.auth.parametrize(method).password(user, correct), "User failed login!"
+    client.sssd.start(service_user=sssd_service_user)
+    assert client.auth.parametrize(method).password("user1", "Secret123"), "User failed login!"
 
     client.firewall.outbound.reject_host(provider)
-
     # There might be active connections that are not terminated by creating firewall rule.
-    # We need to terminate it by forcing SSSD offline.
     client.sssd.bring_offline()
 
-    assert client.auth.parametrize(method).password(user, correct), "User failed login!"
-    assert not client.auth.parametrize(method).password(user, wrong), "User logged in with an incorrect password!"
+    assert not client.auth.parametrize(method).password(
+        "user1", "BadPassword"
+    ), "User logged in with an incorrect password!"
+    assert client.auth.parametrize(method).password("user1", "Secret123"), "User failed login!"
 
 
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
@@ -242,71 +234,52 @@ def test_authentication__user_login_when_the_provider_is_offline(
     lambda client, sssd_service_user: ((sssd_service_user == "root") or client.features["non-privileged"]),
     "SSSD was built without support for running under non-root",
 )
-def test_authentication__user_login_with_modified_PAM_stack_provider_is_offline(
+def test_authentication__user_login_when_the_provider_is_offline_and_pam_sss_uses_first_pass(
     client: Client, provider: GenericProvider, method: str, sssd_service_user: str
 ):
     """
-    :title: Authenticate with modified PAM when the provider is offline
+    :title: Offline user login the pam_sss.so module uses the 'use_first_pass' option
     :setup:
         1. Create user
-        2. Configure SSSD with "cache_credentials = true" and "krb5_store_password_if_offline = true" and
+        2. Configure SSSD with "cache_credentials" and "krb5_store_password_if_offline" to true,
             "offline_credentials_expiration = 0"
-        3. Back up /etc/pam.d/system-auth and /etc/pam.d/password-auth files
-        3. Modify PAM configuration files /etc/pam.d/system-auth, and /etc/pam.d/password-auth so that pam_sss.so
-           is using the 'use_first_pass' option and allow another PAM module ask for the password.
-        4 Start SSSD
+        3. Select sssd authselect profile and modify pam entries in system-auth and passwd-auth
+            that pam_sss.so is using the 'use_first_pass' option
+        4. Start SSSD and login as user to cache credentials
     :steps:
-        1. Login as user
-        2. Offline, login as user
-        3. Offline, login as user with bad password
+        1. Block outbound traffic and bring SSSD offline
+        2. Login as user but enter an invalid password first
     :expectedresults:
-        1. User can log in
-        2. User can log in
-        3. User cannot log in
+        1. SSSD is offline
+        2. User cannot login with the wrong password
     :customerscenario: True
     """
-    user = "user1"
-    correct = "Secret123"
-    wrong = "Wrong123"
-    provider.user(user).add(password=correct)
+    provider.user("user1").add()
     client.sssd.domain["cache_credentials"] = "True"
     client.sssd.domain["krb5_store_password_if_offline"] = "True"
     client.sssd.pam["offline_credentials_expiration"] = "0"
-    client.host.conn.exec(["authselect", "apply-changes", "--backup=mybackup"])
-    custom_pam_stack = """
-    auth		required	pam_env.so
-    auth		sufficient	pam_unix.so try_first_pass likeauth nullok
-    auth		required	pam_sss.so forward_pass use_first_pass
-    account		sufficient	pam_unix.so
-    account		required	pam_sss.so forward_pass
-    password	sufficient	pam_unix.so sha512 shadow
-    password	required	pam_krb5.so minimum_uid=1000
-    session		required	pam_limits.so
-    session		required	pam_mkhomedir.so umask=0077
-    session		required	pam_env.so
-    session		required	pam_unix.so
-    session		optional	pam_sss.so forward_pass\n
-    """
-    client.fs.write("/etc/pam.d/system-auth", cleandoc(custom_pam_stack))
-    client.fs.write("/etc/pam.d/password-auth", cleandoc(custom_pam_stack))
+
+    client.authselect.select("sssd")
+
+    pam_auth = client.host.conn.run("cat /etc/pam.d/system-auth").stdout
+    pam_auth = re.sub(
+        r"(auth\s+sufficient\s+pam_sss\.so forward_pass)",
+        r"auth        sufficient      pam_unix.so try_first_pass likeauth nullok\n\1 use_first_pass",
+        pam_auth,
+    )
+    client.fs.write("/etc/pam.d/system-auth", pam_auth)
+    client.fs.write("/etc/pam.d/password-auth", pam_auth)
 
     client.sssd.start(service_user=sssd_service_user)
+    assert client.auth.parametrize(method).password("user1", "Secret123"), "User failed login!"
 
-    try:
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
 
-        assert client.auth.parametrize(method).password(user, correct), "User failed login!"
-
-        client.firewall.outbound.reject_host(provider)
-
-        # There might be active connections that are not terminated by creating firewall rule.
-        # We need to terminate it by forcing SSSD offline.
-        client.sssd.bring_offline()
-
-        assert client.auth.parametrize(method).password(user, correct), "User failed login!"
-        assert not client.auth.parametrize(method).password(user, wrong), "User logged in with an incorrect password!"
-
-    finally:
-        client.host.conn.exec(["authselect", "backup-restore", "mybackup"])
+    assert not client.auth.parametrize(method).password(
+        "user1", "BadPassword"
+    ), "User logged in with an incorrect password!"
+    assert client.auth.parametrize(method).password("user1", "Secret123"), "User failed login!"
 
 
 @pytest.mark.importance("critical")
