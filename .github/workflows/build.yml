@@ -17,7 +17,7 @@ jobs:
       contents: read
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install dependencies
       id: dependencies
@@ -62,8 +62,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Repository checkout
+<<<<<<< HEAD
         uses: actions/checkout@v6
       - uses: cross-platform-actions/action@v1.2.0
+=======
+        uses: actions/checkout@v7
+      - uses: cross-platform-actions/action@v1.3.0
+>>>>>>> 0ac0e28de (ci: bump actions/checkout from 6 to 7)
         with:
           operating_system: 'freebsd'
           version: '15.0'
