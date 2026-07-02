@@ -146,8 +146,7 @@ struct users_get_state {
     bool use_id_mapping;
     bool non_posix;
 
-    int dp_error;
-    int sdap_ret;
+    bool sdap_enoent;
     bool noexist_delete;
     struct sysdb_attrs *extra_attrs;
 };
@@ -188,9 +187,9 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
     state->noexist_delete = noexist_delete;
     state->extra_attrs = NULL;
+    state->sdap_enoent = false;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
@@ -377,8 +376,6 @@ struct tevent_req *users_get_send(TALLOC_CTX *memctx,
             }
 
             ret = EOK;
-            state->sdap_ret = ENOENT;
-            state->dp_error = DP_ERR_OK;
             goto done;
         }
 
@@ -495,16 +492,12 @@ static void users_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct users_get_state *state = tevent_req_data(req,
-                                                     struct users_get_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -549,14 +542,13 @@ static void users_get_done(struct tevent_req *subreq)
                                                      struct users_get_state);
     char *endptr;
     uid_t uid = 0;
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
     ret = sdap_get_users_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->op, ret);
+    if (ret == EAGAIN) {
         /* retry */
         ret = users_get_retry(req);
         if (ret != EOK) {
@@ -565,6 +557,10 @@ static void users_get_done(struct tevent_req *subreq)
         }
 
         return;
+    }
+
+    if (ret == ENOENT) {
+        state->sdap_enoent = true;
     }
 
     if ((ret == ENOENT) &&
@@ -601,10 +597,8 @@ static void users_get_done(struct tevent_req *subreq)
             }
         }
     }
-    state->sdap_ret = ret;
 
     if (ret && ret != ENOENT) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -618,22 +612,17 @@ static void users_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
     /* FIXME - return sdap error so that we know the user was not found */
     tevent_req_done(req);
 }
 
-int users_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret)
+int users_get_recv(struct tevent_req *req, bool *sdap_enoent)
 {
     struct users_get_state *state = tevent_req_data(req,
                                                     struct users_get_state);
 
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -660,8 +649,7 @@ struct groups_get_state {
     bool use_id_mapping;
     bool non_posix;
 
-    int dp_error;
-    int sdap_ret;
+    bool sdap_enoent;
     bool noexist_delete;
     bool no_members;
 };
@@ -703,9 +691,9 @@ struct tevent_req *groups_get_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
     state->noexist_delete = noexist_delete;
     state->no_members = no_members;
+    state->sdap_enoent = false;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
@@ -915,16 +903,12 @@ static void groups_get_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    struct groups_get_state *state = tevent_req_data(req,
-                                                     struct groups_get_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -967,14 +951,13 @@ static void groups_get_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
     ret = sdap_get_groups_recv(subreq, NULL, NULL);
     talloc_zfree(subreq);
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
+    ret = sdap_id_op_done(state->op, ret);
 
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (ret == EAGAIN) {
         /* retry */
         ret = groups_get_retry(req);
         if (ret != EOK) {
@@ -984,10 +967,12 @@ static void groups_get_done(struct tevent_req *subreq)
 
         return;
     }
-    state->sdap_ret = ret;
+
+    if (ret == ENOENT) {
+        state->sdap_enoent = true;
+    }
 
     if (ret && ret != ENOENT) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -1027,19 +1012,19 @@ static void groups_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
 }
 
 static void groups_get_mpg_done(struct tevent_req *subreq)
 {
     errno_t ret;
+    bool sdap_enoent = false;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
 
-    ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+    ret = users_get_recv(subreq, &sdap_enoent);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -1047,7 +1032,7 @@ static void groups_get_mpg_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->sdap_ret == ENOENT && state->noexist_delete == true) {
+    if (sdap_enoent && state->noexist_delete == true) {
         ret = groups_get_handle_no_group(state, state->domain,
                                          state->filter_type,
                                          state->filter_value);
@@ -1123,17 +1108,12 @@ errno_t groups_get_handle_no_group(TALLOC_CTX *mem_ctx,
     return ret;
 }
 
-int groups_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret)
+int groups_get_recv(struct tevent_req *req, bool *sdap_enoent)
 {
     struct groups_get_state *state = tevent_req_data(req,
                                                      struct groups_get_state);
-
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -1162,8 +1142,7 @@ struct groups_by_user_state {
     const char **attrs;
     bool non_posix;
 
-    int dp_error;
-    int sdap_ret;
+    bool sdap_enoent;
     bool noexist_delete;
 };
 
@@ -1194,10 +1173,10 @@ struct tevent_req *groups_by_user_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->ctx = ctx;
-    state->dp_error = DP_ERR_FATAL;
     state->conn = conn;
     state->sdom = sdom;
     state->noexist_delete = noexist_delete;
+    state->sdap_enoent = false;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
@@ -1258,14 +1237,12 @@ static void groups_by_user_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct groups_by_user_state *state = tevent_req_data(req,
                                                      struct groups_by_user_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -1297,14 +1274,13 @@ static void groups_by_user_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct groups_by_user_state *state = tevent_req_data(req,
                                                      struct groups_by_user_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
     ret = sdap_get_initgr_recv(subreq);
     talloc_zfree(subreq);
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
+    ret = sdap_id_op_done(state->op, ret);
 
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (ret == EAGAIN) {
         /* retry */
         ret = groups_by_user_retry(req);
         if (ret != EOK) {
@@ -1314,10 +1290,10 @@ static void groups_by_user_done(struct tevent_req *subreq)
 
         return;
     }
-    state->sdap_ret = ret;
 
-    switch (state->sdap_ret) {
+    switch (ret) {
     case ENOENT:
+        state->sdap_enoent = true;
         if (state->noexist_delete == true) {
             const char *cname;
 
@@ -1345,26 +1321,19 @@ static void groups_by_user_done(struct tevent_req *subreq)
     case EOK:
         break;
     default:
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
 }
 
-int groups_by_user_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret)
+int groups_by_user_recv(struct tevent_req *req, bool *sdap_enoent)
 {
     struct groups_by_user_state *state = tevent_req_data(req,
-                                                             struct groups_by_user_state);
-
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
+                                                         struct groups_by_user_state);
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -1386,8 +1355,7 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
                                                   int filter_type,
                                                   bool noexist_delete);
 
-errno_t sdap_get_user_and_group_recv(struct tevent_req *req,
-                                     int *dp_error_out, int *sdap_ret);
+errno_t sdap_get_user_and_group_recv(struct tevent_req *req, bool *sdap_enoent);
 
 bool sdap_is_enum_request(struct dp_id_data *ar)
 {
@@ -1407,8 +1375,7 @@ bool sdap_is_enum_request(struct dp_id_data *ar)
 struct sdap_handle_acct_req_state {
     struct dp_id_data *ar;
     const char *err;
-    int dp_error;
-    int sdap_ret;
+    bool sdap_enoent;
 };
 
 static void sdap_handle_acct_req_done(struct tevent_req *subreq);
@@ -1620,6 +1587,7 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
     struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_handle_acct_req_state *state;
     errno_t ret;
+    bool sdap_enoent = false;
     const char *err = "Invalid request type";
 
     state = tevent_req_data(req, struct sdap_handle_acct_req_state);
@@ -1627,31 +1595,31 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
     switch (state->ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
         err = "User lookup failed";
-        ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+        ret = users_get_recv(subreq, &sdap_enoent);
         break;
     case BE_REQ_GROUP: /* group */
         err = "Group lookup failed";
-        ret = groups_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+        ret = groups_get_recv(subreq, &sdap_enoent);
         break;
     case BE_REQ_INITGROUPS: /* init groups for user */
         err = "Init group lookup failed";
-        ret = groups_by_user_recv(subreq, &state->dp_error, &state->sdap_ret);
+        ret = groups_by_user_recv(subreq, &sdap_enoent);
         break;
     case BE_REQ_SUBID_RANGES:
         err = "Subid ranges lookup failed";
 #ifdef BUILD_SUBID
-        ret = subid_ranges_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+        ret = subid_ranges_get_recv(subreq, &sdap_enoent);
 #else
         ret = EINVAL;
 #endif
         break;
     case BE_REQ_NETGROUP:
         err = "Netgroup lookup failed";
-        ret = ldap_netgroup_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+        ret = ldap_netgroup_get_recv(subreq, &sdap_enoent);
         break;
     case BE_REQ_SERVICES:
         err = "Service lookup failed";
-        ret = services_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+        ret = services_get_recv(subreq, &sdap_enoent);
         break;
     case BE_REQ_BY_SECID:
         /* Fall through */
@@ -1659,18 +1627,19 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
         /* Fall through */
     case BE_REQ_USER_AND_GROUP:
         err = "Lookup by SID failed";
-        ret = sdap_get_user_and_group_recv(subreq, &state->dp_error,
-                                           &state->sdap_ret);
+        ret = sdap_get_user_and_group_recv(subreq, &sdap_enoent);
         break;
     case BE_REQ_BY_CERT:
         err = "User lookup by certificate failed";
-        ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+        ret = users_get_recv(subreq, &sdap_enoent);
         break;
     default: /* fail */
         ret = EINVAL;
         break;
     }
     talloc_zfree(subreq);
+
+    state->sdap_enoent = sdap_enoent;
 
     if (ret != EOK) {
         state->err = err;
@@ -1684,8 +1653,8 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
 
 errno_t
 sdap_handle_acct_req_recv(struct tevent_req *req,
-                          int *_dp_error, const char **_err,
-                          int *sdap_ret)
+                          const char **_err,
+                          bool *sdap_enoent)
 {
     struct sdap_handle_acct_req_state *state;
 
@@ -1696,16 +1665,12 @@ sdap_handle_acct_req_recv(struct tevent_req *req,
           state->ar->filter_type, state->ar->filter_value,
           PROBE_SAFE_STR(state->ar->extra_value));
 
-    if (_dp_error) {
-        *_dp_error = state->dp_error;
-    }
-
     if (_err) {
         *_err = state->err;
     }
 
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -1727,9 +1692,8 @@ struct get_user_and_group_state {
     char *filter;
     const char **attrs;
 
-    int dp_error;
-    int sdap_ret;
     bool noexist_delete;
+    bool sdap_enoent;
 };
 
 static void get_user_and_group_users_done(struct tevent_req *subreq);
@@ -1759,8 +1723,8 @@ static struct tevent_req *get_user_and_group_send(TALLOC_CTX *memctx,
     state->id_ctx = id_ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
     state->noexist_delete = noexist_delete;
+    state->sdap_enoent = false;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
@@ -1801,21 +1765,19 @@ static void get_user_and_group_groups_done(struct tevent_req *subreq)
     struct get_user_and_group_state *state = tevent_req_data(req,
                                                struct get_user_and_group_state);
     int ret;
+    bool sdap_enoent = false;
     struct sdap_id_conn_ctx *user_conn;
 
-    ret = groups_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+    ret = groups_get_recv(subreq, &sdap_enoent);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {           /* Fatal error while looking up group */
-        tevent_req_error(req, ret);
-        return;
-    }
+    state->sdap_enoent = sdap_enoent;
 
-    if (state->sdap_ret == EOK) {   /* Matching group found */
+    if (ret == EOK) {   /* Matching group found */
         tevent_req_done(req);
         return;
-    } else if (state->sdap_ret != ENOENT) {
-        tevent_req_error(req, EIO);
+    } else if (ret != EOK && !sdap_enoent) {  /* Fatal error while looking up group */
+        tevent_req_error(req, ret);
         return;
     }
 
@@ -1848,15 +1810,14 @@ static void get_user_and_group_users_done(struct tevent_req *subreq)
     struct get_user_and_group_state *state = tevent_req_data(req,
                                                struct get_user_and_group_state);
     int ret;
+    bool sdap_enoent;
 
-    ret = users_get_recv(subreq, &state->dp_error, &state->sdap_ret);
+    ret = users_get_recv(subreq, &sdap_enoent);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-    if (state->sdap_ret == ENOENT) {
+    state->sdap_enoent = sdap_enoent;
+
+    if (sdap_enoent) {
         if (state->noexist_delete == true) {
             /* The search ran to completion, but nothing was found.
              * Delete the existing entry, if any. */
@@ -1868,28 +1829,22 @@ static void get_user_and_group_users_done(struct tevent_req *subreq)
                 return;
             }
         }
-    } else if (state->sdap_ret != EOK) {
-        tevent_req_error(req, EIO);
+    } else if (ret != EOK) {
+        tevent_req_error(req, ERR_SERVER_FAILURE);
         return;
     }
 
-    /* Both ret and sdap->ret are EOK. Matching user found */
+    /* Matching user found */
     tevent_req_done(req);
     return;
 }
 
-errno_t sdap_get_user_and_group_recv(struct tevent_req *req,
-                                     int *dp_error_out, int *sdap_ret)
+errno_t sdap_get_user_and_group_recv(struct tevent_req *req, bool *sdap_enoent)
 {
     struct get_user_and_group_state *state = tevent_req_data(req,
-                                               struct get_user_and_group_state);
-
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
+                                                             struct get_user_and_group_state);
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
@@ -1939,7 +1894,7 @@ sdap_account_info_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
+    dp_reply_std_set(&state->reply, ret, NULL);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
@@ -1953,17 +1908,16 @@ static void sdap_account_info_handler_done(struct tevent_req *subreq)
     struct sdap_account_info_handler_state *state;
     struct tevent_req *req;
     const char *error_msg;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_account_info_handler_state);
 
-    ret = sdap_handle_acct_req_recv(subreq, &dp_error, &error_msg, NULL);
+    ret = sdap_handle_acct_req_recv(subreq, &error_msg, NULL);
     talloc_zfree(subreq);
 
     /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, error_msg);
+    dp_reply_std_set(&state->reply, ret, error_msg);
     tevent_req_done(req);
 }
 
