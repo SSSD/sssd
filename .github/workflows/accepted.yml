@@ -5,11 +5,6 @@ on:
       - synchronize
       - labeled
       - unlabeled
-env:
-    PR_ID: ${{ github.event.pull_request.number }}
-    GH_TOKEN: ${{ secrets.BOT_TOKEN }}
-    AUTHORS: ${{ vars.SSSD_AUTHORS }}
-    ACTOR: ${{ github.actor }}
 jobs:
 
   accepted-label-set:
@@ -34,10 +29,11 @@ jobs:
           # Fetch the entire history of the repository
           # This is necessary for a successful git push
           fetch-depth: 0
-          # The pull request head branch is checked out
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           token: ${{ secrets.BOT_TOKEN }}
+          persist-credentials: false
+          allow-unsafe-pr-checkout: true
 
       - name: Reviewed-by trailer was already added and pull request is accepted
         if: github.event.action == 'synchronize'
@@ -53,6 +49,10 @@ jobs:
 
       - name: Add 'Reviewed-by' trailer
         if: github.event.action == 'labeled'
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          PR_ID: ${{ github.event.pull_request.number }}
+          AUTHORS: ${{ vars.SSSD_AUTHORS }}
         run: |
           set -e -o pipefail
 
@@ -85,12 +85,20 @@ jobs:
             trailers+="--trailer 'Reviewed-by: $value' "
           done
 
+          # Clear secrets before running git operations on fork code
+          # to prevent exfiltration via .gitattributes filters or hooks
+          unset GH_TOKEN GITHUB_TOKEN ACTIONS_RUNTIME_TOKEN ACTIONS_ID_TOKEN_REQUEST_TOKEN
+
           if [ ! -z "$trailers" ]; then
               git rebase "$PR_COMMITS_FIRST~1" -x "git commit --allow-empty --amend --no-edit $trailers"
           fi
 
       - name: Add comment to print current CI status
         if: github.event.action == 'labeled'
+        env:
+          GH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          PR_ID: ${{ github.event.pull_request.number }}
+          ACTOR: ${{ github.actor }}
         run: |
           set -e -o pipefail
 
@@ -154,5 +162,11 @@ jobs:
 
       - name: Push changes
         if: github.event.action == 'labeled'
+        env:
+          PUSH_TOKEN: ${{ secrets.BOT_TOKEN }}
+          FORK_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
-          git push origin HEAD --force
+          set -e -o pipefail
+          git push "https://x-access-token:${PUSH_TOKEN}@github.com/${FORK_REPO}.git" \
+            "HEAD:refs/heads/${HEAD_REF}" --force
