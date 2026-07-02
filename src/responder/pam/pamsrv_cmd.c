@@ -40,6 +40,7 @@
 #include "responder/pam/pamsrv_json.h"
 #include "responder/pam/pamsrv_passkey.h"
 #include "responder/pam/pam_helpers.h"
+#include "responder/pam/pamsrv_client_envs.h"
 #include "responder/common/cache_req/cache_req.h"
 
 enum pam_verbosity {
@@ -279,7 +280,53 @@ static int pd_set_primary_name(const struct ldb_message *msg,struct pam_data *pd
     return EOK;
 }
 
-static int pam_parse_in_data_v2(struct pam_data *pd,
+static int extract_client_envs(TALLOC_CTX *mem_ctx, struct pam_ctx *pctx,
+                               const char ***_envs, size_t size, uint8_t *body,
+                               size_t blen, size_t *c)
+{
+    const char **envs = NULL;
+    const char **filtered_envs = NULL;
+    const char **result_envs = NULL;
+    uint8_t *data;
+    size_t count;
+    size_t filtered_count;
+    size_t result_count;
+    int ret;
+
+    if (*c + size > blen || SIZE_T_OVERFLOW(*c, size)) return EINVAL;
+
+    data = body + (*c);
+    if (size == 0 || data[size - 1] != '\0') return EINVAL;
+
+    ret = parse_client_env_list(mem_ctx, data, size,
+                                &envs, &count);
+    if (ret != EOK)
+        goto done;
+
+    ret = filter_client_envs(mem_ctx, envs, count,
+                             &filtered_envs, &filtered_count);
+    if (ret != EOK)
+        goto done;
+
+    ret = append_derived_client_envs(mem_ctx, pctx, filtered_envs, filtered_count,
+                                     &result_envs, &result_count);
+    if (ret != EOK)
+        goto done;
+
+    *_envs = result_envs;
+    *c += size;
+
+    ret = EOK;
+
+done:
+    talloc_free(envs);
+    talloc_free(filtered_envs);
+    if (ret != EOK)
+        talloc_free(result_envs);
+    return ret;
+}
+
+static int pam_parse_in_data_v2(struct pam_data *pd, struct pam_ctx *pctx,
                                 uint8_t *body, size_t blen)
 {
     size_t c;
@@ -408,6 +455,11 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
                                          blen, &c);
                     if (ret != EOK) return ret;
                     break;
+                case SSS_PAM_ITEM_CLIENT_ENVS:
+                    ret = extract_client_envs(pd, pctx, &pd->client_envs,
+                                              size, body, blen, &c);
+                    if (ret != EOK) return ret;
+                    break;
                 default:
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Ignoring unknown data type [%d].\n", type);
@@ -421,12 +473,12 @@ static int pam_parse_in_data_v2(struct pam_data *pd,
 
 }
 
-static int pam_parse_in_data_v3(struct pam_data *pd,
+static int pam_parse_in_data_v3(struct pam_data *pd, struct pam_ctx *pctx,
                                 uint8_t *body, size_t blen)
 {
     int ret;
 
-    ret = pam_parse_in_data_v2(pd, body, blen);
+    ret = pam_parse_in_data_v2(pd, pctx, body, blen);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "pam_parse_in_data_v2 failed.\n");
         return ret;
@@ -1720,6 +1772,7 @@ int pam_check_user_search(struct pam_auth_req *preq);
 static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *pd)
 {
     struct cli_protocol *prctx;
+    struct pam_ctx *pctx;
     uint8_t *body;
     size_t blen;
     errno_t ret;
@@ -1727,6 +1780,7 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
     const char *key_id;
 
     prctx = talloc_get_type(cctx->protocol_ctx, struct cli_protocol);
+    pctx = talloc_get_type(cctx->rctx->pvt_ctx, struct pam_ctx);
 
     sss_packet_get_body(prctx->creq->in, &body, &blen);
     if (blen >= sizeof(uint32_t)) {
@@ -1745,10 +1799,10 @@ static errno_t pam_forwarder_parse_data(struct cli_ctx *cctx, struct pam_data *p
             ret = pam_parse_in_data(pd, body, blen);
             break;
         case 2:
-            ret = pam_parse_in_data_v2(pd, body, blen);
+            ret = pam_parse_in_data_v2(pd, pctx, body, blen);
             break;
         case 3:
-            ret = pam_parse_in_data_v3(pd, body, blen);
+            ret = pam_parse_in_data_v3(pd, pctx, body, blen);
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE, "Illegal protocol version [%d].\n",

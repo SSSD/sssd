@@ -152,6 +152,14 @@ errno_t copy_pam_data(TALLOC_CTX *mem_ctx, struct pam_data *src,
         }
     }
 
+    if (src->client_envs != NULL) {
+        pd->client_envs = dup_string_list(pd, src->client_envs);
+        if (pd->client_envs == NULL) {
+            ret = ENOMEM;
+            goto failed;
+        }
+    }
+
     *dst = pd;
 
     return EOK;

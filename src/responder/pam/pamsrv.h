@@ -78,6 +78,7 @@ struct pam_ctx {
     bool passkey_auth;
     struct pam_passkey_table_data *pk_table_data;
     char **json_services;
+    char *grd_pcsc_lib;
 };
 
 struct pam_auth_req {

@@ -457,6 +457,16 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* Get the GRD PCSC library path */
+    ret = confdb_get_string(pctx->rctx->cdb, pctx, CONFDB_PAM_CONF_ENTRY,
+                            CONFDB_PAM_GRD_PCSC_LIB, "-",
+                            &pctx->grd_pcsc_lib);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Failed to get GRD PCSC library path.\n");
+        goto done;
+    }
+
     /* The responder is initialized. Now tell it to the monitor. */
     ret = sss_monitor_register_service(rctx, rctx->sbus_conn,
                                        SSS_PAM_SBUS_SERVICE_NAME,

@@ -165,6 +165,7 @@ int main(int argc, const char *argv[])
     long timeout = -1;
     bool wait_for_card = false;
     char *uri = NULL;
+    char *set_env = NULL;
 
     struct poptOption long_options[] = {
         SSSD_BASIC_CHILD_OPTS
@@ -194,6 +195,8 @@ int main(int argc, const char *argv[])
          _("PKCS#11 URI to restrict selection"), NULL},
         {"timeout", 0, POPT_ARG_LONG, &timeout,
          0, _("OCSP communication timeout"), NULL},
+        {"set_env", 0, POPT_ARG_STRING, &set_env, 'e',
+         _("Set environment variable (KEY=VALUE)"), NULL},
         POPT_TABLEEND
     };
 
@@ -263,6 +266,16 @@ int main(int argc, const char *argv[])
             break;
         case 'w':
             wait_for_card = true;
+            break;
+        case 'e':
+            if (set_env != NULL && strchr(set_env, '=') != NULL) {
+                char *env = set_env;
+                char *val = strchr(set_env, '=');
+                *val = '\0';
+                val++;
+                setenv(env, val, 1);
+                set_env = NULL;
+            }
             break;
         default:
             fprintf(stderr, "\nInvalid option %s: %s\n\n",

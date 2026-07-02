@@ -4294,6 +4294,7 @@ int main(int argc, const char *argv[])
     struct cli_opts cli_opts = { 0 };
     int sss_creds_password = 0;
     long dummy_long = 0;
+    char *set_env = NULL;
 
     /* Don't touch PR_SET_DUMPABLE as 'krb5_child' handles host keytab.
      * Rely on system settings instead: this flag "is reset to the
@@ -4323,6 +4324,8 @@ int main(int argc, const char *argv[])
          0, _("Use custom version of krb5_get_init_creds_password"), NULL},
         {CHILD_OPT_CHECK_PAC, 0, POPT_ARG_LONG, &dummy_long, 0,
          _("Check PAC flags"), NULL},
+        {CHILD_OPT_SET_ENV, 0, POPT_ARG_STRING, &set_env, 'e',
+         _("Set environment variable (KEY=VALUE)"), NULL},
         POPT_TABLEEND
     };
 
@@ -4340,6 +4343,16 @@ int main(int argc, const char *argv[])
             break;
         case 'C':
             cli_opts.canonicalize = true;
+            break;
+        case 'e':
+            if (set_env != NULL && strchr(set_env, '=') != NULL) {
+                char *env = set_env;
+                char *val = strchr(set_env, '=');
+                *val = '\0';
+                val++;
+                setenv(env, val, 1);
+                set_env = NULL;
+            }
             break;
         default:
         fprintf(stderr, "\nInvalid option %s: %s\n\n",
