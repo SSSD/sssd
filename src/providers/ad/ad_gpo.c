@@ -3830,6 +3830,43 @@ ad_gpo_populate_candidate_gpos(TALLOC_CTX *mem_ctx,
 }
 
 /*
+ * Check whether a path contains ".." as a path component.
+ * Returns true if traversal is detected, false if the path is safe.
+ *
+ * Checks for:
+ *   - "/.." anywhere in the path (component starting with ..)
+ *   - "../" at the start of the path
+ *   - exact match ".." (path is just "..")
+ *   - "/.." at the end of the path
+ *
+ * Does NOT match ".." as a substring of a longer component
+ * (e.g., "my..file" is allowed).
+ */
+static bool gpo_path_has_traversal(const char *path)
+{
+    const char *p;
+
+    if (path == NULL) {
+        return false;
+    }
+
+    /* Exact match */
+    if (strcmp(path, "..") == 0) return true;
+
+    /* Starts with ../ */
+    if (strncmp(path, "../", 3) == 0) return true;
+
+    /* Contains /../ or ends with /.. */
+    p = path;
+    while ((p = strstr(p, "/..")) != NULL) {
+        if (p[3] == '/' || p[3] == '\0') return true;
+        p += 3;
+    }
+
+    return false;
+}
+
+/*
  * This function parses the input_path into its components, replaces each
  * back slash ('\') with a forward slash ('/'), and populates the output params.
  *
@@ -3901,6 +3938,16 @@ ad_gpo_extract_smb_components(TALLOC_CTX *mem_ctx,
     }
 
     if (smb_path == NULL)  {
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* Reject path traversal. See function comment for what is matched. */
+    if (gpo_path_has_traversal(smb_path)) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "gPCFileSysPath contains path traversal component '..': "
+              "[%s]. Rejecting to prevent cache directory escape.\n",
+              smb_path);
         ret = EINVAL;
         goto done;
     }
