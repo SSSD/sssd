@@ -272,27 +272,27 @@ def test_authentication__user_login_with_modified_PAM_stack_provider_is_offline(
     client.sssd.domain["cache_credentials"] = "True"
     client.sssd.domain["krb5_store_password_if_offline"] = "True"
     client.sssd.pam["offline_credentials_expiration"] = "0"
-    client.host.conn.exec(["authselect", "apply-changes", "--backup=mybackup"])
-    custom_pam_stack = """
-    auth		required	pam_env.so
-    auth		sufficient	pam_unix.so try_first_pass likeauth nullok
-    auth		required	pam_sss.so forward_pass use_first_pass
-    account		sufficient	pam_unix.so
-    account		required	pam_sss.so forward_pass
-    password	sufficient	pam_unix.so sha512 shadow
-    password	required	pam_krb5.so minimum_uid=1000
-    session		required	pam_limits.so
-    session		required	pam_mkhomedir.so umask=0077
-    session		required	pam_env.so
-    session		required	pam_unix.so
-    session		optional	pam_sss.so forward_pass\n
-    """
-    client.fs.write("/etc/pam.d/system-auth", cleandoc(custom_pam_stack))
-    client.fs.write("/etc/pam.d/password-auth", cleandoc(custom_pam_stack))
-
-    client.sssd.start(service_user=sssd_service_user)
-
     try:
+        client.host.conn.exec(["authselect", "apply-changes", "--backup=mybackup"])
+
+        custom_pam_stack = """
+        auth		required	pam_env.so
+        auth		sufficient	pam_unix.so try_first_pass likeauth nullok
+        auth		required	pam_sss.so forward_pass use_first_pass
+        account		sufficient	pam_unix.so
+        account		required	pam_sss.so forward_pass
+        password	sufficient	pam_unix.so sha512 shadow
+        password	required	pam_krb5.so minimum_uid=1000
+        session		required	pam_limits.so
+        session		required	pam_mkhomedir.so umask=0077
+        session		required	pam_env.so
+        session		required	pam_unix.so
+        session		optional	pam_sss.so forward_pass\n
+        """
+        client.fs.write("/etc/pam.d/system-auth", cleandoc(custom_pam_stack))
+        client.fs.write("/etc/pam.d/password-auth", cleandoc(custom_pam_stack))
+
+        client.sssd.start(service_user=sssd_service_user)
 
         assert client.auth.parametrize(method).password(user, correct), "User failed login!"
 
