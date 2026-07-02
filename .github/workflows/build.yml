@@ -17,7 +17,7 @@ jobs:
       contents: read
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Install dependencies
       id: dependencies
@@ -56,3 +56,73 @@ jobs:
           x86_64/config.h
           x86_64/test-suite.log
         if-no-files-found: ignore
+<<<<<<< HEAD
+=======
+
+  freebsd:
+    if: github.event_name == 'push' || !contains(github.event.pull_request.labels.*.name, 'Accepted')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository checkout
+        uses: actions/checkout@v7
+      - uses: cross-platform-actions/action@v1.3.0
+        with:
+          operating_system: 'freebsd'
+          version: '15.0'
+          architecture: 'x86_64'
+          run: |
+            # Use latest package set
+            sudo mkdir -p /usr/local/etc/pkg/repos/
+            sudo cp /etc/pkg/FreeBSD.conf /usr/local/etc/pkg/repos/FreeBSD.conf
+            sudo sed -i.bak -e 's|/quarterly|/latest|' /usr/local/etc/pkg/repos/FreeBSD.conf
+
+            # Trick SSSD into believing that nsupdate supports 'realm' clause
+            # until FreeBSD switches to MIT Kerberos by default
+            # Can be removed with FreeBSD 15
+            sed -i.bak -e 's|echo realm|echo class IN|g' src/external/nsupdate.m4
+
+            # Patch the regexp to make the test pass
+            # See https://github.com/SSSD/sssd/pull/8227
+            sed -i.bak -e 's,\\(domain\\|application\\),[domainapplication]\\{1\,\\},g' \
+                src/config/cfg_rules.ini
+
+            echo "::group::Dependencies installation"
+            sudo -E pkg install -y \
+                autoconf automake gettext-tools gmake libtool pkgconf \
+                ldb25 popt samba416 talloc tdb tevent adcli realmd libfido2 \
+                bind-tools c-ares ding-libs git jose libinotify libuuid libxml2 \
+                libxslt krb5 pcre2 python3 xmlcatmgr docbook-xsl \
+                py311-setuptools \
+                check cmocka cwrap softhsm2
+            echo "::endgroup::"
+
+            echo "::group::Build configuration"
+            autoreconf -f -i
+
+            env CFLAGS=-isystem/usr/local/include \
+                CPPFLAGS='-isystem/usr/local/include' \
+                LDFLAGS=-L/usr/local/lib \
+                KRB5_CONFIG=/usr/local/bin/krb5-config \
+                SOFTHSM2_PATH=/usr/local/lib/softhsm/libsofthsm2.so \
+                MAKE=gmake \
+                LIBS=-lintl \
+                ./configure --disable-cifs-idmap-plugin \
+                    --disable-linux-caps \
+                    --without-autofs \
+                    --without-selinux \
+                    --without-nfsv4-idmapd-plugin \
+                    --with-smb-idmap-interface-version=6 \
+                    --with-adcli-path=${LOCALBASE}/sbin/adcli \
+                    --with-realm-path=${LOCALBASE}/sbin/realm \
+                    --with-xml-catalog-path=/usr/local/share/xml/catalog \
+                    --with-passkey
+            echo "::endgroup::"
+
+            echo "::group::Building"
+            gmake -j $(sysctl -n hw.ncpu)
+            echo "::endgroup::"
+
+            echo "::group::Testing"
+            gmake check
+            echo "::endgroup::"
+>>>>>>> 0ac0e28de (ci: bump actions/checkout from 6 to 7)
