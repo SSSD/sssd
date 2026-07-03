@@ -245,7 +245,7 @@ def test_ldap__search_base_is_discovered_and_defaults_to_root_dse(client: Client
     client.sssd.dom("test")["ldap_search_base"] = ldap.ldap.naming_context
 
     client.sssd.stop()
-    client.sssd.clear()
+    client.sssd.clear(logs=True)
     client.sssd.start()
 
     assert client.auth.ssh.password("puser1", "Secret123"), "User 'puser1' login failed!"
