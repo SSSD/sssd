@@ -1316,6 +1316,25 @@ errno_t sdap_set_config_options_with_rootdse(struct sysdb_attrs *rootdse,
 
     /* Sudo */
     if (!sdom->sudo_search_bases) {
+        /* At some point make this option mandatory,
+         * i.e. disable sudo rules lookup if 'sudo_search_bases' not set.
+         */
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "`ldap_sudo_search_base` is not set. SSSD will search the entire "
+              "directory tree (%s) for sudoRole objects. This may allow any "
+              "LDAP principal with write access to any subtree to inject "
+              "sudo rules granting arbitrary privileges. Set "
+              "`ldap_sudo_search_base` to restrict the search scope "
+              "(e.g., 'ou=sudoers,dc=example,dc=com').\n",
+              sdom->naming_context);
+       sss_log(SSS_LOG_ALERT,
+               "`ldap_sudo_search_base` is not set. SSSD will search the entire "
+               "directory tree (%s) for sudoRole objects. This may allow any "
+               "LDAP principal with write access to any subtree to inject "
+               "sudo rules granting arbitrary privileges. Set "
+               "`ldap_sudo_search_base` to restrict the search scope "
+               "(e.g., 'ou=sudoers,dc=example,dc=com').",
+               sdom->naming_context);
        ret = sdap_set_search_base(opts, sdom,
                                    SDAP_SUDO_SEARCH_BASE,
                                    sdom->naming_context);
