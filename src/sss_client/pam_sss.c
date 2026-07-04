@@ -43,11 +43,13 @@
 #ifndef GDM_PAM_EXTENSION_CHOICE_LIST_RESPONSE_FREE
 #define GDM_PAM_EXTENSION_CHOICE_LIST_RESPONSE_FREE(response) \
 { \
-        if ((response)->key != NULL) { \
-                sss_erase_mem_securely ((response)->key, strlen ((response)->key)); \
-                free ((response)->key); \
+        if (response != NULL) { \
+                if ((response)->key != NULL) { \
+                        sss_erase_mem_securely ((response)->key, strlen ((response)->key)); \
+                        free ((response)->key); \
+                } \
+                free (response); \
         } \
-        free (response); \
 }
 #endif
 #endif /* HAVE_GDM_PAM_EXTENSIONS */
@@ -58,11 +60,13 @@
 #ifndef GDM_PAM_EXTENSION_CUSTOM_JSON_RESPONSE_FREE
 #define GDM_PAM_EXTENSION_CUSTOM_JSON_RESPONSE_FREE(response) \
 { \
-        if ((response)->json != NULL) { \
-                sss_erase_mem_securely ((response)->json, strlen ((response)->json)); \
-                free ((response)->json); \
+        if (response != NULL) { \
+                if ((response)->json != NULL) { \
+                        sss_erase_mem_securely ((response)->json, strlen ((response)->json)); \
+                        free ((response)->json); \
+                } \
+                free (response); \
         } \
-        free (response); \
 }
 #endif
 #endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
