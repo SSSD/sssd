@@ -981,6 +981,9 @@ fallback_homedir = /home/%u
                         <para>
                             Replace any instance of these shells with the shell_fallback
                         </para>
+                        <para>
+                            Default: Not set
+                        </para>
                     </listitem>
                 </varlistentry>
                 <varlistentry>
