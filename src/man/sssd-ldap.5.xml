@@ -838,7 +838,7 @@
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_ignore_unreadable_references (bool)</term>
+                    <term>ldap_ignore_unreadable_references (boolean)</term>
                     <listitem>
                         <para>
                             Ignore unreadable LDAP entries referenced in
@@ -1345,7 +1345,7 @@ host/*
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ldap_chpass_update_last_change (bool)</term>
+                    <term>ldap_chpass_update_last_change (boolean)</term>
                     <listitem>
                         <para>
                             Specifies whether to update the
