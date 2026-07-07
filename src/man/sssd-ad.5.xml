@@ -1143,7 +1143,7 @@ ad_gpo_map_deny = +my_pam_service
                 </varlistentry>
 
                 <varlistentry>
-                    <term>ad_use_ldaps (bool)</term>
+                    <term>ad_use_ldaps (boolean)</term>
                     <listitem>
                         <para>
                             By default SSSD uses the plain LDAP port 389 and the
@@ -1270,7 +1270,7 @@ ad_gpo_map_deny = +my_pam_service
                 </varlistentry>
 
                 <varlistentry>
-                    <term>dyndns_update_ptr (bool)</term>
+                    <term>dyndns_update_ptr (boolean)</term>
                     <listitem>
                         <para>
                             Whether the PTR record should also be explicitly
@@ -1289,7 +1289,7 @@ ad_gpo_map_deny = +my_pam_service
                 </varlistentry>
 
                 <varlistentry>
-                    <term>dyndns_force_tcp (bool)</term>
+                    <term>dyndns_force_tcp (boolean)</term>
                     <listitem>
                         <para>
                             Whether the nsupdate utility should default to using
