@@ -286,7 +286,7 @@ systemctl restart sssd-kcm.service
                 </listitem>
             </varlistentry>
             <varlistentry condition="enable_kcm_renewal">
-                <term>tgt_renewal (bool)</term>
+                <term>tgt_renewal (boolean)</term>
                 <listitem>
                     <para>
                         Enables TGT renewals functionality.
