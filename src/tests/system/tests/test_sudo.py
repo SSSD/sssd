@@ -549,3 +549,41 @@ def test_sudo__local_users_negative_cache(client: Client, provider: LDAP):
 
     result = client.net.tshark(["-r", "/tmp/sssd.pcap", "-V", "-2", "-R", "ldap.filter"])
     assert "uid=user-1" not in result.stdout, "Packets sent when resolving user!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(jira=["RHEL-192062"], gh=8897)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sudo__ldap_sudo_search_base_not_set_emits_warning(client: Client, ldap: LDAP):
+    """
+    :title: Security warning is emitted when ldap_sudo_search_base is not configured
+    :description: When ldap_sudo_search_base is not set, SSSD falls back to searching the entire
+        directory tree for sudoRole objects. Any LDAP principal with write access to any subtree
+        can then inject sudo rules granting arbitrary privileges (CVE-2026-14474). SSSD must warn
+        the administrator both in its domain debug log and in syslog.
+    :setup:
+        1. Enable SSSD sudo responder without setting ldap_sudo_search_base
+        2. Start SSSD
+    :steps:
+        1. Read the SSSD domain debug log
+        2. Check the system journal for an sssd alert entry
+    :expectedresults:
+        1. Domain log contains the security warning about the missing ldap_sudo_search_base
+        2. Journal contains an ALERT-level message about the missing ldap_sudo_search_base
+    :customerscenario: True
+    """
+    client.sssd.common.sudo()
+    client.sssd.start()
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert (
+        "`ldap_sudo_search_base` is not set" in log
+    ), "Domain log must contain security warning when ldap_sudo_search_base is not set!"
+    assert (
+        "SSSD will search the entire directory tree" in log
+    ), "Domain log must contain directory tree warning when ldap_sudo_search_base is not set!"
+
+    assert client.journald.is_match(
+        r"`ldap_sudo_search_base` is not set.*SSSD will search the entire directory tree",
+        unit="sssd",
+    ), "Journal must contain alert when ldap_sudo_search_base is not set!"
