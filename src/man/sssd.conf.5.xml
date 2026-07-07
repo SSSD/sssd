@@ -130,7 +130,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>debug_timestamps (bool)</term>
+                    <term>debug_timestamps (boolean)</term>
                     <listitem>
                         <para>
                             Add a timestamp to the debug messages.
@@ -143,7 +143,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>debug_microseconds (bool)</term>
+                    <term>debug_microseconds (boolean)</term>
                     <listitem>
                         <para>
                             Add microseconds to the timestamp in debug messages.
@@ -156,7 +156,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>debug_backtrace_enabled (bool)</term>
+                    <term>debug_backtrace_enabled (boolean)</term>
                     <listitem>
                         <para>
                             Enable debug backtrace.
@@ -881,7 +881,7 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>filter_users_in_groups (bool)</term>
+                    <term>filter_users_in_groups (boolean)</term>
                     <listitem>
                         <para>
                             If you want filtered user still be group members
@@ -1496,7 +1496,7 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
                 <varlistentry condition="build_passkey">
-                    <term>pam_passkey_auth (bool)</term>
+                    <term>pam_passkey_auth (boolean)</term>
                     <listitem>
                         <para>
                             Enable passkey device based authentication.
@@ -1507,7 +1507,7 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
                 <varlistentry condition="build_passkey">
-                    <term>passkey_debug_libfido2 (bool)</term>
+                    <term>passkey_debug_libfido2 (boolean)</term>
                     <listitem>
                         <para>
                             Enable libfido2 library debug messages.
@@ -1518,7 +1518,7 @@ pam_account_locked_message = Account locked, please contact help desk.
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>pam_cert_auth (bool)</term>
+                    <term>pam_cert_auth (boolean)</term>
                     <listitem>
                         <para>
                             Enable certificate based Smartcard authentication.
@@ -1978,7 +1978,7 @@ pam_json_services = gdm-switchable-auth
             </para>
             <variablelist>
                 <varlistentry>
-                    <term>sudo_timed (bool)</term>
+                    <term>sudo_timed (boolean)</term>
                     <listitem>
                         <para>
                             Whether or not to evaluate the sudoNotBefore
@@ -2046,7 +2046,7 @@ pam_json_services = gdm-switchable-auth
             </para>
             <variablelist>
                 <varlistentry>
-                    <term>ssh_use_certificate_keys (bool)</term>
+                    <term>ssh_use_certificate_keys (boolean)</term>
                     <listitem>
                         <para>
                             If set to true the
@@ -2531,7 +2531,7 @@ pam_json_services = gdm-switchable-auth
                 </varlistentry>
 
                 <varlistentry>
-                    <term>enumerate (bool)</term>
+                    <term>enumerate (boolean)</term>
                     <listitem>
                         <para>
                             Determines if a domain can be enumerated,
@@ -2883,7 +2883,7 @@ pam_json_services = gdm-switchable-auth
                 </varlistentry>
 
                 <varlistentry>
-                    <term>cache_credentials (bool)</term>
+                    <term>cache_credentials (boolean)</term>
                     <listitem>
                         <para>
                             Determines if user credentials are also cached
@@ -3017,7 +3017,7 @@ pam_json_services = gdm-switchable-auth
                 </varlistentry>
 
                 <varlistentry>
-                    <term>use_fully_qualified_names (bool)</term>
+                    <term>use_fully_qualified_names (boolean)</term>
                     <listitem>
                         <para>
                             Use the full name and domain (as formatted by
@@ -3047,7 +3047,7 @@ pam_json_services = gdm-switchable-auth
                     </listitem>
                 </varlistentry>
                 <varlistentry>
-                    <term>ignore_group_members (bool)</term>
+                    <term>ignore_group_members (boolean)</term>
                     <listitem>
                         <para>
                             Do not return group members for group lookups.
@@ -3748,7 +3748,7 @@ pam_json_services = gdm-switchable-auth
                 </varlistentry>
 
                 <varlistentry>
-                    <term>dns_resolver_use_search_list (bool)</term>
+                    <term>dns_resolver_use_search_list (boolean)</term>
                     <listitem>
                         <para>
                             Normally, the DNS resolver searches the domain
