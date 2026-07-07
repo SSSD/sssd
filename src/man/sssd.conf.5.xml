@@ -108,10 +108,10 @@
         <title>VENDOR PROVIDED CONFIGURATION</title>
 
         <para>
-          The vendor provided configuraiton file is installed in
+          The vendor provided configuration file is installed in
           <filename>&sssd_vendor_dir;/sssd.conf</filename>, but this file must
           not be directly edited. It can be completely masked by creating the
-          system specific configurtion file
+          system specific configuration file
           <filename>&sssd_conf_dir;/sssd.conf</filename>, or partly overriden
           by creating config snippets in
           <filename>&sssd_conf_dir;/conf.d</filename> directory.
