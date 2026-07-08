@@ -637,7 +637,7 @@
                             connections will always be closed immediately and
                             will never be reused if
                             <emphasis>ldap_connection_expire_timeout &lt;=
-                            ldap_opt_timout</emphasis>
+                            ldap_opt_timeout</emphasis>
                         </para>
                         <para>
                             This timeout can be extended of a random
