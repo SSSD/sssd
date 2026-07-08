@@ -378,7 +378,7 @@
                             attribute determines if access is allowed or not.
                         </para>
                         <para>
-                            Default: loginDisabled
+                            Default: loginDisabled (rfc2307, rfc2307bis and IPA), not set (AD)
                         </para>
                     </listitem>
                 </varlistentry>
@@ -392,7 +392,7 @@
                             granted.
                         </para>
                         <para>
-                            Default: loginDisabled
+                            Default: loginExpirationTime (rfc2307, rfc2307bis and IPA), not set (AD)
                         </para>
                     </listitem>
                 </varlistentry>
@@ -406,7 +406,7 @@
                             when access is granted.
                         </para>
                         <para>
-                            Default: loginAllowedTimeMap
+                            Default: loginAllowedTimeMap (rfc2307, rfc2307bis and IPA), not set (AD)
                         </para>
                     </listitem>
                 </varlistentry>
