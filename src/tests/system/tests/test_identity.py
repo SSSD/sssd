@@ -819,6 +819,9 @@ def test_identity__nested_non_posix_group_and_user(client: Client, provider: Gen
         2. non-POSIX user and group are not found
     :customerscenario: False
     """
+    if client.host.compare_package_version({"major": 2, "minor": 9, "patch": 9}) < 0:
+        pytest.skip("SSSD version does not fully support non-POSIX nested groups")
+
     user = provider.user("nesteduser").add(
         uid=10001, gid=20001, password="Secret123", gecos="User for tests", shell="/bin/bash"
     )
