@@ -309,3 +309,40 @@ def test_smartcard__without_soft_ocsp_with_unreachable_responder(client: Client,
     assert (
         "PIN" not in result.stderr or result.rc != 0
     ), f"Expected authentication to fail without soft_ocsp when OCSP is unreachable! rc={result.rc}"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.parametrize("user_name_hint", [True, False])
+def test_smartcard__changed_sc_prompting(client: Client, ipa: IPA, user_name_hint: bool):
+    """
+    :title: Test modified smart card prompting
+    :setup:
+        1. Setup and initialize smart card for user
+    :steps:
+        1. Authenticate as local user using smart card and issue command 'whoami'
+    :expectedresults:
+        1. Login successful and command returns local user
+    :customerscenario: True
+    """
+    username = "scuser_t1"
+    decoy = "scdecoy_t1"
+    ipa.user(username).add()
+    ipa.user(decoy).add()
+
+    client.sssd.section("prompting/cert_auth")["pin_prompt"] = "My PiN prompt for"
+    client.sssd.section("prompting/cert_auth")["user_name_hint"] = "true" if user_name_hint else "false"
+
+    client.smartcard.enroll_to_token(client, ipa, username, token_label=TOKEN1_LABEL, pin=TOKEN_PIN, init=True)
+    client.sssd.common.smartcard_with_softhsm(client.smartcard)
+
+    result = client.sssctl.user_checks(username, action="auth", service="sudo", auth_input=TOKEN_PIN)
+    assert result.rc == 0, f"user-checks failed: {result.stderr}"
+    assert (
+        f"pam_authenticate for user [{username}]: Success" in result.stderr
+    ), f"PAM success message with username not found in output: {result.stderr}"
+    assert f"My PiN prompt for {TOKEN1_LABEL}" in result.stderr, f"Modified PIN prompt not found: {result.stderr}"
+    if user_name_hint:
+        assert "User name hint" in result.stderr, "Missing user name hint"
+    else:
+        assert "User name hint" not in result.stderr, "Unexpected user name hint"

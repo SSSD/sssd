@@ -180,6 +180,61 @@ static errno_t pam_set_oauth2_prompting_options(TALLOC_CTX *tmp_ctx,
     return ret;
 }
 
+static errno_t pam_set_cert_auth_prompting_options(TALLOC_CTX *tmp_ctx,
+                                                   struct confdb_ctx *cdb,
+                                                   const char *section,
+                                                   struct prompt_config ***pc_list)
+{
+    int ret;
+    char *tmp_str;
+    enum prompt_user_name_hint user_name_hint = USER_NAME_HINT_NOT_SET;
+    char *pin_prompt = NULL;
+    char *keypad_prompt = NULL;
+
+    ret = confdb_get_string(cdb, tmp_ctx, section,
+                            CONFDB_PC_CERT_AUTH_USERNAME_HINT, NULL, &tmp_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read user name hinting option, assuming not set");
+    }
+
+    if (tmp_str != NULL) {
+        if (strcasecmp(tmp_str, "true") == 0) {
+            user_name_hint = USER_NAME_HINT_TRUE;
+        } else if (strcasecmp(tmp_str, "false") == 0) {
+            user_name_hint = USER_NAME_HINT_FALSE;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unexpected boolean strings [%s], option ignored.\n",
+                  tmp_str);
+        }
+        talloc_free(tmp_str);
+    }
+
+    ret = confdb_get_string(cdb, tmp_ctx, section,
+                            CONFDB_PC_CERT_AUTH_PIN_PROMPT, NULL, &pin_prompt);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read pin prompt option, assuming not set");
+    }
+
+    ret = confdb_get_string(cdb, tmp_ctx, section,
+                            CONFDB_PC_CERT_AUTH_KEYPAD_PROMPT, NULL,
+                            &keypad_prompt);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to read pin prompt option, assuming not set");
+    }
+
+    ret = pc_list_add_smartcard(pc_list, NULL, pin_prompt, keypad_prompt,
+                                user_name_hint);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "pc_list_add_cert_auth failed.\n");
+    }
+
+    return ret;
+}
+
 static errno_t pam_set_prompting_options(struct confdb_ctx *cdb,
                                          const char *service_name,
                                          char **sections,
@@ -296,11 +351,18 @@ errno_t pam_eval_prompting_config(struct pam_ctx *pctx, struct pam_data *pd,
         /* If certificate based authentication is possilbe, i.e. a Smartcard
          * or similar with the mapped certificate is available we currently
          * prefer this authentication type unconditionally. If other types
-         * should be used the Smartcard can be removed during authentication.
-         * Since there currently are no specific options for cert_auth we are
-         * done. */
-        ret = EOK;
-        goto done;
+         * should be used the Smartcard can be removed during authentication. */
+        ret = pam_set_prompting_options(pctx->rctx->cdb, pd->service,
+                                        pctx->prompting_config_sections,
+                                        pctx->num_prompting_config_sections,
+                                        CONFDB_PC_TYPE_CERT_AUTH,
+                                        pam_set_cert_auth_prompting_options,
+                                        &pc_list);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "pam_set_prompting_options failed.\n");
+            goto done;
+        }
     }
 
     /* If OTP and password auth are possible we currently prefer OTP. */
