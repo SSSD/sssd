@@ -897,7 +897,7 @@
                             The object class of a host entry in LDAP.
                         </para>
                         <para>
-                            Default: ipService
+                            Default: ipHost
                         </para>
                     </listitem>
                 </varlistentry>
