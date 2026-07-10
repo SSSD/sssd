@@ -198,7 +198,10 @@ class TestADMisc:
         domain_name = client.get_domain_section_name()
         client.sssd_conf('nss', {'debug_level': '9'}, action='add')
         client.clear_sssd_cache()
-        multihost.client[0].run_command('dnf install python3-libsss_nss_idmap -y', raiseonerr=True)
+        multihost.client[0].run_command(
+            'dnf install -y python3 python3-libsss_nss_idmap', raiseonerr=True)
+        python = multihost.client[0].run_command(
+            'command -v python3').stdout_text.strip()
         with tempfile.NamedTemporaryFile(mode='w') as tfile:
             tfile.write('#!/usr/bin/python\n')
             tfile.write('import pysss_nss_idmap as idmap\n')
@@ -220,8 +223,10 @@ class TestADMisc:
             tfile.write('idmap.getnamebysid(sid)\n')
             tfile.flush()
             multihost.client[0].transport.put_file(tfile.name, '/tmp/sss_nss_idmap.py')
-        multihost.client[0].run_command('python3 /tmp/sss_nss_idmap.py', raiseonerr=True)
-        multihost.client[0].run_command('python3 /tmp/sss_nss_idmap.py', raiseonerr=True)
+        multihost.client[0].run_command(
+            f'{python} /tmp/sss_nss_idmap.py', raiseonerr=True)
+        multihost.client[0].run_command(
+            f'{python} /tmp/sss_nss_idmap.py', raiseonerr=True)
         time.sleep(2)
         log_str = multihost.client[0].get_file_contents('/var/log/sssd/sssd_nss.log').decode('utf-8')
         patt = re.compile(r'999.*does.not.exist.*negative.cache')
