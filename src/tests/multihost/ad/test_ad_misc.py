@@ -257,11 +257,12 @@ class TestADMisc:
         client.sssd_conf(section, section_params, action="update")
         client.clear_sssd_cache()
         ad_user = f'{aduser}@{dom_name}'
+        client_ip = multihost.client[0].ip
         ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
                           "UserKnownHostsFile": "/dev/null"})
         ssh.force_password = True
         try:
-            ssh.login(multihost.client[0].sys_hostname, f'{ad_user}', 'Secret123')
+            ssh.login(client_ip, f'{ad_user}', 'Secret123')
             ssh.sendline('kdestroy -A -q')
             ssh.prompt(timeout=5)
             ssh.sendline(f'kinit {aduser}@{ad_realm}')
@@ -271,7 +272,7 @@ class TestADMisc:
             ssh.sendline('ssh -v -o StrictHostKeyChecking=no -o GSSAPIAuthentication=yes '
                           '-o PasswordAuthentication=no '
                          f'-o PubkeyAuthentication=no -K -l {ad_user} '
-                         f'{multihost.client[0].sys_hostname} id')
+                         f'{client_ip} id')
             ssh.prompt(timeout=30)
             ssh.sendline('echo "ssh_result:$?"')
             ssh.prompt(timeout=30)
