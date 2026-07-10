@@ -118,11 +118,15 @@ def test_sssctl_analyze__non_default_log_location(client: Client, ldap: LDAP):
 
     res = client.sssctl.analyze_request(command="list", logdir="/tmp/copy/")
     assert " id" in res.stdout or "coreutils" in res.stdout, "' id' or 'coreutils' not found in analyze list output"
-    assert "sshd" in res.stdout or "coreutils" in res.stdout, "sshd or coreutils not found in output"
 
     res = client.sssctl.analyze_request(command="list -v", logdir="/tmp/copy/")
     assert " id" in res.stdout or "coreutils" in res.stdout, "' id' or 'coreutils' not found in analyze list -v output"
-    assert "sshd" in res.stdout or "coreutils" in res.stdout, "sshd or coreutils not found in output"
+
+    for command in ("list --pam", "list -v --pam"):
+        res = client.sssctl.analyze_request(command=command, logdir="/tmp/copy/")
+        assert (
+            "sshd" in res.stdout or "systemd-logind" in res.stdout
+        ), "sshd or systemd-logind not found in analyze pam list output"
 
 
 @pytest.mark.importance("high")
