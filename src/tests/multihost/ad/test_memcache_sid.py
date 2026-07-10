@@ -38,8 +38,10 @@ class Testmemcachesid(object):
           6. Lookup should run through nss responder
           7. Lookup should read from memory cache of SID
         """
-        req_pkg = 'yum install -y strace python3-libsss_nss_idmap'
+        req_pkg = 'yum install -y strace python3 python3-libsss_nss_idmap'
         multihost.client[0].run_command(req_pkg)
+        python = multihost.client[0].run_command(
+            'command -v python3').stdout_text.strip()
         ad_domain = multihost.ad[0].domainname
         ad_user = f'user2@{ad_domain}'
         ad_group = f'group2@{ad_domain}'
@@ -53,7 +55,8 @@ class Testmemcachesid(object):
         client.clear_sssd_cache()
         file_dict = {'getsidbyuid': ad_uid, 'getsidbygid': ad_gid}
         for k, v in file_dict.items():
-            run_args = f'python3 -c "import pysss_nss_idmap;pysss_nss_idmap.{k}({v})"'
+            run_args = (f'{python} -c "import pysss_nss_idmap;'
+                        f'pysss_nss_idmap.{k}({v})"')
 
             for i in 'before', 'after':
                 strace_file = f'/opt/{k}_{i}.trace'
