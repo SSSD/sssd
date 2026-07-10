@@ -257,27 +257,44 @@ class TestADMisc:
         client = sssdTools(multihost.client[0], multihost.ad[0])
         dom_name = client.get_domain_section_name()
         ad_realm = multihost.ad[0].domainname.upper()
+        # SSSD must be able to write krb5 snippets into krb5_confd_path.
+        # Match ownership of /var/lib/sss/pubconf where SSSD already writes.
+        multihost.client[0].run_command(
+            'sssd_user=$(systemctl show sssd --value --property User 2>/dev/null); '
+            'sssd_user=${sssd_user:-sssd}; '
+            'chown "$sssd_user:$sssd_user" /etc/krb5.conf.d && '
+            'chmod 755 /etc/krb5.conf.d')
         section = f"domain/{dom_name}"
-        section_params = {'krb5_confd_path': "/etc/krb5.conf.d/"}
+        section_params = {
+            'krb5_confd_path': "/etc/krb5.conf.d",
+            'debug_level': '9',
+        }
         client.sssd_conf(section, section_params, action="update")
         client.clear_sssd_cache()
         ad_user = f'{aduser}@{dom_name}'
-        client_ip = multihost.client[0].ip
+        multihost.client[0].run_command(f'getent passwd {ad_user}')
+        # pxssh runs on the pytest controller and must use the client IP.
+        ssh_host = multihost.client[0].ip
+        # GSSAPI SSH runs on the client and needs the host FQDN for the
+        # Kerberos service principal (host/fqdn@REALM).
+        gssapi_ssh_host = multihost.client[0].sys_hostname
         ssh = pxssh.pxssh(options={"StrictHostKeyChecking": "no",
                           "UserKnownHostsFile": "/dev/null"})
         ssh.force_password = True
         try:
-            ssh.login(client_ip, f'{ad_user}', 'Secret123')
+            ssh.login(ssh_host, f'{ad_user}', 'Secret123')
             ssh.sendline('kdestroy -A -q')
             ssh.prompt(timeout=5)
             ssh.sendline(f'kinit {aduser}@{ad_realm}')
             ssh.expect('Password for .*:', timeout=10)
             ssh.sendline('Secret123')
             ssh.prompt(timeout=5)
+            ssh.sendline('klist -A')
+            ssh.prompt(timeout=5)
             ssh.sendline('ssh -v -o StrictHostKeyChecking=no -o GSSAPIAuthentication=yes '
                           '-o PasswordAuthentication=no '
                          f'-o PubkeyAuthentication=no -K -l {ad_user} '
-                         f'{client_ip} id')
+                         f'{gssapi_ssh_host} id')
             ssh.prompt(timeout=30)
             ssh.sendline('echo "ssh_result:$?"')
             ssh.prompt(timeout=30)
