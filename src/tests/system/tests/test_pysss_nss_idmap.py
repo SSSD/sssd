@@ -27,12 +27,20 @@ def get_sid_name(provider: GenericProvider):
     return None
 
 
+def get_attribute(obj, attr_name: str) -> str:
+    """Return the first value of an LDAP attribute from a provider object."""
+    # get() returns Optional[dict]; assert before indexing for mypy.
+    attrs = obj.get([attr_name])
+    assert attrs is not None
+    return attrs[attr_name][0]
+
+
 def user_setup(provider: GenericProvider, client: Client):
     sid_name = get_sid_name(provider)
     assert sid_name is not None
 
     user = provider.user("user1").add()
-    user_sid = user.get([sid_name])[sid_name][0]
+    user_sid = get_attribute(user, sid_name)
 
     client.sssd.restart()
 
@@ -49,7 +57,7 @@ def group_setup(provider: GenericProvider, client: Client):
     assert sid_name is not None
 
     group = provider.group("group1").add()
-    group_sid = group.get([sid_name])[sid_name][0]
+    group_sid = get_attribute(group, sid_name)
 
     client.sssd.restart()
 
@@ -247,7 +255,7 @@ def test_case_insensitive(client: Client, provider: GenericProvider):
     assert sid_name is not None
 
     group = provider.group("Group1").add()
-    group_sid = group.get([sid_name])[sid_name][0]
+    group_sid = get_attribute(group, sid_name)
 
     client.sssd.restart()
 
@@ -321,7 +329,7 @@ def test_ignore_unreadable_references(client: Client, provider: GenericProvider)
     result = client.tools.getent.group(group.name)
     assert result is not None, f"'{group.name}' missing"
     assert result.name == group.name, f"'{group.name}' has wrong name {result.name}"
-    group_sid = group.get([sid_name])[sid_name][0]
+    group_sid = get_attribute(group, sid_name)
     group_id = result.gid
 
     output = run_pysss_nss_idmap(client, "getsidbyname", group.name)
