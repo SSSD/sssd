@@ -212,7 +212,6 @@ systemctl restart sssd-kcm.service
             </programlisting>
         </para>
         <para>
-            The KCM service is configured in the <quote>kcm</quote>
             For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> section of the
             <citerefentry>
                 <refentrytitle>sssd.conf</refentrytitle>
