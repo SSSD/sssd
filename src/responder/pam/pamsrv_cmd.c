@@ -1324,7 +1324,7 @@ void pam_reply(struct pam_auth_req *preq)
          * (PAM_BAD_ITEM), so let's try authentication against the Smartcard
          * PAM_NO_MODULE_DATA is returned by the krb5 backend if no
          * authentication method was found at all, this might happen if the
-         * user has a Smartcard assigned but the pkint plugin is not available
+         * user has a Smartcard assigned but the pkinit plugin is not available
          * on the client. */
         DEBUG(SSSDBG_IMPORTANT_INFO,
               "Backend cannot handle Smartcard authentication, "
