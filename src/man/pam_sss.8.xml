@@ -433,7 +433,7 @@ auth sufficient pam_sss.so allow_missing_name
                     <para>
                         No authentication method was found by Kerberos.
                         This might happen if the user has a Smartcard assigned but
-                        the pkint plugin is not available on the client.
+                        the pkinit plugin is not available on the client.
                     </para>
                 </listitem>
             </varlistentry>
