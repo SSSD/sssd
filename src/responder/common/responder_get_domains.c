@@ -27,6 +27,7 @@
 
 /* ========== Get subdomains for a domain ================= */
 struct get_subdomains_state {
+    int dummy;
 };
 
 static void get_subdomains_done(struct tevent_req *subreq);

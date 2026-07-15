@@ -129,6 +129,7 @@ ipa_sudo_full_refresh_recv(struct tevent_req *req)
 }
 
 struct ipa_sudo_smart_refresh_state {
+    int dummy;
 };
 
 static void ipa_sudo_smart_refresh_done(struct tevent_req *subreq);

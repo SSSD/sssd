@@ -48,10 +48,6 @@ errno_t _dp_req_recv(TALLOC_CTX *mem_ctx,
 
 /**
  * Returns value of output data.
- *
- * @example
- *     struct dp_reply_std reply;
- *     ret = dp_req_recv(mem_ctx, req, struct dp_reply_std, &reply);
  */
 #define dp_req_recv(mem_ctx, req, data_type, _data)                        \
 ({                                                                         \
@@ -66,10 +62,6 @@ errno_t _dp_req_recv(TALLOC_CTX *mem_ctx,
 
 /**
  * Returns pointer to output data type.
- *
- * @example
- *     struct dp_reply_std *reply;
- *     ret = dp_req_recv_ptr(mem_ctx, req, struct dp_reply_std, &reply);
  */
 #define dp_req_recv_ptr(mem_ctx, req, data_type, _data) \
     _dp_req_recv(mem_ctx, req, #data_type, (void**)_data)

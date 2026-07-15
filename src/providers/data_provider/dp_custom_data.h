@@ -63,15 +63,4 @@ struct dp_resolver_data {
     const char *filter_value;
 };
 
-/* Reply private data. */
-
-struct dp_reply_std {
-    int error;
-    const char *message;
-};
-
-void dp_reply_std_set(struct dp_reply_std *reply,
-                      int error,
-                      const char *msg);
-
 #endif /* _DP_CUSTOM_DATA_H_ */

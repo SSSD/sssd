@@ -538,14 +538,13 @@ done:
     return ret;
 }
 
-static struct errno_t
+static errno_t
 proxy_nets_info(TALLOC_CTX *mem_ctx,
                 struct proxy_resolver_ctx *ctx,
                 struct dp_resolver_data *data,
                 struct be_ctx *be_ctx,
                 struct sss_domain_info *domain)
 {
-    struct dp_reply_std reply;
     errno_t ret;
 
     DEBUG(SSSDBG_TRACE_FUNC, "Processing networks request, filter type [%d]\n",
@@ -582,7 +581,7 @@ proxy_nets_info(TALLOC_CTX *mem_ctx,
 }
 
 struct proxy_nets_handler_state {
-    struct dp_reply_std reply;
+    int dummy;
 };
 
 struct tevent_req *
@@ -610,15 +609,9 @@ proxy_nets_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 proxy_nets_handler_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,
-                        struct dp_reply_std *data)
+                        dp_no_output *_no_output)
 {
-    struct proxy_nets_handler_state *state;
-
-    state = tevent_req_data(req, struct proxy_nets_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }

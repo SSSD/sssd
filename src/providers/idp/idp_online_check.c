@@ -26,7 +26,7 @@
 #include "providers/idp/idp_common.h"
 
 struct idp_online_check_handler_state {
-    struct dp_reply_std reply;
+    int dummy;
 };
 
 struct tevent_req *
@@ -57,15 +57,9 @@ idp_online_check_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t idp_online_check_handler_recv(TALLOC_CTX *mem_ctx,
                                       struct tevent_req *req,
-                                      struct dp_reply_std *data)
+                                      dp_no_output *_no_output)
 {
-    struct idp_online_check_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct idp_online_check_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }

@@ -112,7 +112,7 @@ proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t proxy_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
-                                       struct dp_reply_std *data);
+                                       dp_no_output *_no_output);
 
 /* From proxy_auth.c */
 struct tevent_req *
@@ -156,7 +156,7 @@ proxy_hosts_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 proxy_hosts_handler_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
-                         struct dp_reply_std *data);
+                         dp_no_output *_no_output);
 
 /* From proxy_ipnetworks.c */
 struct tevent_req *
@@ -168,7 +168,7 @@ proxy_nets_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 proxy_nets_handler_recv(TALLOC_CTX *mem_ctx,
                         struct tevent_req *req,
-                        struct dp_reply_std *data);
+                        dp_no_output *_no_output);
 
 errno_t
 proxy_client_init(struct sbus_connection *conn,
