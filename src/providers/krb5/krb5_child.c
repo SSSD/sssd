@@ -1054,8 +1054,14 @@ static krb5_error_code answer_idp_oauth2(krb5_context kctx,
         goto done;
     }
 
-    if (strlen(data->user_code) != token_len && strcmp(data->user_code, token) != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "User code do not match!\n");
+    if (data == NULL || data->user_code == NULL || token == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "OAuth2 data, user code, or token is missing!\n");
+        kerr = EINVAL;
+        goto done;
+    }
+
+    if (strlen(data->user_code) != token_len || strcmp(data->user_code, token) != 0) {
+        DEBUG(SSSDBG_OP_FAILURE, "User code does not match!\n");
         kerr = EINVAL;
         goto done;
     }
