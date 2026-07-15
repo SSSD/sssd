@@ -313,6 +313,7 @@ errno_t keycloak_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     char *input_enc;
     const char *obj_id;
     char *short_name;
+    char *short_name_enc;
     char *sep;
     struct name_and_type_identifier keycloak_name_and_type_identifier = {
                             .user_identifier_attr = "username",
@@ -339,7 +340,7 @@ errno_t keycloak_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     case GET_GROUP:
     case GET_GROUP_MEMBERS:
         sep = strrchr(input, '@');
-        if (sep == NULL && sep != input) {
+        if (sep == NULL || sep == input) {
             filter = talloc_asprintf(rest_ctx, "search=%s&exact=true&populateHierarchy=false&briefRepresentation=false", input_enc);
         } else {
             short_name = talloc_strndup(rest_ctx, input, sep - input);
@@ -350,8 +351,16 @@ errno_t keycloak_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                 filter = talloc_asprintf(rest_ctx, "search=%s&exact=true",
                                                    input_enc);
             } else {
+                short_name_enc = url_encode_string(rest_ctx, short_name);
+                if (short_name_enc == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Failed to encode short name [%s].\n",
+                          short_name);
+                    ret = ENOMEM;
+                    goto done;
+                }
                 filter = talloc_asprintf(rest_ctx, "search=%s&exact=true",
-                                                   short_name);
+                                                   short_name_enc);
             }
         }
         break;
