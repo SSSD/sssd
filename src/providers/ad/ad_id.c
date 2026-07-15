@@ -352,6 +352,7 @@ get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
 
 struct ad_account_info_state {
     const char *err_msg;
+    int dummy;
 };
 
 static void ad_account_info_done(struct tevent_req *subreq);
@@ -459,7 +460,6 @@ errno_t ad_account_info_recv(struct tevent_req *req,
 
 struct ad_account_info_handler_state {
     struct sss_domain_info *domain;
-    struct dp_reply_std reply;
 };
 
 static void ad_account_info_handler_done(struct tevent_req *subreq);
@@ -511,13 +511,11 @@ immediately:
 
 static void ad_account_info_handler_done(struct tevent_req *subreq)
 {
-    struct ad_account_info_handler_state *state;
     struct tevent_req *req;
     const char *err_msg;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct ad_account_info_handler_state);
 
     ret = ad_account_info_recv(subreq, &err_msg);
     talloc_zfree(subreq);
@@ -531,15 +529,9 @@ static void ad_account_info_handler_done(struct tevent_req *subreq)
 
 errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                      struct tevent_req *req,
-                                     struct dp_reply_std *data)
+                                     dp_no_output *_no_output)
 {
-    struct ad_account_info_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct ad_account_info_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }
@@ -567,11 +559,11 @@ struct ad_get_account_domain_state {
     const char *base_filter;
     char *filter;
     const char **attrs;
-    struct dp_reply_std reply;
     struct sdap_id_op *op;
     struct sysdb_attrs **objects;
     size_t count;
 
+    const char *domain;
     const char *found_domain_name;
 };
 
@@ -621,12 +613,13 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "SID %s does not fit into any domain\n", data->filter_value);
             ret = ERR_NOT_FOUND;
-            goto immediately
+            goto immediately;
         } else {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "SID %s fits into domain %s\n", data->filter_value, domain->name);
+            state->domain = domain->name;
             ret = EOK;
-            goto immediately
+            goto immediately;
         }
     }
 
@@ -938,13 +931,15 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Found object in domain %s\n", obj_dom->name);
+    state->domain = obj_dom->name;
+
     ret = EOK;
     tevent_req_done(req);
 }
 
 errno_t ad_get_account_domain_recv(TALLOC_CTX *mem_ctx,
                                    struct tevent_req *req,
-                                   struct dp_reply_std *data)
+                                   const char **_domain)
 {
     struct ad_get_account_domain_state *state = NULL;
 
@@ -952,7 +947,7 @@ errno_t ad_get_account_domain_recv(TALLOC_CTX *mem_ctx,
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *data = state->reply;
+    *_domain = state->domain;
 
     return EOK;
 }

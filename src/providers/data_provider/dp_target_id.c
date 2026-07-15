@@ -429,15 +429,9 @@ done:
     return ret;
 }
 
-static void dp_req_initgr_pp_set_initgr_timestamp(struct dp_initgr_ctx *ctx,
-                                                  struct dp_reply_std *reply)
+static void dp_req_initgr_pp_set_initgr_timestamp(struct dp_initgr_ctx *ctx)
 {
     errno_t ret;
-
-    if (reply->error != EOK) {
-        /* Only bump the timestamp on successful lookups */
-        return;
-    }
 
     ret = sysdb_set_initgr_expire_timestamp(ctx->domain_info,
                                             ctx->filter_value);
@@ -452,7 +446,6 @@ static void dp_req_initgr_pp_set_initgr_timestamp(struct dp_initgr_ctx *ctx,
 struct dp_sr_resolve_groups_state {
     struct data_provider *provider;
     struct dp_initgr_ctx *initgroups_ctx;
-    struct dp_reply_std reply;
 
     uint32_t *resolve_gids; /* Groups needing resolution */
     int resolve_gnum;
@@ -467,7 +460,6 @@ static void dp_sr_resolve_groups_done(struct tevent_req *subreq);
 struct tevent_req *
 dp_sr_resolve_groups_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
-                          struct dp_reply_std reply,
                           struct data_provider *provider,
                           struct dp_initgr_ctx *initgr_ctx)
 {
@@ -495,7 +487,6 @@ dp_sr_resolve_groups_send(TALLOC_CTX *mem_ctx,
          || (sr_conf.scope == SESSION_RECORDING_SCOPE_ALL && sr_conf.exclude_groups != NULL)) {
         state->provider = provider;
         state->initgroups_ctx = initgr_ctx;
-        state->reply = reply;
         state->gnum = initgr_ctx->gnum;
 
         /* Check if group is intermediate(has gidNumber and isPosix == False) */
@@ -576,15 +567,12 @@ static errno_t dp_sr_resolve_groups_next(struct tevent_req *req)
 
 static void dp_sr_resolve_groups_done(struct tevent_req *subreq)
 {
-    struct dp_sr_resolve_groups_state *state;
     struct tevent_req *req;
-    struct dp_reply_std *reply;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct dp_sr_resolve_groups_state);
 
-    ret = dp_req_recv_ptr(state, subreq, struct dp_reply_std, &reply);
+    ret = dp_req_recv_no_output(subreq);
     talloc_free(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -682,7 +670,6 @@ struct dp_get_account_info_state {
     struct tevent_context *ev;
     struct data_provider *provider;
     struct dp_id_data *data;
-    struct dp_reply_std reply;
     struct dp_initgr_ctx *initgr_ctx;
 };
 
@@ -776,14 +763,12 @@ done:
 
 static void dp_get_account_info_request_done(struct tevent_req *subreq)
 {
-    struct dp_get_account_info_state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct dp_get_account_info_state);
 
-    ret = dp_req_recv(state, subreq, struct dp_reply_std, &state->reply);
+    ret = dp_req_recv_no_output(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -810,7 +795,7 @@ static errno_t dp_get_account_info_initgroups_step(struct tevent_req *req)
     }
 
     /* Create subrequest to handle SR data */
-    subreq = dp_sr_resolve_groups_send(state, state->ev, state->reply,
+    subreq = dp_sr_resolve_groups_send(state, state->ev,
                                        state->provider, state->initgr_ctx);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create subrequest!\n");
@@ -839,7 +824,10 @@ static void dp_get_account_info_initgroups_resolv_done(struct tevent_req *subreq
         return;
     }
 
-    dp_req_initgr_pp_set_initgr_timestamp(state->initgr_ctx, &state->reply);
+    /* Only bump the timestamp on successful lookups */
+    if (ret == EOK) {
+        dp_req_initgr_pp_set_initgr_timestamp(state->initgr_ctx);
+    }
     dp_req_initgr_pp_sr_overlay(state->provider, state->initgr_ctx);
 
     if (state->initgr_ctx->username != NULL) {
@@ -937,8 +925,8 @@ check_and_parse_acct_domain_filter(struct dp_get_acct_domain_data *data,
 
 struct dp_get_account_domain_state {
     struct dp_get_acct_domain_data *data;
-    struct dp_reply_std reply;
     const char *request_name;
+    const char *domain;
 };
 
 static void dp_get_account_domain_done(struct tevent_req *subreq);
@@ -1007,7 +995,7 @@ static void dp_get_account_domain_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct dp_get_account_domain_state);
 
-    ret = dp_req_recv(state, subreq, struct dp_reply_std, &state->reply);
+    ret = dp_req_recv(state, subreq, const char *, &state->domain);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -1029,16 +1017,15 @@ dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     DP_REQ_DEBUG(SSSDBG_TRACE_LIBS, state->request_name,
-                 "Returning EOK with domain msg: %s",
-                 state->reply.message);
+                 "Returning EOK");
 
-    *_domain = state->reply.message;
+    *_domain = state->domain;
 
     return EOK;
 }
 
 struct default_account_domain_state {
-    struct dp_reply_std reply;
+    int dummy;
 };
 
 struct tevent_req *
@@ -1064,15 +1051,9 @@ default_account_domain_send(TALLOC_CTX *mem_ctx,
 
 errno_t default_account_domain_recv(TALLOC_CTX *mem_ctx,
                                     struct tevent_req *req,
-                                    struct dp_reply_std *data)
+                                    dp_no_output *_no_output)
 {
-    struct default_account_domain_state *state = NULL;
-
-    state = tevent_req_data(req, struct default_account_domain_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }

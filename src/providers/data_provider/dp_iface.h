@@ -153,14 +153,10 @@ dp_resolver_handler_recv(TALLOC_CTX *mem_ctx,
 /*
  * Return a domain the account belongs to.
  *
- * The request uses the dp_reply_std structure for reply, with the following
- * semantics:
- *  - ERR_OK - it is expected that the string message contains the domain name
- *                the entry was found in. A 'negative' reply where the
- *                request returns ERR_OK, but no domain should be treated
+ *  - ERR_OK - the entry was found. A 'negative' reply where the
+ *                request returns ERR_OK but no domain should be treated
  *                as authoritative, as if the entry does not exist.
- *  - ERR_*  - the string message contains error string that corresponds
- *                to the errno field in dp_reply_std().
+ *  - ERR_*  - an error occurred during the lookup.
  */
 struct tevent_req *
 dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
@@ -175,7 +171,7 @@ dp_get_account_domain_send(TALLOC_CTX *mem_ctx,
 errno_t
 dp_get_account_domain_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
-                           const char **_err_msg);
+                           const char **_domain);
 
 /* sssd.DataProvider.Backend */
 errno_t dp_backend_is_online(TALLOC_CTX *mem_ctx,

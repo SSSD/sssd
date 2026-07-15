@@ -116,7 +116,7 @@ sdap_online_check_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t sdap_online_check_handler_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
-                                       struct dp_reply_std *data);
+                                       dp_no_output *_no_output);
 
 struct tevent_req* sdap_reinit_cleanup_send(TALLOC_CTX *mem_ctx,
                                             struct be_ctx *be_ctx,
@@ -133,7 +133,7 @@ sdap_account_info_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t sdap_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
-                                       struct dp_reply_std *data);
+                                       dp_no_output *_no_output);
 
 /* Set up enumeration and/or cleanup */
 errno_t ldap_id_setup_tasks(struct sdap_id_ctx *ctx);
@@ -351,7 +351,7 @@ sdap_iphost_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 sdap_iphost_handler_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
-                         struct dp_reply_std *data);
+                         dp_no_output *_no_output);
 
 struct tevent_req *
 sdap_ipnetwork_handler_send(TALLOC_CTX *mem_ctx,
@@ -362,7 +362,7 @@ sdap_ipnetwork_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 sdap_ipnetwork_handler_recv(TALLOC_CTX *mem_ctx,
                             struct tevent_req *req,
-                            struct dp_reply_std *data);
+                            dp_no_output *_no_output);
 
 
 errno_t string_to_shadowpw_days(const char *s, long *d);

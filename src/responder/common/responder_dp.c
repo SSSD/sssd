@@ -114,6 +114,7 @@ sss_dp_get_account_filter(TALLOC_CTX *mem_ctx,
 }
 
 struct sss_dp_get_account_state {
+    int dummy;
 };
 
 static void sss_dp_get_account_done(struct tevent_req *subreq);
@@ -227,6 +228,7 @@ sss_dp_get_account_recv(TALLOC_CTX *mem_ctx,
 }
 
 struct sss_dp_resolver_get_state {
+    int dummy;
 };
 
 static void sss_dp_resolver_get_done(struct tevent_req *subreq);
