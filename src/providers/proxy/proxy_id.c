@@ -1730,14 +1730,13 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
 
 /* =Proxy_Id-Functions====================================================*/
 
-static struct errno_t
+static errno_t
 proxy_account_info(TALLOC_CTX *mem_ctx,
                    struct proxy_id_ctx *ctx,
                    struct dp_id_data *data,
                    struct be_ctx *be_ctx,
                    struct sss_domain_info *domain)
 {
-    struct dp_reply_std reply;
     struct sysdb_ctx *sysdb;
     uid_t uid;
     gid_t gid;
@@ -1885,7 +1884,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
 }
 
 struct proxy_account_info_handler_state {
-    struct dp_reply_std reply;
+    int dummy;
 };
 
 struct tevent_req *
@@ -1896,6 +1895,7 @@ proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
 {
     struct proxy_account_info_handler_state *state;
     struct tevent_req *req;
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct proxy_account_info_handler_state);
@@ -1904,11 +1904,14 @@ proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->reply = proxy_account_info(state, id_ctx, data, params->be_ctx,
+    ret = proxy_account_info(state, id_ctx, data, params->be_ctx,
                                       params->be_ctx->domain);
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, params->ev);
 
     return req;
@@ -1916,15 +1919,9 @@ proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t proxy_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
-                                       struct dp_reply_std *data)
+                                       dp_no_output *_no_output)
 {
-    struct proxy_account_info_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct proxy_account_info_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }

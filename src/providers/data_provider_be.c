@@ -329,21 +329,15 @@ static void check_if_online_delayed(struct tevent_context *ev,
 static void be_check_online_done(struct tevent_req *req)
 {
     struct be_ctx *be_ctx;
-    struct dp_reply_std *reply;
     struct tevent_timer *time_event;
     struct timeval schedule;
     errno_t ret;
 
     be_ctx = tevent_req_callback_data(req, struct be_ctx);
 
-    ret = dp_req_recv_ptr(be_ctx, req, struct dp_reply_std, &reply);
+    ret = dp_req_recv_no_output(req);
     talloc_zfree(req);
-    if (ret != EOK) {
-        reply = NULL;
-        goto done;
-    }
-
-    switch (reply->error) {
+    switch (ret) {
     case EOK:
         if (be_ctx->last_dp_state != EOK) {
             be_ctx->last_dp_state = EOK;
@@ -360,13 +354,13 @@ static void be_check_online_done(struct tevent_req *req)
         break;
     default:
         DEBUG(SSSDBG_TRACE_FUNC, "Error during online check [%d]: %s\n",
-              reply->error, sss_strerror(reply->error));
+              ret, sss_strerror(ret));
         break;
     }
 
     be_ctx->check_online_ref_count--;
 
-    if (reply->error != EOK && be_ctx->check_online_ref_count > 0) {
+    if (ret != EOK && be_ctx->check_online_ref_count > 0) {
         be_ctx->check_online_retry_delay *= 2;
         if (be_ctx->check_online_retry_delay > ONLINE_CB_RETRY_MAX_DELAY) {
             be_ctx->check_online_retry_delay = ONLINE_CB_RETRY_MAX_DELAY;
@@ -390,8 +384,8 @@ static void be_check_online_done(struct tevent_req *req)
 
 done:
     be_ctx->check_online_ref_count = 0;
-    if (reply && reply->error != ERR_OFFLINE) {
-        if (reply->error != EOK) {
+    if (ret != ERR_OFFLINE) {
+        if (ret != EOK) {
             reset_fo(be_ctx);
         }
         be_reset_offline(be_ctx);

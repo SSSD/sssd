@@ -31,7 +31,6 @@
 
 struct sdap_sudo_handler_state {
     uint32_t type;
-    struct dp_reply_std reply;
     struct sdap_sudo_ctx *sudo_ctx;
 };
 
@@ -133,15 +132,9 @@ static void sdap_sudo_handler_done(struct tevent_req *subreq)
 static errno_t
 sdap_sudo_handler_recv(TALLOC_CTX *mem_ctx,
                        struct tevent_req *req,
-                       struct dp_reply_std *data)
+                       dp_no_output *_no_output)
 {
-    struct sdap_sudo_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct sdap_sudo_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }
@@ -215,7 +208,7 @@ errno_t sdap_sudo_init(TALLOC_CTX *mem_ctx,
 
     dp_set_method(dp_methods, DPM_SUDO_HANDLER,
                   sdap_sudo_handler_send, sdap_sudo_handler_recv, sudo_ctx,
-                  struct sdap_sudo_ctx, struct dp_sudo_data, struct dp_reply_std);
+                  struct sdap_sudo_ctx, struct dp_sudo_data, dp_no_output);
 
     ret = EOK;
 

@@ -137,6 +137,7 @@ fail:
 }
 
 struct sss_dp_get_sudoers_state {
+    int dummy;
 };
 
 static void sss_dp_get_sudoers_done(struct tevent_req *subreq);

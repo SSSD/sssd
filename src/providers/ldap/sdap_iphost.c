@@ -262,7 +262,7 @@ sdap_ip_host_get_recv(struct tevent_req *req)
 }
 
 struct sdap_ip_host_handler_state {
-    struct dp_reply_std reply;
+    int dummy;
 };
 
 static void sdap_ip_host_handler_done(struct tevent_req *subreq);
@@ -320,12 +320,10 @@ immediately:
 
 static void sdap_ip_host_handler_done(struct tevent_req *subreq)
 {
-    struct sdap_ip_host_handler_state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_ip_host_handler_state);
 
     ret = sdap_ip_host_get_recv(subreq);
     talloc_zfree(subreq);
@@ -340,15 +338,9 @@ static void sdap_ip_host_handler_done(struct tevent_req *subreq)
 errno_t
 sdap_iphost_handler_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
-                         struct dp_reply_std *data)
+                         dp_no_output *_no_output)
 {
-    struct sdap_ip_host_handler_state *state;
-
-    state = tevent_req_data(req, struct sdap_ip_host_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }

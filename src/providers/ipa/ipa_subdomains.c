@@ -3266,7 +3266,7 @@ static errno_t ipa_subdomains_refresh_recv(struct tevent_req *req)
 }
 
 struct ipa_subdomains_handler_state {
-    struct dp_reply_std reply;
+    int dummy;
 };
 
 static void ipa_subdomains_handler_done(struct tevent_req *subreq);
@@ -3320,12 +3320,10 @@ immediately:
 
 static void ipa_subdomains_handler_done(struct tevent_req *subreq)
 {
-    struct ipa_subdomains_handler_state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct ipa_subdomains_handler_state);
 
     ret = ipa_subdomains_refresh_recv(subreq);
     talloc_zfree(subreq);
@@ -3340,15 +3338,9 @@ static void ipa_subdomains_handler_done(struct tevent_req *subreq)
 
 static errno_t ipa_subdomains_handler_recv(TALLOC_CTX *mem_ctx,
                                            struct tevent_req *req,
-                                           struct dp_reply_std *data)
+                                           dp_no_output *_no_output)
 {
-   struct ipa_subdomains_handler_state *state;
-
-   state = tevent_req_data(req, struct ipa_subdomains_handler_state);
-
    TEVENT_REQ_RETURN_ON_ERROR(req);
-
-   *data = state->reply;
 
    return EOK;
 }
@@ -3406,7 +3398,7 @@ errno_t ipa_subdomains_init(TALLOC_CTX *mem_ctx,
 
     dp_set_method(dp_methods, DPM_DOMAINS_HANDLER,
                   ipa_subdomains_handler_send, ipa_subdomains_handler_recv, sd_ctx,
-                  struct ipa_subdomains_ctx, struct dp_subdomains_data, struct dp_reply_std);
+                  struct ipa_subdomains_ctx, struct dp_subdomains_data, dp_no_output);
 
     period = be_ctx->domain->subdomain_refresh_interval;
     offset = be_ctx->domain->subdomain_refresh_interval_offset;

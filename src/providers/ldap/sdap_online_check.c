@@ -169,7 +169,6 @@ static errno_t sdap_online_check_recv(struct tevent_req *req)
 }
 
 struct sdap_online_check_handler_state {
-    struct dp_reply_std reply;
     struct sdap_id_ctx *id_ctx;
 };
 
@@ -247,15 +246,12 @@ static void sdap_online_check_handler_done(struct tevent_req *subreq)
 
 static void sdap_online_check_subdomains_done(struct tevent_req *subreq)
 {
-    struct sdap_online_check_handler_state *state;
     struct tevent_req *req;
-    struct dp_reply_std *reply;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_online_check_handler_state);
 
-    ret = dp_req_recv_ptr(state, subreq, struct dp_reply_std, &reply);
+    ret = dp_req_recv_no_output(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -275,15 +271,9 @@ static void sdap_online_check_subdomains_done(struct tevent_req *subreq)
 
 errno_t sdap_online_check_handler_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
-                                       struct dp_reply_std *data)
+                                       dp_no_output *_no_output)
 {
-    struct sdap_online_check_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct sdap_online_check_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }

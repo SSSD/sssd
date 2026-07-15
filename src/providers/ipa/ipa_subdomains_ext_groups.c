@@ -1309,20 +1309,15 @@ static void ipa_ext_group_member_done(struct tevent_req *subreq)
     errno_t ret;
     struct ldb_message *msg;
     struct sysdb_attrs **members;
-    struct dp_reply_std *reply;
 
 
-    ret = dp_req_recv_ptr(state, subreq, struct dp_reply_std, &reply);
+    ret = dp_req_recv_no_output(subreq);
     talloc_free(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "dp_req_recv failed\n");
-        tevent_req_error(req, ret);
-        return;
-    } else if (reply->error != EOK) {
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Cannot refresh data from DP: %u: %s\n",
-              reply->error, reply->message);
-        tevent_req_error(req, EIO);
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
         return;
     }
 
