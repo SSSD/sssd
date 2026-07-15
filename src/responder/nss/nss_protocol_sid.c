@@ -659,6 +659,7 @@ sss_nss_protocol_fill_name_list_all_domains(struct sss_nss_ctx *nss_ctx,
 
     id_types = talloc_array(cmd_ctx, enum sss_id_type, total);
     if (id_types == NULL) {
+        talloc_zfree(sz_names);
         return ENOMEM;
     }
 

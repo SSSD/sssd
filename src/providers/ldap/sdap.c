@@ -63,6 +63,7 @@ int sdap_copy_map(TALLOC_CTX *memctx,
         map[i].opt_name = talloc_strdup(map, src_map[i].opt_name);
         map[i].sys_name = talloc_strdup(map, src_map[i].sys_name);
         if (map[i].opt_name == NULL || map[i].sys_name == NULL) {
+            talloc_zfree(map);
             return ENOMEM;
         }
 
@@ -70,6 +71,7 @@ int sdap_copy_map(TALLOC_CTX *memctx,
             map[i].def_name = talloc_strdup(map, src_map[i].def_name);
             map[i].name = talloc_strdup(map, src_map[i].def_name);
             if (map[i].def_name == NULL || map[i].name == NULL) {
+                talloc_zfree(map);
                 return ENOMEM;
             }
         } else {
