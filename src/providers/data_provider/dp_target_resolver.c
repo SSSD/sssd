@@ -31,7 +31,6 @@
 
 struct dp_resolver_handler_state {
     struct dp_resolver_data *data;
-    struct dp_reply_std reply;
     const char *request_name;
 };
 
@@ -111,14 +110,12 @@ done:
 
 static void dp_resolver_handler_done(struct tevent_req *subreq)
 {
-    struct dp_resolver_handler_state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct dp_resolver_handler_state);
 
-    ret = dp_req_recv(state, subreq, struct dp_reply_std, &state->reply);
+    ret = dp_req_recv_no_output(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);

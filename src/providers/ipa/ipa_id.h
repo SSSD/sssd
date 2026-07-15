@@ -48,7 +48,7 @@ ipa_account_info_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t ipa_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                       struct tevent_req *req,
-                                      struct dp_reply_std *data);
+                                      dp_no_output *_no_output);
 
 struct tevent_req *ipa_get_netgroups_send(TALLOC_CTX *memctx,
                                           struct tevent_context *ev,

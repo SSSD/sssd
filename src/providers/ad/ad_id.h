@@ -31,7 +31,7 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                       struct tevent_req *req,
-                                      struct dp_reply_std *data);
+                                      dp_no_output *_no_output);
 
 struct tevent_req *
 ad_account_info_send(TALLOC_CTX *mem_ctx,
@@ -61,6 +61,6 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
 
 errno_t ad_get_account_domain_recv(TALLOC_CTX *mem_ctx,
                                    struct tevent_req *req,
-                                   struct dp_reply_std *data);
+                                   const char **_domain);
 
 #endif /* AD_ID_H_ */
