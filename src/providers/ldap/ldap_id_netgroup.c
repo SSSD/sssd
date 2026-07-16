@@ -213,9 +213,16 @@ static void ldap_netgroup_get_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
+
+        ret = ENOENT;
     }
 
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+
     return;
 }
 
