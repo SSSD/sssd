@@ -89,6 +89,42 @@ def umockdev_ipaotpd_update(ipa: IPA, request: pytest.FixtureRequest):
     ipa.svc.restart("ipa")
 
 
+def client_setup_vfido(client: Client, pin: str | int | None = None):
+    """
+    Setup virtual passkey for authentication testing
+
+    :param client: Client object
+    :type client: Client
+    :param pin: passkey PIN. If None, disable in vfido, else set PIN
+    :type pin: str | int | None
+    """
+    client.vfido.reset()
+    if pin is not None:
+        client.vfido.pin_enable()
+        client.vfido.pin_set(pin)
+    else:
+        client.vfido.pin_disable()
+    client.vfido.start()
+
+
+def client_setup_sssd(client: Client, provider: IPA | LDAP, localauthpolicy: str):
+    """
+    Setup client SSSD configuration for passkey testing
+
+    :param client: Client object
+    :type client: Client
+    :param provider: Provider object
+    :type provider: IPA | LDAP
+    :param localauthpolicy: Local authentication policy value
+    :type localauthpolicy: str
+    """
+    client.sssd.import_domain(provider.domain, provider)
+    client.sssd.config.remove_section("domain/test")
+    client.sssd.default_domain = provider.domain
+    client.sssd.domain["local_auth_policy"] = localauthpolicy
+    client.sssd.start(service_user="root")
+
+
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.builtwith(client=["passkey", "umockdev"])
