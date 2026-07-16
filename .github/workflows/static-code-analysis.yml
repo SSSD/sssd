@@ -1,9 +1,7 @@
 name: "Static code analysis"
 on:
   push:
-    branches: [master]
   pull_request:
-    branches: [master]
   schedule:
     # Everyday at midnight
     - cron: '0 0 * * *'
