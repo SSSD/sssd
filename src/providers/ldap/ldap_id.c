@@ -590,11 +590,8 @@ static void users_get_done(struct tevent_req *subreq)
                                      state->non_posix);
             }
         }
-    }
 
-    if (ret && ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
+        ret = ENOENT;
     }
 
     if (ret == ENOENT && state->noexist_delete == true) {
@@ -604,9 +601,15 @@ static void users_get_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
+
+        ret = ENOENT;
     }
 
-    /* FIXME - return sdap error so that we know the user was not found */
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
+    }
+
     tevent_req_done(req);
 }
 
@@ -991,6 +994,13 @@ static void groups_get_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
+
+        ret = ENOENT;
+    }
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
     tevent_req_done(req);
@@ -1007,11 +1017,6 @@ static void groups_get_mpg_done(struct tevent_req *subreq)
     ret = users_get_recv(subreq);
     talloc_zfree(subreq);
 
-    if (ret != EOK && ret != ENOENT) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
     if (ret == ENOENT && state->noexist_delete == true) {
         ret = groups_get_handle_no_group(state, state->domain,
                                          state->filter_type,
@@ -1022,6 +1027,12 @@ static void groups_get_mpg_done(struct tevent_req *subreq)
             tevent_req_error(req, ret);
             return;
         }
+        ret = ENOENT;
+    }
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
     /* GID resolved to a user private group, done */
@@ -1288,10 +1299,16 @@ static void groups_by_user_done(struct tevent_req *subreq)
                 return;
             }
         }
+        ret = ENOENT;
         break;
     case EOK:
         break;
     default:
+        tevent_req_error(req, ret);
+        return;
+    }
+
+    if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
@@ -1776,14 +1793,17 @@ static void get_user_and_group_users_done(struct tevent_req *subreq)
                 tevent_req_error(req, ret);
                 return;
             }
+
+            ret = ENOENT;
         }
-    } else if (ret != EOK) {
-        tevent_req_error(req, ERR_SERVER_FAILURE);
-        return;
     }
 
-    /* Matching user found */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        /* Matching user found */
+        tevent_req_done(req);
+    }
     return;
 }
 

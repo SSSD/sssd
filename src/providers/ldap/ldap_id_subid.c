@@ -325,7 +325,12 @@ static void subid_ranges_get_done(struct tevent_req *subreq)
                                 results[0]);
     }
 
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);  /* ENOENT */
+    } else {
+        tevent_req_done(req);
+    }
+
 }
 
 int subid_ranges_get_recv(struct tevent_req *req)
