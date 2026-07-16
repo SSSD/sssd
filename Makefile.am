@@ -1779,7 +1779,6 @@ sssd_be_SOURCES = \
     src/providers/data_provider/dp_iface_failover.c \
     src/providers/data_provider/dp_resp_client.c \
     src/providers/data_provider/dp_request.c \
-    src/providers/data_provider/dp_reply_std.c \
     src/providers/data_provider/dp_target_sudo.c \
     src/providers/data_provider/dp_target_hostid.c \
     src/providers/data_provider/dp_target_autofs.c \

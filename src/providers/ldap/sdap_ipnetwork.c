@@ -310,10 +310,7 @@ sdap_ipnetwork_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, ret, NULL);
-
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    tevent_req_done_or_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;
@@ -332,9 +329,7 @@ sdap_ipnetwork_handler_done(struct tevent_req *subreq)
     ret = sdap_ipnetwork_get_recv(subreq);
     talloc_zfree(subreq);
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, ret, NULL);
-    tevent_req_done(req);
+    tevent_req_done_or_error(req, ret);
 }
 
 errno_t
