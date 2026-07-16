@@ -9,12 +9,27 @@
 
 import json
 import requests
+import requests.adapters
 import argparse
 import os
 
+import urllib3.util
 
-def get_fedora_releases(type, exclude=[]):
-    r = requests.get(f'https://bodhi.fedoraproject.org/releases?state={type}')
+
+def requests_session():
+    s = requests.Session()
+    retry = urllib3.util.Retry(
+        total=3,
+        backoff_factor=1,
+        status_forcelist=[408, 429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+    )
+    s.mount("https://", requests.adapters.HTTPAdapter(max_retries=retry))
+    return s
+
+
+def get_fedora_releases(session, type, exclude=[]):
+    r = session.get(f'https://bodhi.fedoraproject.org/releases?state={type}', timeout=(10, 30))
     r.raise_for_status()
 
     versions = [x['version'] for x in r.json()['releases'] if x['id_prefix'] == 'FEDORA']
@@ -25,9 +40,10 @@ def get_fedora_releases(type, exclude=[]):
 
 
 def get_fedora_matrix():
-    fedora_stable = get_fedora_releases('current')
-    fedora_devel = get_fedora_releases('pending', exclude=['eln'])
-    fedora_frozen = get_fedora_releases('frozen', exclude=['eln'])
+    session = requests_session()
+    fedora_stable = get_fedora_releases(session, 'current')
+    fedora_devel = get_fedora_releases(session, 'pending', exclude=['eln'])
+    fedora_frozen = get_fedora_releases(session, 'frozen', exclude=['eln'])
 
     matrix = []
     matrix.extend(['fedora-{0}'.format(x) for x in fedora_stable])
