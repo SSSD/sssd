@@ -274,6 +274,13 @@ services_get_done(struct tevent_req *subreq)
             tevent_req_error(req, EINVAL);
             return;
         }
+
+        ret = ENOENT;
+    }
+
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+        return;
     }
 
     tevent_req_done(req);
