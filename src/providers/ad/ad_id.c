@@ -475,7 +475,6 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     errno_t ret;
 
-
     req = tevent_req_create(mem_ctx, &state,
                             struct ad_account_info_handler_state);
     if (req == NULL) {
@@ -500,10 +499,11 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, ret, NULL);
-
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, params->ev);
 
     return req;
@@ -522,9 +522,11 @@ static void ad_account_info_handler_done(struct tevent_req *subreq)
     ret = ad_account_info_recv(subreq, &err_msg);
     talloc_zfree(subreq);
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, ret, err_msg);
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
@@ -618,15 +620,14 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
         if (domain == NULL) {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "SID %s does not fit into any domain\n", data->filter_value);
-            dp_reply_std_set(&state->reply, ERR_NOT_FOUND, NULL);
+            ret = ERR_NOT_FOUND;
+            goto immediately
         } else {
             DEBUG(SSSDBG_TRACE_INTERNAL,
                   "SID %s fits into domain %s\n", data->filter_value, domain->name);
-            dp_reply_std_set(&state->reply, EOK, domain->name);
+            ret = EOK;
+            goto immediately
         }
-        tevent_req_done(req);
-        tevent_req_post(req, params->ev);
-        return req;
     }
 
     /* The get-account-domain request only works with GC */
@@ -694,10 +695,13 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, ret, NULL);
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+
     tevent_req_post(req, params->ev);
 
     return req;
@@ -908,8 +912,7 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
         }
 
         DEBUG(SSSDBG_TRACE_FUNC, "Not found\n");
-        dp_reply_std_set(&state->reply, ERR_NOT_FOUND, NULL);
-        tevent_req_done(req);
+        tevent_req_error(req, ERR_NOT_FOUND);
         return;
     } else if (state->count > 1) {
         /* FIXME: If more than one entry was found, return error for now
@@ -918,8 +921,7 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
          * from the responder side
          */
         DEBUG(SSSDBG_OP_FAILURE, "Multiple entries found, error!\n");
-        dp_reply_std_set(&state->reply, ERANGE, NULL);
-        tevent_req_done(req);
+        tevent_req_error(req, ERANGE);
         return;
     }
 
@@ -930,14 +932,13 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
     if (obj_dom == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
               "Could not match entry with domain!\n");
-        dp_reply_std_set(&state->reply, ERR_NOT_FOUND, NULL);
-        tevent_req_done(req);
+        tevent_req_error(req, ERR_NOT_FOUND);
         return;
     }
 
     DEBUG(SSSDBG_TRACE_INTERNAL,
           "Found object in domain %s\n", obj_dom->name);
-    dp_reply_std_set(&state->reply, EOK, obj_dom->name);
+    ret = EOK;
     tevent_req_done(req);
 }
 

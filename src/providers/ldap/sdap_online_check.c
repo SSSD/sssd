@@ -207,10 +207,7 @@ sdap_online_check_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, ret, NULL);
-
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    tevent_req_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;
@@ -241,9 +238,11 @@ static void sdap_online_check_handler_done(struct tevent_req *subreq)
         }
     }
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, ret, NULL);
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static void sdap_online_check_subdomains_done(struct tevent_req *subreq)
@@ -271,7 +270,6 @@ static void sdap_online_check_subdomains_done(struct tevent_req *subreq)
 
     /* We return the EOK of the initial online check here, the result of the
      * subdomains request is not important for the online-check request. */
-    dp_reply_std_set(&state->reply, EOK, NULL);
     tevent_req_done(req);
 }
 
