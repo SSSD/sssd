@@ -538,7 +538,7 @@ done:
     return ret;
 }
 
-static struct dp_reply_std
+static struct errno_t
 proxy_nets_info(TALLOC_CTX *mem_ctx,
                 struct proxy_resolver_ctx *ctx,
                 struct dp_resolver_data *data,
@@ -565,9 +565,7 @@ proxy_nets_info(TALLOC_CTX *mem_ctx,
         break;
 
     default:
-        dp_reply_std_set(&reply, EINVAL,
-                         "Invalid filter type");
-        return reply;
+        return ERR_INVALID_FILTER;
     }
 
     if (ret) {
@@ -577,12 +575,10 @@ proxy_nets_info(TALLOC_CTX *mem_ctx,
             be_mark_offline(be_ctx);
         }
 
-        dp_reply_std_set(&reply, ret, NULL);
-        return reply;
+        return ret;
     }
 
-    dp_reply_std_set(&reply, EOK, NULL);
-    return reply;
+    return EOK;
 }
 
 struct proxy_nets_handler_state {
@@ -597,6 +593,7 @@ proxy_nets_handler_send(TALLOC_CTX *mem_ctx,
 {
     struct proxy_nets_handler_state *state;
     struct tevent_req *req;
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state, struct proxy_nets_handler_state);
     if (req == NULL) {
@@ -604,10 +601,14 @@ proxy_nets_handler_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->reply = proxy_nets_info(state, resolver_ctx, resolver_data,
-                                   params->be_ctx, params->be_ctx->domain);
+    ret = proxy_nets_info(state, resolver_ctx, resolver_data,
+                          params->be_ctx, params->be_ctx->domain);
 
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
     return tevent_req_post(req, params->ev);
 }
 

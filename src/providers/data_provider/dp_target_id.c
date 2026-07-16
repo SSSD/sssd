@@ -1057,10 +1057,7 @@ default_account_domain_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    dp_reply_std_set(&state->reply,
-                     ERR_GET_ACCT_DOM_NOT_SUPPORTED,
-                     NULL);
-    tevent_req_done(req);
+    tevent_req_error(req, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
     tevent_req_post(req, params->ev);
     return req;
 }
