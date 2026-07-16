@@ -89,12 +89,16 @@ def test_identity__lookup_uid_with_id_command(client: Client, provider: GenericP
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 <<<<<<< HEAD
+<<<<<<< HEAD
 def test_identity__lookup_groupname_with_getent(client: Client, provider: GenericProvider):
 =======
 def test_identity__lookup_groupname_with_getent(
     client: Client, provider: GenericProvider, parameterize_group_name: str
 ):
 >>>>>>> 8c6fcf1c8 (Revert "tests: removing multihost tests that have been rewritten")
+=======
+def test_identity__lookup_groupname_with_getent(client: Client, provider: GenericProvider):
+>>>>>>> cf19b165c (Revert "tests: parametrizing group lookup by names test")
     """
     :title: Resolve group by name with getent
     :setup:
@@ -109,6 +113,7 @@ def test_identity__lookup_groupname_with_getent(
     :customerscenario: False
     """
 <<<<<<< HEAD
+<<<<<<< HEAD
     ids = [("group1", 10001), ("group2", 10002), ("group3", 10003)]
     for group, id in ids:
         provider.group(group).add(gid=id)
@@ -119,6 +124,11 @@ def test_identity__lookup_groupname_with_getent(
     for group_name, id in ids:
         provider.group(parameterize_group_name).add(gid=id)
 >>>>>>> 8c6fcf1c8 (Revert "tests: removing multihost tests that have been rewritten")
+=======
+    ids = [("group1", 10001), ("group2", 10002), ("group3", 10003)]
+    for group, id in ids:
+        provider.group(group).add(gid=id)
+>>>>>>> cf19b165c (Revert "tests: parametrizing group lookup by names test")
 
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
