@@ -1,6 +1,6 @@
 # **Reporting a Security Vulnerability or Incident**
 
-Please do not report security vulnerabilities or security incidents via public channels (such as GitHub Issues or Pull Requests, GitLab Merge Requests). To ensure coordinated disclosure, submit your findings via email to: `<!-- security@project.com -->`
+Please do not report security vulnerabilities or security incidents via public channels (such as GitHub Issues or Pull Requests, GitLab Merge Requests). To ensure coordinated disclosure, submit your findings via email to: secalert@redhat.com
 
 ## **Submission Guidelines**
 
@@ -17,7 +17,7 @@ To help us triage and resolve the issue efficiently, please include the followin
 
 ## **Response Timeline**
 
-We aim to provide an initial acknowledgement of your report within `<!-- suggested: 1 day -->` .
+We aim to provide an initial acknowledgement of your report within 3 days.
 
 Our goal is to assess the report, coordinate fix and disclosure as quickly as possible. All confirmed security vulnerabilities and incidents will be addressed according to severity level and impact on the project.
 
@@ -25,16 +25,12 @@ Our goal is to assess the report, coordinate fix and disclosure as quickly as po
 
 Direct all security questions and vulnerability reports to:
 
-- **Email**: `<!-- security@project.com -->`
-- `<!-- optional -->` **GPG key ID**:
-
-## **Security Policy**
-
-- `<!-- Link/text of project-specific vulnerability management and incident response policy. It can be located at the project website, docs pages. -->`
+- **Email**: secalert@redhat.com
+- Further details **GPG key ID** and fingerprint: https://access.redhat.com/security/team/contact
 
 ## **Supported Versions**
 
-We regularly perform patch releases for the supported latest version `<!-- Link to the latest version/build location/latest tag -->`, which contains fixes for relevant security vulnerabilities and important bugs. Prior releases might receive critical security fixes on a best-effort basis. However, we cannot guarantee that security fixes will get back-ported to these unsupported versions, unless stated otherwise in our support  matrix `<!-- Link/text to the actual support matrix. -->`
+We regularly perform patch releases for the supported latest version `<!-- Link to the latest version/build location/latest tag -->`, which contains fixes for relevant security vulnerabilities and important bugs. Prior releases might receive critical security fixes on a best-effort basis. However, we cannot guarantee that security fixes will get back-ported to these unsupported versions.
 
 ## **EU Cyber Resilience Act — Open Source Steward Statement**
 
