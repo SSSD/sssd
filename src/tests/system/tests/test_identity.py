@@ -88,7 +88,13 @@ def test_identity__lookup_uid_with_id_command(client: Client, provider: GenericP
 
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+<<<<<<< HEAD
 def test_identity__lookup_groupname_with_getent(client: Client, provider: GenericProvider):
+=======
+def test_identity__lookup_groupname_with_getent(
+    client: Client, provider: GenericProvider, parameterize_group_name: str
+):
+>>>>>>> 8c6fcf1c8 (Revert "tests: removing multihost tests that have been rewritten")
     """
     :title: Resolve group by name with getent
     :setup:
@@ -102,9 +108,17 @@ def test_identity__lookup_groupname_with_getent(client: Client, provider: Generi
         2. Results have the correct names and GIDs
     :customerscenario: False
     """
+<<<<<<< HEAD
     ids = [("group1", 10001), ("group2", 10002), ("group3", 10003)]
     for group, id in ids:
         provider.group(group).add(gid=id)
+=======
+    if provider.name == "ipa" and parameterize_group_name != "group1":
+        pytest.skip("Skipping test for IPA provider, the characters in the name are not supported!")
+    ids = [(parameterize_group_name, 10001), ("group2", 10002), ("group3", 10003)]
+    for group_name, id in ids:
+        provider.group(parameterize_group_name).add(gid=id)
+>>>>>>> 8c6fcf1c8 (Revert "tests: removing multihost tests that have been rewritten")
 
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
