@@ -254,7 +254,7 @@ class Testautofsresponder(object):
                                             "/etc/exports")
         start_nfs = 'systemctl start nfs-server'
         multihost.master[0].run_command(start_nfs)
-        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
