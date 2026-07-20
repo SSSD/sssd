@@ -38,7 +38,7 @@ class TestSudo(object):
         tools = sssdTools(multihost.client[0])
         # remove sssd cache
         tools.remove_sss_cache('/var/lib/sss/db/')
-        ldap_uri = 'ldap://%s' % multihost.master[0].sys_hostname
+        ldap_uri = 'ldap://%s' % multihost.master[0].ip
         sssd_params = {'services': 'nss, pam, sudo'}
         tools.sssd_conf('sssd', sssd_params)
         ldap_params = {'ldap_uri': ldap_uri}
@@ -91,7 +91,7 @@ class TestSudo(object):
         multihost.client[0].service_sssd('stop')
         tools.remove_sss_cache('/var/lib/sss/db/')
         sudo_base = 'ou=sudoers,dc=example,dc=test'
-        sudo_uri = "ldap://%s" % multihost.master[0].sys_hostname
+        sudo_uri = "ldap://%s" % multihost.master[0].ip
         params = {'ldap_sudo_search_base': sudo_base,
                   'ldap_uri': sudo_uri, 'sudo_provider': "ldap"}
         domain_section = 'domain/%s' % ds_instance_name
@@ -147,7 +147,7 @@ class TestSudo(object):
         tools.remove_sss_cache('/var/lib/sss/db')
         tools.remove_sss_cache('/var/log/sssd')
         sudo_base = 'ou=sudoers,%s' % (ds_suffix)
-        sudo_uri = "ldap://%s" % multihost.master[0].sys_hostname
+        sudo_uri = "ldap://%s" % multihost.master[0].ip
         params = {'ldap_sudo_search_base': sudo_base,
                   'ldap_uri': sudo_uri,
                   'sudo_provider': "ldap",
