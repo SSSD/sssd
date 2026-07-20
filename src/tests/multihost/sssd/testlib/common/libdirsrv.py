@@ -98,6 +98,21 @@ class DirSrv(object):
         Exceptions:
              subprocess.CalledProcessError:
         """
+        # Leftover instances (e.g. after a failed fixture) block dscreate.
+        check_inst = self.multihost.run_command(
+            ['/usr/bin/ls', self.dsinst_path], raiseonerr=False)
+        if check_inst.returncode == 0:
+            self.multihost.log.info(
+                'DS instance %s already exists; removing before setup'
+                % self.instance_name)
+            try:
+                # dsctl expects the short instance name (not slapd-*).
+                self.remove_ds(self.instance_name)
+            except subprocess.CalledProcessError:
+                self.multihost.log.info(
+                    "Failed to remove existing %s instance" % self.instance_name)
+                raise
+
         self.multihost.transport.put_file(ds_cfg_file, '/tmp/test.cfg')
         setup_cmd = 'dscreate -v from-file %s' % '/tmp/test.cfg'
         try:
@@ -344,7 +359,11 @@ class DirSrvWrap(object):
         self.dirsrv_obj = None
         self.ds_instance_name = None
         self.multihost = multihost_obj
+        # Hostname for dscreate full_machine_name / cert nicks on the SUT.
         self.ds_instance_host = self.multihost.sys_hostname
+        # IP for controller-side LDAP and port probes (lab FQDNs may not
+        # resolve on the pytest controller).
+        self.ds_connect_host = self.multihost.ip or self.ds_instance_host
         self.client_host = client_obj
         self.ds_instance_suffix = None
         self.ds_rootdn_pwd = None
@@ -475,7 +494,7 @@ class DirSrvWrap(object):
         sock_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock_obj.settimeout(1)
         try:
-            sock_obj.connect((self.ds_instance_host, port))
+            sock_obj.connect((self.ds_connect_host, port))
         except socket.error as err:
             print("fail to connect to port %s due to error %r" % (port,
                                                                   err.errno))
@@ -487,21 +506,22 @@ class DirSrvWrap(object):
     def _validate_options(self):
         """verify if the instance directory already exists.
 
+        Leftover instances are removed in DirSrv.setup_ds(); log only here
+        so create_ds_instance can proceed to a clean recreate.
+
         Args:
             None
 
         Returns:
             None
-
-        Exceptions:
-            DirSrvException: if instance directory already exists
         """
         check_instance = ['/usr/bin/ls', '/etc/dirsrv/slapd-%s' %
                           self.ds_instance_name]
         output = self.multihost.run_command(check_instance, raiseonerr=False)
         if output.returncode == 0:
-            raise DirSrvException('%s Instance already exists' %
-                                  self.ds_instance_name)
+            self.multihost.log.info(
+                '%s instance already exists; setup_ds will replace it'
+                % self.ds_instance_name)
 
     def create_ds_instance(self,
                            inst_name,
@@ -544,7 +564,7 @@ class DirSrvWrap(object):
             except subprocess.CalledProcessError:
                 raise DirSrvException('Failed to setup Directory server')
             self.dirsrv_info[self.ds_instance_name] = self.dirsrv_obj.__dict__
-            ldap_uri = 'ldap://%s:%r' % (self.ds_instance_host,
+            ldap_uri = 'ldap://%s:%r' % (self.ds_connect_host,
                                          self.ds_ldap_port)
             try:
                 self.dirsrv_obj.enable_anonymous_search(ldap_uri)
@@ -593,7 +613,7 @@ class DirSrvWrap(object):
                 self.multihost.log.info('Added %s port to ldap_port_t' %
                                         self.ds_tls_port)
         try:
-            self.dirsrv_obj.enable_ssl('ldap://%s:%r' % (self.ds_instance_host,
+            self.dirsrv_obj.enable_ssl('ldap://%s:%r' % (self.ds_connect_host,
                                                          self.ds_ldap_port),
                                        self.ds_tls_port)
         except LdapException:
