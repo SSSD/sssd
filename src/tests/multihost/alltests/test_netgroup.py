@@ -121,7 +121,7 @@ class TestNetgroup(object):
         getent_cmd = "getent netgroup netgroup_1"
         multihost.client[0].run_command(getent_cmd)
         shortname = multihost.client[0].sys_hostname.strip().split('.')[0]
-        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)

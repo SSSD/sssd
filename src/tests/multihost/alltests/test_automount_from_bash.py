@@ -109,7 +109,7 @@ def create_users(multihost, request):
     client.run_command("cp -f /etc/nsswitch.conf /etc/nsswitch.conf.backup")
     client.run_command("cp -f /etc/sysconfig/autofs /etc/sysconfig/autofs_bkp")
     client.run_command("sed --follow-symlinks -i 's/automount:  files/automount:  sss files/g' /etc/nsswitch.conf")
-    ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
+    ldap_uri = f'ldap://{multihost.master[0].ip}'
     ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
     ldap_inst.org_unit("mount", ds_suffix)
     user_dn = f'nisMapName=auto.master,ou=mount,{ds_suffix}'
@@ -590,7 +590,7 @@ class TestAutoFs(object):
         assert f"{master_server}:/export/projects" in cmd.stdout_text
         find_logs(multihost, log_sssd, f"Searching for automount map entries with base [ou=mount,{ds_suffix}]")
         client.run_command("umount -v /folder1/folder2/projects")
-        ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
+        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
         modify_gid = [(ldap.MOD_REPLACE, 'nisMapEntry',
                        f'-fstype=nfs,rw {master_server}:/export/projects_new'.encode('utf-8'))]
@@ -642,7 +642,7 @@ class TestAutoFs(object):
         client = multihost.client[0]
         log_sssd = f'/var/log/sssd/sssd_{ds_instance_name}.log'
         master_server = multihost.master[0].sys_hostname
-        ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
+        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
         tools = sssdTools(multihost.client[0])
         tools.sssd_conf("domain/example1", {'entry_cache_autofs_timeout': "60"}, action='update')
@@ -706,7 +706,7 @@ class TestAutoFs(object):
         client = multihost.client[0]
         log_sssd = f'/var/log/sssd/sssd_{ds_instance_name}.log'
         master_server = multihost.master[0].sys_hostname
-        ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
+        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
         tools = sssdTools(multihost.client[0])
         tools.sssd_conf("domain/example1", {'entry_cache_autofs_timeout': "60"}, action='update')
@@ -789,7 +789,7 @@ class TestAutoFs(object):
         client = multihost.client[0]
         master_server = multihost.master[0].sys_hostname
         log_sssd = f'/var/log/sssd/sssd_{ds_instance_name}.log'
-        ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
+        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
         tools = sssdTools(multihost.client[0])
         tools.sssd_conf("domain/example1", {'entry_cache_autofs_timeout': "60"}, action='update')
@@ -885,7 +885,7 @@ class TestAutoFs(object):
         # maximum key name must be PATH MAX bz811987
         client = multihost.client[0]
         master_server = multihost.master[0].sys_hostname
-        ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
+        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
         tools = sssdTools(multihost.client[0])
         tools.sssd_conf("domain/example1", {'entry_cache_autofs_timeout': "60"}, action='update')
@@ -930,7 +930,7 @@ class TestAutoFs(object):
         # SSSD frequently fails to return automount maps from LDAP bz967636
         client = multihost.client[0]
         master_server = multihost.master[0].sys_hostname
-        ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
+        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
         # sssd automount maps from LDAP test BZ 967636
         client.run_command("service autofs restart")

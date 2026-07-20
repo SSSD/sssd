@@ -23,7 +23,7 @@ def usr_grp(multihost, obj_info, type):
         :return: None
         :exception: LdapException
     """
-    ldap_uri = f'ldap://{multihost.master[0].sys_hostname}'
+    ldap_uri = f'ldap://{multihost.master[0].ip}'
     ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
     krb = krb5srv(multihost.master[0], 'EXAMPLE.TEST')
     if type == 'user':
