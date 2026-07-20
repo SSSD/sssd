@@ -193,7 +193,7 @@ class TestMisc(object):
          https://bugzilla.redhat.com/show_bug.cgi?id=1660693
         """
         multihost.client[0].service_sssd('restart')
-        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
@@ -245,7 +245,7 @@ class TestMisc(object):
                          'ldap_group_member': 'uniquemember'}
         client.sssd_conf(f'domain/{domain_name}', domain_params)
         multihost.client[0].service_sssd('restart')
-        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
@@ -541,7 +541,7 @@ class TestMisc(object):
         client = multihost.client[0]
         multihost.client[0].run_command("modprobe sch_netem")
         log_nss = '/var/log/sssd/sssd_nss.log'
-        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
         ldap_inst.org_unit("Netgroup", ds_suffix)
         user_dn = f'cn=netgrp_nowait,ou=Netgroup,{ds_suffix}'
