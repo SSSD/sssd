@@ -16,7 +16,8 @@ from sssd_test_framework.topology import KnownTopology
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize("responder", ["nss", "pam", "ssh"])
-def test_socket__responders__socket_activation_lifecycle(client: Client, provider: GenericProvider, responder: str):
+# PR:https://github.com/SSSD/sssd/pull/8006 was not back ported to sssd-2-10
+def _socket__responders__socket_activation_lifecycle(client: Client, provider: GenericProvider, responder: str):
     """
     :title: Socket-Activated Responder Lifecycle
     :description: |
