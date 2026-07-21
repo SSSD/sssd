@@ -313,6 +313,7 @@ sss_failover_vtable_op_refresh_candidates(struct tevent_req *req)
     if (state->candidates_refreshed) {
         /* We already refreshed the candidates. */
         DEBUG(SSSDBG_TRACE_FUNC, "Refresh did not find any working server\n");
+        sss_failover_mark_offline(state->fctx);
         return ERR_NO_MORE_SERVERS;
     }
 
