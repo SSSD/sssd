@@ -67,6 +67,20 @@ struct sss_failover_options {
     unsigned int negative_dns_srv_ttl;
 };
 
+enum sss_failover_state {
+    /* Not connected to any server, but this is not an error. There was no
+     * connection attempt yet or the active server was gracefully
+     * disconnected. */
+    SSS_FAILOVER_STATE_DISCONNECTED,
+
+    /* Connected and online. There is a working connection. */
+    SSS_FAILOVER_STATE_CONNECTED,
+
+    /* There is no working connection and no more servers to try. All servers
+     * are down. */
+    SSS_FAILOVER_STATE_OFFLINE
+};
+
 struct sss_failover_ctx {
     struct tevent_context *ev;
     char *name;
@@ -94,6 +108,9 @@ struct sss_failover_ctx {
     /* Currently active server. */
     struct sss_failover_server *active_server;
 
+    /* Current failover connection state. */
+    enum sss_failover_state state;
+
     /* Backend specific established connection. */
     void *connection;
 
@@ -118,6 +135,25 @@ sss_failover_init(TALLOC_CTX *mem_ctx,
                   const char *name,
                   struct resolv_ctx *resolver_ctx,
                   enum restrict_family family_order);
+
+/**
+ * @brief Mark the failover as offline - there are no available servers.
+ *
+ * This will clear the active server and set fctx state to
+ * SSS_FAILOVER_STATE_OFFLINE.
+ *
+ * @param fctx
+ */
+void
+sss_failover_mark_offline(struct sss_failover_ctx *fctx);
+
+/**
+ * @brief Return true if failover is offline.
+ *
+ * @param fctx
+ */
+bool
+sss_failover_is_offline(struct sss_failover_ctx *fctx);
 
 /**
  * @brief Set active server.
