@@ -56,7 +56,13 @@ sss_failover_vtable_op_pick_server(TALLOC_CTX *mem_ctx,
         }
 
         if (sss_failover_server_maybe_working(server)) {
-            return talloc_reference(mem_ctx, server);
+            server = talloc_reference(mem_ctx, server);
+            if (server == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+                return NULL;
+            }
+
+            return server;
         }
     }
 
@@ -498,12 +504,20 @@ sss_failover_vtable_op_recv(TALLOC_CTX *mem_ctx,
                             struct sss_failover_vtable_op_args **_args)
 {
     struct sss_failover_vtable_op_state *state = NULL;
+    struct sss_failover_server *server;
+
     state = tevent_req_data(req, struct sss_failover_vtable_op_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (_server != NULL) {
-        *_server = talloc_reference(mem_ctx, state->current_server);
+        server = talloc_reference(mem_ctx, state->current_server);
+        if (server == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+            return ENOMEM;
+        }
+
+        *_server = server;
     }
 
     if (_args != NULL) {
