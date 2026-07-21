@@ -137,6 +137,7 @@ sss_failover_init(TALLOC_CTX *mem_ctx,
 
     /* We are not connected to any server yet. */
     fctx->active_server = NULL;
+    fctx->state = SSS_FAILOVER_STATE_DISCONNECTED;
 
     fctx->vtable = talloc_zero(fctx, struct sss_failover_vtable);
     if (fctx->vtable == NULL) {
@@ -165,6 +166,21 @@ done:
 }
 
 void
+sss_failover_mark_offline(struct sss_failover_ctx *fctx)
+{
+    sss_failover_set_active_server(fctx, NULL);
+
+    DEBUG(SSSDBG_OP_FAILURE, "Failover [%s] is going offline\n", fctx->name);
+    fctx->state = SSS_FAILOVER_STATE_OFFLINE;
+}
+
+bool
+sss_failover_is_offline(struct sss_failover_ctx *fctx)
+{
+    return fctx->state == SSS_FAILOVER_STATE_OFFLINE;
+}
+
+void
 sss_failover_set_active_server(struct sss_failover_ctx *fctx,
                                struct sss_failover_server *server)
 {
@@ -178,6 +194,14 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
               fctx->active_server->name);
 
         talloc_unlink(fctx, fctx->active_server);
+    }
+
+    if (server == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Setting active server to NULL (we are not connected)\n");
+        sss_failover_set_connection(fctx, NULL);
+        fctx->active_server = NULL;
+        return;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Setting new active server %s\n", server->name);
@@ -199,8 +223,16 @@ sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
         talloc_unlink(fctx, fctx->connection);
     }
 
+    if (connection == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Removing connection\n");
+        fctx->connection = NULL;
+        fctx->state = SSS_FAILOVER_STATE_DISCONNECTED;
+        return;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Setting new connection %p\n", connection);
     fctx->connection = talloc_steal(fctx, connection);
+    fctx->state = SSS_FAILOVER_STATE_CONNECTED;
 }
 
 void *
