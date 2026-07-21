@@ -71,6 +71,144 @@ static errno_t get_sdap_service(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+/* Copied from sdap.c: these were made static there when the calls were
+ * moved into sdap_connect_send(). The minimal provider still needs them
+ * at init time for testing purposes. */
+static void sss_ldap_debug(const char *buf)
+{
+    sss_debug_fn(__FILE__, __LINE__, __FUNCTION__, SSSDBG_TRACE_ALL,
+                "libldap: %s", buf);
+}
+
+static void setup_ldap_debug(struct dp_option *basic_opts)
+{
+    int ret;
+    int ldap_debug_level;
+
+    ldap_debug_level = dp_opt_get_int(basic_opts, SDAP_LIBRARY_DEBUG_LEVEL);
+    if (ldap_debug_level == 0) {
+        return;
+    }
+
+    DEBUG(SSSDBG_CONF_SETTINGS, "Setting LDAP library debug level [%d].\n",
+                                ldap_debug_level);
+
+    ret = ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug_level);
+    if (ret != LBER_OPT_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to set LBER_OPT_DEBUG_LEVEL, ignored .\n");
+    }
+
+    ret = ber_set_option(NULL,  LBER_OPT_LOG_PRINT_FN, sss_ldap_debug);
+    if (ret != LBER_OPT_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to set LBER_OPT_LOG_PRINT_FN, ignored .\n");
+    }
+
+    ret = ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &ldap_debug_level);
+    if (ret != LDAP_OPT_SUCCESS) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to set LDAP_OPT_DEBUG_LEVEL, ignored .\n");
+    }
+}
+
+static errno_t setup_tls_config(struct dp_option *basic_opts)
+{
+    int ret;
+    int ldap_opt_x_tls_require_cert;
+    const char *tls_opt;
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_REQCERT);
+    if (tls_opt) {
+        if (strcasecmp(tls_opt, "never") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_NEVER;
+        }
+        else if (strcasecmp(tls_opt, "allow") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_ALLOW;
+        }
+        else if (strcasecmp(tls_opt, "try") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_TRY;
+        }
+        else if (strcasecmp(tls_opt, "demand") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_DEMAND;
+        }
+        else if (strcasecmp(tls_opt, "hard") == 0) {
+            ldap_opt_x_tls_require_cert = LDAP_OPT_X_TLS_HARD;
+        }
+        else {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Unknown value for tls_reqcert '%s'.\n", tls_opt);
+            return EINVAL;
+        }
+        /* LDAP_OPT_X_TLS_REQUIRE_CERT has to be set as a global option,
+         * because the SSL/TLS context is initialized from this value. */
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT,
+                              &ldap_opt_x_tls_require_cert);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ldap_set_option(req_cert) failed: %s\n",
+                  sss_ldap_err2string(ret));
+            return EIO;
+        }
+    }
+
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_CACERT);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTFILE, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ldap_set_option(cacertfile) failed: %s\n",
+                  sss_ldap_err2string(ret));
+            return EIO;
+        }
+    }
+
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_CACERTDIR);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CACERTDIR, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ldap_set_option(cacertdir) failed: %s\n",
+                  sss_ldap_err2string(ret));
+            return EIO;
+        }
+    }
+
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_CERT);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CERTFILE, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ldap_set_option(certfile) failed: %s\n",
+                  sss_ldap_err2string(ret));
+            return EIO;
+        }
+    }
+
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_KEY);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_KEYFILE, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ldap_set_option(keyfile) failed: %s\n",
+                  sss_ldap_err2string(ret));
+            return EIO;
+        }
+    }
+
+    tls_opt = dp_opt_get_string(basic_opts, SDAP_TLS_CIPHER_SUITE);
+    if (tls_opt) {
+        ret = ldap_set_option(NULL, LDAP_OPT_X_TLS_CIPHER_SUITE, tls_opt);
+        if (ret != LDAP_OPT_SUCCESS) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "ldap_set_option(cipher) failed: %s\n",
+                  sss_ldap_err2string(ret));
+            return EIO;
+        }
+    }
+
+    return EOK;
+}
+
 /* Copied from ldap_init.c with some changes
  * removing calls to
  * - sdap_gssapi_init()
