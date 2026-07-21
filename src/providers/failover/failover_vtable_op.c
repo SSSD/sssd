@@ -38,6 +38,11 @@ sss_failover_vtable_op_pick_server(TALLOC_CTX *mem_ctx,
 
     /* Total count of elements. */
     count = talloc_array_length(fctx->candidates->servers) - 1;
+    if (count == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Candidates servers count can not be zero\n");
+        return NULL;
+    }
 
     start = sss_rand() % count;
     for (size_t i = 0; i < count; i++) {
