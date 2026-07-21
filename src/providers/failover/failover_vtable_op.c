@@ -324,7 +324,6 @@ sss_failover_vtable_op_refresh_candidates(struct tevent_req *req)
     if (state->candidates_refreshed) {
         /* We already refreshed the candidates. */
         DEBUG(SSSDBG_TRACE_FUNC, "Refresh did not find any working server\n");
-        sss_failover_mark_offline(state->fctx);
         return ERR_NO_MORE_SERVERS;
     }
 
@@ -471,9 +470,6 @@ static void sss_failover_vtable_op_done(struct tevent_req *subreq)
     case EOK:
         /* The operation was successful. */
         sss_failover_server_mark_working(state->current_server);
-
-        /* Remember this server. */
-        sss_failover_set_active_server(state->fctx, state->current_server);
         break;
     case ENOMEM:
         /* There is no reason to retry if we our out of memory. */

@@ -36,7 +36,7 @@ sss_failover_transaction_send(TALLOC_CTX *mem_ctx,
 }
 
 struct sss_failover_transaction_connected_state {
-    struct sss_failover_ctx *fctx;
+    void *connection;
 };
 
 struct sss_failover_transaction_state {
@@ -69,7 +69,6 @@ struct sss_failover_transaction_state {
     /* Connection information. */
     struct sss_failover_server *current_server;
     time_t kinit_expiration_time;
-    void *connection;
 };
 
 static errno_t
@@ -165,7 +164,6 @@ sss_failover_transaction_restart(struct tevent_req *req)
         ret = ENOMEM;
         goto done;
     }
-    connected_state->fctx = state->fctx;
 
     /* Create attempt req, this is used by the user as a replacement for
      * caller_req. The user will seamlessly call
@@ -269,6 +267,13 @@ sss_failover_transaction_kinit_done(struct tevent_req *subreq)
     if (ret == ERR_NO_MORE_SERVERS) {
         DEBUG(SSSDBG_OP_FAILURE,
               "There are no more servers to try, cancelling operation\n");
+
+        /* We need kinit to succeed to connect to the server. Let's mark the
+         * main (LDAP) connection as offline as well and reconnect when kinit is
+         * successful. */
+        sss_failover_mark_offline(state->fctx->kinit_ctx);
+        sss_failover_mark_offline(state->fctx);
+
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -322,12 +327,15 @@ static void
 sss_failover_transaction_connect_done(struct tevent_req *subreq)
 {
     struct sss_failover_transaction_state *state;
+    struct sss_failover_transaction_connected_state *connected_state;
     struct tevent_req *req;
     void *connection;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sss_failover_transaction_state);
+    connected_state = tevent_req_data(state->connected_req,
+                            struct sss_failover_transaction_connected_state);
 
     /* If successful, state->current_server is additional talloc_reference
      * to an active, connected server. */
@@ -338,6 +346,7 @@ sss_failover_transaction_connect_done(struct tevent_req *subreq)
     if (ret == ERR_NO_MORE_SERVERS) {
         DEBUG(SSSDBG_OP_FAILURE,
               "There are no more servers to try, cancelling operation\n");
+        sss_failover_mark_offline(state->fctx);
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -349,8 +358,18 @@ sss_failover_transaction_connect_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_FUNC, "Connected to %s, connection %p\n",
           state->current_server->name, connection);
 
-    sss_failover_set_active_server(state->fctx, state->current_server);
-    sss_failover_set_connection(state->fctx, connection);
+    /* Remember the server if we can reuse the connection. */
+    if (state->reuse_connection) {
+        sss_failover_set_active_server(state->fctx, state->current_server);
+        sss_failover_set_connection(state->fctx, connection);
+    }
+
+    connected_state->connection = talloc_reference(connected_state, connection);
+    if (connected_state->connection == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* We are connected. Now continue with connected_callback. */
     tevent_req_done(state->connected_req);
@@ -453,15 +472,21 @@ _sss_failover_transaction_connected_recv(TALLOC_CTX *mem_ctx,
                                         struct tevent_req *req)
 {
     struct sss_failover_transaction_connected_state *state;
-    void *connection;
+    void *conn;
 
     state = tevent_req_data(req,
                             struct sss_failover_transaction_connected_state);
 
-    connection = sss_failover_get_connection(mem_ctx, state->fctx);
-    if (connection == NULL) {
+    if (state->connection == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Bug: connection should not be NULL!\n");
+        return NULL;
     }
 
-    return connection;
+    conn = talloc_reference(mem_ctx, state->connection);
+    if (conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
+        return NULL;
+    }
+
+    return conn;
 }
