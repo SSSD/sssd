@@ -219,6 +219,10 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
 void
 sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
 {
+    if (fctx->connection == NULL && connection == NULL) {
+        return;
+    }
+
     if (fctx->connection != NULL) {
         if (connection == fctx->connection) {
             /* it is the same connection, nothing to do */
