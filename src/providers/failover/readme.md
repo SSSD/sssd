@@ -141,7 +141,7 @@ errno_t my_operation_recv(TALLOC_CTX *mem_ctx,
 * `ERR_SERVER_FAILURE` - Returning this error withing a failover transaction
   will retry the transaction with another server
 
-* `ERR_NO_MORE_SERVERS` - This is returned from the transaction if there are no
+* `ERR_OFFLINE` - This is returned from the transaction if there are no
   more servers to try
 
 ## Internals
