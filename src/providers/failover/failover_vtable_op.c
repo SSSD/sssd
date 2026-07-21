@@ -461,9 +461,7 @@ static void sss_failover_vtable_op_done(struct tevent_req *subreq)
         sss_failover_server_mark_working(state->current_server);
 
         /* Remember this server. */
-        talloc_unlink(state->fctx, state->fctx->active_server);
-        state->fctx->active_server = talloc_reference(state->fctx,
-                                                      state->current_server);
+        sss_failover_set_active_server(state->fctx, state->current_server);
         break;
     case ENOMEM:
         /* There is no reason to retry if we our out of memory. */
