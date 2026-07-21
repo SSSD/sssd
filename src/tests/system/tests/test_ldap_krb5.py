@@ -225,7 +225,9 @@ def test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms(
 @pytest.mark.importance("high")
 @pytest.mark.ticket(bz=847039)
 @pytest.mark.topology(KnownTopology.LDAP_KRB5)
-def test_ldap_krb5__user_can_login_when_kpasswd_cannot_be_resolved(client: Client, provider: GenericProvider, kdc: KDC):
+def test_ldap_krb5__user_can_login_when_kpasswd_cannot_be_resolved(
+    client: Client, provider: GenericProvider, kdc: KDC
+):
     """
     :title: Auth succeeds when krb5_kpasswd is unresolvable
 
@@ -318,8 +320,8 @@ def test_ldap_krb5__auth_and_logs_clean_with_setuid_minus_two_helper(
 
     try:
         assert client.tools.id("puser1"), "id failed while setuid helper is running!"
-        assert (
-            client.auth.ssh.password("puser1", "Secret123")
+        assert client.auth.ssh.password(
+            "puser1", "Secret123"
         ), "Auth failed while setuid((uid_t)-2) helper is running!"
 
         domain = client.sssd.default_domain
