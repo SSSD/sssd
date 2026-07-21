@@ -207,6 +207,12 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Setting new active server %s\n", server->name);
     fctx->active_server = talloc_reference(fctx, server);
+    if (fctx->active_server == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        fctx->state = SSS_FAILOVER_STATE_DISCONNECTED;
+        sss_failover_set_connection(fctx, NULL);
+        return;
+    }
     fctx->state = SSS_FAILOVER_STATE_CONNECTED;
 }
 
@@ -231,6 +237,15 @@ sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
         return;
     }
 
+    if (fctx->state != SSS_FAILOVER_STATE_CONNECTED) {
+        /* This may be a in the code bug or OOM scenario that we can't detect in
+         * caller to simplify the API. Let's be defensive here. */
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Trying to set connection without an active server, setting to NULL\n");
+        fctx->connection = NULL;
+        return;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Setting new connection %p\n", connection);
     fctx->connection = talloc_steal(fctx, connection);
 }
@@ -238,9 +253,17 @@ sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
 void *
 sss_failover_get_connection(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fctx)
 {
+    void *conn;
+
     if (fctx->connection == NULL) {
         return NULL;
     }
 
-    return talloc_reference(mem_ctx, fctx->connection);
+    conn = talloc_reference(mem_ctx, fctx->connection);
+    if (conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    return conn;
 }
