@@ -274,6 +274,9 @@ sss_failover_transaction_kinit_done(struct tevent_req *subreq)
         sss_failover_mark_offline(state->fctx->kinit_ctx);
         sss_failover_mark_offline(state->fctx);
 
+        /* Return ERR_OFFLINE to the caller. */
+        ret = ERR_OFFLINE;
+
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -347,6 +350,9 @@ sss_failover_transaction_connect_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE,
               "There are no more servers to try, cancelling operation\n");
         sss_failover_mark_offline(state->fctx);
+
+        /* Return ERR_OFFLINE to the caller. */
+        ret = ERR_OFFLINE;
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
