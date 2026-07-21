@@ -29,6 +29,8 @@
  * operation. Neither the caller nor the operation has to deal with any failover
  * mechanics.
  *
+ * ERR_OFFLINE is returned if there are no available servers.
+ *
  * The result of the operation can be received by
  * @sss_failover_transaction_recv.
  */
