@@ -78,27 +78,6 @@ enum sss_failover_vtable_op {
     SSS_FAILOVER_VTABLE_OP_CONNECT,
 };
 
-/**
- * @brief Issue vtable operation against specific server.
- *
- * The server state can be unknown, reachable or working. The server address
- * is guaranteed to be resolved.
- */
-typedef struct tevent_req *
-(*sss_failover_vtable_op_send_t)(TALLOC_CTX *mem_ctx,
-                                 struct sss_failover_ctx *fctx,
-                                 struct sss_failover_server *server);
-
-/**
- * @brief Receive operation result and point to its private data.
- *
- * The private data is then stored on the server structure by caller.
- */
-typedef errno_t
-(*sss_failover_vtable_op_recv_t)(TALLOC_CTX *mem_ctx,
-                                 struct tevent_req *,
-                                 void **_op_private_data);
-
 struct sss_failover_vtable_op_args {
     union {
         struct {
