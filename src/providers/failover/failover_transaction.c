@@ -356,7 +356,6 @@ sss_failover_transaction_connect(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, "Trying to establish connection\n");
 
     subreq = sss_failover_vtable_op_connect_send(state, state->ev, state->fctx,
-                                                 state->reuse_connection,
                                                  state->authenticate_connection,
                                                  state->read_rootdse,
                                                  state->force_tls,
