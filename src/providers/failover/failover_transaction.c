@@ -72,6 +72,32 @@ struct sss_failover_transaction_state {
 };
 
 static errno_t
+sss_failover_transaction_finish_connection(
+    struct sss_failover_transaction_state *state,
+    struct sss_failover_server *server,
+    void *connection)
+{
+    struct sss_failover_transaction_connected_state *connected_state;
+
+    connected_state = tevent_req_data(state->connected_req,
+                            struct sss_failover_transaction_connected_state);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Connected to %s, connection %p\n",
+          server->name, connection);
+
+    connected_state->connection = talloc_reference(connected_state, connection);
+    if (connected_state->connection == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    /* We are connected. Now continue with connected_callback. */
+    tevent_req_done(state->connected_req);
+
+    return EOK;
+}
+
+static errno_t
 sss_failover_transaction_restart(struct tevent_req *req);
 
 static errno_t
@@ -211,6 +237,7 @@ sss_failover_transaction_next(struct tevent_req *req)
 {
     struct sss_failover_transaction_state *state;
     errno_t ret;
+    void *connection;
 
     state = tevent_req_data(req, struct sss_failover_transaction_state);
 
@@ -218,6 +245,22 @@ sss_failover_transaction_next(struct tevent_req *req)
     if (state->current_server != NULL) {
         talloc_unlink(state, state->current_server);
         state->current_server = NULL;
+    }
+
+    /* We can reuse existing connection. Let's see if there is one. */
+    if (state->reuse_connection && state->fctx->active_server != NULL) {
+        connection = sss_failover_get_connection(state, state->fctx);
+        if (connection != NULL) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Reusing active connection\n");
+            state->current_server = sss_failover_get_active_server(state,
+                                                                   state->fctx);
+            if (state->current_server == NULL) {
+                return ENOMEM;
+            }
+
+            return sss_failover_transaction_finish_connection(
+                state, state->current_server, connection);
+        }
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Trying to find a working server\n");
@@ -331,15 +374,12 @@ static void
 sss_failover_transaction_connect_done(struct tevent_req *subreq)
 {
     struct sss_failover_transaction_state *state;
-    struct sss_failover_transaction_connected_state *connected_state;
     struct tevent_req *req;
     void *connection;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sss_failover_transaction_state);
-    connected_state = tevent_req_data(state->connected_req,
-                            struct sss_failover_transaction_connected_state);
 
     /* If successful, state->current_server is additional talloc_reference
      * to an active, connected server. */
@@ -362,24 +402,16 @@ sss_failover_transaction_connect_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Connected to %s, connection %p\n",
-          state->current_server->name, connection);
-
     /* Remember the server if we can reuse the connection. */
     if (state->reuse_connection) {
         sss_failover_set_active_server(state->fctx, state->current_server);
         sss_failover_set_connection(state->fctx, connection);
     }
 
-    connected_state->connection = talloc_reference(connected_state, connection);
-    if (connected_state->connection == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    /* We are connected. Now continue with connected_callback. */
-    tevent_req_done(state->connected_req);
+    /* We are done. Finish the connection callback. */
+    ret = sss_failover_transaction_finish_connection(state,
+                                                     state->current_server,
+                                                     connection);
 
 done:
     if (ret != EOK) {
@@ -416,6 +448,13 @@ static void sss_failover_transaction_attempt_done(struct tevent_req *attempt_req
             /* Try next server. */
             if (treq_error == ERR_SERVER_FAILURE) {
                 sss_failover_server_mark_offline(state->current_server);
+
+                /* Remove the active server as it is not working anymore. This
+                 * also drops the connection. */
+                if (state->current_server == state->fctx->active_server) {
+                    sss_failover_set_active_server(state->fctx, NULL);
+                }
+
                 sss_failover_transaction_restart(req);
                 return;
             }
