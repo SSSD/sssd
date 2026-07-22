@@ -165,6 +165,19 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
                                struct sss_failover_server *server);
 
 /**
+ * @brief Get active server.
+ *
+ * The output is talloc_reference to the active server attached to mem_ctx.
+ *
+ * @param mem_ctx
+ * @param fctx
+ * @return struct sss_failover_server*
+ */
+struct sss_failover_server *
+sss_failover_get_active_server(TALLOC_CTX *mem_ctx,
+                               struct sss_failover_ctx *fctx);
+
+/**
  * @brief Set new connection, release old one.
  *
  * This is a noop if @connection and @fctx->connection is identical.
