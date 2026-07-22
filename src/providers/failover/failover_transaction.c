@@ -124,6 +124,7 @@ sss_failover_transaction_ex_send(TALLOC_CTX *mem_ctx,
     state->reuse_connection = reuse_connection;
     state->authenticate_connection = authenticate_connection;
     state->read_rootdse = read_rootdse;
+    state->force_tls = force_tls;
 
     state->caller_req = caller_req;
     state->caller_data = _tevent_req_data(caller_req);
