@@ -81,21 +81,13 @@ enum sss_failover_vtable_op {
 /**
  * @brief Issue vtable operation against specific server.
  *
- * The operation should check the @server state and shortcut if possible (for
- * example if the server is already connected and working). @addr_changed is
- * true if the server hostname resolved to different address then what is stored
- * (it was previously unresolved, or the DNS record has changed). The operation
- * should take this information into consideration (e.g. reconnect to the server
- * with new address).
- *
  * The server state can be unknown, reachable or working. The server address
  * is guaranteed to be resolved.
  */
 typedef struct tevent_req *
 (*sss_failover_vtable_op_send_t)(TALLOC_CTX *mem_ctx,
                                  struct sss_failover_ctx *fctx,
-                                 struct sss_failover_server *server,
-                                 bool addr_changed);
+                                 struct sss_failover_server *server);
 
 /**
  * @brief Receive operation result and point to its private data.
@@ -110,7 +102,6 @@ typedef errno_t
 struct sss_failover_vtable_op_args {
     union {
         struct {
-            bool reuse_connection;
             bool authenticate_connection;
             bool read_rootdse;
             enum sss_failover_transaction_tls force_tls;
@@ -156,8 +147,7 @@ static void
 sss_failover_vtable_op_server_resolved(struct tevent_req *subreq);
 
 static struct tevent_req *
-sss_failover_vtable_op_subreq_send(struct sss_failover_vtable_op_state *state,
-                                   bool addr_changed);
+sss_failover_vtable_op_subreq_send(struct sss_failover_vtable_op_state *state);
 
 static errno_t
 sss_failover_vtable_op_subreq_recv(TALLOC_CTX *mem_ctx,
@@ -294,8 +284,6 @@ sss_failover_vtable_op_server_next(struct tevent_req *req)
                 state->current_server->name);
     }
 
-    /* TODO shortcut if already connected */
-
     /* First resolve the hostname. */
     DEBUG(SSSDBG_TRACE_FUNC, "Resolving hostname of %s\n",
           state->current_server->name);
@@ -375,13 +363,12 @@ sss_failover_vtable_op_server_resolved(struct tevent_req *subreq)
 {
     struct sss_failover_vtable_op_state *state;
     struct tevent_req *req;
-    bool addr_changed;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sss_failover_vtable_op_state);
 
-    ret = sss_failover_server_resolve_recv(subreq, &addr_changed);
+    ret = sss_failover_server_resolve_recv(subreq, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -395,7 +382,7 @@ sss_failover_vtable_op_server_resolved(struct tevent_req *subreq)
     /* Trigger the operation. */
     DEBUG(SSSDBG_TRACE_FUNC, "Name resolved, starting vtable operation\n");
 
-    subreq = sss_failover_vtable_op_subreq_send(state, addr_changed);
+    subreq = sss_failover_vtable_op_subreq_send(state);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
         ret = ENOMEM;
@@ -412,18 +399,16 @@ done:
 }
 
 static struct tevent_req *
-sss_failover_vtable_op_subreq_send(struct sss_failover_vtable_op_state *state,
-                                   bool addr_changed)
+sss_failover_vtable_op_subreq_send(struct sss_failover_vtable_op_state *state)
 {
     switch (state->operation) {
     case SSS_FAILOVER_VTABLE_OP_KINIT:
         return state->fctx->vtable->kinit.send(
-            state, state->ev, state->fctx, state->current_server, addr_changed,
+            state, state->ev, state->fctx, state->current_server,
             state->fctx->vtable->kinit.data);
     case SSS_FAILOVER_VTABLE_OP_CONNECT:
         return state->fctx->vtable->connect.send(
-            state, state->ev, state->fctx, state->current_server, addr_changed,
-            state->args->input.connect.reuse_connection,
+            state, state->ev, state->fctx, state->current_server,
             state->args->input.connect.authenticate_connection,
             state->args->input.connect.read_rootdse,
             state->args->input.connect.force_tls,
@@ -569,7 +554,6 @@ struct tevent_req *
 sss_failover_vtable_op_connect_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     struct sss_failover_ctx *fctx,
-                                    bool reuse_connection,
                                     bool authenticate_connection,
                                     bool read_rootdse,
                                     enum sss_failover_transaction_tls force_tls,
@@ -582,7 +566,6 @@ sss_failover_vtable_op_connect_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    args->input.connect.reuse_connection = reuse_connection;
     args->input.connect.authenticate_connection = authenticate_connection;
     args->input.connect.read_rootdse = read_rootdse;
     args->input.connect.force_tls = force_tls;

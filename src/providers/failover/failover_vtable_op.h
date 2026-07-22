@@ -88,7 +88,6 @@ sss_failover_vtable_op_kinit_recv(TALLOC_CTX *mem_ctx,
  * @param mem_ctx
  * @param ev
  * @param fctx
- * @param reuse_connection
  * @param authenticate_connection
  * @param read_rootdse
  * @param force_tls
@@ -99,7 +98,6 @@ struct tevent_req *
 sss_failover_vtable_op_connect_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     struct sss_failover_ctx *fctx,
-                                    bool reuse_connection,
                                     bool authenticate_connection,
                                     bool read_rootdse,
                                     enum sss_failover_transaction_tls force_tls,
