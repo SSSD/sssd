@@ -140,6 +140,11 @@ struct sss_failover_server *
 sss_failover_server_clone(TALLOC_CTX *mem_ctx,
                           const struct sss_failover_server *srv);
 
+/**
+ * @brief Return true if the server is marked as working.
+ */
+bool
+sss_failover_server_is_working(struct sss_failover_server *srv);
 
 /**
  * @brief Return true if server state suggest that the server may work.
