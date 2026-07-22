@@ -2163,8 +2163,8 @@ done:
 #endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
 }
 
-#define SC_PROMPT_FMT "PIN for %s: "
-#define SC_KEYPAD_FMT "Use external keypad to enter PIN for %s"
+#define SC_PROMPT_FMT "PIN for"
+#define SC_KEYPAD_FMT "Use external keypad to enter PIN for"
 
 #ifndef discard_const
 #define discard_const(ptr) ((void *)((uintptr_t)(ptr)))
@@ -2357,7 +2357,10 @@ static int prompt_multi_cert(pam_handle_t *pamh, struct pam_items *pi)
 
 #define SC_INSERT_PROMPT _("Please (re)insert (different) Smartcard")
 
-static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
+static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi,
+                         const char *sc_pin_prompt,
+                         const char *sc_keypad_prompt,
+                         enum prompt_user_name_hint user_name_hint)
 {
     int ret;
     char *answer = NULL;
@@ -2377,10 +2380,17 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
                     || *cai->token_name == '\0') {
         return PAM_SYSTEM_ERR;
     } else {
-        ret = asprintf(&prompt,
-                       cai->has_protected_authentication_path ? SC_KEYPAD_FMT
-                                                              : SC_PROMPT_FMT,
-                       cai->token_name);
+        if (cai->has_protected_authentication_path) {
+            ret = asprintf(&prompt, "%s %s",
+                           sc_keypad_prompt == NULL ? SC_KEYPAD_FMT
+                                                    : sc_keypad_prompt,
+                           cai->token_name);
+        } else {
+            ret = asprintf(&prompt, "%s %s: ",
+                           sc_pin_prompt == NULL ? SC_PROMPT_FMT
+                                                 : sc_pin_prompt,
+                           cai->token_name);
+        }
         has_protected_authentication_path = cai->has_protected_authentication_path;
     }
 
@@ -2396,7 +2406,11 @@ static int prompt_sc_pin(pam_handle_t *pamh, struct pam_items *pi)
         }
     }
 
-    if (pi->user_name_hint) {
+    /* pi->user_name_hint is the server-side setting while user_name_hint
+     * correspond to the local prompting configuration in sssd.conf. The local
+     * setting will overwrite the server-side setting. */
+    if ((pi->user_name_hint && user_name_hint == USER_NAME_HINT_NOT_SET)
+            || user_name_hint == USER_NAME_HINT_TRUE) {
         ret = pam_get_item(pamh, PAM_CONV, (const void **)&conv);
         if (ret != PAM_SUCCESS) {
             free(prompt);
@@ -2705,7 +2719,21 @@ static int prompt_by_config(pam_handle_t *pamh, struct pam_items *pi)
                                 pc_get_oauth2_inter_prompt(pi->pc[c]));
             break;
         case PC_TYPE_SMARTCARD:
-            ret = prompt_sc_pin(pamh, pi);
+            if (pi->cert_list->next == NULL) {
+                /* Only one certificate */
+                pi->selected_cert = pi->cert_list;
+            } else {
+                ret = prompt_multi_cert(pamh, pi);
+                if (ret != 0) {
+                    D(("Failed to select certificate"));
+                    return PAM_AUTHTOK_ERR;
+                }
+            }
+
+            ret = prompt_sc_pin(pamh, pi,
+                                pc_get_smartcard_pin_prompt(pi->pc[c]),
+                                pc_get_smartcard_keypad_prompt(pi->pc[c]),
+                                pc_get_smartcard_user_name_hint_prompt(pi->pc[c]));
             /* Todo: add extra string option */
             break;
         default:
@@ -2759,11 +2787,13 @@ static int get_authtok_for_authentication(pam_handle_t *pamh,
                         return PAM_AUTHTOK_ERR;
                     }
                 }
-                ret = prompt_sc_pin(pamh, pi);
+                ret = prompt_sc_pin(pamh, pi, NULL, NULL,
+                                    USER_NAME_HINT_NOT_SET);
             } else if (SERVICE_IS_GDM_SMARTCARD(pi)
                     || (pi->flags & PAM_CLI_FLAGS_REQUIRE_CERT_AUTH)) {
                /* Use pin prompt as fallback for gdm-smartcard */
-                ret = prompt_sc_pin(pamh, pi);
+                ret = prompt_sc_pin(pamh, pi, NULL, NULL,
+                                    USER_NAME_HINT_NOT_SET);
             } else if (flags & PAM_CLI_FLAGS_USE_2FA
                     || (pi->otp_vendor != NULL && pi->otp_token_id != NULL
                             && pi->otp_challenge != NULL)) {

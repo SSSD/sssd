@@ -48,6 +48,8 @@ struct prompt_config_passkey {
 struct prompt_config_smartcard {
     char *prompt_init;
     char *prompt_pin;
+    char *prompt_keypad;
+    enum prompt_user_name_hint user_name_hint;
 };
 
 struct prompt_config_eidp {
@@ -160,6 +162,23 @@ const char *pc_get_smartcard_pin_prompt(struct prompt_config *pc)
     return NULL;
 }
 
+const char *pc_get_smartcard_keypad_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_SMARTCARD)) {
+        return pc->data.smartcard.prompt_keypad;
+    }
+    return NULL;
+}
+
+enum prompt_user_name_hint
+pc_get_smartcard_user_name_hint_prompt(struct prompt_config *pc)
+{
+    if (pc != NULL && (pc_get_type(pc) == PC_TYPE_SMARTCARD)) {
+        return pc->data.smartcard.user_name_hint;
+    }
+    return USER_NAME_HINT_NOT_SET;
+}
+
 const char *pc_get_oauth2_inter_prompt(struct prompt_config *pc)
 {
     if (pc != NULL && (pc_get_type(pc) == PC_TYPE_OAUTH2)) {
@@ -224,6 +243,8 @@ static void pc_free_smartcard(struct prompt_config *pc)
         pc->data.smartcard.prompt_init = NULL;
         free(pc->data.smartcard.prompt_pin);
         pc->data.smartcard.prompt_pin = NULL;
+        free(pc->data.smartcard.prompt_keypad);
+        pc->data.smartcard.prompt_keypad = NULL;
     }
     return;
 }
@@ -549,13 +570,22 @@ done:
 }
 
 errno_t pc_list_add_smartcard(struct prompt_config ***pc_list,
-                              const char *prompt_init, const char *prompt_pin)
+                              const char *prompt_init, const char *prompt_pin,
+                              const char *prompt_keypad,
+                              enum prompt_user_name_hint user_name_hint)
 {
     struct prompt_config *pc;
     int ret;
 
     if (pc_list == NULL) {
         return EINVAL;
+    }
+
+    if (prompt_init == NULL && prompt_pin == NULL && prompt_keypad == NULL
+            && user_name_hint == USER_NAME_HINT_NOT_SET)
+    {
+        /* Nothing to add */
+        return EOK;
     }
 
     pc = calloc(1, sizeof(struct prompt_config));
@@ -566,17 +596,26 @@ errno_t pc_list_add_smartcard(struct prompt_config ***pc_list,
     pc->type = PC_TYPE_SMARTCARD;
 
     pc->data.smartcard.prompt_init = strdup(prompt_init != NULL ? prompt_init
-                                            : "");
+                                                                : "");
     if (pc->data.smartcard.prompt_init == NULL) {
         ret = ENOMEM;
         goto done;
     }
     pc->data.smartcard.prompt_pin = strdup(prompt_pin != NULL ? prompt_pin
-                                           : "");
+                                                              : "");
     if (pc->data.smartcard.prompt_pin == NULL) {
         ret = ENOMEM;
         goto done;
     }
+    pc->data.smartcard.prompt_keypad = strdup(prompt_keypad != NULL
+                                                            ? prompt_keypad
+                                                            : "");
+    if (pc->data.smartcard.prompt_pin == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    pc->data.smartcard.user_name_hint = user_name_hint;
 
     ret = pc_list_add_pc(pc_list, pc);
     if (ret != EOK) {
@@ -589,6 +628,7 @@ done:
     if (ret != EOK) {
         free(pc->data.smartcard.prompt_init);
         free(pc->data.smartcard.prompt_pin);
+        free(pc->data.smartcard.prompt_keypad);
         free(pc);
     }
 
@@ -677,6 +717,9 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
             l += strlen(pc_list[c]->data.smartcard.prompt_init);
             l += sizeof(uint32_t);
             l += strlen(pc_list[c]->data.smartcard.prompt_pin);
+            l += sizeof(uint32_t);
+            l += strlen(pc_list[c]->data.smartcard.prompt_keypad);
+            l += sizeof(uint32_t); /* user name hint */
             break;
         case PC_TYPE_EIDP:
             l += sizeof(uint32_t);
@@ -756,6 +799,14 @@ errno_t pam_get_response_prompt_config(struct prompt_config **pc_list, int *len,
                                  &rp);
             safealign_memcpy(&d[rp], pc_list[c]->data.smartcard.prompt_pin,
                              strlen(pc_list[c]->data.smartcard.prompt_pin), &rp);
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 strlen(pc_list[c]->data.smartcard.prompt_keypad),
+                                 &rp);
+            safealign_memcpy(&d[rp], pc_list[c]->data.smartcard.prompt_keypad,
+                             strlen(pc_list[c]->data.smartcard.prompt_keypad), &rp);
+            SAFEALIGN_SET_UINT32(&d[rp],
+                                 pc_list[c]->data.smartcard.user_name_hint,
+                                 &rp);
             break;
         case PC_TYPE_EIDP:
             SAFEALIGN_SET_UINT32(&d[rp],
@@ -804,6 +855,8 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
     struct prompt_config **pl = NULL;
     char *str;
     char *str2;
+    char *str3;
+    uint32_t tmp_int;
 
     if (buf == NULL || size < 3 * sizeof(uint32_t)) {
         return EINVAL;
@@ -908,9 +961,24 @@ errno_t pc_list_from_response(int size, uint8_t *buf,
                 goto done;
             }
 
-            ret = pc_list_add_smartcard(&pl, str, str2);
+            ret = pc_copy_string(size, buf, &rp, &str3);
+            if (ret != 0) {
+                free(str);
+                goto done;
+            }
+
+            if (rp > size || size - rp < sizeof(uint32_t)) {
+                free(str);
+                free(str2);
+                ret = EINVAL;
+                goto done;
+            }
+            SAFEALIGN_COPY_UINT32(&tmp_int, buf + rp, &rp);
+
+            ret = pc_list_add_smartcard(&pl, str, str2, str3, tmp_int);
             free(str);
             free(str2);
+            free(str3);
             if (ret != EOK) {
                 goto done;
             }

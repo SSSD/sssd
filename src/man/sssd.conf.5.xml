@@ -4745,6 +4745,50 @@ ldap_user_extra_attrs = phone:telephoneNumber
                 </listitem>
             </varlistentry>
         </variablelist>
+        <variablelist>
+            <varlistentry>
+                <term>[prompting/cert_auth]</term>
+                <listitem>
+                    <para>to configure Smartcard authentication prompting,
+                    allowed options are:
+                    <variablelist>
+                    <varlistentry>
+                        <term>pin_prompt</term>
+                        <listitem>
+                            <para>to change the message which asks the user to
+                                  enter the PIN at the computer keyboard. At
+                                  the end of the message the token name is
+                                  printed.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>keypad_prompt</term>
+                        <listitem>
+                            <para>to change the message which asks the user to
+                                  enter the PIN at keypad of the Smartcard
+                                  reader. At the end of the message the token
+                                  name is printed.
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    <varlistentry>
+                        <term>user_name_hint</term>
+                        <listitem>
+                            <para>boolean value, if True ask for a user name
+                                  if no name was given before and the found
+                                  certificate can be mapped to more than one
+                                  user.
+                            </para>
+                            <para>Default: False
+                            </para>
+                        </listitem>
+                    </varlistentry>
+                    </variablelist>
+                    </para>
+                </listitem>
+            </varlistentry>
+        </variablelist>
         </para>
         <para>
             It is possible to add a subsection for specific PAM services,
