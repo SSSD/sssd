@@ -213,6 +213,25 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
     }
 }
 
+struct sss_failover_server *
+sss_failover_get_active_server(TALLOC_CTX *mem_ctx,
+                               struct sss_failover_ctx *fctx)
+{
+    void *srv;
+
+    if (fctx->active_server == NULL) {
+        return NULL;
+    }
+
+    srv = talloc_reference(mem_ctx, fctx->active_server);
+    if (srv == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    return srv;
+}
+
 void
 sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
 {
