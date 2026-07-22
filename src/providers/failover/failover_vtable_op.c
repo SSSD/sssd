@@ -251,7 +251,7 @@ sss_failover_vtable_op_server_next(struct tevent_req *req)
         if (state->fctx->active_server != NULL
             && sss_failover_server_maybe_working(state->fctx->active_server)) {
             /* Try active server first. */
-            state->current_server = talloc_reference(state, state->fctx->active_server);
+            state->current_server = sss_failover_get_active_server(state, state->fctx);
             if (state->current_server == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
                 return ENOMEM;
