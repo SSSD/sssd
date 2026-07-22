@@ -255,36 +255,52 @@ sss_failover_get_active_server(TALLOC_CTX *mem_ctx,
 void
 sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
 {
-    if (fctx->connection == NULL && connection == NULL) {
+    size_t ref_count;
+    void *ptr;
+
+    if (connection == fctx->connection) {
+        /* It is the same connection, nothing to do. This also covers the case
+         * where both are set to NULL. */
         return;
     }
 
-    if (fctx->connection != NULL) {
-        if (connection == fctx->connection) {
-            /* it is the same connection, nothing to do */
-            return;
-        }
+    ptr = fctx->connection;
 
+    if (fctx->connection != NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "Releasing old connection %p\n",
               fctx->connection);
 
+        ref_count = talloc_reference_count(fctx->connection);
+        if (ref_count == 0) {
+            DEBUG(SSSDBG_TRACE_FUNC, "The connection is no longer used, it "
+                                     "will be freed immediately\n");
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "The connection is still used at %zu places, it will be "
+                  "freed once it reaches 0\n",
+                  ref_count - 1);
+        }
+
+        /* If this is the last parent, the connection will be gracefully
+         * terminated via talloc destructor. Otherwise it will wait until the
+         * refcount drops to zero. */
         talloc_unlink(fctx, fctx->connection);
+
+        /* Old connection is removed. At this point we are not connected. */
+        fctx->connection = NULL;
+        fctx->state = SSS_FAILOVER_STATE_DISCONNECTED;
     }
 
     if (connection == NULL) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Removing connection\n");
-        fctx->connection = NULL;
-        fctx->state = SSS_FAILOVER_STATE_DISCONNECTED;
+        DEBUG(SSSDBG_TRACE_FUNC, "Connection %p was dropped\n", ptr);
         return;
     }
 
     if (fctx->active_server == NULL) {
         /* This may be a bug in the code or OOM scenario that we can't detect in
          * caller to simplify the API. Let's be defensive here. */
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Trying to set connection without an active server, setting to NULL\n");
-        fctx->connection = NULL;
-        fctx->state = SSS_FAILOVER_STATE_DISCONNECTED;
+        DEBUG(SSSDBG_OP_FAILURE, "Trying to set connection without an active "
+                                 "server, connection was dropped\n");
         return;
     }
 
