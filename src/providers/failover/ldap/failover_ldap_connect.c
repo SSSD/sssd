@@ -38,8 +38,6 @@ sss_failover_ldap_connect_send(TALLOC_CTX *mem_ctx,
                                struct tevent_context *ev,
                                struct sss_failover_ctx *fctx,
                                struct sss_failover_server *server,
-                               bool addr_changed,
-                               bool reuse_connection,
                                bool authenticate_connection,
                                bool read_rootdse,
                                enum sss_failover_transaction_tls force_tls,
@@ -52,8 +50,6 @@ sss_failover_ldap_connect_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req;
     enum connect_tls tls;
     errno_t ret;
-
-    /* TODO handle active connection */
 
     opts = talloc_get_type_abort(pvt, struct sdap_options);
 
