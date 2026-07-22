@@ -281,14 +281,20 @@ sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
                   ref_count - 1);
         }
 
-        /* If this is the last parent, the connection will be gracefully
-         * terminated via talloc destructor. Otherwise it will wait until the
-         * refcount drops to zero. */
-        talloc_unlink(fctx, fctx->connection);
-
         /* Old connection is removed. At this point we are not connected. */
         fctx->connection = NULL;
         fctx->state = SSS_FAILOVER_STATE_DISCONNECTED;
+
+        /* Notify backend that this connection is dropped. */
+        if (fctx->vtable->disconnected.cb != NULL) {
+            fctx->vtable->disconnected.cb(fctx, ptr,
+                                          fctx->vtable->disconnected.data);
+        }
+
+        /* If this is the last parent, the connection will be gracefully
+         * terminated via talloc destructor. Otherwise it will wait until the
+         * refcount drops to zero. */
+        talloc_unlink(fctx, ptr);
     }
 
     if (connection == NULL) {
