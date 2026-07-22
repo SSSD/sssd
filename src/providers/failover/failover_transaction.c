@@ -248,7 +248,7 @@ sss_failover_transaction_next(struct tevent_req *req)
     }
 
     /* We can reuse existing connection. Let's see if there is one. */
-    if (state->reuse_connection && state->fctx->active_server != NULL) {
+    if (state->reuse_connection && sss_failover_active_server_is_working(state->fctx)) {
         connection = sss_failover_get_connection(state, state->fctx);
         if (connection != NULL) {
             DEBUG(SSSDBG_TRACE_FUNC, "Reusing active connection\n");
