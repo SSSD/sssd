@@ -45,7 +45,9 @@ jobs:
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make -j$PROCESSORS distcheck
+
+        # parallel distcheck is full of race conditions
+        make -j1 distcheck
 
     - uses: actions/upload-artifact@v7
       if: always()
