@@ -213,6 +213,26 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
     }
 }
 
+bool
+sss_failover_active_server_is_working(struct sss_failover_ctx *fctx)
+{
+    if (fctx->active_server == NULL) {
+        return false;
+    }
+
+    return sss_failover_server_is_working(fctx->active_server);
+}
+
+bool
+sss_failover_active_server_maybe_working(struct sss_failover_ctx *fctx)
+{
+    if (fctx->active_server == NULL) {
+        return false;
+    }
+
+    return sss_failover_server_maybe_working(fctx->active_server);
+}
+
 struct sss_failover_server *
 sss_failover_get_active_server(TALLOC_CTX *mem_ctx,
                                struct sss_failover_ctx *fctx)

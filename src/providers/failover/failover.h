@@ -156,6 +156,22 @@ bool
 sss_failover_is_offline(struct sss_failover_ctx *fctx);
 
 /**
+ * @brief Return true if active server is set and working.
+ *
+ * @param fctx
+ */
+bool
+sss_failover_active_server_is_working(struct sss_failover_ctx *fctx);
+
+/**
+ * @brief Return true if active server is set and in a non-error state.
+ *
+ * @param fctx
+ */
+bool
+sss_failover_active_server_maybe_working(struct sss_failover_ctx *fctx);
+
+/**
  * @brief Set active server.
  *
  * This is a noop if @server and @fctx->active_server is identical.
