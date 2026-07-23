@@ -156,6 +156,28 @@ bool
 sss_failover_is_offline(struct sss_failover_ctx *fctx);
 
 /**
+ * @brief Set active server.
+ *
+ * This is a noop if @server and @fctx->active_server is identical.
+ */
+void
+sss_failover_active_server_set(struct sss_failover_ctx *fctx,
+                               struct sss_failover_server *server);
+
+/**
+ * @brief Get active server.
+ *
+ * The output is talloc_reference to the active server attached to mem_ctx.
+ *
+ * @param mem_ctx
+ * @param fctx
+ * @return struct sss_failover_server*
+ */
+struct sss_failover_server *
+sss_failover_active_server_get_ref(TALLOC_CTX *mem_ctx,
+                                   struct sss_failover_ctx *fctx);
+
+/**
  * @brief Return true if the server is the same as currently active server.
  *
  * @param fctx
@@ -180,28 +202,6 @@ sss_failover_active_server_is_working(struct sss_failover_ctx *fctx);
  */
 bool
 sss_failover_active_server_maybe_working(struct sss_failover_ctx *fctx);
-
-/**
- * @brief Set active server.
- *
- * This is a noop if @server and @fctx->active_server is identical.
- */
-void
-sss_failover_set_active_server(struct sss_failover_ctx *fctx,
-                               struct sss_failover_server *server);
-
-/**
- * @brief Get active server.
- *
- * The output is talloc_reference to the active server attached to mem_ctx.
- *
- * @param mem_ctx
- * @param fctx
- * @return struct sss_failover_server*
- */
-struct sss_failover_server *
-sss_failover_get_active_server(TALLOC_CTX *mem_ctx,
-                               struct sss_failover_ctx *fctx);
 
 /**
  * @brief Set new connection, release old one.
