@@ -209,7 +209,7 @@ sss_failover_active_server_maybe_working(struct sss_failover_ctx *fctx);
  * This is a noop if @connection and @fctx->connection is identical.
  */
 void
-sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection);
+sss_failover_connection_set(struct sss_failover_ctx *fctx, void *connection);
 
 /**
  * @brief Get connection.
@@ -221,6 +221,6 @@ sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection);
  * @return void*
  */
 void *
-sss_failover_get_connection(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fctx);
+sss_failover_connection_get_ref(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fctx);
 
 #endif /* _FAILOVER_H_ */
