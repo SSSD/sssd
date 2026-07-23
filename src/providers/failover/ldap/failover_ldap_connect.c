@@ -67,6 +67,13 @@ sss_failover_ldap_connect_send(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    state->connection->server = talloc_reference(state->connection, server);
+    if (state->connection->server == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     state->connection->uri = talloc_strdup(state->connection, server->uri);
     if (state->connection->uri == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
