@@ -164,8 +164,18 @@ sss_failover_vtable_op_send(TALLOC_CTX *mem_ctx,
 
     switch (state->operation) {
     case SSS_FAILOVER_VTABLE_OP_KINIT:
+        if (fctx->vtable->kinit.send == NULL || fctx->vtable->kinit.recv == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Operation kinit is not supported\n");
+            ret = ENOTSUP;
+            goto done;
+        }
+        break;
     case SSS_FAILOVER_VTABLE_OP_CONNECT:
-        /* Correct operation. */
+        if (fctx->vtable->connect.send == NULL || fctx->vtable->connect.recv == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Operation connect is not supported\n");
+            ret = ENOTSUP;
+            goto done;
+        }
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid operation: [%d]\n", state->operation);
