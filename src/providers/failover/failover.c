@@ -374,3 +374,23 @@ sss_failover_connection_cmp(struct sss_failover_ctx *fctx,
 {
     return fctx->connection == conn;
 }
+
+void
+sss_failover_connection_op_start(struct sss_failover_ctx *fctx,
+                                 void *connection)
+{
+    if (fctx->vtable->conn_op_start.cb != NULL) {
+        fctx->vtable->conn_op_start.cb(fctx, connection,
+                                       fctx->vtable->conn_op_start.data);
+    }
+}
+
+void
+sss_failover_connection_op_done(struct sss_failover_ctx *fctx,
+                                void *connection)
+{
+    if (fctx->vtable->conn_op_done.cb != NULL) {
+        fctx->vtable->conn_op_done.cb(fctx, connection,
+                                      fctx->vtable->conn_op_done.data);
+    }
+}
