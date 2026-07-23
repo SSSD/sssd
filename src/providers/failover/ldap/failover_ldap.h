@@ -27,6 +27,7 @@
 #include "util/util.h"
 
 struct sss_failover_ldap_connection {
+    struct sss_failover_server *server;
     struct sdap_server_opts *srv_opts;
     struct sdap_handle *sh;
     char *uri;
