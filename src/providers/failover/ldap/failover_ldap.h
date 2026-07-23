@@ -26,6 +26,12 @@
 #include "providers/failover/failover_server.h"
 #include "util/util.h"
 
+/**
+ * @brief LDAP connection.
+ *
+ * The connection is terminated via a talloc destructor when the last reference
+ * to the instance is dropped.
+ */
 struct sss_failover_ldap_connection {
     struct sss_failover_server *server;
     struct sdap_server_opts *srv_opts;
