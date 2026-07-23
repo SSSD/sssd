@@ -199,7 +199,7 @@ sss_failover_active_server_set(struct sss_failover_ctx *fctx,
     if (server == NULL) {
         DEBUG(SSSDBG_TRACE_FUNC,
               "Setting active server to NULL (we are not connected)\n");
-        sss_failover_set_connection(fctx, NULL);
+        sss_failover_connection_set(fctx, NULL);
         fctx->active_server = NULL;
         return;
     }
@@ -208,7 +208,7 @@ sss_failover_active_server_set(struct sss_failover_ctx *fctx,
     fctx->active_server = talloc_reference(fctx, server);
     if (fctx->active_server == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
-        sss_failover_set_connection(fctx, NULL);
+        sss_failover_connection_set(fctx, NULL);
         return;
     }
 }
@@ -260,7 +260,7 @@ sss_failover_active_server_maybe_working(struct sss_failover_ctx *fctx)
 }
 
 void
-sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
+sss_failover_connection_set(struct sss_failover_ctx *fctx, void *connection)
 {
     size_t ref_count;
     void *ptr;
@@ -323,7 +323,7 @@ sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
 }
 
 void *
-sss_failover_get_connection(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fctx)
+sss_failover_connection_get_ref(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fctx)
 {
     void *conn;
 
