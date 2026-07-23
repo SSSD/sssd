@@ -252,7 +252,7 @@ sss_failover_transaction_next(struct tevent_req *req)
         connection = sss_failover_get_connection(state, state->fctx);
         if (connection != NULL) {
             DEBUG(SSSDBG_TRACE_FUNC, "Reusing active connection\n");
-            state->current_server = sss_failover_get_active_server(state,
+            state->current_server = sss_failover_active_server_get_ref(state,
                                                                    state->fctx);
             if (state->current_server == NULL) {
                 return ENOMEM;
@@ -403,7 +403,7 @@ sss_failover_transaction_connect_done(struct tevent_req *subreq)
 
     /* Remember the server if we can reuse the connection. */
     if (state->reuse_connection) {
-        sss_failover_set_active_server(state->fctx, state->current_server);
+        sss_failover_active_server_set(state->fctx, state->current_server);
         sss_failover_set_connection(state->fctx, connection);
     }
 
@@ -451,7 +451,7 @@ static void sss_failover_transaction_attempt_done(struct tevent_req *attempt_req
                 /* Remove the active server as it is not working anymore. This
                  * also drops the connection. */
                 if (state->current_server == state->fctx->active_server) {
-                    sss_failover_set_active_server(state->fctx, NULL);
+                    sss_failover_active_server_set(state->fctx, NULL);
                 }
 
                 sss_failover_transaction_restart(req);
