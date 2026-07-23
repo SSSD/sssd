@@ -72,6 +72,16 @@ typedef void
                                       void *connection,
                                       void *pvt);
 
+typedef void
+(*sss_failover_vtable_conn_op_start_t)(struct sss_failover_ctx *fctx,
+                                      void *connection,
+                                      void *pvt);
+
+typedef void
+(*sss_failover_vtable_conn_op_done_t)(struct sss_failover_ctx *fctx,
+                                      void *connection,
+                                      void *pvt);
+
 
 struct sss_failover_vtable_connect {
     sss_failover_vtable_connect_send_t send;
@@ -81,6 +91,16 @@ struct sss_failover_vtable_connect {
 
 struct sss_failover_vtable_disconnected {
     sss_failover_vtable_disconnected_t cb;
+    void *data;
+};
+
+struct sss_failover_vtable_conn_op_start {
+    sss_failover_vtable_conn_op_start_t cb;
+    void *data;
+};
+
+struct sss_failover_vtable_conn_op_done {
+    sss_failover_vtable_conn_op_done_t cb;
     void *data;
 };
 
@@ -95,6 +115,12 @@ struct sss_failover_vtable {
      * an information hook, actually disconnect should be done by talloc
      * destructor. */
     struct sss_failover_vtable_disconnected disconnected;
+
+    /* Connection is used by new operation. */
+    struct sss_failover_vtable_conn_op_start conn_op_start;
+
+    /* Operation using the connection finished. */
+    struct sss_failover_vtable_conn_op_done conn_op_done;
 };
 
 void
@@ -112,6 +138,16 @@ sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,
 void
 sss_failover_vtable_set_disconnected(struct sss_failover_ctx *fctx,
                                      sss_failover_vtable_disconnected_t cb,
+                                     void *data);
+
+void
+sss_failover_vtable_set_conn_op_start(struct sss_failover_ctx *fctx,
+                                      sss_failover_vtable_conn_op_start_t cb,
+                                      void *data);
+
+void
+sss_failover_vtable_set_conn_op_done(struct sss_failover_ctx *fctx,
+                                     sss_failover_vtable_conn_op_done_t cb,
                                      void *data);
 
 #endif /* _FAILOVER_VTABLE_H_ */
