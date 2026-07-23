@@ -168,7 +168,7 @@ done:
 void
 sss_failover_mark_offline(struct sss_failover_ctx *fctx)
 {
-    sss_failover_set_active_server(fctx, NULL);
+    sss_failover_active_server_set(fctx, NULL);
 
     DEBUG(SSSDBG_OP_FAILURE, "Failover [%s] is going offline\n", fctx->name);
     fctx->state = SSS_FAILOVER_STATE_OFFLINE;
@@ -181,7 +181,7 @@ sss_failover_is_offline(struct sss_failover_ctx *fctx)
 }
 
 void
-sss_failover_set_active_server(struct sss_failover_ctx *fctx,
+sss_failover_active_server_set(struct sss_failover_ctx *fctx,
                                struct sss_failover_server *server)
 {
     if (fctx->active_server != NULL) {
@@ -213,6 +213,25 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
     }
 }
 
+struct sss_failover_server *
+sss_failover_active_server_get_ref(TALLOC_CTX *mem_ctx,
+                                   struct sss_failover_ctx *fctx)
+{
+    void *srv;
+
+    if (fctx->active_server == NULL) {
+        return NULL;
+    }
+
+    srv = talloc_reference(mem_ctx, fctx->active_server);
+    if (srv == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    return srv;
+}
+
 bool
 sss_failover_active_server_cmp(struct sss_failover_ctx *fctx,
                                struct sss_failover_server *server)
@@ -238,25 +257,6 @@ sss_failover_active_server_maybe_working(struct sss_failover_ctx *fctx)
     }
 
     return sss_failover_server_maybe_working(fctx->active_server);
-}
-
-struct sss_failover_server *
-sss_failover_get_active_server(TALLOC_CTX *mem_ctx,
-                               struct sss_failover_ctx *fctx)
-{
-    void *srv;
-
-    if (fctx->active_server == NULL) {
-        return NULL;
-    }
-
-    srv = talloc_reference(mem_ctx, fctx->active_server);
-    if (srv == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
-        return NULL;
-    }
-
-    return srv;
 }
 
 void
