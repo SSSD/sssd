@@ -165,6 +165,20 @@ sss_failover_active_server_set(struct sss_failover_ctx *fctx,
                                struct sss_failover_server *server);
 
 /**
+ * @brief Remove current active server if it is the same as @server.
+ *
+ * This compares active_server to @server and if they are identical,
+ * active_server is set to NULL. The current connection is also dropped and
+ * set to NULL.
+ *
+ * @param fctx
+ * @param server
+ */
+void
+sss_failover_active_server_remove(struct sss_failover_ctx *fctx,
+                                  struct sss_failover_server *server);
+
+/**
  * @brief Get active server.
  *
  * The output is talloc_reference to the active server attached to mem_ctx.
@@ -210,6 +224,19 @@ sss_failover_active_server_maybe_working(struct sss_failover_ctx *fctx);
  */
 void
 sss_failover_connection_set(struct sss_failover_ctx *fctx, void *connection);
+
+/**
+ * @brief Remove current connection if it is the same as @conn.
+ *
+ * This compares current connection to @conn and if they are identical,
+ * connection is set to NULL.
+ *
+ * @param fctx
+ * @param conn
+ */
+void
+sss_failover_connection_remove(struct sss_failover_ctx *fctx,
+                               void *conn);
 
 /**
  * @brief Get connection.

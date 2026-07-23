@@ -450,9 +450,8 @@ static void sss_failover_transaction_attempt_done(struct tevent_req *attempt_req
 
                 /* Remove the active server as it is not working anymore. This
                  * also drops the connection. */
-                if (state->current_server == state->fctx->active_server) {
-                    sss_failover_active_server_set(state->fctx, NULL);
-                }
+                sss_failover_active_server_remove(state->fctx,
+                                                  state->current_server);
 
                 sss_failover_transaction_restart(req);
                 return;
