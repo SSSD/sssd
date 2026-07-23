@@ -219,7 +219,7 @@ sss_failover_vtable_op_server_next(struct tevent_req *req)
         /* Select first server to try.*/
         if (sss_failover_active_server_maybe_working(state->fctx)) {
             /* Try active server first. */
-            state->current_server = sss_failover_get_active_server(state, state->fctx);
+            state->current_server = sss_failover_active_server_get_ref(state, state->fctx);
             if (state->current_server == NULL) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
                 return ENOMEM;
