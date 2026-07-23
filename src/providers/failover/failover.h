@@ -156,6 +156,16 @@ bool
 sss_failover_is_offline(struct sss_failover_ctx *fctx);
 
 /**
+ * @brief Return true if the server is the same as currently active server.
+ *
+ * @param fctx
+ * @param server
+ */
+bool
+sss_failover_active_server_cmp(struct sss_failover_ctx *fctx,
+                               struct sss_failover_server *server);
+
+/**
  * @brief Return true if active server is set and working.
  *
  * @param fctx
