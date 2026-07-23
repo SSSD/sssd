@@ -260,4 +260,24 @@ bool
 sss_failover_connection_cmp(struct sss_failover_ctx *fctx,
                             void *conn);
 
+/**
+ * @brief New operation is using the connection.
+ *
+ * @param fctx
+ * @param connection
+ */
+void
+sss_failover_connection_op_start(struct sss_failover_ctx *fctx,
+                                 void *connection);
+
+/**
+ * @brief Operation that used the connection is finished.
+ *
+ * @param fctx
+ * @param connection
+ */
+void
+sss_failover_connection_op_done(struct sss_failover_ctx *fctx,
+                                void *connection);
+
 #endif /* _FAILOVER_H_ */
