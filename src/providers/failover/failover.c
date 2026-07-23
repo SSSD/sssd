@@ -339,3 +339,10 @@ sss_failover_connection_get_ref(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fc
 
     return conn;
 }
+
+bool
+sss_failover_connection_cmp(struct sss_failover_ctx *fctx,
+                            void *conn)
+{
+    return fctx->connection == conn;
+}
