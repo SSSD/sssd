@@ -214,6 +214,13 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
 }
 
 bool
+sss_failover_active_server_cmp(struct sss_failover_ctx *fctx,
+                               struct sss_failover_server *server)
+{
+    return fctx->active_server == server;
+}
+
+bool
 sss_failover_active_server_is_working(struct sss_failover_ctx *fctx)
 {
     if (fctx->active_server == NULL) {
