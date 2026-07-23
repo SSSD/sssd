@@ -194,6 +194,10 @@ sss_failover_active_server_set(struct sss_failover_ctx *fctx,
               fctx->active_server->name);
 
         talloc_unlink(fctx, fctx->active_server);
+
+        /* Also remove the connection associated with this server. */
+        sss_failover_connection_set(fctx, NULL);
+        fctx->active_server = NULL;
     }
 
     if (server == NULL) {
