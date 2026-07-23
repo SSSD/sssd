@@ -23,6 +23,7 @@
 
 #include "config.h"
 #include "resolv/async_resolv.h"
+#include "providers/failover/failover.h"
 #include "providers/failover/failover_server.h"
 #include "util/util.h"
 
@@ -33,6 +34,7 @@
  * to the instance is dropped.
  */
 struct sss_failover_ldap_connection {
+    struct sss_failover_ctx *fctx;
     struct sss_failover_server *server;
     struct sdap_server_opts *srv_opts;
     struct sdap_handle *sh;
