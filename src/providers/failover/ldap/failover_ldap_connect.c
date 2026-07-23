@@ -31,6 +31,19 @@ struct sss_failover_ldap_connect_state {
     struct sss_failover_ldap_connection *connection;
 };
 
+static int
+sss_failover_ldap_connection_destructor(void *ctx)
+{
+    struct sss_failover_ldap_connection *conn;
+
+    conn = talloc_get_type(ctx, struct sss_failover_ldap_connection);
+
+    /* This will trigger sdap_handle destructor and terminates the connection. */
+    talloc_zfree(conn->sh);
+
+    return 0;
+}
+
 static void sss_failover_ldap_connect_done(struct tevent_req *subreq);
 
 struct tevent_req *
@@ -80,6 +93,9 @@ sss_failover_ldap_connect_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+
+    talloc_set_destructor(state->connection,
+                          sss_failover_ldap_connection_destructor);
 
     switch (force_tls) {
     case SSS_FAILOVER_TRANSACTION_TLS_DEFAULT:
