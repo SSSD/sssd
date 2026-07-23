@@ -213,6 +213,18 @@ sss_failover_active_server_set(struct sss_failover_ctx *fctx,
     }
 }
 
+void
+sss_failover_active_server_remove(struct sss_failover_ctx *fctx,
+                                  struct sss_failover_server *server)
+{
+    /* We want to only remove the server if it is still the active one. */
+    if (!sss_failover_active_server_cmp(fctx, server)) {
+        return;
+    }
+
+    sss_failover_active_server_set(fctx, NULL);
+}
+
 struct sss_failover_server *
 sss_failover_active_server_get_ref(TALLOC_CTX *mem_ctx,
                                    struct sss_failover_ctx *fctx)
@@ -320,6 +332,18 @@ sss_failover_connection_set(struct sss_failover_ctx *fctx, void *connection)
     DEBUG(SSSDBG_TRACE_FUNC, "Setting new connection %p\n", connection);
     fctx->connection = talloc_steal(fctx, connection);
     fctx->state = SSS_FAILOVER_STATE_CONNECTED;
+}
+
+void
+sss_failover_connection_remove(struct sss_failover_ctx *fctx,
+                               void *conn)
+{
+    /* We want to only remove the connection if it is still the active one. */
+    if (!sss_failover_connection_cmp(fctx, conn)) {
+        return;
+    }
+
+    sss_failover_connection_set(fctx, NULL);
 }
 
 void *
