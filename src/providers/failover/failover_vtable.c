@@ -44,3 +44,21 @@ sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,
     fctx->vtable->kinit.recv = recv_fn;
     fctx->vtable->kinit.data = data;
 }
+
+void
+sss_failover_vtable_set_conn_op_start(struct sss_failover_ctx *fctx,
+                                      sss_failover_vtable_conn_op_start_t cb,
+                                      void *data)
+{
+    fctx->vtable->conn_op_start.cb = cb;
+    fctx->vtable->conn_op_start.data = data;
+}
+
+void
+sss_failover_vtable_set_conn_op_done(struct sss_failover_ctx *fctx,
+                                     sss_failover_vtable_conn_op_done_t cb,
+                                     void *data)
+{
+    fctx->vtable->conn_op_done.cb = cb;
+    fctx->vtable->conn_op_done.data = data;
+}

@@ -38,7 +38,6 @@ typedef struct tevent_req *
                                     struct tevent_context *ev,
                                     struct sss_failover_ctx *fctx,
                                     struct sss_failover_server *server,
-                                    bool addr_changed,
                                     void *pvt);
 
 typedef errno_t
@@ -57,8 +56,6 @@ typedef struct tevent_req *
                                       struct tevent_context *ev,
                                       struct sss_failover_ctx *fctx,
                                       struct sss_failover_server *server,
-                                      bool addr_changed,
-                                      bool reuse_connection,
                                       bool authenticate_connection,
                                       bool read_rootdse,
                                       enum sss_failover_transaction_tls force_tls,
@@ -70,6 +67,21 @@ typedef errno_t
                                       struct tevent_req *req,
                                       void **_connection);
 
+typedef void
+(*sss_failover_vtable_disconnected_t)(struct sss_failover_ctx *fctx,
+                                      void *connection,
+                                      void *pvt);
+
+typedef void
+(*sss_failover_vtable_conn_op_start_t)(struct sss_failover_ctx *fctx,
+                                      void *connection,
+                                      void *pvt);
+
+typedef void
+(*sss_failover_vtable_conn_op_done_t)(struct sss_failover_ctx *fctx,
+                                      void *connection,
+                                      void *pvt);
+
 
 struct sss_failover_vtable_connect {
     sss_failover_vtable_connect_send_t send;
@@ -77,9 +89,38 @@ struct sss_failover_vtable_connect {
     void *data;
 };
 
+struct sss_failover_vtable_disconnected {
+    sss_failover_vtable_disconnected_t cb;
+    void *data;
+};
+
+struct sss_failover_vtable_conn_op_start {
+    sss_failover_vtable_conn_op_start_t cb;
+    void *data;
+};
+
+struct sss_failover_vtable_conn_op_done {
+    sss_failover_vtable_conn_op_done_t cb;
+    void *data;
+};
+
 struct sss_failover_vtable {
+    /* Obtain TGT for the host. */
     struct sss_failover_vtable_kinit kinit;
+
+    /* Establish connection. */
     struct sss_failover_vtable_connect connect;
+
+    /* Connection is dropped. There may still be active references. This is just
+     * an information hook, actually disconnect should be done by talloc
+     * destructor. */
+    struct sss_failover_vtable_disconnected disconnected;
+
+    /* Connection is used by new operation. */
+    struct sss_failover_vtable_conn_op_start conn_op_start;
+
+    /* Operation using the connection finished. */
+    struct sss_failover_vtable_conn_op_done conn_op_done;
 };
 
 void
@@ -93,5 +134,20 @@ sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,
                               sss_failover_vtable_kinit_send_t send_fn,
                               sss_failover_vtable_kinit_recv_t recv_fn,
                               void *data);
+
+void
+sss_failover_vtable_set_disconnected(struct sss_failover_ctx *fctx,
+                                     sss_failover_vtable_disconnected_t cb,
+                                     void *data);
+
+void
+sss_failover_vtable_set_conn_op_start(struct sss_failover_ctx *fctx,
+                                      sss_failover_vtable_conn_op_start_t cb,
+                                      void *data);
+
+void
+sss_failover_vtable_set_conn_op_done(struct sss_failover_ctx *fctx,
+                                     sss_failover_vtable_conn_op_done_t cb,
+                                     void *data);
 
 #endif /* _FAILOVER_VTABLE_H_ */
