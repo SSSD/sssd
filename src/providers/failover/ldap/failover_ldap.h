@@ -39,6 +39,10 @@ struct sss_failover_ldap_connection {
     struct sdap_server_opts *srv_opts;
     struct sdap_handle *sh;
     char *uri;
+    time_t idle_timeout;
+
+    int op_count;
+    time_t idle_since;
 };
 
 struct tevent_req *
@@ -68,5 +72,15 @@ errno_t
 sss_failover_ldap_connect_recv(TALLOC_CTX *mem_ctx,
                                struct tevent_req *req,
                                void **_connection);
+
+void
+sss_failover_ldap_connect_op_start(struct sss_failover_ctx *fctx,
+                                   void *connection,
+                                   void *pvt);
+
+void
+sss_failover_ldap_connect_op_done(struct sss_failover_ctx *fctx,
+                                  void *connection,
+                                  void *pvt);
 
 #endif /* _FAILOVER_LDAP_H_ */
