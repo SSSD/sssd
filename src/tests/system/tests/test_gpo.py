@@ -935,6 +935,62 @@ def test_gpo__skips_unreadable_gpo_policies(client: Client, ad: AD, method: str)
 
 
 @pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+@pytest.mark.ticket(gh=8896)
+def test_gpo__rejects_path_traversal_in_gpo_file_sys_path(client: Client, provider: GenericADProvider):
+    """
+    :title: Group policy object host based access control rejects path traversal in gPCFileSysPath
+    :description:
+        The gPCFileSysPath LDAP attribute of a GPO is parsed and used to build a local file system
+        path under the SSSD GPO cache. A GPO with write access could append '..' path traversal
+        gPCFileSysPath outside the cache directory. SSSD must reject such a policy rather than
+        process it, and since the policy cannot be fetched, access must be denied in enforcing mode.
+    :setup:
+        1. Create the following user, 'user1'
+        2. Create the GPO 'site policy' and add 'user1' and 'Domain Admins' to SeInteractiveLogonRight
+           key
+        3. Read the GPO's real 'gPCFileSysPath' value and overwrite the attribute with the same
+           path plus appended '..' path traversal components, then link the GPO
+        4. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing'
+        5. Start SSSD
+    :steps:
+        1. Authenticate as 'user1'
+        2. Check logs for the path traversal rejection message
+    :expectedresults:
+        1. 'user1' authentication is unsuccessful
+        2. The rejection message is present in the logs
+    :customerscenario: False
+    """
+    user1 = provider.user("user1").add()
+
+    gpo = (
+        provider.gpo("site policy")
+        .add()
+        .policy(
+            {
+                "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
+                "SeDenyInteractiveLogonRight": [],
+            }
+        )
+    )
+
+    gpo_path = gpo.get("gPCFileSysPath")
+    gpo.filesyspath(rf"{gpo_path}\..\..\..\invalid").link()
+
+    client.sssd.domain["ad_gpo_access_control"] = "enforcing"
+    client.sssd.start()
+
+    assert not client.auth.ssh.password(
+        "user1", password="Secret123"
+    ), "User authenticated successfully despite malicious GPO path traversal!"
+
+    log_str = client.fs.read(client.sssd.logs.domain())
+    assert (
+        "gPCFileSysPath contains path traversal component" in log_str
+    ), "Path traversal rejection message not found in logs!"
+
+
+@pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=2151450)
