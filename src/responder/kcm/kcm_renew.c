@@ -580,10 +580,14 @@ static errno_t kcm_creds_check_times(TALLOC_CTX *mem_ctx,
             auth_data->upn = talloc_strdup(auth_data, client_name);
             auth_data->uid = cc->owner.uid;
             auth_data->gid = cc->owner.gid;
-            auth_data->ccname = cc->name;
-            if (auth_data->upn == NULL) {
+            /* cc is owned by the caller tmp_ctx and freed when the renew scan
+             * returns; the renew callback runs later on the event loop, so
+             * the ccache name must be copied onto auth_data. */
+            auth_data->ccname = talloc_strdup(auth_data, cc->name);
+            if (auth_data->upn == NULL || auth_data->ccname == NULL) {
                 ret = ENOMEM;
-                DEBUG(SSSDBG_CRIT_FAILURE, "Unable to allocate auth_data->upn for renewals\n");
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "Unable to allocate auth_data for renewals\n");
                 goto done;
             }
 
