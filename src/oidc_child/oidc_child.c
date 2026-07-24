@@ -690,6 +690,8 @@ int main(int argc, const char *argv[])
     int exit_status = EXIT_FAILURE;
     char *out = NULL;
     char *client_secret_tmp = NULL;
+    json_t *tmp_json;
+    char *tmp_str;
 
     ret = parse_cli(argc, argv, &opts);
     if (ret != EOK) {
@@ -869,18 +871,27 @@ int main(int argc, const char *argv[])
         /* Currently this reply is used by ipa-otpd as RADIUS Proxy-State and
          * Reply-Message.
          */
-        fprintf(stdout,
-                "{\"device_code\":\"%s\",\"expires_in\":%d,\"interval\":%d}\n",
-                dc_ctx->device_code, dc_ctx->expires_in, dc_ctx->interval);
-        fprintf(stdout,
-                "oauth2 {\"verification_uri\": \"%s\", "
-                "\"user_code\": \"%s%s%s\"}\n",
-                dc_ctx->verification_uri, dc_ctx->user_code,
-                dc_ctx->verification_uri_complete == NULL ? ""
-                                      : "\", \"verification_uri_complete\": \"",
-                dc_ctx->verification_uri_complete == NULL ? ""
-                                           : dc_ctx->verification_uri_complete);
+        tmp_json = json_pack("{s:s, s:i, s:i}",
+                                "device_code", dc_ctx->device_code,
+                                "expires_in", dc_ctx->expires_in,
+                                "interval", dc_ctx->interval);
+        tmp_str = json_dumps(tmp_json, JSON_COMPACT);
+        json_decref(tmp_json);
+        fprintf(stdout, "%s\n", tmp_str);
+        free(tmp_str);
+
+        tmp_json = json_pack("{s:s, s:s}",
+                        "verification_uri", dc_ctx->verification_uri,
+                        "user_code", dc_ctx->user_code);
+        if (dc_ctx->verification_uri_complete != NULL) {
+            json_object_set_new(tmp_json, "verification_uri_complete",
+                                json_string(dc_ctx->verification_uri_complete));
+        }
+        tmp_str = json_dumps(tmp_json, JSON_COMPACT);
+        json_decref(tmp_json);
+        fprintf(stdout, "oauth2 %s\n", tmp_str);
         fflush(stdout);
+        free(tmp_str);
     }
 
     if (opts.oidc_cmd == GET_ACCESS_TOKEN
