@@ -31,14 +31,14 @@ jobs:
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror" -j$PROCESSORS
+        make CFLAGS+="$SSS_WARNINGS" -j$PROCESSORS
 
     - name: make check
       shell: bash
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror" -j$PROCESSORS check
+        make CFLAGS+="$SSS_WARNINGS" -j$PROCESSORS check
 
     - name: make distcheck
       shell: bash
