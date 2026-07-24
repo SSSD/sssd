@@ -44,7 +44,7 @@ class TestSssCache(object):
         assert "foo9@example1" in get_ent.stdout_text
         user_dn = 'uid=foo9,ou=People,dc=example,dc=test'
         group_dn = 'cn=ldapusers,ou=Groups,dc=example,dc=test'
-        ldap_uri = 'ldap://%s' % (multihost.master[0].sys_hostname)
+        ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
