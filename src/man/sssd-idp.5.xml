@@ -63,20 +63,51 @@
                     <listitem>
                         <para>
                             Required option that specifies the IdP product.
-                            Currently Entra ID (entra_id) and Keycloak
-                            (keycloak) are supported.
+                            Currently Entra ID (<quote>entra_id</quote>),
+                            Keycloak (<quote>keycloak</quote>), and the
+                            FreeIPA integrated IdP (<quote>ahdapa</quote>)
+                            are supported.
                         </para>
                         <para>
-                             Depending on the IdP product additional platform
-                             specific options might follow the name separated
-                             by a colon (:). E.g. for Keycloak the base URI for
-                             the user and group REST API must be given. For
-                             Entra ID the base URI for the Microsoft Graph API
-                             can be given to use sovereign or government cloud
-                             endpoints instead of the default
-                             (https://graph.microsoft.com/v1.0). E.g.
-                             <quote>entra_id:https://graph.microsoft.us/v1.0</quote>
-                             for the US government cloud (GCC High).
+                            Depending on the IdP product, additional
+                            platform-specific options may follow the name
+                            separated by a colon (:).
+                        </para>
+                        <para>
+                            For <emphasis role="bold">Keycloak</emphasis>, the
+                            base URI for the user and group REST API must be
+                            given, e.g.
+                            <quote>keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/</quote>.
+                        </para>
+                        <para>
+                            For <emphasis role="bold">Entra ID</emphasis>, the
+                            base URI for the Microsoft Graph API can be given to
+                            use sovereign or government cloud endpoints instead
+                            of the default
+                            (<literal>https://graph.microsoft.com/v1.0</literal>),
+                            e.g.
+                            <quote>entra_id:https://graph.microsoft.us/v1.0</quote>
+                            for the US government cloud (GCC High).
+                        </para>
+                        <para>
+                            For the <emphasis role="bold">FreeIPA integrated
+                            IdP (ahdapa)</emphasis>, the base URL of the
+                            ahdapa server must be given. SSSD will
+                            automatically derive the token endpoint
+                            (<literal>&lt;base&gt;/token</literal>), the device
+                            authorization endpoint
+                            (<literal>&lt;base&gt;/device_authorization</literal>),
+                            and the userinfo endpoint
+                            (<literal>&lt;base&gt;/userinfo</literal>) from this
+                            base URL when the corresponding explicit options are
+                            not set. Explicit values for those options take
+                            precedence if provided.
+                        </para>
+                        <para>
+                            In a standard FreeIPA deployment ahdapa is mounted
+                            at the <literal>/idp</literal> path of the IPA
+                            server, so the value would be
+                            <quote>ahdapa:https://server.example.com/idp</quote>.
                         </para>
                         <para>
                             Default: Not set (Required)
@@ -103,10 +134,13 @@
                     <term>idp_client_secret (string)</term>
                     <listitem>
                         <para>
-                            Password of the IdP client. The password is
-                            required for the id_provider. If only used as
+                            Password of the IdP client. Required for the
+                            id_provider unless
+                            <quote>idp_client_use_gssapi = true</quote> is set,
+                            in which case GSSAPI/Kerberos is used instead and
+                            no client secret is needed. If only used as
                             auth_provider it depends on the server side
-                            configuration if it is required or not.
+                            configuration whether it is required or not.
                         </para>
                         <para>
                             Default: Not set
@@ -118,9 +152,13 @@
                     <listitem>
                         <para>
                             IdP endpoint for requesting access tokens.
+                            When <quote>idp_type</quote> is set to
+                            <quote>ahdapa:&lt;base&gt;</quote> and this
+                            option is not set, it defaults to
+                            <literal>&lt;base&gt;/token</literal>.
                         </para>
                         <para>
-                            Default: Not set (Required)
+                            Default: Not set (Required unless auto-derived)
                         </para>
                     </listitem>
                 </varlistentry>
@@ -130,10 +168,13 @@
                         <para>
                             IdP endpoint for device authorization according
                             to RFC-8628. This is required for user
-                            authentication.
+                            authentication. When <quote>idp_type</quote> is
+                            set to <quote>ahdapa:&lt;base&gt;</quote> and
+                            this option is not set, it defaults to
+                            <literal>&lt;base&gt;/device_authorization</literal>.
                         </para>
                         <para>
-                            Default: Not set
+                            Default: Not set (Required unless auto-derived)
                         </para>
                     </listitem>
                 </varlistentry>
@@ -143,10 +184,14 @@
                         <para>
                             IdP userinfo endpoint to request user attributes
                             after a successful authentication of the user.
-                            Required for authentication.
+                            Required for authentication. When
+                            <quote>idp_type</quote> is set to
+                            <quote>ahdapa:&lt;base&gt;</quote> and this
+                            option is not set, it defaults to
+                            <literal>&lt;base&gt;/userinfo</literal>.
                         </para>
                         <para>
-                            Default: Not set
+                            Default: Not set (Required unless auto-derived)
                         </para>
                     </listitem>
                 </varlistentry>
@@ -214,6 +259,68 @@
                         </para>
                         <para>
                             Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_client_use_gssapi (boolean)</term>
+                    <listitem>
+                        <para>
+                            When set to <quote>true</quote>, SSSD authenticates
+                            to the IdP token and device authorization endpoints
+                            using GSSAPI/Kerberos (HTTP Negotiate /
+                            SPNEGO) instead of a static client secret.
+                            The host Kerberos keytab is used to acquire
+                            credentials for the machine's
+                            <literal>host/hostname@REALM</literal> principal,
+                            which are stored in a per-invocation
+                            <literal>MEMORY:</literal> credential cache.
+                            libcurl then presents a Negotiate token on the
+                            token endpoint; the server verifies the AP-REQ and
+                            issues an access token.
+                        </para>
+                        <para>
+                            This option is designed for FreeIPA-enrolled
+                            machines where a single template OAuth2 client is
+                            registered on the IdP with
+                            <literal>token_endpoint_auth_method = kerberos_client_auth</literal>
+                            and a principal glob such as
+                            <literal>host/*@REALM</literal>.  No per-machine
+                            <quote>idp_client_secret</quote> needs to be
+                            distributed or rotated.
+                        </para>
+                        <para>
+                            When <quote>idp_client_use_gssapi = true</quote>,
+                            <quote>idp_client_secret</quote> must not be set.
+                            GSSAPI is used only at the token and device
+                            authorization endpoints; all identity API calls use
+                            a Bearer token obtained from the token endpoint.
+                        </para>
+                        <para>
+                            Default: false
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>idp_client_keytab (string)</term>
+                    <listitem>
+                        <para>
+                            Path to the Kerberos keytab used to acquire
+                            credentials when
+                            <quote>idp_client_use_gssapi = true</quote>.
+                            The keytab must contain the host principal
+                            (<literal>host/hostname@REALM</literal>) and must
+                            be readable by the sssd process.
+                        </para>
+                        <para>
+                            Because <filename>/etc/krb5.keytab</filename> is
+                            typically readable only by root, a keytab copy with
+                            appropriate permissions should be created and
+                            referenced here (similar to the approach used for
+                            IPA trust keytabs).
+                        </para>
+                        <para>
+                            Default: <filename>/etc/krb5.keytab</filename>
                         </para>
                     </listitem>
                 </varlistentry>
@@ -294,6 +401,24 @@ idp_userinfo_endpoint = https://master.keycloak.test:8443/auth/realms/master/pro
 idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/auth/device
 idp_id_scope = profile
 idp_auth_scope = openid profile email
+</programlisting>
+<programlisting>
+[domain/ahdapa]
+id_provider = idp
+auth_provider = idp
+
+; idp_type sets the base URL; token, device-auth, and userinfo endpoints
+; are derived automatically as &lt;base&gt;/token, /device_authorization, /userinfo
+idp_type = ahdapa:https://idp.example.com
+
+idp_client_id = &lt;client_id of the template kerberos_client_auth client&gt;
+; Use the host Kerberos keytab instead of a static client secret.
+; The keytab must be readable by the sssd process.
+idp_client_use_gssapi = true
+idp_client_keytab = /etc/sssd/host.keytab
+
+idp_id_scope = openid directory.read
+idp_auth_scope = openid
 </programlisting>
         </para>
     </refsect1>
