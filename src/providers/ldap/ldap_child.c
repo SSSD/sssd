@@ -775,7 +775,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
 
     krberr = 0;
     *ccname_out = talloc_steal(memctx, ccname);
-    *expire_time_out = my_creds.times.endtime - kdc_time_offset;
+    *expire_time_out = (time_t)(uint32_t)my_creds.times.endtime - kdc_time_offset;
 
 done:
     krb5_get_init_creds_opt_free(context, options);

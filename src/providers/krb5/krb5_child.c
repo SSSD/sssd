@@ -306,19 +306,19 @@ static void sss_krb5_expire_callback_func(krb5_context context, void *data,
 {
     int ret;
     uint32_t *blob;
-    long exp_time;
+    long long exp_time;
     struct krb5_req *kr = talloc_get_type(data, struct krb5_req);
 
     if (password_expiration == 0) {
         return;
     }
 
-    exp_time = password_expiration - time(NULL);
+    exp_time = (long long)(uint32_t)password_expiration - (long long)time(NULL);
     if (exp_time < 0 || exp_time > UINT32_MAX) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Time to expire out of range.\n");
         return;
     }
-    DEBUG(SSSDBG_TRACE_INTERNAL, "exp_time: [%ld]\n", exp_time);
+    DEBUG(SSSDBG_TRACE_INTERNAL, "exp_time: [%lld]\n", exp_time);
 
     blob = talloc_array(kr->pd, uint32_t, 2);
     if (blob == NULL) {
