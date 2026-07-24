@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.11.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2025-06-04 14:28+0000\n"
-"PO-Revision-Date: 2026-04-23 16:20+0000\n"
+"PO-Revision-Date: 2026-07-24 03:09+0000\n"
 "Last-Translator: Temuri Doghonadze <temuri.doghonadze@gmail.com>\n"
 "Language-Team: Georgian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ka/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.7.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -2144,7 +2144,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1769
 msgid "gnome-screensaver"
-msgstr ""
+msgstr "gnome-screensaver"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1777
@@ -7592,7 +7592,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:106
 msgid "<option>use_authtok</option>"
-msgstr ""
+msgstr "<option>use_authtok</option>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:109
