@@ -337,6 +337,58 @@ static bool is_group_filtered(struct sss_nc_ctx *ncache,
     return false;
 }
 
+bool
+sss_nss_protocol_resolve_initgr_group(struct sss_nss_ctx *nss_ctx,
+                                      struct sss_domain_info *domain,
+                                      struct ldb_message *msg,
+                                      struct sss_domain_info **_grp_dom,
+                                      gid_t *_gid,
+                                      const char **_grp_name)
+{
+    struct sss_domain_info *grp_dom;
+    const char *posix;
+    gid_t gid;
+    const char *grp_name;
+
+    grp_dom = find_domain_by_msg(domain, msg);
+    if (grp_dom == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not determine domain for group [%s], skipping.\n",
+              ldb_dn_get_linearized(msg->dn));
+        return false;
+    }
+    gid = sss_view_ldb_msg_find_attr_as_uint64(grp_dom, msg, SYSDB_GIDNUM, 0);
+    posix = ldb_msg_find_attr_as_string(msg, SYSDB_POSIX, NULL);
+    grp_name = sss_view_ldb_msg_find_attr_as_string(grp_dom, msg, SYSDB_NAME,
+                                                    NULL);
+
+    if (gid == 0) {
+        if (posix != NULL && strcmp(posix, "FALSE") == 0) {
+            return false;
+        }
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Incomplete group object [%s] for initgroups! "
+              "Skipping.\n", ldb_dn_get_linearized(msg->dn));
+        return false;
+    }
+
+    if (is_group_filtered(nss_ctx->rctx->ncache, grp_dom, grp_name, gid)) {
+        return false;
+    }
+
+    if (_grp_dom != NULL) {
+        *_grp_dom = grp_dom;
+    }
+    if (_gid != NULL) {
+        *_gid = gid;
+    }
+    if (_grp_name != NULL) {
+        *_grp_name = grp_name;
+    }
+
+    return true;
+}
+
 errno_t
 sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
                              struct sss_nss_cmd_ctx *cmd_ctx,
@@ -346,9 +398,7 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     struct sss_domain_info *domain;
     struct sss_domain_info *grp_dom;
     struct ldb_message *user;
-    struct ldb_message *msg;
     struct ldb_message *primary_group_msg;
-    const char *posix;
     struct sized_string rawname;
     struct sized_string canonical_name;
     uint32_t num_results;
@@ -356,7 +406,6 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     size_t body_len;
     size_t rp;
     gid_t gid;
-    const char *grp_name;
     gid_t orig_gid;
     errno_t ret;
     int i;
@@ -409,26 +458,9 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     /* First message is user, skip it. */
     num_results = 0;
     for (i = 1; i < result->count; i++) {
-        msg = result->msgs[i];
-        grp_dom = find_domain_by_msg(domain, msg);
-        gid = sss_view_ldb_msg_find_attr_as_uint64(grp_dom, msg, SYSDB_GIDNUM,
-                                                   0);
-        posix = ldb_msg_find_attr_as_string(msg, SYSDB_POSIX, NULL);
-        grp_name = sss_view_ldb_msg_find_attr_as_string(grp_dom, msg, SYSDB_NAME,
-                                                        NULL);
-
-        if (gid == 0) {
-            if (posix != NULL && strcmp(posix, "FALSE") == 0) {
-                continue;
-            } else {
-                DEBUG(SSSDBG_MINOR_FAILURE,
-                      "Incomplete group object [%s] for initgroups! "
-                      "Skipping.\n", ldb_dn_get_linearized(msg->dn));
-                continue;
-            }
-        }
-
-        if (is_group_filtered(nss_ctx->rctx->ncache, grp_dom, grp_name, gid)) {
+        if (!sss_nss_protocol_resolve_initgr_group(nss_ctx, domain,
+                                                   result->msgs[i],
+                                                   &grp_dom, &gid, NULL)) {
             continue;
         }
 
