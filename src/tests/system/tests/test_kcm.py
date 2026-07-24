@@ -383,12 +383,21 @@ def test_kcm__tgt_renewal_updates_ticket_as_configured(client: Client, kdc: KDC)
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
-            # KCM runs renew only after ~50% of ticket lifetime (kcm_creds_check_times).
-            # Keep lifetime short for faster test runs; poll past half-life + slack.
-            krb.kinit("tuser", password="Secret123", args=["-r", "5s", "-l", "5s"])
+            # KCM renews only after ~50% of ticket lifetime (kcm_creds_check_times),
+            # and only while the ticket is still valid. Use renew_till > lifetime so
+            # renew_till >= endtime holds, and leave a few renew_interval ticks after
+            # half-life for the async krb5_child path.
+            lifetime_s = 10
+            renewable_s = 30
+            krb.kinit(
+                "tuser",
+                password="Secret123",
+                args=["-r", f"{renewable_s}s", "-l", f"{lifetime_s}s"],
+            )
             init_start, init_end = krb.list_tgt_times(kdc.realm)
 
-            deadline = time.monotonic() + 9.0
+            # Half-life + a few renew_interval ticks + slack for child latency.
+            deadline = time.monotonic() + (lifetime_s / 2) + 5.0
             renew_start, renew_end = init_start, init_end
             while time.monotonic() < deadline:
                 time.sleep(0.5)
