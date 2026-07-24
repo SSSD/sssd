@@ -42,7 +42,6 @@ jobs:
     packages:
       - upstream
     targets:
-      - fedora-all
       - centos-stream-10
 
   # Run TMT tests after COPR builds complete
