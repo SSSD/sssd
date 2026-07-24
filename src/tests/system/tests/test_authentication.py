@@ -7,11 +7,15 @@ SSSD Authentication Test Cases
 from __future__ import annotations
 
 import re
+import textwrap
+from inspect import cleandoc
 
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.kdc import KDC
+from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
@@ -375,3 +379,142 @@ def test_ensure_localauth_plugin_is_not_configured(client: Client, provider: Gen
 
     with pytest.raises(Exception):
         client.fs.read("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.parametrize(
+    "prompting_section",
+    ["prompting/password", "prompting/password/su-l"],
+    ids=["global_prompt", "service_prompt"],
+)
+def test_authentication__custom_password_prompt_is_shown_at_login(
+    client: Client, provider: GenericProvider, prompting_section: str
+):
+    """
+    :title: Custom password prompt text is shown at login
+    :description:
+        'su -' uses the 'su-l' PAM service, so the per-service case targets
+        '[prompting/password/su-l]', not '[prompting/password/su]'.
+    :setup:
+        1. Create user
+        2. Set a custom 'password_prompt', either globally or for the 'su -' PAM service ('su-l')
+        3. Start SSSD
+    :steps:
+        1. Authenticate as the user via 'su -'
+    :expectedresults:
+        1. The custom prompt text is shown and authentication succeeds
+    :customerscenario: True
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.section(prompting_section)["password_prompt"] = "My custom prompt"
+    client.sssd.start()
+
+    result = client.host.conn.run("su - user1 -c 'su - user1 -c whoami'", input="Secret123")
+    assert "My custom prompt" in result.stderr, "Custom password prompt was not shown!"
+    assert "user1" in result.stdout, "'user1' failed to log in!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.authentication
+@pytest.mark.topology(KnownTopology.ALLDC)
+def test_authentication__pam_sss_domains_skips_non_matching_krb5_domains(
+    client: Client, samba: Samba, ipa: IPA, kdc: KDC
+):
+    """
+    :title: pam_sss.so 'domains' authenticates only against the listed Kerberos realm domain
+    :description:
+        Local users may authenticate via Kerberos against one of several configured realms
+        (Samba, IPA, or a standalone KDC). The same username exists in every realm with a
+        different password; each PAM 'domains=' line ignores the other realms and only tries
+        its listed domain.
+    :setup:
+        1. Add a local user and create 'user1' in the Samba, IPA, and KDC realms with
+           different passwords
+        2. Configure three SSSD domains (samba, ipa, krb5) with id_provider=proxy/files and
+           auth_provider=krb5 using each provider's realm
+        3. Replace 'su-l' with three 'sufficient' pam_sss.so lines, each limited by 'domains='
+    :steps:
+        1. Authenticate as the local user via 'su -' using the KDC password
+        2. Change the IPA principal's password to match the KDC password and authenticate again
+    :expectedresults:
+        1. Authentication succeeds via 'domains=krb5'; Samba and IPA users exist but are
+           ignored by that PAM line
+        2. Authentication succeeds via 'domains=ipa', since that line is tried first and now
+           matches too
+    :customerscenario: True
+    """
+    client.local.user("user1").add(password="LocalSecret123")
+    samba.user("user1").add(password="SambaSecret123")
+    ipa.user("user1").add(password="IPASecret123")
+    kdc.principal("user1").add(password="KDCSecret123")
+
+    client.sssd.fs.write(
+        "/etc/krb5.conf",
+        textwrap.dedent(f"""
+            [libdefaults]
+            default_realm = {kdc.realm}
+            dns_lookup_realm = false
+            dns_lookup_kdc = false
+            ticket_lifetime = 24h
+            renew_lifetime = 7d
+            forwardable = yes
+
+            [realms]
+            {samba.realm} = {{
+              kdc = {samba.host.hostname}
+            }}
+            {ipa.realm} = {{
+              kdc = {ipa.host.hostname}
+            }}
+            {kdc.realm} = {{
+              kdc = {kdc.host.hostname}:88
+              admin_server = {kdc.host.hostname}:749
+            }}
+            """).lstrip(),
+        user="root",
+        group="root",
+        mode="0644",
+    )
+
+    for name, role in (("samba", samba), ("ipa", ipa), ("krb5", kdc)):
+        client.sssd.dom(name).update(
+            enabled="true",
+            id_provider="proxy",
+            proxy_lib_name="files",
+            auth_provider="krb5",
+            krb5_realm=role.realm,
+            krb5_server=role.host.hostname,
+        )
+    client.sssd.sssd["domains"] = "samba, ipa, krb5"
+    client.sssd.default_domain = "krb5"
+    client.sssd.start()
+
+    client.fs.backup("/etc/pam.d/su-l")
+    client.fs.write(
+        "/etc/pam.d/su-l",
+        cleandoc("""
+            auth        required    pam_env.so
+            auth        sufficient  pam_sss.so forward_pass domains=samba
+            auth        sufficient  pam_sss.so forward_pass domains=ipa
+            auth        sufficient  pam_sss.so forward_pass domains=krb5
+            auth        required    pam_deny.so
+            account     required    pam_sss.so
+            password    required    pam_sss.so
+            session     required    pam_sss.so
+            """),
+    )
+
+    assert client.auth.su.password(
+        "user1", "KDCSecret123"
+    ), "Authentication should succeed via the matching 'domains=krb5' line!"
+
+    # IPA always forces an immediate password-expiration on an administrative password reset,
+    # even if 'password-expiration' is passed in the same call, so it must be pushed back out
+    # in a separate modification.
+    ipa.user("user1").modify(password="KDCSecret123")
+    ipa.user("user1").modify(password_expiration="20380101120000Z")
+
+    assert client.auth.su.password(
+        "user1", "KDCSecret123"
+    ), "Authentication should also succeed via the earlier 'domains=ipa' line once its password matches!"
