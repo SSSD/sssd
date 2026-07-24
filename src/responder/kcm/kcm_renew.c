@@ -588,6 +588,7 @@ static errno_t kcm_creds_check_times(TALLOC_CTX *mem_ctx,
                 ret = ENOMEM;
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "Unable to allocate auth_data for renewals\n");
+                talloc_free(auth_data);
                 goto done;
             }
 
@@ -595,6 +596,7 @@ static errno_t kcm_creds_check_times(TALLOC_CTX *mem_ctx,
             if (imm == NULL) {
                 ret = ENOMEM;
                 DEBUG(SSSDBG_CRIT_FAILURE, "tevent_create_immediate failed\n");
+                talloc_free(auth_data);
                 goto done;
             }
 
