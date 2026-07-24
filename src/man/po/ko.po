@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2026-04-23 16:36+0000\n"
-"Last-Translator: seo hojin <jinswhat@naver.com>\n"
+"PO-Revision-Date: 2026-06-22 07:32+0000\n"
+"Last-Translator: Min Kyung Kwon <min.kyung.kwon.dev@gmail.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
 "Language: ko\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.6.1\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -755,6 +755,13 @@ msgid ""
 "permissions may result in a non-usable SSSD. The same may occur in case of "
 "changes of the user running the NSS responder.  </phrase>"
 msgstr ""
+"root 사용자로 실행하지 않도록 적절한 경우 권한을 낮출 사용자입니다.  <phrase "
+"condition=\"have_systemd\"> 이 옵션은 소켓 활성화 서비스를 실행할 때 "
+"작동하지 않습니다. 프로세스를 실행하도록 설정된 사용자는 컴파일 시점에 "
+"설정되기 때문입니다.  systemd 단위 파일을 재정의하는 방법은 /etc/systemd/"
+"system/에 적절한 파일을 만드는 것입니다.  소켓 사용자, 그룹 또는 권한을 "
+"변경하면 SSSD를 사용할 수 없게 될 수 있습니다. NSS 응답자를 실행하는 "
+"사용자를 변경하는 경우에도 동일한 문제가 발생할 수 있습니다.  </phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:427
@@ -775,11 +782,10 @@ msgid ""
 "trusted domain.  The option allows those users to log in just with their "
 "user name without giving a domain name as well."
 msgstr ""
-"이와 같은 문자열은 도메인 이름 구성이 없는 모든 이름을 위해 기본 도메인 "
-"이름으로 사용됩니다. 주요 사용 경우는 기본 도메인이 호스트 정책을 관리하고 "
-"모든 사용자가 신뢰 할 수 있는 도메인에 있는 환경입니다.  이와 같은 옵션을 "
-"사용하면 해당 사용자는 도메인 이름도 제공하지 않고 이들 사용자 이름만으로 "
-"로그인 할 수 있습니다."
+"이 문자열은 도메인 이름 구성 요소가 없는 모든 이름의 기본 도메인 이름으로 "
+"사용됩니다. 주요 사용 사례는 기본 도메인이 호스트 정책 관리를 목적으로 하고 "
+"모든 사용자가 신뢰할 수 있는 도메인에 있는 환경입니다.  이 옵션을 사용하면 "
+"해당 사용자가 도메인 이름 없이 사용자 이름만으로 로그인할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:445
@@ -793,6 +799,13 @@ msgid ""
 "nss_files and therefore their output is not qualified even when the "
 "default_domain_suffix option is used."
 msgstr ""
+"이 옵션이 설정되면 기본 도메인의 모든 사용자가 로그인 시 정규화된 이름(예: "
+"user@domain.name)을 사용해야 합니다. 이 옵션을 설정하면 "
+"use_fully_qualified_names의 기본값이 True로 변경됩니다. 이 옵션은 "
+"use_fully_qualified_names가 False로 설정된 경우와 함께 사용할 수 없습니다. "
+"이 규칙의 한 가지 예외는 <quote>id_provider=files</quote>인 도메인으로, 항상 "
+"nss_files의 동작을 따르려 하기 때문에 default_domain_suffix 옵션을 "
+"사용하더라도 출력이 정규화되지 않습니다."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:460 sssd-ldap.5.xml:772 sssd-ldap.5.xml:784
@@ -1001,6 +1014,9 @@ msgid ""
 "the related certificates. This option should be used to allow authentication "
 "when the system is offline and the CRL cannot be renewed."
 msgstr ""
+"인증서 폐기 목록(CRL)이 만료된 경우 관련 인증서의 CRL 점검을 무시합니다. 이 "
+"옵션은 시스템이 오프라인이고 CRL을 갱신할 수 없을 때 인증을 허용하기 위해 "
+"사용해야 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:493
@@ -1062,6 +1078,8 @@ msgid ""
 "When this option is enabled, SSSD prepends an implicit domain with "
 "<quote>id_provider=files</quote> before any explicitly configured domains."
 msgstr ""
+"이 옵션이 활성화되면 SSSD는 명시적으로 구성된 도메인 앞에 <quote>"
+"id_provider=files</quote>를 사용하는 암묵적 도메인을 추가합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:652
@@ -1078,11 +1096,11 @@ msgid ""
 "subdomains which are not listed as part of <quote>lookup_order</quote> will "
 "be looked up in a random order for each parent domain."
 msgstr ""
-"따라야 할 조회 순서를 나타내는 쉼표로 구분된 도메인 및 하위 도메인의 목록.  "
-"목록은 누락된 도메인이 <quote>domains</quote> 구성에서 제공된 순서에 "
-"기반하여 조회되는 모든 가능한 도메인을 포함하지 않아도 됩니다.   <quote>"
-"lookup_order</quote> 의 부분으로 나열되지 않은 하위 도메인은 각 상위 "
-"도메인을 위해 무작위 순서로 조회됩니다."
+"따라야 할 조회 순서를 나타내는 쉼표로 구분된 도메인 및 하위 도메인의 "
+"목록입니다.  목록에 모든 가능한 도메인을 포함할 필요는 없습니다. 누락된 "
+"도메인은 <quote>domains</quote> 구성 옵션에 표시된 순서에 따라 조회됩니다.  "
+"<quote>lookup_order</quote>의 일부로 나열되지 않은 하위 도메인은 각 상위 "
+"도메인에 대해 임의의 순서로 조회됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:667
@@ -1100,6 +1118,16 @@ msgid ""
 "shortnames, making this workaround totally not recommended in cases where "
 "usernames may overlap between domains."
 msgstr ""
+"이 옵션이 설정되면 파일 공급자가 관리하는 사용자를 제외한 모든 사용자에 대해 "
+"입력에 짧은 이름을 사용하더라도 항상 모든 명령의 출력 형식이 정규화됩니다.  "
+"관리자가 출력을 정규화하지 않으려는 경우 다음과 같이 full_name_format 옵션을 "
+"사용할 수 있습니다: <quote>full_name_format=%1$s</quote> 하지만 로그인 중에 "
+"로그인 응용 프로그램이 <citerefentry> <refentrytitle>getpwnam</"
+"refentrytitle> <manvolnum>3</manvolnum> </citerefentry>을 호출하여 사용자 "
+"이름을 정규화하는 경우, 정규화된 입력에 대해 짧은 이름이 반환되면(여러 "
+"도메인에 존재하는 사용자에 접근하려는 시도 중) 로그인 시도가 짧은 이름을 "
+"사용하는 도메인으로 재라우팅될 수 있으므로, 사용자 이름이 도메인 간에 겹칠 "
+"수 있는 경우에는 이 해결 방법을 사용하지 않는 것이 좋습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:692 sssd.conf.5.xml:1659 sssd.conf.5.xml:3927
@@ -1117,6 +1145,11 @@ msgid ""
 "some other important options like the identity domains.  <placeholder type="
 "\"variablelist\" id=\"0\"/>"
 msgstr ""
+"SSSD의 개별 기능은 SSSD와 함께 시작 및 종료되는 특수 SSSD 서비스에 의해 "
+"제공됩니다.   이 서비스들은 흔히 <quote>모니터</quote>라고 불리는 특수 "
+"서비스에 의해 관리됩니다. <quote>[sssd]</quote> 섹션은 모니터 설정뿐만 "
+"아니라 ID 도메인과 같은 다른 중요한 옵션을 구성하는 데 사용됩니다.   "
+"<placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:703
@@ -1131,6 +1164,9 @@ msgid ""
 "section, for example, for NSS service, the section would be <quote>[nss]</"
 "quote>"
 msgstr ""
+"다양한 서비스를 구성하는 데 사용할 수 있는 설정이 이 섹션에 설명되어 "
+"있습니다. [<replaceable>$NAME</replaceable>] 섹션에 위치해야 합니다. 예를 "
+"들어 NSS 서비스의 경우 <quote>[nss]</quote> 섹션이 됩니다"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:712
@@ -1156,6 +1192,10 @@ msgid ""
 "systems without this capability, the resulting value will be the lower value "
 "of this or the limits.conf \"hard\" limit."
 msgstr ""
+"이 옵션은 이 SSSD 프로세스가 한 번에 열 수 있는 최대 파일 설명자 수를 "
+"지정합니다. SSSD에 CAP_SYS_RESOURCE 기능이 부여된 시스템에서는 절대적인 "
+"설정입니다. 이 기능이 없는 시스템에서는 이 값과 limits.conf의 \"hard\" 제한 "
+"중 낮은 값이 결과값으로 사용됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:743
@@ -1176,6 +1216,10 @@ msgid ""
 "can't be shorter than 10 seconds. If a lower value is configured, it will be "
 "adjusted to 10 seconds."
 msgstr ""
+"이 옵션은 SSSD 프로세스의 클라이언트가 통신하지 않고 파일 설명자를 유지할 수 "
+"있는 시간(초)을 지정합니다. 이 값은 시스템의 리소스 고갈을 방지하기 위해 "
+"제한됩니다. 시간 초과는 10초보다 짧을 수 없습니다. 더 낮은 값을 구성하면 "
+"10초로 조정됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:760
@@ -1197,6 +1241,11 @@ msgid ""
 "time for the previous ones.  After each unsuccessful attempt to go online, "
 "the new interval is recalculated by the following:"
 msgstr ""
+"SSSD가 오프라인 모드로 전환되면 다시 온라인으로 돌아가기 전의 시간이 연결이 "
+"끊긴 시간에 따라 증가합니다.  기본적으로 SSSD는 증분 방식을 사용하여 재시도 "
+"사이의 지연을 계산합니다.  따라서 주어진 재시도의 대기 시간은 이전 재시도의 "
+"대기 시간보다 깁니다.  온라인 전환에 실패할 때마다 새 간격은 다음 공식으로 "
+"다시 계산됩니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:779 sssd.conf.5.xml:835
@@ -1214,6 +1263,9 @@ msgid ""
 "value is 3600.  The offline_timeout_random_offset default value is 30.  The "
 "end result is amount of seconds before next retry."
 msgstr ""
+"offline_timeout 기본값은 60입니다.  offline_timeout_max 기본값은 "
+"3600입니다.  offline_timeout_random_offset 기본값은 30입니다.  최종 결과는 "
+"다음 재시도 전까지의 시간(초)입니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:788
@@ -1221,6 +1273,8 @@ msgid ""
 "Note that the maximum length of each interval is defined by "
 "offline_timeout_max (apart of random part)."
 msgstr ""
+"각 간격의 최대 길이는 offline_timeout_max에 의해 정의됩니다(무작위 부분 제외)"
+"."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:792 sssd.conf.5.xml:1132 sssd.conf.5.xml:1486
@@ -1239,6 +1293,8 @@ msgid ""
 "Controls by how much the time between attempts to go online can be "
 "incremented following unsuccessful attempts to go online."
 msgstr ""
+"온라인 전환에 실패한 후 온라인 전환 시도 사이의 시간을 얼마나 증가시킬 "
+"것인지 제어합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:805
@@ -1250,7 +1306,7 @@ msgstr "0의 값은 동작을 비활성화 합니다."
 msgid ""
 "The value of this parameter should be set in correlation to offline_timeout "
 "parameter value."
-msgstr ""
+msgstr "이 매개변수의 값은 offline_timeout 매개변수 값과 연관하여 설정해야 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:812
@@ -1260,6 +1316,9 @@ msgid ""
 "rule here should be to set offline_timeout_max to at least 4 times "
 "offline_timeout."
 msgstr ""
+"offline_timeout이 60(기본값)으로 설정된 경우 offline_timeout_max를 120 "
+"미만으로 설정하면 즉시 포화 상태가 되므로 의미가 없습니다. 일반적인 규칙은 "
+"offline_timeout_max를 offline_timeout의 최소 4배로 설정하는 것입니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:818
@@ -1267,6 +1326,8 @@ msgid ""
 "Although a value between 0 and offline_timeout may be specified, it has the "
 "effect of overriding the offline_timeout value so is of little use."
 msgstr ""
+"0과 offline_timeout 사이의 값을 지정할 수 있지만, offline_timeout 값을 "
+"재정의하는 효과가 있으므로 실질적인 의미가 거의 없습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:823
@@ -1293,6 +1354,8 @@ msgid ""
 "This parameter controls the value of the random offset used for the above "
 "equation. Final random_offset value will be random number in range:"
 msgstr ""
+"이 매개변수는 위 수식에 사용되는 무작위 오프셋의 값을 제어합니다. 최종 "
+"random_offset 값은 다음 범위의 무작위 수가 됩니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:843
@@ -1325,6 +1388,11 @@ msgid ""
 "built with systemd support and when services are either socket or D-Bus "
 "activated."
 msgstr ""
+"이 옵션은 SSSD 응답자 프로세스가 사용되지 않은 채로 유지될 수 있는 시간(초)"
+"을 지정합니다. 이 값은 시스템의 리소스 고갈을 방지하기 위해 제한됩니다.  이 "
+"옵션의 최소 허용 값은 60초입니다.  이 옵션을 0(영)으로 설정하면 응답자에 "
+"시간 초과가 설정되지 않습니다.  이 옵션은 SSSD가 systemd 지원으로 빌드되고 "
+"서비스가 소켓 또는 D-Bus로 활성화된 경우에만 효과가 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:871 sssd.conf.5.xml:1145 sssd.conf.5.xml:2187
@@ -1343,6 +1411,8 @@ msgid ""
 "This option specifies whether the responder should query all caches before "
 "querying the Data Providers."
 msgstr ""
+"이 옵션은 응답자가 자료 공급자를 질의하기 전에 모든 캐시를 질의해야 하는지 "
+"여부를 지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:891
@@ -1365,7 +1435,7 @@ msgstr "enum_cache_timeout (정수)"
 msgid ""
 "How many seconds should nss_sss cache enumerations (requests for info about "
 "all users)"
-msgstr "nss_sss 캐쉬가 열거된 시간(초) (모든 사용자에 대한 정보를 위한 요청)"
+msgstr "nss_sss가 열거(모든 사용자에 대한 정보 요청)를 캐시해야 하는 시간(초)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:905
@@ -1397,6 +1467,10 @@ msgid ""
 "but the SSSD will go and update the cache on its own, so that future "
 "requests will not need to block waiting for a cache update."
 msgstr ""
+"예를 들어, 도메인의 entry_cache_timeout이 30초로 설정되고 "
+"entry_cache_nowait_percentage가 50(퍼센트)로 설정된 경우, 마지막 캐시 "
+"업데이트 후 15초 이후에 들어오는 항목은 즉시 반환되지만, SSSD가 독자적으로 "
+"캐시를 업데이트하므로 향후 요청이 캐시 업데이트를 기다리며 차단되지 않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:929
@@ -1406,6 +1480,9 @@ msgid ""
 "percentage will never reduce the nowait timeout to less than 10 seconds.  (0 "
 "disables this feature)"
 msgstr ""
+"이 옵션의 유효한 값은 0-99이며 각 도메인의 entry_cache_timeout 백분율을 "
+"나타냅니다. 성능상의 이유로 이 백분율은 nowait 시간 초과를 10초 미만으로 "
+"줄이지 않습니다.  (0은 이 기능을 비활성화합니다)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:937 sssd.conf.5.xml:1987
@@ -1424,6 +1501,9 @@ msgid ""
 "(that is, queries for invalid database entries, like nonexistent ones)  "
 "before asking the back end again."
 msgstr ""
+"nss_sss가 백엔드에 다시 요청하기 전에 네거티브 캐시 적중(존재하지 않는 것과 "
+"같은 잘못된 데이터베이스 항목에 대한 조회)을 캐시해야 하는 시간(초)을 "
+"지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:951 sssd.conf.5.xml:2011
@@ -1442,6 +1522,9 @@ msgid ""
 "negative cache before trying to look it up in the back end again. Setting "
 "the option to 0 disables this feature."
 msgstr ""
+"nss_sss가 백엔드에서 다시 조회를 시도하기 전에 로컬 사용자 및 그룹을 "
+"네거티브 캐시에 유지해야 하는 시간(초)을 지정합니다. 이 옵션을 0으로 "
+"설정하면 이 기능이 비활성화됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:965
@@ -1461,6 +1544,10 @@ msgid ""
 "also be set per-domain or include fully-qualified names to filter only users "
 "from the particular domain or by a user principal name (UPN)."
 msgstr ""
+"sss NSS 데이터베이스에서 특정 사용자 또는 그룹을 가져오지 않도록 제외합니다. "
+"시스템 계정에 특히 유용합니다. 이 옵션은 도메인별로 설정하거나 정규화된 "
+"이름을 포함하여 특정 도메인의 사용자만 또는 사용자 주체 이름(UPN)으로 "
+"필터링할 수도 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:981
@@ -1470,6 +1557,10 @@ msgid ""
 "NSS. E.g. a group having a member group filtered out will still have the "
 "member users of the latter listed."
 msgstr ""
+"참고: filter_groups 옵션은 중첩된 그룹 구성원의 상속에 영향을 주지 않습니다. "
+"필터링은 NSS를 통해 반환하기 위해 전파된 후에 이루어지기 때문입니다. 예를 "
+"들어 구성원 그룹이 필터링된 그룹에도 해당 그룹의 구성원 사용자가 여전히 "
+"나열됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:989
@@ -1500,6 +1591,8 @@ msgid ""
 "Set a default template for a user's home directory if one is not specified "
 "explicitly by the domain's data provider."
 msgstr ""
+"도메인의 자료 공급자가 명시적으로 지정하지 않은 경우 사용자의 홈 디렉토리에 "
+"대한 기본 템플릿을 설정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1016
@@ -1542,6 +1635,8 @@ msgid ""
 "shell options if it takes effect and can be set either in the [nss] section "
 "or per-domain."
 msgstr ""
+"모든 사용자의 로그인 쉘을 재정의합니다. 이 옵션이 적용되면 다른 모든 쉘 "
+"옵션보다 우선하며 [nss] 섹션 또는 도메인별로 설정할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1041
@@ -1557,12 +1652,12 @@ msgstr "allowed_shells (문자열)"
 #: sssd.conf.5.xml:1050
 msgid ""
 "Restrict user shell to one of the listed values. The order of evaluation is:"
-msgstr ""
+msgstr "사용자 쉘을 나열된 값 중 하나로 제한합니다. 평가 순서는 다음과 같습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1053
 msgid "1. If the shell is present in <quote>/etc/shells</quote>, it is used."
-msgstr ""
+msgstr "1. 쉘이 <quote>/etc/shells</quote>에 있으면 해당 쉘이 사용됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1057
@@ -1570,6 +1665,8 @@ msgid ""
 "2. If the shell is in the allowed_shells list but not in <quote>/etc/shells</"
 "quote>, use the value of the shell_fallback parameter."
 msgstr ""
+"2. 쉘이 allowed_shells 목록에는 있지만 <quote>/etc/shells</quote>에는 "
+"없으면, shell_fallback 매개변수의 값을 사용합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1062
@@ -1577,6 +1674,8 @@ msgid ""
 "3. If the shell is not in the allowed_shells list and not in <quote>/etc/"
 "shells</quote>, a nologin shell is used."
 msgstr ""
+"3. 쉘이 allowed_shells 목록에도 없고 <quote>/etc/shells</quote>에도 없으면, "
+"nologin 쉘이 사용됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1067
@@ -1590,6 +1689,9 @@ msgid ""
 "shell is not in <quote>/etc/shells</quote> and maintaining list of all "
 "allowed shells in allowed_shells would be to much overhead."
 msgstr ""
+"(*)는 사용자의 쉘이 <quote>/etc/shells</quote>에 없을 때 shell_fallback을 "
+"사용하려는 경우에 유용하며, allowed_shells에 모든 허용된 쉘 목록을 유지하는 "
+"것이 부담스러울 때 사용합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1077
@@ -1602,6 +1704,8 @@ msgid ""
 "The <quote>/etc/shells</quote> is only read on SSSD start up, which means "
 "that a restart of the SSSD is required in case a new shell is installed."
 msgstr ""
+"<quote>/etc/shells</quote>는 SSSD 시작 시에만 읽히므로, 새 쉘이 설치된 경우 "
+"SSSD를 다시 시작해야 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1084
@@ -1645,6 +1749,8 @@ msgid ""
 "The default shell to use if the provider does not return one during lookup. "
 "This option can be specified globally in the [nss] section or per-domain."
 msgstr ""
+"공급자가 조회 중 쉘을 반환하지 않는 경우 사용할 기본 쉘입니다. 이 옵션은 "
+"[nss] 섹션에서 전역적으로 또는 도메인별로 지정할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1118
@@ -1652,6 +1758,8 @@ msgid ""
 "Default: not set (Return NULL if no shell is specified and rely on libc to "
 "substitute something sensible when necessary, usually /bin/sh)"
 msgstr ""
+"기본값: 설정되지 않음(쉘을 지정하지 않으면 NULL을 반환하고 필요 시 libc가 "
+"적절한 값으로 대체하도록 합니다. 보통 /bin/sh)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1125 sssd.conf.5.xml:1479
@@ -1676,6 +1784,8 @@ msgid ""
 "Specifies time in seconds for which records in the in-memory cache will be "
 "valid. Setting this option to zero will disable the in-memory cache."
 msgstr ""
+"메모리 내 캐시의 레코드가 유효한 시간(초)을 지정합니다. 이 옵션을 0으로 "
+"설정하면 메모리 내 캐시가 비활성화됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1148
@@ -1683,6 +1793,8 @@ msgid ""
 "WARNING: Disabling the in-memory cache will have significant negative impact "
 "on SSSD's performance and should only be used for testing."
 msgstr ""
+"경고: 메모리 내 캐시를 비활성화하면 SSSD 성능에 심각한 부정적인 영향을 "
+"미치며 테스트 목적으로만 사용해야 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1154 sssd.conf.5.xml:1179 sssd.conf.5.xml:1204
@@ -1691,6 +1803,8 @@ msgid ""
 "NOTE: If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", "
 "client applications will not use the fast in-memory cache."
 msgstr ""
+"참고: 환경 변수 SSS_NSS_USE_MEMCACHE가 \"NO\"로 설정된 경우, 클라이언트 응용 "
+"프로그램은 빠른 메모리 내 캐시를 사용하지 않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1162
@@ -1704,6 +1818,8 @@ msgid ""
 "for passwd requests.  Setting the size to 0 will disable the passwd in-"
 "memory cache."
 msgstr ""
+"passwd 요청을 위해 빠른 캐쉬 메모리 내에 할당된 자료 테이블의 크기(megabytes)"
+"입니다.  크기를 0으로 설정하면 메모리 내의 passwd 가 비활성화됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1171 sssd.conf.5.xml:2720 sssd-ldap.5.xml:513
@@ -1716,6 +1832,8 @@ msgid ""
 "WARNING: Disabled or too small in-memory cache can have significant negative "
 "impact on SSSD's performance."
 msgstr ""
+"경고: 비활성화되었거나 너무 작은 메모리 내 캐시는 SSSD 성능에 심각한 "
+"부정적인 영향을 미칠 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1187
@@ -1729,6 +1847,8 @@ msgid ""
 "for group requests.  Setting the size to 0 will disable the group in-memory "
 "cache."
 msgstr ""
+"그룹 요청을 위한 빠른 캐쉬 메모리에 할당된 자료 테이블의 크기(megabytes).  "
+"크기를 0으로 설정하면 메모리 캐쉬에서 그룹이 비활성화됩니다."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1196 sssd.conf.5.xml:3515 sssd-ldap.5.xml:453
@@ -1748,6 +1868,9 @@ msgid ""
 "for initgroups requests.  Setting the size to 0 will disable the initgroups "
 "in-memory cache."
 msgstr ""
+"initgroups 요청을 위한 빠른 메모리 캐쉬에 안에 할당된 자료 테이블의 크기"
+"(megabytes).  크기를 0으로 설정하면 메모리 캐쉬에 initgroups가 "
+"비활성화됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1237 sssd-ifp.5.xml:74
@@ -1764,6 +1887,11 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for details) but with no default values."
 msgstr ""
+"일부 추가 NSS 응답자 요청은 NSS 인터페이스에 정의된 POSIX 속성보다 더 많은 "
+"속성을 반환할 수 있습니다. 속성 목록은 이 옵션에 의해 제어됩니다. InfoPipe "
+"응답자의 <quote>user_attributes</quote> 옵션과 동일한 방식으로 처리됩니다"
+"(자세한 내용은 <citerefentry> <refentrytitle>sssd-ifp</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> 참조). 다만 기본값은 없습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1253
@@ -1771,6 +1899,8 @@ msgid ""
 "To make configuration more easy the NSS responder will check the InfoPipe "
 "option if it is not set for the NSS responder."
 msgstr ""
+"구성을 더 쉽게 하기 위해 NSS 응답자에 대해 설정되지 않은 경우 NSS 응답자가 "
+"InfoPipe 옵션을 확인합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1258
@@ -1788,6 +1918,8 @@ msgid ""
 "The value that NSS operations that return users or groups will return for "
 "the <quote>password</quote> field."
 msgstr ""
+"사용자 또는 그룹을 반환하는 NSS 연산이 <quote>password</quote> 필드에 대해 "
+"반환하는 값입니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1271
@@ -1799,7 +1931,7 @@ msgstr "기본값: <quote>*</quote>"
 msgid ""
 "Note: This option can also be set per-domain which overwrites the value in "
 "[nss] section."
-msgstr ""
+msgstr "참고: 이 옵션은 도메인별로도 설정할 수 있으며 [nss] 섹션의 값을 덮어씁니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1278
@@ -1808,6 +1940,8 @@ msgid ""
 "files domain), <quote>x</quote> (proxy domain with nss_files and sssd-"
 "shadowutils target)"
 msgstr ""
+"기본값: <quote>설정되지 않음</quote>(원격 도메인), <quote>x</quote>(파일 "
+"도메인), <quote>x</quote>(nss_files 및 sssd-shadowutils 대상의 프록시 도메인)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:1288
@@ -1832,6 +1966,8 @@ msgid ""
 "If the authentication provider is offline, how long should we allow cached "
 "logins (in days since the last successful online login)."
 msgstr ""
+"인증 공급자가 오프라인인 경우 캐시된 로그인을 허용해야 하는 기간(마지막 "
+"성공적인 온라인 로그인 이후 일 수)입니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1303 sssd.conf.5.xml:1316
@@ -1848,7 +1984,7 @@ msgstr "offline_failed_login_attempts (정수)"
 msgid ""
 "If the authentication provider is offline, how many failed login attempts "
 "are allowed."
-msgstr ""
+msgstr "인증 공급자가 오프라인인 경우 허용되는 로그인 시도 실패 횟수입니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1322
@@ -1861,6 +1997,8 @@ msgid ""
 "The time in minutes which has to pass after offline_failed_login_attempts "
 "has been reached before a new login attempt is possible."
 msgstr ""
+"offline_failed_login_attempts에 도달한 후 새 로그인 시도가 가능해지기 전에 "
+"경과해야 하는 시간(분)입니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1330
@@ -1869,6 +2007,9 @@ msgid ""
 "offline_failed_login_attempts has been reached. Only a successful online "
 "authentication can enable offline authentication again."
 msgstr ""
+"0으로 설정하면 offline_failed_login_attempts에 도달한 경우 사용자가 "
+"오프라인으로 인증할 수 없습니다. 성공적인 온라인 인증만이 오프라인 인증을 "
+"다시 활성화할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1336 sssd.conf.5.xml:1446
@@ -1886,6 +2027,8 @@ msgid ""
 "Controls what kind of messages are shown to the user during authentication. "
 "The higher the number to more messages are displayed."
 msgstr ""
+"인증 중 사용자에게 표시되는 메시지의 종류를 제어합니다. 숫자가 높을수록 더 "
+"많은 메시지가 표시됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1350
@@ -1930,6 +2073,10 @@ msgid ""
 "responses sent to pam_sss e.g. messages displayed to the user or environment "
 "variables which should be set by pam_sss."
 msgstr ""
+"PAM 응답자가 pam_sss PAM 모듈로 보내는 데이터를 제거(필터링)할 수 있는 "
+"쉼표로 구분된 문자열 목록입니다. pam_sss로 전송되는 다양한 종류의 응답이 "
+"있습니다. 예를 들어 사용자에게 표시되는 메시지 또는 pam_sss에 의해 "
+"설정되어야 하는 환경 변수 등입니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1384
@@ -1937,6 +2084,8 @@ msgid ""
 "While messages already can be controlled with the help of the pam_verbosity "
 "option this option allows to filter out other kind of responses as well."
 msgstr ""
+"메시지는 pam_verbosity 옵션의 도움으로 이미 제어할 수 있지만, 이 옵션은 다른 "
+"종류의 응답도 필터링할 수 있게 합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1391
@@ -1946,7 +2095,7 @@ msgstr "ENV"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1392
 msgid "Do not send any environment variables to any service."
-msgstr "모든 환경 변수를 다른 서비스에 보낼 수 없습니다."
+msgstr "모든 환경 변수를 어떤 서비스에도 보내지 않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1395
@@ -1956,7 +2105,7 @@ msgstr "ENV:var_name"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1396
 msgid "Do not send environment variable var_name to any service."
-msgstr "환경 변수 var_name을 다른 어떤 서비스에 보내지 않습니다."
+msgstr "환경 변수 var_name을 어떤 서비스에도 보내지 않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1400
@@ -1987,6 +2136,11 @@ msgid ""
 "that either all list elements must have a '+' or '-' prefix or none. It is "
 "considered as an error to mix both styles."
 msgstr ""
+"문자열 목록은 이 필터 목록을 설정하고 기본값을 덮어쓰는 필터 목록이 될 수 "
+"있습니다. 또는 목록의 각 요소에 '+' 또는 '-' 문자를 접두사로 붙여 기존 "
+"기본값에 필터를 추가하거나 기본값에서 제거할 수 있습니다. 모든 목록 요소에 "
+"'+' 또는 '-' 접두사가 있거나 모두 없어야 합니다. 두 가지 스타일을 혼용하는 "
+"것은 오류로 간주됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1419
@@ -2011,6 +2165,8 @@ msgid ""
 "immediately update the cached identity information for the user in order to "
 "ensure that authentication takes place with the latest information."
 msgstr ""
+"SSSD가 온라인 상태일 때 모든 PAM 요청에 대해, SSSD는 최신 정보로 인증이 "
+"이루어지도록 사용자의 캐시된 ID 정보를 즉시 업데이트하려고 시도합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1438
@@ -2020,6 +2176,9 @@ msgid ""
 "client-application basis) how long (in seconds) we can cache the identity "
 "information to avoid excessive round-trips to the identity provider."
 msgstr ""
+"완전한 PAM 대화는 계정 관리 및 세션 열기와 같은 여러 PAM 요청을 수행할 수 "
+"있습니다. 이 옵션은 (클라이언트 응용 프로그램별로) ID 공급자에 대한 과도한 "
+"왕복을 피하기 위해 ID 정보를 캐시할 수 있는 시간(초)을 제어합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1452
@@ -2038,6 +2197,8 @@ msgid ""
 "expiration time of the password.  If this information is missing, sssd "
 "cannot display a warning."
 msgstr ""
+"백엔드 서버가 비밀번호의 만료 시간에 대한 정보를 제공해야 합니다.  이 정보가 "
+"없으면 sssd는 경고를 표시할 수 없습니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1464 sssd.conf.5.xml:2747
@@ -2045,6 +2206,8 @@ msgid ""
 "If zero is set, then this filter is not applied, i.e. if the expiration "
 "warning was received from backend server, it will automatically be displayed."
 msgstr ""
+"0으로 설정하면 이 필터가 적용되지 않습니다. 즉, 백엔드 서버에서 만료 경고를 "
+"수신하면 자동으로 표시됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1469
@@ -2052,6 +2215,8 @@ msgid ""
 "This setting can be overridden by setting <emphasis>pwd_expiration_warning</"
 "emphasis> for a particular domain."
 msgstr ""
+"이 설정은 특정 도메인에 대해 <emphasis>pwd_expiration_warning</emphasis>을 "
+"설정하여 재정의할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1474 sssd.conf.5.xml:3709 sssd-ldap.5.xml:549 sssd.8.xml:79
@@ -2072,6 +2237,10 @@ msgid ""
 "<quote>pam_public_domains</quote>.  User names are resolved to UIDs at "
 "startup."
 msgstr ""
+"신뢰할 수 있는 도메인에 대해 PAM 대화를 실행할 수 있는 UID 값 또는 사용자 "
+"이름의 쉼표로 구분된 목록을 지정합니다.  이 목록에 포함되지 않은 사용자는 "
+"<quote>pam_public_domains</quote>로 공개로 표시된 도메인에만 접근할 수 "
+"있습니다.  사용자 이름은 시작 시 UID로 확인됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1504
@@ -2084,6 +2253,8 @@ msgid ""
 "Please note that UID 0 is always allowed to access the PAM responder even in "
 "case it is not in the pam_trusted_users list."
 msgstr ""
+"UID 0은 pam_trusted_users 목록에 없더라도 항상 PAM 응답자에 대한 접근이 "
+"허용됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1515
@@ -2096,11 +2267,13 @@ msgid ""
 "Specifies the comma-separated list of domain names that are accessible even "
 "to untrusted users."
 msgstr ""
+"신뢰할 수 없는 사용자도 접근할 수 있는 도메인 이름의 쉼표로 구분된 목록을 "
+"지정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1522
 msgid "Two special values for pam_public_domains option are defined:"
-msgstr ""
+msgstr "pam_public_domains 옵션에 대해 두 가지 특수 값이 정의되어 있습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1526
@@ -2135,6 +2308,8 @@ msgid ""
 "Allows a custom expiration message to be set, replacing the default "
 "'Permission denied' message."
 msgstr ""
+"기본 '권한이 거부되었습니다' 메시지를 대체하는 사용자 지정 만료 메시지를 "
+"설정할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1547
@@ -2142,6 +2317,8 @@ msgid ""
 "Note: Please be aware that message is only printed for the SSH service "
 "unless pam_verbosity is set to 3 (show all messages and debug information)."
 msgstr ""
+"참고: pam_verbosity가 3(모든 메시지 및 디버그 정보 표시)으로 설정되지 않는 "
+"한 메시지는 SSH 서비스에 대해서만 출력됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1555
@@ -2164,6 +2341,8 @@ msgid ""
 "Allows a custom lockout message to be set, replacing the default 'Permission "
 "denied' message."
 msgstr ""
+"기본 '권한이 거부되었습니다' 메시지를 대체하는 사용자 지정 잠금 메시지를 "
+"설정할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1574
@@ -2188,6 +2367,9 @@ msgid ""
 "additional communication with the Smartcard which will delay the "
 "authentication process this option is disabled by default."
 msgstr ""
+"인증서 기반 스마트카드 인증을 활성화합니다. 스마트카드와의 추가 통신이 "
+"필요하여 인증 프로세스가 지연되므로 이 옵션은 기본적으로 비활성화되어 "
+"있습니다."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1592 sssd-ldap.5.xml:590 sssd-ldap.5.xml:611
@@ -2234,6 +2416,10 @@ msgid ""
 "section.  Supported options are the same of <quote>certificate_verification</"
 "quote>."
 msgstr ""
+"이 매개변수를 사용하면 <quote>[sssd]</quote> 섹션의 <quote>"
+"certificate_verification</quote> 값을 재정의하는 쉼표로 구분된 옵션 목록으로 "
+"PAM 인증서 확인을 조정할 수 있습니다. 지원되는 옵션은 <quote>"
+"certificate_verification</quote>과 동일합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1629
@@ -2251,6 +2437,8 @@ msgid ""
 "Default: not set, i.e. use default <quote>certificate_verification</quote> "
 "option defined in <quote>[sssd]</quote> section."
 msgstr ""
+"기본값: 설정되지 않음. 즉, <quote>[sssd]</quote> 섹션에 정의된 기본 <quote>"
+"certificate_verification</quote> 옵션을 사용합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1640
@@ -2272,7 +2460,7 @@ msgstr "pam_app_services (문자열)"
 msgid ""
 "Which PAM services are permitted to contact domains of type "
 "<quote>application</quote>"
-msgstr ""
+msgstr "<quote>application</quote> 유형의 도메인에 접속할 수 있는 PAM 서비스"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1664
@@ -2307,6 +2495,12 @@ msgid ""
 "<quote>my_pam_service</quote>), you would use the following configuration: "
 "<placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
+"<quote>+service_name</quote>을 사용하여 기본 집합에 다른 PAM 서비스 이름을 "
+"추가하거나 <quote>-service_name</quote>을 사용하여 기본 집합에서 PAM 서비스 "
+"이름을 명시적으로 제거할 수 있습니다. 예를 들어 스마트카드 인증을 위한 기본 "
+"PAM 서비스 이름(예: <quote>login</quote>)을 사용자 지정 PAM 서비스 이름(예: "
+"<quote>my_pam_service</quote>)으로 대체하려면 다음과 같이 구성합니다: "
+"<placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1686 sssd-ad.5.xml:621 sssd-ad.5.xml:730 sssd-ad.5.xml:788
@@ -2371,6 +2565,8 @@ msgid ""
 "to p11_child_timeout should the PAM responder wait until a Smartcard is "
 "inserted."
 msgstr ""
+"스마트카드 인증이 필요한 경우, PAM 응답기가 스마트카드 삽입을 기다려야 하는 "
+"추가 시간(초)으로, p11_child_timeout에 더해집니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1753
@@ -2387,6 +2583,11 @@ msgid ""
 "first slot found. If multiple readers are connected p11_uri can be used to "
 "tell p11_child to use a specific reader."
 msgstr ""
+"스마트카드 인증에 사용되는 장치 선택을 제한하는 데 사용할 수 있는 PKCS#11 "
+"URI입니다(자세한 내용은 RFC-7512 참조). 기본적으로 SSSD의 p11_child는 "
+"'removable' 플래그가 설정된 PKCS#11 슬롯(리더기)을 검색하고 처음 발견된 "
+"슬롯에 삽입된 토큰에서 인증서를 읽습니다. 여러 리더기가 연결된 경우 "
+"p11_uri를 사용하여 p11_child가 특정 리더기를 사용하도록 지정할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1769
@@ -2417,6 +2618,10 @@ msgid ""
 "debug output of p11_child. As an alternative the GnuTLS utility 'p11tool' "
 "with e.g. the '--list-all' will show PKCS#11 URIs as well."
 msgstr ""
+"예시: <placeholder type=\"programlisting\" id=\"0\"/> 또는 <placeholder "
+"type=\"programlisting\" id=\"1\"/> 적합한 URI를 찾으려면 p11_child의 디버그 "
+"출력을 확인하십시오. 대안으로 GnuTLS 유틸리티 'p11tool'을 '--list-all' 등의 "
+"옵션과 함께 사용하면 PKCS#11 URI도 확인할 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1786
@@ -2447,6 +2652,8 @@ msgid ""
 "Only do an online lookup if there is no active session of the user, i.e. if "
 "the user is currently not logged in"
 msgstr ""
+"사용자의 활성 세션이 없는 경우, 즉 사용자가 현재 로그인되어 있지 않은 "
+"경우에만 온라인 조회를 수행합니다"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1805
@@ -2459,6 +2666,8 @@ msgid ""
 "Never force an online lookup, use the data from the cache as long as they "
 "are not expired"
 msgstr ""
+"온라인 조회를 강제하지 않으며, 캐시 데이터가 만료되지 않은 한 캐시의 "
+"데이터를 사용합니다"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1789
@@ -2468,6 +2677,9 @@ msgid ""
 "should be done and the following values are allowed: <placeholder type="
 "\"variablelist\" id=\"0\"/>"
 msgstr ""
+"PAM 응답기는 로그인을 시도하는 사용자의 현재 그룹 멤버십을 가져오기 위해 "
+"온라인 조회를 강제할 수 있습니다. 이 옵션은 언제 이를 수행할지를 제어하며, "
+"다음 값이 허용됩니다: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1813
@@ -2485,12 +2697,14 @@ msgid ""
 "Comma separated list of PAM services that are allowed to try GSSAPI "
 "authentication using pam_sss_gss.so module."
 msgstr ""
+"pam_sss_gss.so 모듈을 사용하여 GSSAPI 인증을 시도할 수 있는 PAM 서비스의 "
+"쉼표로 구분된 목록입니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1826
 msgid ""
 "To disable GSSAPI authentication, set this option to <quote>-</quote> (dash)."
-msgstr ""
+msgstr "GSSAPI 인증을 비활성화하려면 이 옵션을 <quote>-</quote>(대시)로 설정하십시오."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1830 sssd.conf.5.xml:1861 sssd.conf.5.xml:1899
@@ -2499,6 +2713,9 @@ msgid ""
 "[pam] section. It can also be set for trusted domain which overwrites the "
 "value in the domain section."
 msgstr ""
+"참고: 이 옵션은 도메인별로 설정할 수도 있으며, 이 경우 [pam] 섹션의 값을 "
+"덮어씁니다. 또한 신뢰할 수 있는 도메인에 대해 설정할 수 있으며, 이 경우 "
+"도메인 섹션의 값을 덮어씁니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1838
@@ -2532,6 +2749,9 @@ msgid ""
 "successfully authenticated through GSSAPI can be associated with the user "
 "who is being authenticated. Authentication will fail if the check fails."
 msgstr ""
+"True로 설정된 경우, SSSD는 GSSAPI를 통해 성공적으로 인증된 Kerberos 사용자 "
+"주체가 인증 중인 사용자와 연결될 수 있어야 합니다. 확인에 실패하면 인증이 "
+"실패합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1857
@@ -2539,6 +2759,8 @@ msgid ""
 "If False, every user that is able to obtained required service ticket will "
 "be authenticated."
 msgstr ""
+"False로 설정된 경우, 필요한 서비스 티켓을 획득할 수 있는 모든 사용자가 "
+"인증됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1867 sssd-ad.5.xml:1243 sss_rpcidmapd.5.xml:76
@@ -2558,6 +2780,9 @@ msgid ""
 "a Kerberos ticket to access a PAM service that is allowed to try GSSAPI "
 "authentication using pam_sss_gss.so module."
 msgstr ""
+"pam_sss_gss.so 모듈을 사용하여 GSSAPI 인증을 시도할 수 있는 PAM 서비스에 "
+"액세스하기 위해 Kerberos 티켓에 포함되어야 하는 인증 지표의 쉼표로 구분된 "
+"목록입니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1881
@@ -2573,6 +2798,14 @@ msgid ""
 "be denied. If the resulting list of indicators for the PAM service is empty, "
 "the check will not prevent the access."
 msgstr ""
+"목록의 각 요소는 인증 지표 이름이거나 <quote>service:indicator</quote> 쌍일 "
+"수 있습니다. PAM 서비스 이름이 접두사로 붙지 않은 지표는 <option>"
+"pam_gssapi_services</option>.와 함께 사용하도록 구성된 모든 PAM 서비스에 "
+"액세스하는 데 필요합니다. PAM 서비스별 지표 목록은 pam_sss_gss.so에 의한 "
+"인증 중에 Kerberos 티켓의 지표와 대조하여 확인됩니다. 티켓의 지표 중 PAM "
+"서비스의 지표 목록과 일치하는 항목이 있으면 액세스가 허용됩니다. 목록의 지표 "
+"중 일치하는 항목이 없으면 액세스가 거부됩니다. PAM 서비스의 지표 목록이 비어 "
+"있으면 해당 확인으로 인해 액세스가 차단되지 않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1894
@@ -2581,13 +2814,16 @@ msgid ""
 "</quote> (dash). To disable the check for a specific PAM service, add "
 "<quote>service:-</quote>."
 msgstr ""
+"GSSAPI 인증 지표 확인을 비활성화하려면 이 옵션을 <quote>-</quote>(대시)로 "
+"설정하십시오. 특정 PAM 서비스에 대한 확인을 비활성화하려면 <quote>service:-</"
+"quote>.를 추가하십시오."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1905
 msgid ""
 "Following authentication indicators are supported by IPA Kerberos "
 "deployments:"
-msgstr ""
+msgstr "다음 인증 지표는 IPA Kerberos 배포에서 지원됩니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1908
@@ -2595,6 +2831,8 @@ msgid ""
 "pkinit -- pre-authentication using X.509 certificates -- whether stored in "
 "files or on smart cards."
 msgstr ""
+"pkinit -- X.509 인증서를 사용한 사전 인증 -- 파일 또는 스마트카드에 저장된 "
+"경우 모두 해당됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1911
@@ -2843,6 +3081,11 @@ msgid ""
 "the system defaults are used, but can be overwritten with the default_shell "
 "parameter."
 msgstr ""
+"원격 사용자가 캐시에 존재하지 않는 경우 새로 생성됩니다. UID는 SID를 통해 "
+"결정되며, 신뢰할 수 있는 도메인은 UPG를 가지고 GID는 UID와 동일한 값을 "
+"갖습니다. 홈 디렉토리는 subdomain_homedir 파라미터를 기반으로 설정됩니다. "
+"셸은 기본적으로 비어 있으며, 즉 시스템 기본값이 사용되지만 default_shell "
+"파라미터로 덮어쓸 수 있습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:2147
@@ -2850,6 +3093,8 @@ msgid ""
 "If there are SIDs of groups from domains sssd knows about, the user will be "
 "added to those groups."
 msgstr ""
+"SSSD가 알고 있는 도메인의 그룹 SID가 있는 경우, 해당 그룹에 사용자가 "
+"추가됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2153
@@ -2868,11 +3113,13 @@ msgid ""
 "allowed to access the PAC responder. User names are resolved to UIDs at "
 "startup."
 msgstr ""
+"PAC 응답기에 액세스할 수 있는 UID 값 또는 사용자 이름의 쉼표로 구분된 목록을 "
+"지정합니다. 사용자 이름은 시작 시 UID로 확인됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2166
 msgid "Default: 0 (only the root user is allowed to access the PAC responder)"
-msgstr ""
+msgstr "기본값: 0 (루트 사용자만 PAC 응답기에 액세스할 수 있습니다)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2170
@@ -8803,6 +9050,8 @@ msgid ""
 "This option can be used to specify which extended key usage the certificate "
 "should have. The following value can be used in a comma separated list:"
 msgstr ""
+"이와 같은 옵션은 확장된 키 사용 값을 갖도록 지정하는 데 사용 될 수 있습니다. "
+"다음 값은 쉼표로 분리된 목록에서 사용 될 수 있습니다:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sss-certmap.5.xml:163
@@ -9397,6 +9646,8 @@ msgid ""
 "This template will add the DN string of the value which is stored in the "
 "directoryName component of the SAN."
 msgstr ""
+"이와 같은 템플릿트는 SAN의 디렉토리명칭 구성 요소에서 저장된 것과 같은 DN "
+"문자열이 추가됩니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:575
@@ -17093,6 +17344,8 @@ msgid ""
 "When using ldap_account_expire_policy=rhds or equivalent, this parameter "
 "determines if access is allowed or not."
 msgstr ""
+"ldap_account_expire_policy=rhds 이거나 동일하게 사용 할 때에, 이와 같은 "
+"매개변수는 접근 허용 여부를 결정합니다."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:368
@@ -17669,7 +17922,7 @@ msgstr "ldap_host_fqdn (문자열)"
 msgid ""
 "The LDAP attribute that corresponds to the host's fully-qualified domain "
 "name."
-msgstr ""
+msgstr "호스트의 정규화된 도메인 이름에 일치하는 LDAP 속성."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:907

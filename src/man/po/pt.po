@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-01-14 15:00+0000\n"
-"PO-Revision-Date: 2026-04-23 17:01+0000\n"
+"PO-Revision-Date: 2026-05-12 17:59+0000\n"
 "Last-Translator: Américo Monteiro <a_monteiro@gmx.com>\n"
 "Language-Team: Portuguese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/pt/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 5.17.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -10486,8 +10486,8 @@ msgid ""
 "this file."
 msgstr ""
 "Provedor de autenticação krb5 do SSSD o qual é usado pelos provedores IPA e "
-"AD assim como adiciona os endereços do KDC actual ou controlador de domínio "
-"que o SSSD está usar para este ficheiro."
+"AD também adiciona os endereços do KDC atual ou controlador de domínio que o "
+"SSSD está usar para este ficheiro."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:70

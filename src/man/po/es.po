@@ -19,9 +19,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-01-14 15:00+0000\n"
-"PO-Revision-Date: 2026-04-23 16:38+0000\n"
-"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
-"memory@weblate.org>\n"
+"PO-Revision-Date: 2026-05-30 21:01+0000\n"
+"Last-Translator: \"Fco. Javier F. Serrador\" <fserrador@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/es/>\n"
 "Language: es\n"
@@ -29,7 +28,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.5\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -65,17 +64,17 @@ msgstr "5"
 #: sss_rpcidmapd.5.xml:28 sssd-session-recording.5.xml:12 sssd-kcm.8.xml:12
 #: sssd-systemtap.5.xml:12 sssd-ldap-attributes.5.xml:12
 msgid "File Formats and Conventions"
-msgstr "Formatos de archivo y convenciones"
+msgstr "Formatos de Archivo y Convenciones"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd.conf.5.xml:20
 msgid "the configuration file for SSSD"
-msgstr "El archivo de configuración de SSSD"
+msgstr "el archivo de configuración para SSSD"
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:24
 msgid "FILE FORMAT"
-msgstr "Formato de archivo"
+msgstr "FORMATO DE ARCHIVO"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd.conf.5.xml:32
@@ -100,7 +99,7 @@ msgid ""
 "until the next section begins. An example of section with single and multi-"
 "valued parameters: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
-"El archivo tiene una sintaxis de estilo-ini consistente de secciones y "
+"El archivo tiene una sintaxis de estilo‐ini consistente de secciones y "
 "parámetros. Una sección comienza con el nombre de dicha sección colocado "
 "entre corchetes, y continua hasta que comienza la siguiente sección. Este es "
 "un ejemplo de una sección con parámetros de valores simples y múltiples: "
@@ -3578,7 +3577,7 @@ msgid ""
 "<replaceable>groups</replaceable> options are recorded."
 msgstr ""
 "Usuarios/grupos especificados por las opciones <replaceable>users</"
-"replaceable> y<replaceable>groups</replaceable> están registrados."
+"replaceable> y <replaceable>groups</replaceable> están registrados."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2414 sssd-session-recording.5.xml:91
@@ -4696,7 +4695,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3246
 msgid "<quote>none</quote> disables SUDO explicitly."
-msgstr "<quote>none</quote>deshabilita SUDO explícitamente."
+msgstr "<quote>none</quote> inhabilita SUDO explícitamente."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3249
@@ -6153,7 +6152,7 @@ msgid ""
 "options in the trusted domain section are:"
 msgstr ""
 "Algunas opciones usadas en la sección dominio puede ser usadas también en la "
-"sección dominio de confianza, esto es, en una sección llamada<quote>[domain/"
+"sección dominio de confianza, esto es, en una sección llamada <quote>[domain/"
 "<replaceable>DOMAIN_NAME</replaceable>/<replaceable>TRUSTED_DOMAIN_NAME</"
 "replaceable>]</quote>.  Donde DOMAIN_NAME es el dominio base real. Por favor "
 "vea los ejemplos de abajo para una explicación.  Actualmente las opciones "
@@ -8639,7 +8638,7 @@ msgid ""
 "example SSH keys."
 msgstr ""
 "<emphasis>pwd_expire_policy_reject, pwd_expire_policy_warn, "
-"pwd_expire_policy_renew: </emphasis>Estas opciones son útiles si los "
+"pwd_expire_policy_renew: </emphasis> Estas opciones son útiles si los "
 "usuarios están interesados en que se les avise de que la contraseña está "
 "próxima a expirar y la autenticación está basada en la utilización de un "
 "método distinto a las contraseñas; por ejemplo claves SSH."
@@ -13651,7 +13650,7 @@ msgstr ""
 "SSSD solo resuelve grupos de seguridad de Active Directory. Para obtener más "
 "información sobre los tipos de grupos de AD, consulte: <ulink url=\"https://"
 "docs.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-"
-"security-groups\">Grupos de seguridad de Active Directory</ulink>"
+"security-groups\"> Grupos de seguridad de Active Directory</ulink>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:120
@@ -15914,7 +15913,7 @@ msgstr "sssd"
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd.8.xml:16
 msgid "System Security Services Daemon"
-msgstr "Dæmon de Servicios de Seguridad del Sistema (SSSD)"
+msgstr "Dæmon de Servicios de Seguridad del Sistema"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sssd.8.xml:21
@@ -18072,7 +18071,7 @@ msgid ""
 "<manvolnum>3</manvolnum> </citerefentry> and includes: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"De forma predeterminada, el contestador de InfoPipe del interfaz `/User` "
+"De forma predeterminada, el contestador de InfoPipe del interfaz `/Users` "
 "solo concede el conjunto predeterminado de atributos POSIX. Este conjunto es "
 "el mismo que devuelve <citerefentry> <refentrytitle>getpwnam</refentrytitle> "
 "<manvolnum>3</manvolnum> </citerefentry> e incluye: <placeholder "
@@ -18102,7 +18101,7 @@ msgstr ""
 "Es posible añadir otro atributo a este conjunto usando <quote>+attr_name</"
 "quote> o eliminarlo explícitamente usando <quote>-attr_name</quote>. "
 "Atributos añadidos serán hechos disponibles en el segmento <quote>"
-"extraAttributes>/quote>. Por ejemplo, para permitir <quote>telephoneNumber</"
+"extraAttributes</quote>. Por ejemplo, para permitir <quote>telephoneNumber</"
 "quote> pero denegar <quote>loginShell</quote>, se usaría la siguiente "
 "configuración: <placeholder type=\"programlisting\" id=\"0\"/>"
 
@@ -18554,8 +18553,8 @@ msgstr ""
 "<citerefentry><refentrytitle>ssh</refentrytitle> <manvolnum>1</manvolnum></"
 "citerefentry> puede ser configurado para usar <command>sss_ssh_knownhosts</"
 "command> para autenticación de la clave del host usando la opción <quote>"
-"KnownHostsCommand</quote>: <placeholder type=\"programlisting\" id=\"0\"/>"
-"Refuera a la página man <citerefentry><refentrytitle>ssh_config</"
+"KnownHostsCommand</quote>: <placeholder type=\"programlisting\" id=\"0\"/> "
+"Refiérase a la página man <citerefentry><refentrytitle>ssh_config</"
 "refentrytitle><manvolnum>5</manvolnum></citerefentry> para más detalles "
 "sobre esta opción."
 
@@ -18611,8 +18610,8 @@ msgid ""
 msgstr ""
 "Las líneas de clave obtenidas desde el segundo plano son esperadas para "
 "respetar el formato de clave como se describió en la sección <quote>FORMATO "
-"DE ARCHIVO SSH_KNOWN_HOSTS </quote> de <citerefentry><refentrytitle>sshd</"
-"refentrytitle> <manvolnum>8</manvolnum></citerefentry>. sin embargo, "
+"DE ARCHIVO SSH_KNOWN_HOSTS</quote> de <citerefentry><refentrytitle>sshd</"
+"refentrytitle> <manvolnum>8</manvolnum></citerefentry>. Sin embargo, "
 "devolver solo el tipo de clave y la misma clave es tolerado, en cual caso, "
 "el nombre del host recibido como parámetro será añadido antes del tipo de "
 "clave a la salida una línea correctamente formada. El nombre de host será "
