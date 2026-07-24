@@ -253,10 +253,12 @@ static errno_t create_send_buffer(struct krb5child_req *kr,
 
 errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
                        struct sss_domain_info *domain,
+                       struct pam_data *pd,
                        const char ***krb5_child_extra_args)
 {
     const char **extra_args;
     const char *krb5_realm;
+    size_t num_extra_args;
     size_t c = 0;
     int ret;
 
@@ -264,7 +266,14 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         return EINVAL;
     }
 
-    extra_args = talloc_zero_array(mem_ctx, const char *, 10);
+    num_extra_args = 10; /* base existing args */
+    if (pd != NULL && pd->client_envs != NULL) {
+        for (size_t i = 0; pd->client_envs[i] != NULL; i++) {
+            num_extra_args += 2; /* --set-env + value */
+        }
+    }
+
+    extra_args = talloc_zero_array(mem_ctx, const char *, num_extra_args);
     if (extra_args == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_zero_array failed.\n");
         return ENOMEM;
@@ -377,6 +386,13 @@ errno_t set_extra_args(TALLOC_CTX *mem_ctx, struct krb5_ctx *krb5_ctx,
         c++;
     }
 
+    if (pd != NULL && pd->client_envs != NULL) {
+        for (size_t i = 0; pd->client_envs[i] != NULL; i++) {
+            extra_args[c++] = pd->client_envs[i];
+            extra_args[c++] = "--" CHILD_OPT_SET_ENV;
+        }
+    }
+
     extra_args[c] = NULL;
 
     *krb5_child_extra_args = extra_args;
@@ -424,7 +440,7 @@ static errno_t start_krb5_child(struct tevent_req *req)
     ev = child_state->ev;
     kr = child_state->kr;
 
-    ret = set_extra_args(kr, kr->krb5_ctx, kr->dom, &krb5_child_extra_args);
+    ret = set_extra_args(kr, kr->krb5_ctx, kr->dom, kr->pd, &krb5_child_extra_args);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "set_extra_args failed.\n");
         return ret;

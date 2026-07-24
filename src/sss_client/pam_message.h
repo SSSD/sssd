@@ -71,6 +71,8 @@ struct pam_items {
     const char *json_auth_selected;
     size_t json_auth_selected_size;
     bool password_prompting;
+    uint8_t *client_envs;
+    size_t client_envs_size;
 
     bool user_name_hint;
     struct cert_auth_info *cert_list;

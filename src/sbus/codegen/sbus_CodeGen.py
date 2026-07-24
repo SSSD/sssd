@@ -246,7 +246,7 @@ def InitializeDataTypes():
 
     # Custom types
     DataType.Create("pam_data", "struct pam_data *",
-                    DBusType="issssssuayuayiu", RequireTalloc=True)
+                    DBusType="issssssuayuayiuuuay", RequireTalloc=True)
     DataType.Create("pam_response", "struct pam_data *",
                     DBusType="uua(uay)", RequireTalloc=True)
     DataType.Create("ifp_extra", "hash_table_t *",

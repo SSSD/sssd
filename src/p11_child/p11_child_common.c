@@ -35,6 +35,7 @@
 #include "util/crypto/sss_crypto.h"
 #include "util/cert.h"
 #include "util/sss_chain_id.h"
+#include "util/client_envs.h"
 #include "p11_child/p11_child.h"
 
 static const char *op_mode_str(enum op_mode mode)
@@ -165,6 +166,7 @@ int main(int argc, const char *argv[])
     long timeout = -1;
     bool wait_for_card = false;
     char *uri = NULL;
+    char *set_env = NULL;
 
     struct poptOption long_options[] = {
         SSSD_BASIC_CHILD_OPTS
@@ -194,6 +196,8 @@ int main(int argc, const char *argv[])
          _("PKCS#11 URI to restrict selection"), NULL},
         {"timeout", 0, POPT_ARG_LONG, &timeout,
          0, _("OCSP communication timeout"), NULL},
+        {"set-env", 0, POPT_ARG_STRING, &set_env, 'e',
+         _("Set environment variable (KEY=VALUE)"), NULL},
         POPT_TABLEEND
     };
 
@@ -263,6 +267,21 @@ int main(int argc, const char *argv[])
             break;
         case 'w':
             wait_for_card = true;
+            break;
+        case 'e':
+            if (set_env != NULL && strchr(set_env, '=') != NULL) {
+                char *env = set_env;
+                char *val = strchr(set_env, '=');
+                *val = '\0';
+                val++;
+                if (!is_client_env_allowed(env)) {
+                    fprintf(stderr, "\nEnvironment variable '%s' is not allowed\n\n", env);
+                    poptPrintUsage(pc, stderr, 0);
+                    _exit(-1);
+                }
+                setenv(env, val, 1);
+                set_env = NULL;
+            }
             break;
         default:
             fprintf(stderr, "\nInvalid option %s: %s\n\n",
