@@ -220,7 +220,7 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
      * later in this function once we can match the reply with an operation. */
     old_chain_id = sss_chain_id_set(0);
 
-    DEBUG(SSSDBG_TRACE_INTERNAL,
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_INTERNAL,
           "Trace: sh[%p], connected[%d], ops[%p], ldap[%p]\n",
               sh, (int)sh->connected, sh->ops, sh->ldap);
 
@@ -234,7 +234,7 @@ static void sdap_process_result(struct tevent_context *ev, void *pvt)
     if (ret == 0) {
         /* this almost always means we have reached the end of
          * the list of received messages */
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Trace: end of ldap_result list\n");
+        DEBUG_CONDITIONAL(SSSDBG_TRACE_INTERNAL, "Trace: end of ldap_result list\n");
         return;
     }
 
@@ -360,7 +360,7 @@ static void sdap_process_message(struct tevent_context *ev,
         return;
     }
 
-    DEBUG(SSSDBG_TRACE_ALL,
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_ALL,
           "Message type: [%s]\n", sdap_ldap_result_str(msgtype));
 
     switch (msgtype) {
@@ -471,7 +471,8 @@ static int sdap_op_destructor(void *mem)
     DLIST_REMOVE(op->sh->ops, op);
 
     if (op->done) {
-        DEBUG(SSSDBG_TRACE_INTERNAL, "Operation %d finished\n", op->msgid);
+        DEBUG_CONDITIONAL(SSSDBG_TRACE_INTERNAL,
+                          "Operation %d finished\n", op->msgid);
         return 0;
     }
 
@@ -1629,17 +1630,6 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
      */
     talloc_zfree(state->op);
 
-    DEBUG(SSSDBG_TRACE_FUNC,
-         "calling ldap_search_ext with [%s][%s].\n",
-          state->filter ? state->filter : "no filter",
-          state->search_base);
-    if (state->attrs) {
-        for (int i = 0; state->attrs[i]; i++) {
-            DEBUG(SSSDBG_TRACE_LIBS,
-                  "Requesting attrs: [%s]\n", state->attrs[i]);
-        }
-    }
-
     disable_paging = dp_opt_get_bool(state->opts->basic, SDAP_DISABLE_PAGING);
 
     if (!disable_paging
@@ -1690,13 +1680,21 @@ static errno_t sdap_get_generic_ext_step(struct tevent_req *req)
         }
         goto done;
     }
-    DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_search_ext called, msgid = %d\n", msgid);
 
     stat_info = talloc_asprintf(state, "server: [%s] filter: [%s] base: [%s]",
                                 sdap_get_server_peer_str_safe(state->sh),
                                 state->filter, state->search_base);
     if (stat_info == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to create info string, ignored.\n");
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "ldap_search_ext called: %s; msgid = %d\n",
+          (stat_info ? stat_info : "N/A"), msgid);
+    if (state->attrs) {
+        for (int i = 0; state->attrs[i]; i++) {
+            DEBUG_CONDITIONAL(SSSDBG_TRACE_ALL, "Requesting attrs: [%s]\n",
+                              state->attrs[i]);
+        }
     }
 
     ret = sdap_op_add(state, state->ev, state->sh, msgid, stat_info,
