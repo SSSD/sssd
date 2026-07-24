@@ -208,9 +208,7 @@ cache_req_well_known_sid_result(TALLOC_CTX *mem_ctx,
 bool
 cache_req_common_process_dp_reply(struct cache_req *cr,
                                   errno_t ret,
-                                  uint16_t err_maj,
-                                  uint32_t err_min,
-                                  const char *err_msg);
+                                  uint32_t err);
 
 bool
 cache_req_common_dp_recv(struct tevent_req *subreq,

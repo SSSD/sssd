@@ -154,18 +154,17 @@ static void ad_refresh_done(struct tevent_req *subreq)
     struct ad_refresh_state *state = NULL;
     struct tevent_req *req = NULL;
     const char *err_msg = NULL;
-    errno_t dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_refresh_state);
 
-    ret = ad_account_info_recv(subreq, &dp_error, &err_msg);
+    ret = ad_account_info_recv(subreq, &err_msg);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s [dp_error: %d, "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s, "
               "errno: %d]: %s\n", be_req2str(state->account_req->entry_type),
-              dp_error, ret, err_msg);
+              ret, err_msg);
         goto done;
     }
 

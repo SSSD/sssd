@@ -1815,12 +1815,11 @@ static void sdap_get_groups_ldap_connect_done(struct tevent_req *subreq)
     struct tevent_req *req;
     struct sdap_get_groups_state *state;
     int ret;
-    int dp_error;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_get_groups_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {

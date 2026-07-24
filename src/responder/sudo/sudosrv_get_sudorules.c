@@ -663,30 +663,19 @@ static void sudosrv_refresh_rules_done(struct tevent_req *subreq)
 {
     struct sudosrv_refresh_rules_state *state;
     struct tevent_req *req;
-    dbus_uint16_t err_maj;
-    dbus_uint32_t err_min;
-    const char *err_msg;
+    uint32_t err;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sudosrv_refresh_rules_state);
 
-    ret = sss_dp_get_sudoers_recv(state, subreq, &err_maj, &err_min, &err_msg);
+    ret = sss_dp_get_sudoers_recv(state, subreq, &err);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh rules [%d]: %s\n",
               ret, sss_strerror(ret));
         goto done;
-    } else if (err_maj != 0 || err_min != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to get information from Data Provider, "
-              "Error: %u, %u, %s\n",
-              (unsigned int)err_maj, (unsigned int)err_min,
-              (err_msg == NULL ? "(null)" : err_msg));
-        goto done;
-    }
-
-    if (err_min == ENOENT) {
+    } else if (err == ENOENT) {
         DEBUG(SSSDBG_TRACE_INTERNAL,
               "Some expired rules were removed from the server, scheduling "
               "full refresh out of band\n");
@@ -701,6 +690,13 @@ static void sudosrv_refresh_rules_done(struct tevent_req *subreq)
         }
 
         tevent_req_set_callback(subreq, sudosrv_dp_oob_req_done, NULL);
+    } else if (err != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to get information from Data Provider, "
+              "Error: %u, %s\n",
+              (unsigned int)err,
+              sss_strerror(err));
+        goto done;
     }
 
     ret = EOK;

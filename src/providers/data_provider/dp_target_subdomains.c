@@ -106,17 +106,14 @@ static void dp_subdomains_handler_done(struct tevent_req *subreq)
 errno_t
 dp_subdomains_handler_recv(TALLOC_CTX *mem_ctx,
                            struct tevent_req *req,
-                           uint16_t *_dp_error,
-                           uint32_t *_error,
-                           const char **_err_msg)
+                           uint32_t *_error)
 {
     struct dp_subdomains_handler_state *state;
     state = tevent_req_data(req, struct dp_subdomains_handler_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    dp_req_reply_std(state->request_name, &state->reply,
-                     _dp_error, _error, _err_msg);
+    dp_req_reply_std(state->request_name, &state->reply, _error);
 
     return EOK;
 }

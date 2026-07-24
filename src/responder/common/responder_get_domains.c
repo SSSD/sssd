@@ -27,9 +27,7 @@
 
 /* ========== Get subdomains for a domain ================= */
 struct get_subdomains_state {
-    uint16_t dp_error;
     uint32_t error;
-    const char *error_message;
 };
 
 static void get_subdomains_done(struct tevent_req *subreq);
@@ -89,11 +87,9 @@ static void get_subdomains_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct get_subdomains_state);
 
-    ret = sbus_call_dp_dp_getDomains_recv(state, subreq, &state->dp_error,
-                                          &state->error, &state->error_message);
+    ret = sbus_call_dp_dp_getDomains_recv(subreq, &state->error);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        state->dp_error = DP_ERR_FATAL;
         state->error = ret;
     }
 
@@ -104,18 +100,14 @@ static void get_subdomains_done(struct tevent_req *subreq)
 static errno_t
 get_subdomains_recv(TALLOC_CTX *mem_ctx,
                     struct tevent_req *req,
-                    uint16_t *_dp_error,
-                    uint32_t *_error,
-                    const char **_error_message)
+                    uint32_t *_error)
 {
     struct get_subdomains_state *state;
     state = tevent_req_data(req, struct get_subdomains_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    *_dp_error = state->dp_error;
     *_error = state->error;
-    *_error_message = talloc_steal(mem_ctx, state->error_message);
 
     return EOK;
 }
@@ -230,11 +222,9 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sss_dp_get_domains_state *state = tevent_req_data(req,
                                                 struct sss_dp_get_domains_state);
-    uint16_t dp_err;
-    uint32_t dp_ret;
-    const char *err_msg;
+    uint32_t err;
 
-    ret = get_subdomains_recv(subreq, subreq, &dp_err, &dp_ret, &err_msg);
+    ret = get_subdomains_recv(subreq, subreq, &err);
     talloc_zfree(subreq);
     if (ret != EOK) {
         goto fail;
@@ -630,7 +620,6 @@ errno_t sss_parse_inp_recv(struct tevent_req *req, TALLOC_CTX *mem_ctx,
 
 
 struct sss_dp_get_account_domain_state {
-    uint16_t dp_error;
     uint32_t error;
     const char *domain_name;
 };
@@ -738,7 +727,7 @@ static void sss_dp_get_account_domain_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sss_dp_get_account_domain_state);
 
-    ret = sbus_call_dp_dp_getAccountDomain_recv(state, subreq, &state->dp_error,
+    ret = sbus_call_dp_dp_getAccountDomain_recv(state, subreq,
                                                 &state->error,
                                                 &state->domain_name);
     talloc_zfree(subreq);
@@ -749,12 +738,11 @@ static void sss_dp_get_account_domain_done(struct tevent_req *subreq)
         return;
     }
 
-    if (state->dp_error != DP_ERR_OK) {
+    if (state->error != ERR_OK) {
         DEBUG(state->error == ERR_GET_ACCT_DOM_NOT_SUPPORTED ? SSSDBG_TRACE_INTERNAL
                                                              : SSSDBG_IMPORTANT_INFO,
-              "Data Provider Error: %u, %u [%s]\n",
-              (unsigned int)state->dp_error, (unsigned int)state->error,
-              sss_strerror(state->error));
+              "Data Provider Error: %u [%s]\n",
+              (unsigned int)state->error, sss_strerror(state->error));
         tevent_req_error(req, state->error ? state->error : EIO);
         return;
     }

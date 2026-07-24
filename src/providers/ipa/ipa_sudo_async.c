@@ -851,7 +851,6 @@ struct ipa_sudo_refresh_state {
 
     struct sdap_id_op *sdap_op;
     struct sdap_handle *sh;
-    int dp_error;
 
     struct sysdb_attrs **rules;
     size_t num_rules;
@@ -887,7 +886,6 @@ ipa_sudo_refresh_send(TALLOC_CTX *mem_ctx,
     state->sudo_ctx = sudo_ctx;
     state->ipa_opts = sudo_ctx->ipa_opts;
     state->sdap_opts = sudo_ctx->sdap_opts;
-    state->dp_error = DP_ERR_FATAL;
     state->update_usn = update_usn;
 
     state->sdap_op = sdap_id_op_create(state,
@@ -960,19 +958,17 @@ ipa_sudo_refresh_connect_done(struct tevent_req *subreq)
     struct ipa_sudo_refresh_state *state;
     const char *hostname;
     struct tevent_req *req;
-    int dp_error;
     int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_sudo_refresh_state);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "SUDO LDAP connection failed "
                                    "[%d]: %s\n", ret, strerror(ret));
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -991,7 +987,6 @@ ipa_sudo_refresh_connect_done(struct tevent_req *subreq)
                                 state->ipa_opts->hostgroup_map,
                                 state->ipa_opts->id->sdom->host_search_bases);
     if (subreq == NULL) {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -1012,7 +1007,6 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
 
     host = talloc_zero(state, struct ipa_hostinfo);
     if (host == NULL) {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -1023,7 +1017,6 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to retrieve host information "
                                  "[%d]: %s\n", ret, sss_strerror(ret));
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ret);
         return;
     }
@@ -1036,7 +1029,6 @@ ipa_sudo_refresh_host_done(struct tevent_req *subreq)
                                  state->ipa_opts->hostgroup_map, state->sh,
                                  state->cmdgroups_filter, state->search_filter);
     if (subreq == NULL) {
-        state->dp_error = DP_ERR_FATAL;
         tevent_req_error(req, ENOMEM);
         return;
     }
@@ -1061,8 +1053,8 @@ ipa_sudo_refresh_done(struct tevent_req *subreq)
                               &state->num_rules, &usn);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &state->dp_error);
-    if (state->dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->sdap_op, ret);
+    if (ret == EAGAIN) {
         /* retry */
         ret = ipa_sudo_refresh_retry(req);
         if (ret != EOK) {
@@ -1123,15 +1115,12 @@ done:
 
 errno_t
 ipa_sudo_refresh_recv(struct tevent_req *req,
-                      int *dp_error,
                       size_t *_num_rules)
 {
     struct ipa_sudo_refresh_state *state = NULL;
     state = tevent_req_data(req, struct ipa_sudo_refresh_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *dp_error = state->dp_error;
 
     if (_num_rules != NULL) {
         *_num_rules = state->num_rules;

@@ -230,7 +230,6 @@ struct ad_handle_pac_initgr_state {
     struct dp_id_data *ar;
     const char *err;
     int dp_error;
-    int sdap_ret;
     struct sdap_options *opts;
 
     size_t num_missing_sids;
@@ -276,8 +275,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
      * sdap_handle_acct_req_recv() from the alternative group-membership
      * lookup path. */
     state->err = NULL;
-    state->dp_error = DP_ERR_OK;
-    state->sdap_ret = EOK;
+    state->dp_error = EOK;
 
     ret = ad_get_pac_data_from_user_entry(state, msg,
                                           id_ctx->opts->idmap_ctx->map,
@@ -433,24 +431,16 @@ done:
 }
 
 errno_t ad_handle_pac_initgr_recv(struct tevent_req *req,
-                                  int *_dp_error, const char **_err,
-                                  int *sdap_ret)
+                                  const char **_err)
 {
     struct ad_handle_pac_initgr_state *state;
 
     state = tevent_req_data(req, struct ad_handle_pac_initgr_state);
 
-    if (_dp_error) {
-        *_dp_error = state->dp_error;
-    }
-
     if (_err) {
         *_err = state->err;
     }
 
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
-    }
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;

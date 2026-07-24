@@ -110,12 +110,6 @@
  * @}
  */ /* end of group pamHandler */
 
-#define DP_ERR_DECIDE -1
-#define DP_ERR_OK 0
-#define DP_ERR_OFFLINE 1
-#define DP_ERR_TIMEOUT 2
-#define DP_ERR_FATAL 3
-
 #define BE_FILTER_NAME 1
 #define BE_FILTER_IDNUM 2
 #define BE_FILTER_ENUM 3

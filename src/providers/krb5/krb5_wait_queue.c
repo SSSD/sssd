@@ -43,7 +43,7 @@ struct queue_entry {
 static void wait_queue_auth_done(struct tevent_req *req);
 
 static void krb5_auth_queue_finish(struct tevent_req *req, errno_t ret,
-                                   int pam_status, int dp_err);
+                                   int pam_status);
 
 static void wait_queue_auth(struct tevent_context *ev, struct tevent_timer *te,
                             struct timeval current_time, void *private_data)
@@ -68,16 +68,15 @@ static void wait_queue_auth_done(struct tevent_req *req)
     struct tevent_req *parent_req = \
                 tevent_req_callback_data(req, struct tevent_req);
     int pam_status;
-    int dp_err;
     errno_t ret;
 
-    ret = krb5_auth_recv(req, &pam_status, &dp_err);
+    ret = krb5_auth_recv(req, &pam_status);
     talloc_zfree(req);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv failed: %d\n", ret);
     }
 
-    krb5_auth_queue_finish(parent_req, ret, pam_status, dp_err);
+    krb5_auth_queue_finish(parent_req, ret, pam_status);
 }
 
 static void wait_queue_del_cb(hash_entry_t *entry, hash_destroy_enum type,
@@ -242,7 +241,6 @@ struct krb5_auth_queue_state {
     struct pam_data *pd;
 
     int pam_status;
-    int dp_err;
 };
 
 static void krb5_auth_queue_done(struct tevent_req *subreq);
@@ -309,7 +307,7 @@ static void krb5_auth_queue_done(struct tevent_req *subreq)
                 tevent_req_data(req, struct krb5_auth_queue_state);
     errno_t ret;
 
-    ret = krb5_auth_recv(subreq, &state->pam_status, &state->dp_err);
+    ret = krb5_auth_recv(subreq, &state->pam_status);
     talloc_zfree(subreq);
 
     check_wait_queue(state->krb5_ctx, state->pd->user);
@@ -331,8 +329,7 @@ static void krb5_auth_queue_done(struct tevent_req *subreq)
  */
 static void krb5_auth_queue_finish(struct tevent_req *req,
                                    errno_t ret,
-                                   int pam_status,
-                                   int dp_err)
+                                   int pam_status)
 {
     struct krb5_auth_queue_state *state = \
                 tevent_req_data(req, struct krb5_auth_queue_state);
@@ -340,7 +337,6 @@ static void krb5_auth_queue_finish(struct tevent_req *req,
     check_wait_queue(state->krb5_ctx, state->pd->user);
 
     state->pam_status = pam_status;
-    state->dp_err = dp_err;
     if (ret != EOK) {
         tevent_req_error(req, ret);
     } else {
@@ -350,8 +346,7 @@ static void krb5_auth_queue_finish(struct tevent_req *req,
 }
 
 int krb5_auth_queue_recv(struct tevent_req *req,
-                         int *_pam_status,
-                         int *_dp_err)
+                         int *_pam_status)
 {
     struct krb5_auth_queue_state *state = \
                 tevent_req_data(req, struct krb5_auth_queue_state);
@@ -361,10 +356,6 @@ int krb5_auth_queue_recv(struct tevent_req *req,
      */
     if (_pam_status) {
         *_pam_status = state->pam_status;
-    }
-
-    if (_dp_err) {
-        *_dp_err = state->dp_err;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);

@@ -250,7 +250,7 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
                                   struct sss_domain_info *domain,
                                   struct confdb_ctx *cdb,
                                   struct pam_data *pd, uid_t uid,
-                                  int *pam_status, int *dp_err)
+                                  int *pam_status)
 {
     const char *password = NULL;
     errno_t ret;
@@ -262,7 +262,6 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
               "available for password authentication (single factor).\n",
               ret, strerror(ret));
         *pam_status = PAM_SYSTEM_ERR;
-        *dp_err = DP_ERR_OK;
         return;
     }
 
@@ -271,7 +270,6 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Offline authentication failed\n");
         *pam_status = cached_login_pam_status(ret);
-        *dp_err = DP_ERR_OK;
         return;
     }
 
@@ -285,7 +283,6 @@ static void krb5_auth_cache_creds(struct krb5_ctx *krb5_ctx,
               "add_user_to_delayed_online_authentication failed.\n");
     }
     *pam_status = PAM_AUTHINFO_UNAVAIL;
-    *dp_err = DP_ERR_OFFLINE;
 }
 
 static errno_t krb5_auth_prepare_ccache_name(struct krb5child_req *kr,
@@ -499,7 +496,6 @@ struct krb5_auth_state {
     bool search_kpasswd;
 
     int pam_status;
-    int dp_err;
 };
 
 static void krb5_auth_resolve_done(struct tevent_req *subreq);
@@ -534,7 +530,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
     state->krb5_ctx = krb5_ctx;
     state->kr = NULL;
     state->pam_status = PAM_SYSTEM_ERR;
-    state->dp_err = DP_ERR_FATAL;
 
     ret = get_domain_or_subdomain(be_ctx, pd->domain, &state->domain);
     if (ret != EOK) {
@@ -565,7 +560,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                           "Illegal empty authtok for user [%s]\n",
                            pd->user);
                     state->pam_status = PAM_AUTH_ERR;
-                    state->dp_err = DP_ERR_OK;
                     ret = EOK;
                     goto done;
                 }
@@ -576,7 +570,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                           SSS_AUTHTOK_TYPE_PASSWORD,
                           authtok_type);
                 state->pam_status = PAM_SYSTEM_ERR;
-                state->dp_err = DP_ERR_FATAL;
                 ret = EINVAL;
                 goto done;
             }
@@ -587,7 +580,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                 DEBUG(SSSDBG_MINOR_FAILURE,
                       "Password reset by root is not supported.\n");
                 state->pam_status = PAM_PERM_DENIED;
-                state->dp_err = DP_ERR_OK;
                 ret = EOK;
                 goto done;
             }
@@ -598,7 +590,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
             if (pd->child_pid != 0) {
                 soft_terminate_krb5_child(state, pd, krb5_ctx);
                 state->pam_status = PAM_TRY_AGAIN;
-                state->dp_err = DP_ERR_OK;
                 ret = EOK;
                 goto done;
              }
@@ -612,7 +603,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
                           SSS_AUTHTOK_TYPE_CCFILE,
                           authtok_type);
                 state->pam_status = PAM_SYSTEM_ERR;
-                state->dp_err = DP_ERR_FATAL;
                 ret = EINVAL;
                 goto done;
             }
@@ -622,7 +612,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         default:
             DEBUG(SSSDBG_CONF_SETTINGS, "Unexpected pam task %d.\n", pd->cmd);
             state->pam_status = PAM_SYSTEM_ERR;
-            state->dp_err = DP_ERR_FATAL;
             ret = EINVAL;
             goto done;
     }
@@ -634,7 +623,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
               "Password changes and ticket renewal are not possible "
                   "while offline.\n");
         state->pam_status = PAM_AUTHINFO_UNAVAIL;
-        state->dp_err = DP_ERR_OFFLINE;
         ret = EOK;
         goto done;
     }
@@ -668,7 +656,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_FUNC_DATA,
               "sysdb search for upn of user [%s] failed.\n", pd->user);
         state->pam_status = PAM_SYSTEM_ERR;
-        state->dp_err = DP_ERR_OK;
         goto done;
     }
 
@@ -752,7 +739,6 @@ struct tevent_req *krb5_auth_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_TRACE_FUNC,
               "Skipping password checks for OTP-enabled user\n");
         state->pam_status = PAM_SUCCESS;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
     }
@@ -806,7 +792,6 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
              * authentication is. We return an PAM error here, but do not
              * mark the backend offline. */
             state->pam_status = PAM_AUTHTOK_LOCK_BUSY;
-            state->dp_err = DP_ERR_OK;
             ret = EOK;
             goto done;
         }
@@ -824,7 +809,6 @@ static void krb5_auth_resolve_done(struct tevent_req *subreq)
                 DEBUG(SSSDBG_TRACE_FUNC,
                       "No KDC suitable for password change is available\n");
                 state->pam_status = PAM_AUTHTOK_LOCK_BUSY;
-                state->dp_err = DP_ERR_OK;
                 ret = EOK;
                 goto done;
             }
@@ -933,7 +917,6 @@ static void krb5_auth_done(struct tevent_req *subreq)
             }
         case SSS_PAM_PREAUTH:
             state->pam_status = PAM_CRED_UNAVAIL;
-            state->dp_err = DP_ERR_OK;
             ret = EOK;
             goto done;
         default:
@@ -1029,7 +1012,6 @@ static void krb5_auth_done(struct tevent_req *subreq)
          * change password request just return success. */
         if (pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
             state->pam_status = PAM_SUCCESS;
-            state->dp_err = DP_ERR_OK;
             ret = EOK;
             goto done;
         }
@@ -1101,49 +1083,41 @@ static void krb5_auth_done(struct tevent_req *subreq)
         }
 
         state->pam_status = PAM_NEW_AUTHTOK_REQD;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
 
     case ERR_CREDS_INVALID:
         state->pam_status = PAM_CRED_ERR;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
 
     case ERR_ACCOUNT_EXPIRED:
         state->pam_status = PAM_ACCT_EXPIRED;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
 
     case ERR_ACCOUNT_LOCKED:
         state->pam_status = PAM_PERM_DENIED;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
 
     case ERR_NO_CREDS:
         state->pam_status = PAM_CRED_UNAVAIL;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
 
     case ERR_AUTH_FAILED:
         state->pam_status = PAM_AUTH_ERR;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
 
     case ERR_CHPASS_FAILED:
         state->pam_status = PAM_AUTHTOK_ERR;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
 
     case ERR_NO_AUTH_METHOD_AVAILABLE:
         state->pam_status = PAM_NO_MODULE_DATA;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
 
@@ -1152,7 +1126,6 @@ static void krb5_auth_done(struct tevent_req *subreq)
               "The krb5_child process returned an error. Please inspect the "
               "krb5_child.log file or the journal for more information\n");
         state->pam_status = PAM_SYSTEM_ERR;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
     }
@@ -1172,7 +1145,6 @@ static void krb5_auth_done(struct tevent_req *subreq)
 
     if (pd->cmd == SSS_PAM_PREAUTH) {
         state->pam_status = PAM_SUCCESS;
-        state->dp_err = DP_ERR_OK;
         ret = EOK;
         goto done;
     }
@@ -1228,12 +1200,11 @@ static void krb5_auth_done(struct tevent_req *subreq)
                                   state->domain,
                                   state->be_ctx->cdb,
                                   state->pd, state->kr->uid,
-                                  &state->pam_status, &state->dp_err);
+                                  &state->pam_status);
         } else {
             DEBUG(SSSDBG_CONF_SETTINGS,
                   "Backend is marked offline, retry later!\n");
             state->pam_status = PAM_AUTHINFO_UNAVAIL;
-            state->dp_err = DP_ERR_OFFLINE;
         }
         ret = EOK;
         goto done;
@@ -1260,13 +1231,11 @@ static void krb5_auth_done(struct tevent_req *subreq)
                   "pam_add_response failed: %d (%s).\n",
                   ret, sss_strerror(ret));
             state->pam_status = PAM_SYSTEM_ERR;
-            state->dp_err = DP_ERR_OK;
             goto done;
         }
     }
 
     state->pam_status = PAM_SUCCESS;
-    state->dp_err = DP_ERR_OK;
     ret = EOK;
 
 done:
@@ -1278,11 +1247,10 @@ done:
 
 }
 
-int krb5_auth_recv(struct tevent_req *req, int *pam_status, int *dp_err)
+int krb5_auth_recv(struct tevent_req *req, int *pam_status)
 {
     struct krb5_auth_state *state = tevent_req_data(req, struct krb5_auth_state);
     *pam_status = state->pam_status;
-    *dp_err = state->dp_err;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -1381,7 +1349,7 @@ static void krb5_pam_handler_auth_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct krb5_pam_handler_state);
 
-    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status, NULL);
+    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status);
     talloc_zfree(subreq);
     if (ret != EOK) {
         state->pd->pam_status = PAM_SYSTEM_ERR;
@@ -1423,7 +1391,7 @@ static void krb5_pam_handler_auth_retry_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct krb5_pam_handler_state);
 
-    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status, NULL);
+    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status);
     talloc_free(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv request failed.\n");

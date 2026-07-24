@@ -101,12 +101,12 @@ static void get_password_migration_flag_auth_done(struct tevent_req *subreq)
     struct get_password_migration_flag_state *state = tevent_req_data(req,
                                       struct get_password_migration_flag_state);
     static const char *attrs[] = {IPA_CONFIG_MIGRATION_ENABLED, NULL};
-    int ret, dp_error;
+    int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
     if (ret) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (ret == ERR_OFFLINE) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "No IPA server is available, cannot get the "
                    "migration flag while offline\n");
@@ -246,7 +246,6 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
 {
     struct ipa_pam_auth_handler_state *state;
     struct tevent_req *req;
-    int dp_err;
     char *realm;
     errno_t ret;
 
@@ -254,7 +253,7 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct ipa_pam_auth_handler_state);
 
     state->pd->pam_status = PAM_SYSTEM_ERR;
-    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status);
     talloc_free(subreq);
     if (ret != EOK && state->pd->pam_status != PAM_CRED_ERR) {
         DEBUG(SSSDBG_OP_FAILURE, "KRB5 auth failed [%d]: %s\n",
@@ -262,9 +261,11 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
         goto done;
     }
 
-    if (dp_err != DP_ERR_OK) {
+    /* We are offline */
+    if (state->pd->pam_status == PAM_AUTHINFO_UNAVAIL) {
         goto done;
     }
+
     if (state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM
         && state->pd->pam_status == PAM_TRY_AGAIN) {
         /* Reset this to fork a new krb5_child in handle_child_send() */
@@ -468,13 +469,12 @@ static void ipa_pam_auth_handler_retry_done(struct tevent_req *subreq)
 {
     struct ipa_pam_auth_handler_state *state;
     struct tevent_req *req;
-    int dp_err;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_pam_auth_handler_state);
 
-    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status, &dp_err);
+    ret = krb5_auth_queue_recv(subreq, &state->pd->pam_status);
     talloc_free(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "krb5_auth_recv request failed.\n");

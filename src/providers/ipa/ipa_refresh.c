@@ -134,18 +134,17 @@ static void ipa_refresh_done(struct tevent_req *subreq)
 {
     struct ipa_refresh_state *state = NULL;
     struct tevent_req *req = NULL;
-    errno_t dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ipa_refresh_state);
 
-    ret = ipa_account_info_recv(subreq, &dp_error);
+    ret = ipa_account_info_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s [dp_error: %d, "
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s, "
               "errno: %d]\n", be_req2str(state->account_req->entry_type),
-              dp_error, ret);
+              ret);
         goto done;
     }
 

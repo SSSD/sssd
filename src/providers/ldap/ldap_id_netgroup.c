@@ -48,9 +48,8 @@ struct ldap_netgroup_get_state {
     size_t count;
     struct sysdb_attrs **netgroups;
 
-    int dp_error;
-    int sdap_ret;
     bool noexist_delete;
+    bool sdap_enoent;
 };
 
 static int ldap_netgroup_get_retry(struct tevent_req *req);
@@ -77,8 +76,8 @@ struct tevent_req *ldap_netgroup_get_send(TALLOC_CTX *memctx,
     state->ctx = ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
     state->noexist_delete = noexist_delete;
+    state->sdap_enoent = true;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
@@ -147,14 +146,12 @@ static void ldap_netgroup_get_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct ldap_netgroup_get_state *state = tevent_req_data(req,
                                                     struct ldap_netgroup_get_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -181,15 +178,14 @@ static void ldap_netgroup_get_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct ldap_netgroup_get_state *state = tevent_req_data(req,
                                                     struct ldap_netgroup_get_state);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
     ret = sdap_get_netgroups_recv(subreq, state, NULL, &state->count,
                                   &state->netgroups);
     talloc_zfree(subreq);
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
+    ret = sdap_id_op_done(state->op, ret);
 
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    if (ret == EAGAIN) {
         /* retry */
         ret = ldap_netgroup_get_retry(req);
         if (ret != EOK) {
@@ -199,10 +195,12 @@ static void ldap_netgroup_get_done(struct tevent_req *subreq)
 
         return;
     }
-    state->sdap_ret = ret;
+
+    if (ret == ENOENT) {
+        state->sdap_enoent = true;
+    }
 
     if (ret && ret != ENOENT) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -223,22 +221,16 @@ static void ldap_netgroup_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
     return;
 }
 
-int ldap_netgroup_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret)
+int ldap_netgroup_get_recv(struct tevent_req *req, bool *sdap_enoent)
 {
     struct ldap_netgroup_get_state *state = tevent_req_data(req,
-                                                    struct ldap_netgroup_get_state);
-
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
+                                                            struct ldap_netgroup_get_state);
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);

@@ -47,9 +47,8 @@ struct sdap_services_get_state {
 
     int filter_type;
 
-    int dp_error;
-    int sdap_ret;
     bool noexist_delete;
+    bool sdap_enoent;
 };
 
 static errno_t
@@ -84,13 +83,13 @@ services_get_send(TALLOC_CTX *mem_ctx,
     state->id_ctx = id_ctx;
     state->sdom = sdom;
     state->conn = conn;
-    state->dp_error = DP_ERR_FATAL;
     state->domain = sdom->dom;
     state->sysdb = sdom->dom->sysdb;
     state->name = name;
     state->protocol = protocol;
     state->filter_type = filter_type;
     state->noexist_delete = noexist_delete;
+    state->sdap_enoent = false;
 
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (!state->op) {
@@ -185,13 +184,11 @@ services_get_connect_done(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_services_get_state *state =
             tevent_req_data(req, struct sdap_services_get_state);
-    int dp_error = DP_ERR_FATAL;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -222,7 +219,6 @@ services_get_done(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_services_get_state *state =
             tevent_req_data(req, struct sdap_services_get_state);
-    int dp_error = DP_ERR_FATAL;
 
     ret = sdap_get_services_recv(NULL, subreq, NULL);
     talloc_zfree(subreq);
@@ -230,8 +226,8 @@ services_get_done(struct tevent_req *subreq)
     /* Check whether we need to try again with another
      * failover server.
      */
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->op, ret);
+    if (ret == EAGAIN) {
         /* retry */
         ret = services_get_retry(req);
         if (ret != EOK) {
@@ -242,11 +238,13 @@ services_get_done(struct tevent_req *subreq)
         /* Return to the mainloop to retry */
         return;
     }
-    state->sdap_ret = ret;
+
+    if (ret == ENOENT) {
+        state->sdap_enoent = true;
+    }
 
     /* An error occurred. */
     if (ret && ret != ENOENT) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -284,22 +282,16 @@ services_get_done(struct tevent_req *subreq)
         }
     }
 
-    state->dp_error = DP_ERR_OK;
     tevent_req_done(req);
 }
 
 errno_t
-services_get_recv(struct tevent_req *req, int *dp_error_out, int *sdap_ret)
+services_get_recv(struct tevent_req *req, bool *sdap_enoent)
 {
-    struct sdap_services_get_state *state =
-            tevent_req_data(req, struct sdap_services_get_state);
-
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
-
-    if (sdap_ret) {
-        *sdap_ret = state->sdap_ret;
+    struct sdap_services_get_state *state = tevent_req_data(req,
+                                                            struct sdap_services_get_state);
+    if (sdap_enoent) {
+        *sdap_enoent = state->sdap_enoent;
     }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
