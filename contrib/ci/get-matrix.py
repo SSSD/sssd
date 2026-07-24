@@ -42,13 +42,13 @@ def get_fedora_releases(session, type, exclude=[]):
 def get_fedora_matrix():
     session = requests_session()
     fedora_stable = get_fedora_releases(session, 'current')
-    fedora_devel = get_fedora_releases(session, 'pending', exclude=['eln'])
-    fedora_frozen = get_fedora_releases(session, 'frozen', exclude=['eln'])
+
+    # Strip out non-working releases and only return known good ones
+    fedora_working = ['43']
+    fedora_stable = [v for v in fedora_stable if v in fedora_working]
 
     matrix = []
     matrix.extend(['fedora-{0}'.format(x) for x in fedora_stable])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_devel])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_frozen])
 
     return matrix
 
