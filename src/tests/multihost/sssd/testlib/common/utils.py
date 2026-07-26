@@ -1077,7 +1077,9 @@ class LdapOperations(object):
         self.uri = uri if not port else '%s:%s' % (uri, port)
         self.binddn = binddn
         self.bindpw = bindpw
-        self.conn = ldap.initialize(uri)
+        self.conn = ldap.initialize(self.uri)
+        self.conn.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+        self.conn.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
         self.conn = self.bind()
 
     def bind(self):
