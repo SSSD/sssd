@@ -1221,6 +1221,8 @@ class LdapOperations(object):
         self.binddn = binddn
         self.bindpw = bindpw
         self.conn = ldap.initialize(self.uri)
+        self.conn.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
+        self.conn.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
         self.conn = self.bind()
         if isinstance(self.conn, tuple):
             raise LdapException("Failed to bind to ldap server, Error: %s"
