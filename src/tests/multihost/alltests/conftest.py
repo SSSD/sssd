@@ -1535,7 +1535,7 @@ def ns_account_lock(session_multihost, request):
     session_multihost.client[0].service_sssd('restart')
     # Add managed role
     master_e = session_multihost.master[0].ip
-    ldap_uri = f'ldap://{master_e}'
+    ldap_uri = f'ldaps://{master_e}'
     ds_rootdn = 'cn=Directory Manager'
     ds_rootpw = 'Secret123'
     ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
@@ -1570,7 +1570,7 @@ def ns_account_lock(session_multihost, request):
     def restoresssdconf():
         """ Restore sssd.conf """
         master_e = session_multihost.master[0].ip
-        ldap_uri = f'ldap://{master_e}'
+        ldap_uri = f'ldaps://{master_e}'
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
