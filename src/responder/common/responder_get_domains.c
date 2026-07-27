@@ -89,6 +89,7 @@ static void get_subdomains_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
+        return;
     }
 
     tevent_req_done(req);
@@ -217,7 +218,7 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
 
     ret = get_subdomains_recv(subreq, subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ERR_MISSING_DP_TARGET) {
         goto fail;
     }
 
