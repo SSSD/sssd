@@ -182,11 +182,11 @@ class TestKrbAccessProvider():
             cmd = multihost.client[0].run_command(command, raiseonerr=False)
 
         ssh = check_login_client_bool(multihost, "foo3", "Secret123")
-        client_hostname = multihost.client[0].sys_hostname
+        client_ip = multihost.client[0].ip
         try:
             run_command_client(multihost, "foo4", "Secret123",
                                f"ssh -o StrictHostKeyChecking=no -o "
-                               f"PasswordAuthentication=no foo3@{client_hostname} "
+                               f"PasswordAuthentication=no foo3@{client_ip} "
                                f"id > /tmp/accessProvider_id_krb5_003.out 2>&1")
         except Exception:
             pytest.fail("Error in connection via ssh as foo4")
@@ -237,13 +237,13 @@ class TestKrbAccessProvider():
                    -D "cn=Directory Manager" -w "Secret123" uid=foo3,ou=People,dc=example,dc=test'
         cmd2 = multihost.client[0].run_command(ldap_cmd, raiseonerr=False)
         time.sleep(10)
-        client_hostname = multihost.client[0].sys_hostname
+        client_ip = multihost.client[0].ip
         try:
-            ssh = SSHClient(client_hostname, "foo4", "Secret123")
+            ssh = SSHClient(client_ip, "foo4", "Secret123")
             ssh.connect()
             ssh.execute_command("id > /tmp/accessProvider_id_krb5_004.out 2>&1")
             ssh.execute_command(f"ssh -o StrictHostKeyChecking=no -o "
-                                f"PasswordAuthentication=no foo3@{client_hostname} id >> "
+                                f"PasswordAuthentication=no foo3@{client_ip} id >> "
                                 f"/tmp/accessProvider_id_krb5_004.out 2>&1")
             ssh.close()
         except Exception:
