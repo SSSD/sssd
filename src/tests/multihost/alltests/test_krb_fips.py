@@ -91,7 +91,7 @@ class Testkrbfips(object):
         multihost.client[0].service_sssd('restart')
         multihost.client[0].run_command("systemctl "
                                         "restart sssd-kcm")
-        ssh = SSHClient(multihost.client[0].sys_hostname, 'foo3', 'Secret123')
+        ssh = SSHClient(multihost.client[0].ip, 'foo3', 'Secret123')
         try:
             ssh.connect()
             ssh.execute_command('kdestroy -A -q')
@@ -316,7 +316,7 @@ class Testkrbfips(object):
         tcpdump_cmd = 'tcpdump -s0 host %s -w %s' % (ldap_host, pcapfile)
         multihost.client[0].run_command(tcpdump_cmd, bg=True)
         pkill = 'pkill tcpdump'
-        client = SSHClient(multihost.client[0].sys_hostname, user, 'Secret123')
+        client = SSHClient(multihost.client[0].ip, user, 'Secret123')
         try:
             client.connect()
         except Exception:

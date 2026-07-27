@@ -59,7 +59,7 @@ class TestsssdProxy(object):
         cat = 'cat /etc/sssd/sssd.conf'
         multihost.client[0].run_command(cat)
         multihost.client[0].service_sssd('start')
-        client = SSHClient(multihost.client[0].sys_hostname, user, 'Secret123')
+        client = SSHClient(multihost.client[0].ip, user, 'Secret123')
         try:
             client.connect()
         except Exception:
