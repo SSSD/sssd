@@ -55,7 +55,7 @@ class TestSudo(object):
             add_rule2 = "echo 'Defaults:%s !requiretty'"\
                         " >> /etc/sudoers.d/%s" % (user, user)
             multihost.client[0].run_command(add_rule2)
-            ssh = SSHClient(multihost.client[0].sys_hostname, user, 'Secret123')
+            ssh = SSHClient(multihost.client[0].ip, user, 'Secret123')
             try:
                 ssh.connect()
                 for _ in range(1, 10):
@@ -100,7 +100,7 @@ class TestSudo(object):
         sssd_params = {'services': 'nss, pam, sudo'}
         tools.sssd_conf(section, sssd_params, action='update')
         multihost.client[0].service_sssd('start')
-        ssh = SSHClient(multihost.client[0].sys_hostname, 'foo1@example.test', 'Secret123')
+        ssh = SSHClient(multihost.client[0].ip, 'foo1@example.test', 'Secret123')
         try:
             ssh.connect()
             id_out = ssh.execute_command('id')
