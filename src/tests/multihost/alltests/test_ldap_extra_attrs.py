@@ -244,7 +244,7 @@ class TestLdapExtraAttrs(object):
         client.run_command('gcc -lpthread /tmp/sssd_client_hang.c'
                            ' -o /tmp/client-hang')
         client.run_command("chown foo1 /tmp/client-hang")
-        ssh = SSHClient(multihost.client[0].sys_hostname, 'foo1', 'Secret123')
+        ssh = SSHClient(multihost.client[0].ip, 'foo1', 'Secret123')
         try:
             ssh.connect()
             ssh.execute_command('cd /tmp; ./client-hang > output')
