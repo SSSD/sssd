@@ -245,7 +245,7 @@ class TestKrbAccessProvider():
             ssh.execute_command("id > /tmp/accessProvider_id_krb5_004.out 2>&1")
             ssh.execute_command(f"ssh -o StrictHostKeyChecking=no -o "
                                 f"PasswordAuthentication=no foo3@{client_ip} id >> "
-                                f"/tmp/accessProvider_id_krb5_004.out 2>&1")
+                                f"/tmp/accessProvider_id_krb5_004.out")
             ssh.close()
         except Exception:
             pytest.fail("Error in connection via ssh as foo4")
