@@ -125,7 +125,7 @@ cache_req_common_process_dp_reply(struct cache_req *cr,
 {
     bool bret;
 
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         int msg_level = SSSDBG_IMPORTANT_INFO;
         /* ERR_DOMAIN_NOT_FOUND: 'ad_enabled_domains' option can exclude domain */
         if (ret == ERR_DOMAIN_NOT_FOUND) msg_level = SSSDBG_CONF_SETTINGS;
