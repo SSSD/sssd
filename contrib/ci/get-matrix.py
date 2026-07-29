@@ -40,17 +40,8 @@ def get_fedora_releases(session, type, exclude=[]):
 
 
 def get_fedora_matrix():
-    session = requests_session()
-    fedora_stable = get_fedora_releases(session, 'current')
-    fedora_devel = get_fedora_releases(session, 'pending', exclude=['eln'])
-    fedora_frozen = get_fedora_releases(session, 'frozen', exclude=['eln'])
-
-    matrix = []
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_stable])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_devel])
-    matrix.extend(['fedora-{0}'.format(x) for x in fedora_frozen])
-
-    return matrix
+    # f-43 is sssd-2.12 based; f45 will be rebased on sssd-2.14
+    return ['fedora-44']
 
 
 def get_centos_matrix():
