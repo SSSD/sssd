@@ -15,6 +15,20 @@ from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopologyGroup
 
 
+def skip_if_trust_broken(ipa: IPA, trusted: GenericADProvider):
+    """Skip test if the IPA trust to the trusted domain is not functioning."""
+    result = ipa.host.conn.exec(
+        ["ipa", "trust-find", f"--realm={trusted.domain}"],
+        raise_on_error=False,
+    )
+    if result.rc != 0 or "0 trusts matched" in result.stdout:
+        pytest.skip(f"IPA trust to '{trusted.domain}' is not established")
+
+    status = ipa.sssctl.domain_status(trusted.domain, online=True)
+    if "online status: offline" in status.stdout.lower():
+        pytest.skip(f"IPA trust to '{trusted.domain}' is offline")
+
+
 @pytest.mark.importance("low")
 @pytest.mark.ticket(jira="RHEL-3925", gh=6942)
 @pytest.mark.topology(KnownTopologyGroup.IPATrust)
@@ -41,6 +55,8 @@ def test_ipa_trusts__lookup_group_without_sid(ipa: IPA, trusted: GenericADProvid
         4. No messages indicating AD went offline
     :customerscenario: True
     """
+    skip_if_trust_broken(ipa, trusted)
+
     username = trusted.fqn("administrator")
     external = ipa.group("external-group").add(external=True).add_member(username)
     ipa.group("posix-group").add(gid=5001).add_member(external)
@@ -90,6 +106,8 @@ def test_ipa_trusts__add_and_remove_external_group_membership(
         3. User "Administrator" is a not a member of "posix-group"
     :customerscenario: True
     """
+    skip_if_trust_broken(ipa, trusted)
+
     ipa.sssd.dom(ipa.domain)["ldap_use_tokengroups"] = use_token_groups
     ipa.sssd.dom(ipa.domain)["subdomain_inherit"] = "ldap_use_tokengroups"
     ipa.sssd.config_apply()
@@ -140,6 +158,8 @@ def test_ipa_trusts__aduser_membership_after_HBAC(ipa: IPA, trusted: GenericADPr
         5. The user is still found and is still a member of the POSIX group.
     :customerscenario: False
     """
+    skip_if_trust_broken(ipa, trusted)
+
     unique = str(uuid.uuid4())[:8]
 
     # Define dynamic names for test objects
