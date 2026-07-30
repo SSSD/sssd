@@ -149,18 +149,17 @@ static void sdap_refresh_done(struct tevent_req *subreq)
 {
     struct sdap_refresh_state *state = NULL;
     struct tevent_req *req = NULL;
-    const char *err_msg = NULL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_refresh_state);
 
-    ret = sdap_handle_acct_req_recv(subreq, &err_msg);
+    ret = sdap_handle_acct_req_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s [errno: %d]: %s\n",
                be_req2str(state->account_req->entry_type),
-              ret, err_msg);
+              ret, sss_strerror(ret));
         goto done;
     }
 
