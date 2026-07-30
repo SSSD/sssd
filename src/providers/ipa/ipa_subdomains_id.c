@@ -693,8 +693,6 @@ static void ipa_get_subdom_acct_done(struct tevent_req *subreq)
         return;
     }
 
-    /* FIXME: do we need some special handling of ENOENT */
-
     tevent_req_done(req);
 }
 
