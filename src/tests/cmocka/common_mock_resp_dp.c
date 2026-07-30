@@ -80,8 +80,7 @@ sss_dp_resolver_get_recv(TALLOC_CTX *mem_ctx,
     return test_request_recv(req);
 }
 
-void mock_resolver_recv(uint16_t dp_err, char *msg,
-                        resolver_cb_t cb, void *pvt)
+void mock_resolver_recv(resolver_cb_t cb, void *pvt)
 {
     will_return(sss_dp_resolver_get_recv, cb);
     if (cb) {
@@ -91,7 +90,7 @@ void mock_resolver_recv(uint16_t dp_err, char *msg,
 
 void mock_resolver_recv_simple(void)
 {
-    return mock_resolver_recv(0, NULL, NULL, NULL);
+    return mock_resolver_recv(0, NULL);
 }
 
 struct tevent_req *

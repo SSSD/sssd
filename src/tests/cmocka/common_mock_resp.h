@@ -62,8 +62,7 @@ void mock_account_recv(acct_cb_t acct_cb, void *pvt);
 
 void mock_account_recv_simple(void);
 
-void mock_resolver_recv(uint16_t dp_err, char *msg,
-                        resolver_cb_t acct_cb, void *pvt);
+void mock_resolver_recv(resolver_cb_t acct_cb, void *pvt);
 
 void mock_resolver_recv_simple(void);
 
