@@ -76,8 +76,7 @@ struct tevent_req *ad_handle_pac_initgr_send(TALLOC_CTX *mem_ctx,
                                              bool noexist_delete,
                                              struct ldb_message *msg);
 
-errno_t ad_handle_pac_initgr_recv(struct tevent_req *req,
-                                   const char **_err);
+errno_t ad_handle_pac_initgr_recv(struct tevent_req *req);
 
 errno_t check_upn_and_sid_from_user_and_pac(struct ldb_message *msg,
                                           struct sss_idmap_ctx *ctx,

@@ -110,8 +110,6 @@ struct ad_handle_acct_info_state {
     size_t cindex;
     struct ad_options *ad_options;
     bool using_pac;
-
-    const char *err;
 };
 
 static errno_t ad_handle_acct_info_step(struct tevent_req *req);
@@ -235,16 +233,15 @@ static void
 ad_handle_acct_info_done(struct tevent_req *subreq)
 {
     errno_t ret;
-    const char *err;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct ad_handle_acct_info_state *state = tevent_req_data(req,
                                             struct ad_handle_acct_info_state);
 
     if (state->using_pac) {
-        ret = ad_handle_pac_initgr_recv(subreq, &err);
+        ret = ad_handle_pac_initgr_recv(subreq);
     } else {
-        ret = sdap_handle_acct_req_recv(subreq, &err);
+        ret = sdap_handle_acct_req_recv(subreq);
     }
     if (ret == ERR_OFFLINE
         && state->conn[state->cindex+1] != NULL
@@ -256,9 +253,6 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     }
     talloc_zfree(subreq);
     if (ret != EOK) {
-        /* if GC was not used error should be set */
-        state->err = err;
-
         goto fail;
     }
 
@@ -274,10 +268,7 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     state->cindex++;
     ret = ad_handle_acct_info_step(req);
     if (ret != EAGAIN) {
-        /* No additional search in progress. Save the last
-         * error status, we'll be returning it.
-         */
-        state->err = err;
+        /* No additional search in progress */
 
         if (ret == EOK) {
             /* No more connections */
@@ -307,16 +298,8 @@ fail:
 }
 
 errno_t
-ad_handle_acct_info_recv(struct tevent_req *req,
-                         const char **_err)
+ad_handle_acct_info_recv(struct tevent_req *req)
 {
-    struct ad_handle_acct_info_state *state = tevent_req_data(req,
-                                            struct ad_handle_acct_info_state);
-
-    if (_err) {
-        *_err = state->err;
-    }
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
 }
@@ -347,7 +330,6 @@ get_conn_list(TALLOC_CTX *mem_ctx, struct ad_id_ctx *ad_ctx,
 }
 
 struct ad_account_info_state {
-    const char *err_msg;
     int dummy;
 };
 
@@ -420,14 +402,12 @@ immediately:
 
 static void ad_account_info_done(struct tevent_req *subreq)
 {
-    struct ad_account_info_state *state = NULL;
     struct tevent_req *req = NULL;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct ad_account_info_state);
 
-    ret = ad_handle_acct_info_recv(subreq, &state->err_msg);
+    ret = ad_handle_acct_info_recv(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ad_handle_acct_info_recv failed [%d]: %s\n",
@@ -438,17 +418,8 @@ static void ad_account_info_done(struct tevent_req *subreq)
     tevent_req_done(req);
 }
 
-errno_t ad_account_info_recv(struct tevent_req *req,
-                             const char **_err_msg)
+errno_t ad_account_info_recv(struct tevent_req *req)
 {
-    struct ad_account_info_state *state = NULL;
-
-    state = tevent_req_data(req, struct ad_account_info_state);
-
-    if (_err_msg != NULL) {
-        *_err_msg = state->err_msg;
-    }
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
@@ -504,12 +475,11 @@ immediately:
 static void ad_account_info_handler_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
-    const char *err_msg;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
 
-    ret = ad_account_info_recv(subreq, &err_msg);
+    ret = ad_account_info_recv(subreq);
     talloc_zfree(subreq);
 
     tevent_req_done_or_error(req, ret);
