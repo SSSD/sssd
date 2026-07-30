@@ -2292,7 +2292,7 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
     state = tevent_req_data(req, struct ad_gpo_access_state);
     ret = groups_by_user_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         if (ret == ERR_OFFLINE) {
             DEBUG(SSSDBG_TRACE_FUNC, "Preparing for offline operation.\n");
             ret = process_offline_gpos(state,
@@ -2319,7 +2319,6 @@ ad_gpo_target_dn_retrieval_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get policy target's DN: [%d](%s)\n",
                ret, sss_strerror(ret));
-        ret = ENOENT;
         goto done;
     }
 
