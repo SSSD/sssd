@@ -1356,7 +1356,6 @@ bool sdap_is_enum_request(struct dp_id_data *ar)
 /* A generic LDAP account info handler */
 struct sdap_handle_acct_req_state {
     struct dp_id_data *ar;
-    const char *err;
 };
 
 static void sdap_handle_acct_req_done(struct tevent_req *subreq);
@@ -1417,7 +1416,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                 && ar->filter_type != BE_FILTER_SECID
                 && ar->filter_type != BE_FILTER_UUID) {
             ret = EINVAL;
-            state->err = "Invalid filter type";
             goto done;
         }
 
@@ -1437,7 +1435,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
             || /* currently it must be "pure" LDAP or IPA - not trusted subdomain */
             IS_SUBDOMAIN(sdom->dom)) {
             ret = ERR_GET_ACCT_SUBID_RANGES_NOT_SUPPORTED;
-            state->err = "This id_provider doesn't support subid ranges";
             goto done;
         }
         subreq = subid_ranges_get_send(state, be_ctx->ev, id_ctx,
@@ -1445,7 +1442,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
                                        ar->filter_value);
 #else
         ret = ERR_GET_ACCT_SUBID_RANGES_NOT_SUPPORTED;
-        state->err = "Subid ranges are not supported";
         goto done;
 #endif
         break;
@@ -1453,7 +1449,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_NETGROUP:
         if (ar->filter_type != BE_FILTER_NAME) {
             ret = EINVAL;
-            state->err = "Invalid filter type";
             goto done;
         }
 
@@ -1467,7 +1462,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         if (ar->filter_type == BE_FILTER_SECID
                 || ar->filter_type == BE_FILTER_UUID) {
             ret = EINVAL;
-            state->err = "Invalid filter type";
             goto done;
         }
 
@@ -1482,7 +1476,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_BY_SECID:
         if (ar->filter_type != BE_FILTER_SECID) {
             ret = EINVAL;
-            state->err = "Invalid filter type";
             goto done;
         }
 
@@ -1496,7 +1489,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_BY_UUID:
         if (ar->filter_type != BE_FILTER_UUID) {
             ret = EINVAL;
-            state->err = "Invalid filter type";
             goto done;
         }
 
@@ -1511,7 +1503,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         if (!(ar->filter_type == BE_FILTER_NAME ||
               ar->filter_type == BE_FILTER_IDNUM)) {
             ret = EINVAL;
-            state->err = "Invalid filter type";
             goto done;
         }
 
@@ -1534,7 +1525,6 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     default: /*fail*/
         ret = EINVAL;
-        state->err = "Invalid request type";
         DEBUG(SSSDBG_OP_FAILURE,
               "Unexpected request type: 0x%X [%s:%s] in %s\n",
               ar->entry_type, ar->filter_value,
@@ -1568,25 +1558,20 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
     struct tevent_req *req = tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_handle_acct_req_state *state;
     errno_t ret;
-    const char *err = "Invalid request type";
 
     state = tevent_req_data(req, struct sdap_handle_acct_req_state);
 
     switch (state->ar->entry_type & BE_REQ_TYPE_MASK) {
     case BE_REQ_USER: /* user */
-        err = "User lookup failed";
         ret = users_get_recv(subreq);
         break;
     case BE_REQ_GROUP: /* group */
-        err = "Group lookup failed";
         ret = groups_get_recv(subreq);
         break;
     case BE_REQ_INITGROUPS: /* init groups for user */
-        err = "Init group lookup failed";
         ret = groups_by_user_recv(subreq);
         break;
     case BE_REQ_SUBID_RANGES:
-        err = "Subid ranges lookup failed";
 #ifdef BUILD_SUBID
         ret = subid_ranges_get_recv(subreq);
 #else
@@ -1594,11 +1579,9 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
 #endif
         break;
     case BE_REQ_NETGROUP:
-        err = "Netgroup lookup failed";
         ret = ldap_netgroup_get_recv(subreq);
         break;
     case BE_REQ_SERVICES:
-        err = "Service lookup failed";
         ret = services_get_recv(subreq);
         break;
     case BE_REQ_BY_SECID:
@@ -1606,11 +1589,9 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
     case BE_REQ_BY_UUID:
         /* Fall through */
     case BE_REQ_USER_AND_GROUP:
-        err = "Lookup by SID failed";
         ret = sdap_get_user_and_group_recv(subreq);
         break;
     case BE_REQ_BY_CERT:
-        err = "User lookup by certificate failed";
         ret = users_get_recv(subreq);
         break;
     default: /* fail */
@@ -1620,18 +1601,17 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->err = err;
+        DEBUG(SSSDBG_TRACE_FUNC, "[%s] lookup failed\n",
+                                  be_req2str(state->ar->entry_type));
         tevent_req_error(req, ret);
         return;
     }
 
-    state->err = "Success";
     tevent_req_done(req);
 }
 
 errno_t
-sdap_handle_acct_req_recv(struct tevent_req *req,
-                           const char **_err)
+sdap_handle_acct_req_recv(struct tevent_req *req)
 {
     struct sdap_handle_acct_req_state *state;
 
@@ -1641,10 +1621,6 @@ sdap_handle_acct_req_recv(struct tevent_req *req,
           state->ar->entry_type & BE_REQ_TYPE_MASK,
           state->ar->filter_type, state->ar->filter_value,
           PROBE_SAFE_STR(state->ar->extra_value));
-
-    if (_err) {
-        *_err = state->err;
-    }
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
@@ -1869,12 +1845,11 @@ immediately:
 static void sdap_account_info_handler_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
-    const char *error_msg;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
 
-    ret = sdap_handle_acct_req_recv(subreq, &error_msg);
+    ret = sdap_handle_acct_req_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {

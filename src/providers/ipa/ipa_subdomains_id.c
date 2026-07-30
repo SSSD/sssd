@@ -1431,7 +1431,7 @@ ipa_get_trusted_acct_part_done(struct tevent_req *subreq)
     struct dp_id_data *user_ar;
 
     if (state->type == IPA_TRUST_AD) {
-        ret = ad_handle_acct_info_recv(subreq, NULL);
+        ret = ad_handle_acct_info_recv(subreq);
     } else if (state->type == IPA_TRUST_IPA) {
         ret = ipa_id_get_account_info_recv(subreq);
     } else {
