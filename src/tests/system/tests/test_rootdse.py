@@ -61,7 +61,7 @@ def test_ldap_search_base(client: Client, ldap: LDAP):
     client.sssd.dom("test")["ldap_search_base"] = ldap.ldap.naming_context
 
     client.sssd.stop()
-    client.sssd.clear()
+    client.sssd.clear(logs=True)
     client.sssd.start()
 
     assert client.auth.ssh.password("puser1", "Secret123")
