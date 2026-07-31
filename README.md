@@ -1,5 +1,7 @@
 [![Coverity Scan](https://img.shields.io/coverity/scan/sssd-sssd?label=master%20::%20coverity)](https://scan.coverity.com/projects/sssd-sssd)
 
+.
+
 # SSSD - System Security Services Daemon
 
 ## Introduction
