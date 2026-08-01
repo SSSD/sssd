@@ -22,7 +22,7 @@ jobs:
       uses: ./.github/actions/install-dependencies
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@v4.37.3
       with:
         languages: cpp, python
         queries: +security-and-quality
@@ -47,7 +47,7 @@ jobs:
         if-no-files-found: ignore
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@v4.37.3
 
   python-system-tests:
     runs-on: ubuntu-latest
