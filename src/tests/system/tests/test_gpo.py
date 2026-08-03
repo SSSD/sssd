@@ -719,6 +719,120 @@ def test_gpo__works_when_the_server_is_unreachable(client: Client, provider: Gen
 
 
 @pytest.mark.importance("critical")
+@pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+@pytest.mark.ticket(bz=1177140)
+def test_gpo__works_when_samba_client_log_level_is_high(client: Client, provider: GenericADProvider, method: str):
+    """
+    :title: GPO access control works when Samba client log level is high
+    :description:
+        gpo_child uses Samba libraries. A high ``log level`` in ``/etc/samba/smb.conf``
+        previously broke GPO evaluation (bz1177140).
+    :setup:
+        1. Create allowed and denied users and link a site GPO
+        2. Back up ``/etc/samba/smb.conf`` and write a minimal config with ``log level = 10``
+        3. Start the smb service and configure ``ad_gpo_access_control = enforcing``
+        4. Start SSSD
+    :steps:
+        1. Authenticate the allowed user
+        2. Authenticate the denied user
+    :expectedresults:
+        1. Allowed user succeeds
+        2. Denied user fails
+    :customerscenario: True
+    """
+    user1 = provider.user("user1").add()
+    deny_user1 = provider.user("deny_user1").add()
+
+    provider.gpo("site policy").add().policy(
+        {
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
+            "SeDenyInteractiveLogonRight": [deny_user1],
+        }
+    ).link()
+
+    workgroup = provider.domain.split(".")[0].upper()
+    smb_conf = "\n".join(
+        [
+            "[global]",
+            f"workgroup = {workgroup}",
+            f"realm = {provider.realm}",
+            "security = user",
+            "kerberos method = system keytab",
+            "log level = 10",
+            "",
+        ]
+    )
+
+    client.fs.backup("/etc/samba/smb.conf")
+    try:
+        client.fs.write("/etc/samba/smb.conf", smb_conf)
+        client.svc.start("smb")
+
+        client.sssd.domain["ad_gpo_access_control"] = "enforcing"
+        client.sssd.start()
+
+        assert client.auth.parametrize(method).password(
+            "user1", password="Secret123"
+        ), "Allowed user authentication failed!"
+        assert not client.auth.parametrize(method).password(
+            "deny_user1", password="Secret123"
+        ), "Denied user authenticated successfully!"
+    finally:
+        client.svc.stop("smb", raise_on_error=False)
+        client.fs.restore("/etc/samba/smb.conf")
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+@pytest.mark.ticket(bz=[1206092, 1204203])
+def test_gpo__works_with_overlapping_local_groups(client: Client, provider: GenericADProvider, method: str):
+    """
+    :title: GPO access control works when local /etc/group entries overlap AD names
+    :description:
+        Overlapping local groups without SIDs previously crashed GPO evaluation
+        (bz1206092, bz1204203). Local group names take priority for NSS.
+    :setup:
+        1. Create allowed and denied users and link a site GPO
+        2. Append overlapping local group memberships to ``/etc/group``
+        3. Configure ``ad_gpo_access_control = enforcing`` and start SSSD
+    :steps:
+        1. Authenticate the allowed user
+        2. Authenticate the denied user
+    :expectedresults:
+        1. Allowed user succeeds
+        2. Denied user fails
+    :customerscenario: True
+    """
+    user1 = provider.user("user1").add()
+    deny_user1 = provider.user("deny_user1").add()
+
+    provider.gpo("site policy").add().policy(
+        {
+            "SeInteractiveLogonRight": [user1, provider.group("Domain Admins")],
+            "SeDenyInteractiveLogonRight": [deny_user1],
+        }
+    ).link()
+
+    client.fs.backup("/etc/group")
+    try:
+        client.fs.append("/etc/group", f"\ngpo_overlap:x:5100:{user1.name},{deny_user1.name}\n")
+
+        client.sssd.domain["ad_gpo_access_control"] = "enforcing"
+        client.sssd.start()
+
+        assert client.auth.parametrize(method).password(
+            "user1", password="Secret123"
+        ), "Allowed user authentication failed!"
+        assert not client.auth.parametrize(method).password(
+            "deny_user1", password="Secret123"
+        ), "Denied user authenticated successfully!"
+    finally:
+        client.fs.restore("/etc/group")
+
+
+@pytest.mark.importance("critical")
 @pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=1547234)
