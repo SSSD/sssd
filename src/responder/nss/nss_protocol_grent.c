@@ -460,10 +460,7 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
         }
     }
 
-    if (orig_gid == 0) {
-        /* Initialize allocated memory to be safe and make Valgrind happy. */
-        SAFEALIGN_SET_UINT32(&body[rp], 0, &rp);
-    } else {
+    if (orig_gid != 0) {
         /* Insert original primary group into the result. */
         SAFEALIGN_COPY_UINT32(&body[rp], &orig_gid, &rp);
         num_results++;
@@ -490,6 +487,12 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     sss_packet_get_body(packet, &body, &body_len);
     SAFEALIGN_COPY_UINT32(body, &num_results, NULL);
     SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
+
+    /* Shrink packet to actual data size to avoid sending uninitialized heap. */
+    ret = sss_packet_set_size(packet, (2 + num_results) * sizeof(uint32_t));
+    if (ret != EOK) {
+        return ret;
+    }
 
     return EOK;
 }
