@@ -1293,9 +1293,24 @@ fallback_homedir = /home/%u
                             <quote>password</quote> field.
                         </para>
                         <para>
+                            This option can also be set per-domain, which
+                            overwrites the value in the <quote>[nss]</quote>
+                            section for that domain. This is particularly useful
+                            when using a proxy domain with
+                            <option>proxy_lib_name=files</option> and a
+                            <option>proxy_pam_target</option> other than
+                            <quote>sssd-shadowutils</quote>. In that case, SSSD
+                            returns <quote>*</quote> for the password field by
+                            default, which causes <command>pam_unix</command> to
+                            treat all accounts as locked. Setting
+                            <option>pwfield = x</option> in the domain section
+                            restores the expected behavior.
+                        </para>
+                        <para>
                             Default: <quote>*</quote>
                         </para>
                         <para>
+<<<<<<< HEAD
                             Note: This option can also be set per-domain which
                             overwrites the value in [nss] section.
                         </para>
@@ -1306,6 +1321,11 @@ fallback_homedir = /home/%u
                             </phrase>
                             <quote>x</quote> (proxy domain with nss_files
                             and sssd-shadowutils target)
+=======
+                            Default (per-domain): <quote>not set</quote> (remote
+                            domains), <quote>x</quote> (proxy domain with
+                            nss_files and sssd-shadowutils target)
+>>>>>>> e3f869d7a (man: document pwfield per-domain usage in NSS section)
                         </para>
                     </listitem>
                 </varlistentry>
