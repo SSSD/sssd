@@ -23,6 +23,8 @@
 #include "lib/idmap/sss_idmap.h"
 #include "responder/nss/nss_protocol.h"
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <arpa/nameser.h>
 
 errno_t
 sss_nss_protocol_done(struct cli_ctx *cli_ctx, errno_t error)
@@ -466,6 +468,22 @@ sss_nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
 
     SAFEALIGN_COPY_UINT32(&af, body, NULL);
     SAFEALIGN_COPY_UINT32(&addrlen, body + sizeof(uint32_t), NULL);
+
+    if (addrlen != blen - sizeof(uint32_t) * 2) {
+        return EINVAL;
+    }
+
+    if (af == AF_INET) {
+        if (addrlen != INADDRSZ) {
+            return EINVAL;
+        }
+    } else if (af == AF_INET6) {
+        if (addrlen != IN6ADDRSZ) {
+            return EINVAL;
+        }
+    } else {
+        return EINVAL;
+    }
 
     addr = body + sizeof(uint32_t) * 2;
 
