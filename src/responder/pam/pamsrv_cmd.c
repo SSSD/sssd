@@ -479,6 +479,11 @@ static int extract_authtok_v1(struct sss_auth_token *tok,
 
     SAFEALIGN_COPY_UINT32_CHECK(&auth_token_type, &body[*c], blen, c);
     SAFEALIGN_COPY_UINT32_CHECK(&auth_token_length, &body[*c], blen, c);
+
+    if (*c + auth_token_length > blen || SIZE_T_OVERFLOW(*c, auth_token_length)) {
+        return EINVAL;
+    }
+
     auth_token_data = body+(*c);
 
     switch (auth_token_type) {
