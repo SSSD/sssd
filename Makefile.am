@@ -618,6 +618,7 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_utils.c \
     src/providers/data_provider_req.c \
     src/util/session_recording.c \
+    src/util/sss_bot.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
@@ -2481,6 +2482,7 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/responder_common.c \
      src/responder/common/responder_utils.c \
      src/util/session_recording.c \
+     src/util/sss_bot.c \
      $(SSSD_CACHE_REQ_OBJ) \
      $(SSSD_RESPONDER_IFACE_OBJ) \
      $(NULL)

@@ -22,6 +22,7 @@
 #define _CACHE_REQ_H_
 
 #include "util/util.h"
+#include "util/sss_bot.h"
 #include "confdb/confdb.h"
 #include "responder/common/negcache.h"
 
@@ -231,6 +232,11 @@ struct cache_req_result {
      * name such as "BUILTIN", or "LOCAL AUTHORITY".
      */
     const char *well_known_domain;
+
+    /**
+     * If not NULL, an ephemeral bot account was resolved.
+     */
+    struct sss_bot *bot;
 };
 
 /**
