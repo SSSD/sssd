@@ -22,6 +22,7 @@
 
 #include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req_private.h"
+#include "util/sss_bot.h"
 
 static const char **
 cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
@@ -68,7 +69,7 @@ cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
 static struct cache_req_data *
 cache_req_data_create(TALLOC_CTX *mem_ctx,
                       enum cache_req_type type,
-                      const struct cache_req_data *input)
+                      struct cache_req_data *input)
 {
     struct cache_req_data *data;
     errno_t ret;
@@ -77,6 +78,40 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     if (data == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed\n");
         return NULL;
+    }
+
+    ret = sss_bot_parse(data, input->name.input, &data->bot);
+    if (ret != EOK && ret != EINVAL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse bot name [%d]: %s\n", ret,
+              sss_strerror(ret));
+        goto done;
+    }
+
+    /* If this is an ephemeral bot account, we want to switch to lookup by uid */
+    if (ret == EOK) {
+        switch (type) {
+        case CACHE_REQ_USER_BY_NAME:
+        case CACHE_REQ_USER_BY_UPN:
+            DEBUG(SSSDBG_TRACE_FUNC, "%s is a bot acting on behalf of %u\n",
+                  data->bot->input, data->bot->uid);
+            DEBUG(SSSDBG_TRACE_FUNC, "Switching to user-by-id lookup\n");
+
+            type = CACHE_REQ_USER_BY_ID;
+            input->id = data->bot->uid;
+            break;
+        case CACHE_REQ_INITGROUPS:
+        case CACHE_REQ_INITGROUPS_BY_UPN:
+            DEBUG(SSSDBG_TRACE_FUNC, "%s is a bot acting on behalf of %u\n",
+                  data->bot->input, data->bot->uid);
+            DEBUG(SSSDBG_TRACE_FUNC, "Switching to initgroups-by-id lookup\n");
+
+            type = CACHE_REQ_INITGROUPS_BY_UID;
+            input->id = data->bot->uid;
+            break;
+        default:
+            /* Other types do not support bot lookup. Proceed as usual. */
+            talloc_zfree(data->bot);
+        }
     }
 
     data->type = type;
