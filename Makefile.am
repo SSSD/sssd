@@ -320,6 +320,7 @@ if HAVE_CMOCKA
         test_krb5_idp_plugin \
         test_sss_pam_data \
         test_pamsrv_json \
+        test_sss_bot \
         $(NULL)
 
 
@@ -697,6 +698,7 @@ dist_noinst_HEADERS = \
     src/util/strtonum.h \
     src/util/client_envs.h \
     src/util/sss_client_envs.h \
+    src/util/sss_bot.h \
     src/util/sss_cli_cmd.h \
     src/util/sss_chain_id_tevent.h \
     src/util/sss_chain_id.h \
@@ -2645,6 +2647,28 @@ test_pamsrv_json_LDADD = \
 if BUILD_SAMBA
 test_pamsrv_json_LDADD += $(NDR_KRB5PAC_LIBS)
 endif
+
+test_sss_bot_SOURCES = \
+    src/tests/cmocka/test_sss_bot.c \
+    src/util/sss_bot.c \
+    src/util/util.c \
+    src/util/util_ext.c \
+    $(NULL)
+test_sss_bot_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(DHASH_CFLAGS) \
+    $(NULL)
+test_sss_bot_LDADD = \
+    $(TALLOC_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(DHASH_LIBS) \
+    $(POPT_LIBS) \
+    libsss_test_common.la \
+    libsss_debug.la \
+    $(NULL)
 
 test_sss_pam_data_SOURCES = \
     src/util/sss_pam_data.c \
