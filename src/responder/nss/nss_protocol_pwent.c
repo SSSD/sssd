@@ -20,6 +20,7 @@
 
 #include "responder/nss/nss_protocol.h"
 #include "util/sss_nss.h"
+#include "util/sss_bot.h"
 
 static uint32_t
 sss_nss_get_gid(struct sss_domain_info *domain,
@@ -134,9 +135,15 @@ sss_nss_get_shell(struct sss_nss_ctx *nss_ctx,
                   struct ldb_message *msg,
                   const char *name,
                   uint32_t uid,
+                  struct sss_bot *bot,
                   const char **_shell)
 {
     const char *shell = NULL;
+
+    if (bot != NULL) {
+        *_shell = SSS_BOT_SHELL;
+        return EOK;
+    }
 
     if (nss_ctx->rctx->sr_conf.scope != SESSION_RECORDING_SCOPE_NONE) {
         const char *sr_enabled;
@@ -170,6 +177,7 @@ sss_nss_get_pwent(TALLOC_CTX *mem_ctx,
                   struct sss_nss_ctx *nss_ctx,
                   struct sss_domain_info *domain,
                   struct ldb_message *msg,
+                  struct sss_bot *bot,
                   uint32_t *_uid,
                   uint32_t *_gid,
                   struct sized_string **_name,
@@ -202,7 +210,7 @@ sss_nss_get_pwent(TALLOC_CTX *mem_ctx,
     gecos = sss_view_ldb_msg_find_attr_as_string(domain, msg, SYSDB_GECOS,
                                                  NULL);
     homedir = sss_nss_get_homedir(mem_ctx, nss_ctx, domain, msg, name, upn, uid);
-    ret = sss_nss_get_shell(nss_ctx, domain, msg, name, uid, &shell);
+    ret = sss_nss_get_shell(nss_ctx, domain, msg, name, uid, bot, &shell);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "failed retrieving shell for %s[%u], skipping [%d]: %s\n",
@@ -211,12 +219,24 @@ sss_nss_get_pwent(TALLOC_CTX *mem_ctx,
     }
 
     /* Convert to sized strings. */
-    ret = sized_output_name(mem_ctx, nss_ctx->rctx, name, domain, _name);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "sized_output_name failed, skipping [%d]: %s\n",
-              ret, sss_strerror(ret));
-        return ret;
+
+    if (bot == NULL) {
+        ret = sized_output_name(mem_ctx, nss_ctx->rctx, name, domain, _name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "sized_output_name failed, skipping [%d]: %s\n",
+                ret, sss_strerror(ret));
+            return ret;
+        }
+    } else {
+        /* For bot accounts, return the BOT name instead of the real user name
+         * so that SSH passes it to PAM and the PAM responder can parse the bot
+         * account fields from it. */
+        *_name = talloc_zero(mem_ctx, struct sized_string);
+        if (*_name == NULL) {
+            return ENOMEM;
+        }
+        to_sized_string(*_name, bot->name);
     }
 
     to_sized_string(_gecos, gecos == NULL ? "" : gecos);
@@ -272,8 +292,9 @@ sss_nss_protocol_fill_pwent(struct sss_nss_ctx *nss_ctx,
         /* Password field content. */
         to_sized_string(&pwfield, sss_nss_get_pwfield(nss_ctx, result->domain));
 
-        ret = sss_nss_get_pwent(tmp_ctx, nss_ctx, result->domain, msg, &uid, &gid,
-                            &name, &gecos, &homedir, &shell);
+        ret = sss_nss_get_pwent(tmp_ctx, nss_ctx, result->domain, msg,
+                                result->bot, &uid, &gid, &name, &gecos,
+                                &homedir, &shell);
         if (ret != EOK) {
             continue;
         }
