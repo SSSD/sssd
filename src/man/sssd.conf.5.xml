@@ -1293,14 +1293,25 @@ fallback_homedir = /home/%u
                             <quote>password</quote> field.
                         </para>
                         <para>
+                            This option can also be set per-domain, which
+                            overwrites the value in the <quote>[nss]</quote>
+                            section for that domain. This is particularly useful
+                            when using a proxy domain with
+                            <option>proxy_lib_name=files</option> and a
+                            <option>proxy_pam_target</option> other than
+                            <quote>sssd-shadowutils</quote>. In that case, SSSD
+                            returns <quote>*</quote> for the password field by
+                            default, which causes <command>pam_unix</command> to
+                            treat all accounts as locked. Setting
+                            <option>pwfield = x</option> in the domain section
+                            restores the expected behavior.
+                        </para>
+                        <para>
                             Default: <quote>*</quote>
                         </para>
                         <para>
-                            Note: This option can also be set per-domain which
-                            overwrites the value in [nss] section.
-                        </para>
-                        <para>
-                            Default: <quote>not set</quote> (remote domains),
+                            Default (per-domain): <quote>not set</quote> (remote
+                            domains),
                             <phrase condition="with_files_provider">
                                 <quote>x</quote> (the files domain),
                             </phrase>
