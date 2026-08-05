@@ -302,10 +302,11 @@ sss_nss_protocol_fill_pwent(struct sss_nss_ctx *nss_ctx,
         num_results++;
 
         /* Do not store entry in memory cache during enumeration or when
-         * requested or if cache explicitly disabled. */
+         * requested or if cache explicitly disabled or this is a bot account.*/
         if (!cmd_ctx->enumeration
                 && ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0)
-                && (nss_ctx->pwd_mc_ctx != NULL)) {
+                && (nss_ctx->pwd_mc_ctx != NULL)
+                && (result->bot == NULL)) {
             ret = sss_mmap_cache_pw_store(&nss_ctx->pwd_mc_ctx, name, &pwfield,
                                           uid, gid, &gecos, &homedir, &shell);
             if (ret != EOK) {
