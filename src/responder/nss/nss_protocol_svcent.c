@@ -192,7 +192,7 @@ sss_nss_protocol_fill_svcent(struct sss_nss_ctx *nss_ctx,
     /* First two fields (length and reserved), filled up later. */
     ret = sss_packet_grow(packet, 2 * sizeof(uint32_t));
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
     rp = 2 * sizeof(uint32_t);
