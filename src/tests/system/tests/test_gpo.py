@@ -1075,3 +1075,110 @@ def test_gpo__ldap_user_name_attribute_mapping(client: Client, provider: Generic
         "user1", password="Secret123"
     ), "Allowed user authentication failed!"
     assert not client.auth.parametrize(method).password("deny_user1", password="Secret123"), "Denied user logged in!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=[1206092, 1204203])
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__does_not_crash_when_local_group_overlaps_with_ad_group(
+    client: Client, provider: GenericADProvider
+) -> None:
+    """
+    :title: GPO enforcement does not crash when a local group overlaps with an AD group
+    :description:
+        Regression test for bz1206092 and bz1204203. SSSD crashed when evaluating GPO
+        policy if a local /etc/group entry existed for a group that also appeared in the
+        AD group membership, because the local entry has no SID. The crash bypassed
+        access control and allowed all users through.
+    :setup:
+        1. Create users 'allowed_user' and 'regular_user' on the provider
+        2. Create AD group 'allowed_group' containing 'allowed_user'
+        3. Create and link a site GPO granting SeInteractiveLogonRight to 'allowed_group'
+           and 'Domain Admins'
+        4. Append a local /etc/group entry 'allowed_group' (no SID) with the same
+           membership to create a SID-less collision for SSSD to encounter
+    :steps:
+        1. Configure SSSD with ad_gpo_access_control = enforcing and start
+        2. SSH as allowed_user
+        3. SSH as regular_user
+    :expectedresults:
+        1. SSSD starts successfully without crashing
+        2. allowed_user is permitted
+        3. regular_user is denied
+    :customerscenario: False
+    """
+    allowed_user = provider.user("allowed_user").add()
+    provider.user("regular_user").add()
+
+    allowed_group = provider.group("allowed_group").add().add_members([allowed_user])
+
+    provider.gpo("site_policy").add().policy(
+        {
+            "SeInteractiveLogonRight": [allowed_group, provider.group("Domain Admins")],
+            "SeDenyInteractiveLogonRight": [],
+        }
+    ).link()
+
+    # Append a SID-less local group entry with the same name as the AD group.
+    # This is the collision that previously caused SSSD to crash in GPO code.
+    client.fs.append("/etc/group", "allowed_group:x:5000:allowed_user,regular_user\n")
+
+    client.sssd.domain["ad_gpo_access_control"] = "enforcing"
+    client.sssd.start()
+
+    assert client.auth.ssh.password(
+        "allowed_user", password="Secret123"
+    ), "allowed_user must be permitted by GPO despite local group collision!"
+    assert not client.auth.ssh.password(
+        "regular_user", password="Secret123"
+    ), "regular_user must be denied by GPO despite local group collision!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1177140)
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+def test_gpo__enforcement_is_not_broken_by_verbose_samba_logging(client: Client, provider: GenericADProvider) -> None:
+    """
+    :title: GPO enforcement is not broken when Samba debug logging is verbose on the client
+    :description:
+        Regression test for bz1177140. The gpo_child helper communicates with Samba to
+        fetch GPT data. Setting log level = 10 in the client's smb.conf previously caused
+        gpo_child to crash, allowing all users through regardless of GPO policy.
+    :setup:
+        1. Create users 'allowed_user' and 'regular_user' on the provider
+        2. Create and link a site GPO granting SeInteractiveLogonRight to 'allowed_user'
+           and 'Domain Admins' only
+        3. Append 'log level = 10' to the [global] section of /etc/samba/smb.conf on the
+           client to make Samba output verbose debug logs
+    :steps:
+        1. Configure SSSD with ad_gpo_access_control = enforcing and start
+        2. SSH as allowed_user
+        3. SSH as regular_user
+    :expectedresults:
+        1. SSSD starts successfully without crashing
+        2. allowed_user is permitted
+        3. regular_user is denied
+    :customerscenario: False
+    """
+    allowed_user = provider.user("allowed_user").add()
+    provider.user("regular_user").add()
+
+    provider.gpo("site_policy").add().policy(
+        {
+            "SeInteractiveLogonRight": [allowed_user, provider.group("Domain Admins")],
+            "SeDenyInteractiveLogonRight": [],
+        }
+    ).link()
+
+    # Set Samba log level to 10 on the client. Previously this caused gpo_child to crash.
+    client.fs.append("/etc/samba/smb.conf", "\nlog level = 10\n")
+
+    client.sssd.domain["ad_gpo_access_control"] = "enforcing"
+    client.sssd.start()
+
+    assert client.auth.ssh.password(
+        "allowed_user", password="Secret123"
+    ), "allowed_user must be permitted by GPO with verbose Samba logging!"
+    assert not client.auth.ssh.password(
+        "regular_user", password="Secret123"
+    ), "regular_user must be denied by GPO with verbose Samba logging!"
