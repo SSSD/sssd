@@ -4357,18 +4357,88 @@ struct mbof_member {
     bool orig_has_memberof;
     bool orig_has_memberuid;
     struct ldb_message_element *orig_members;
+    hash_table_t *orig_memberofs;
+    hash_table_t *orig_memuids;
 
     struct mbof_member **members;
 
     hash_table_t *memberofs;
 
     struct ldb_message_element *memuids;
+    hash_table_t *memuid_set;
 
     enum { MBOF_GROUP_TO_DO = 0,
            MBOF_GROUP_DONE,
            MBOF_USER,
            MBOF_ITER_ERROR } status;
 };
+
+static int mbof_hash_values(TALLOC_CTX *mem_ctx,
+                            const struct ldb_message_element *el,
+                            hash_table_t **_table)
+{
+    hash_table_t *table;
+    hash_value_t value;
+    hash_key_t key;
+    unsigned int i;
+    int ret;
+
+    *_table = NULL;
+    if (el == NULL || el->num_values == 0) {
+        return LDB_SUCCESS;
+    }
+
+    ret = hash_create_ex(el->num_values, &table, 0, 0, 0, 0,
+                         hash_alloc, hash_free, mem_ctx, NULL, NULL);
+    if (ret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    value.type = HASH_VALUE_UNDEF;
+    for (i = 0; i < el->num_values; i++) {
+        key.type = HASH_KEY_STRING;
+        key.str = (char *)el->values[i].data;
+        if (hash_has_key(table, &key)) {
+            continue;
+        }
+
+        ret = hash_enter(table, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+    }
+
+    *_table = table;
+    return LDB_SUCCESS;
+}
+
+static bool mbof_hash_equal(hash_table_t *left, hash_table_t *right)
+{
+    hash_key_t *keys;
+    unsigned long count;
+    unsigned long i;
+    int ret;
+
+    if (left == NULL || hash_count(left) == 0) {
+        return right == NULL || hash_count(right) == 0;
+    }
+    if (right == NULL || hash_count(left) != hash_count(right)) {
+        return false;
+    }
+
+    ret = hash_keys(left, &count, &keys);
+    if (ret != HASH_SUCCESS) {
+        return false;
+    }
+
+    for (i = 0; i < count; i++) {
+        if (!hash_has_key(right, &keys[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 struct mbof_rcmp_context {
     struct ldb_module *module;
@@ -4496,6 +4566,13 @@ static int mbof_rcmp_usr_callback(struct ldb_request *req,
 
         if (ldb_msg_find_element(ares->message, DB_MEMBEROF)) {
             usr->orig_has_memberof = true;
+            ret = mbof_hash_values(usr,
+                                   ldb_msg_find_element(ares->message,
+                                                        DB_MEMBEROF),
+                                   &usr->orig_memberofs);
+            if (ret != LDB_SUCCESS) {
+                return ldb_module_done(ctx->req, NULL, NULL, ret);
+            }
         }
 
         DLIST_ADD(ctx->user_list, usr);
@@ -4602,10 +4679,24 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
 
         if (ldb_msg_find_element(ares->message, DB_MEMBEROF)) {
             grp->orig_has_memberof = true;
+            ret = mbof_hash_values(grp,
+                                   ldb_msg_find_element(ares->message,
+                                                        DB_MEMBEROF),
+                                   &grp->orig_memberofs);
+            if (ret != LDB_SUCCESS) {
+                return ldb_module_done(ctx->req, NULL, NULL, ret);
+            }
         }
 
         if (ldb_msg_find_element(ares->message, DB_MEMBERUID)) {
             grp->orig_has_memberuid = true;
+            ret = mbof_hash_values(grp,
+                                   ldb_msg_find_element(ares->message,
+                                                        DB_MEMBERUID),
+                                   &grp->orig_memuids);
+            if (ret != LDB_SUCCESS) {
+                return ldb_module_done(ctx->req, NULL, NULL, ret);
+            }
         }
 
         ret = mbof_steal_msg_el(grp, DB_MEMBER,
@@ -4863,6 +4954,9 @@ static bool mbof_member_iter(hash_entry_t *item, void *user_data)
 static int mbof_add_memuid(struct mbof_member *grp, const char *user)
 {
     struct ldb_val *vals;
+    hash_value_t value;
+    hash_key_t key;
+    int ret;
     int n;
 
     if (!grp->memuids) {
@@ -4875,6 +4969,18 @@ static int mbof_add_memuid(struct mbof_member *grp, const char *user)
         if (!grp->memuids->name) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
+
+        ret = hash_create_ex(0, &grp->memuid_set, 0, 0, 0, 0,
+                             hash_alloc, hash_free, grp, NULL, NULL);
+        if (ret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+    }
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(user);
+    if (hash_has_key(grp->memuid_set, &key)) {
+        return LDB_SUCCESS;
     }
 
     n = grp->memuids->num_values;
@@ -4891,6 +4997,12 @@ static int mbof_add_memuid(struct mbof_member *grp, const char *user)
     grp->memuids->values = vals;
     grp->memuids->num_values = n + 1;
 
+    value.type = HASH_VALUE_UNDEF;
+    ret = hash_enter(grp->memuid_set, &key, &value);
+    if (ret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
     return LDB_SUCCESS;
 }
 
@@ -4906,6 +5018,7 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
     int flags;
     int ret, i;
 
+next_entry:
     /* we process all users first and then all groups */
     if (ctx->user_list) {
         /* take the next entry and remove it from the list */
@@ -4932,7 +5045,9 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
     msg->dn = x->dn;
 
     /* process memberof */
-    if (x->memberofs) {
+    if (mbof_hash_equal(x->memberofs, x->orig_memberofs)) {
+        /* no change */
+    } else if (x->memberofs) {
         ret = hash_keys(x->memberofs, &count, &keys);
         if (ret != HASH_SUCCESS) {
             ret = LDB_ERR_OPERATIONS_ERROR;
@@ -4969,7 +5084,9 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
     }
 
     /* process memberuid */
-    if (x->memuids) {
+    if (mbof_hash_equal(x->memuid_set, x->orig_memuids)) {
+        /* no change */
+    } else if (x->memuids) {
         if (x->orig_has_memberuid) {
             flags = LDB_FLAG_MOD_REPLACE;
         } else {
@@ -4986,6 +5103,11 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
         if (ret != LDB_SUCCESS) {
             goto done;
         }
+    }
+
+    if (msg->num_elements == 0) {
+        talloc_zfree(msg);
+        goto next_entry;
     }
 
     ret = ldb_build_mod_req(&req, ldb, ctx, msg, NULL,
