@@ -140,7 +140,7 @@ static void sdap_handle_release(struct sdap_handle *sh)
 
     while (sh->ops) {
         op = sh->ops;
-        sdap_call_op_callback(op, NULL, EIO);
+        sdap_call_op_callback(op, NULL, ERR_SERVER_FAILURE);
         /* calling the callback may result in freeing the op */
         /* check if it is still the same or avoid freeing */
         if (op == sh->ops) talloc_free(op);
@@ -498,7 +498,7 @@ static void sdap_op_timeout(struct tevent_req *req)
 
     /* signal the caller that we have a timeout */
     DEBUG(SSSDBG_TRACE_LIBS, "Issuing timeout [ldap_opt_timeout] for message id %d\n", op->msgid);
-    sdap_call_op_callback(op, NULL, ETIMEDOUT);
+    sdap_call_op_callback(op, NULL, ERR_SERVER_FAILURE);
 }
 
 int sdap_op_add(TALLOC_CTX *memctx, struct tevent_context *ev,
