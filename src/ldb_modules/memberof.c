@@ -23,6 +23,7 @@
 
 #include "ldb_module.h"
 #include "util/util.h"
+#include "ldb_modules/memberof_transaction.h"
 
 #define DB_MEMBER "member"
 #define DB_GHOST "ghost"
@@ -526,6 +527,10 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     struct mbof_dn_array *parents;
     struct ldb_dn *valdn;
     int i, ret;
+
+    if (memberof_tx_enabled(module)) {
+        return memberof_tx_add(module, req);
+    }
 
     if (ldb_dn_is_special(req->op.add.message->dn)) {
 
@@ -1321,6 +1326,10 @@ static int memberof_rename(struct ldb_module *module,
     errno_t sret;
     int ret;
 
+    if (memberof_tx_enabled(module)) {
+        return memberof_tx_rename(module, req);
+    }
+
     if (getenv("SSSD_UPGRADE_DB")) {
         /* do not do anything during upgrade */
         return ldb_next_request(module, req);
@@ -1826,6 +1835,10 @@ static int memberof_del(struct ldb_module *module, struct ldb_request *req)
     struct mbof_ctx *ctx;
     int ret;
     errno_t sret;
+
+    if (memberof_tx_enabled(module)) {
+        return memberof_tx_delete(module, req);
+    }
 
     if (ldb_dn_is_special(req->op.del.dn)) {
         /* do not manipulate our control entries */
@@ -3370,6 +3383,10 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
     struct ldb_context *ldb = ldb_module_get_ctx(module);
     struct ldb_request *search;
     int ret;
+
+    if (memberof_tx_enabled(module)) {
+        return memberof_tx_modify(module, req);
+    }
 
     if (getenv("SSSD_UPGRADE_DB")) {
         /* do not do anything during upgrade */
@@ -5185,6 +5202,9 @@ static int memberof_init(struct ldb_module *module)
     ret = ldb_schema_attribute_add(ldb, DB_MEMBEROF, 0, LDB_SYNTAX_DN);
     if (ret != 0) return LDB_ERR_OPERATIONS_ERROR;
 
+    ret = memberof_tx_init(module);
+    if (ret != LDB_SUCCESS) return ret;
+
     return ldb_next_init(module);
 }
 
@@ -5195,6 +5215,10 @@ const struct ldb_module_ops ldb_memberof_module_ops = {
     .modify = memberof_mod,
     .del = memberof_del,
     .rename = memberof_rename,
+    .start_transaction = memberof_tx_start,
+    .prepare_commit = memberof_tx_prepare_commit,
+    .end_transaction = memberof_tx_end,
+    .del_transaction = memberof_tx_cancel,
 };
 
 int ldb_init_module(const char *version)
