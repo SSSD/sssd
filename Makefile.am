@@ -2525,7 +2525,8 @@ nss_srv_tests_LDFLAGS = \
     -Wl,-wrap,sss_packet_get_body \
     -Wl,-wrap,sss_packet_get_cmd \
     -Wl,-wrap,sss_cmd_send_empty \
-    -Wl,-wrap,sss_cmd_done
+    -Wl,-wrap,sss_cmd_done \
+    -Wl,-wrap,sss_mmap_cache_gr_store
 nss_srv_tests_LDADD = \
     $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
