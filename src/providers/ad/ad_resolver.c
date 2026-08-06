@@ -325,7 +325,7 @@ ad_resolver_enumeration_conn_done(struct tevent_req *subreq)
                                  state->sdap_op, state->sdom->dom->name);
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "ad_domain_info_send failed.\n");
-        tevent_req_error(req, ret);
+        tevent_req_error(req, ENOMEM);
         return;
     }
     tevent_req_set_callback(subreq, ad_resolver_enumeration_master_done, req);
