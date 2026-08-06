@@ -346,6 +346,7 @@ static void be_check_online_done(struct tevent_req *req)
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is online\n");
         break;
     case ERR_OFFLINE:
+    case ERR_NO_MORE_SERVERS:
         if (be_ctx->last_dp_state != ERR_OFFLINE) {
             be_ctx->last_dp_state = ERR_OFFLINE;
             sss_log(SSS_LOG_INFO, "Backend is offline\n");
@@ -384,7 +385,7 @@ static void be_check_online_done(struct tevent_req *req)
 
 done:
     be_ctx->check_online_ref_count = 0;
-    if (ret != ERR_OFFLINE) {
+    if (ret != ERR_OFFLINE && ret != ERR_NO_MORE_SERVERS) {
         if (ret != EOK) {
             reset_fo(be_ctx);
         }
