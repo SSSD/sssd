@@ -17,6 +17,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdint.h>
 #include <string.h>
 #include <dhash.h>
 
@@ -168,8 +169,8 @@ struct mbof_rename_ctx {
     struct mbof_ctx *ctx;
 
     struct ldb_message **entries;
-    int num_entries;
-    int current_entry;
+    size_t num_entries;
+    size_t current_entry;
 };
 static struct mbof_ctx *mbof_init(struct ldb_module *module,
                                   struct ldb_request *req)
@@ -1404,6 +1405,10 @@ static int mbof_rename_search_callback(struct ldb_request *req,
 
     switch (ares->type) {
     case LDB_REPLY_ENTRY:
+        if (rename_ctx->num_entries == SIZE_MAX) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
         entries = talloc_realloc(rename_ctx, rename_ctx->entries,
                                  struct ldb_message *,
                                  rename_ctx->num_entries + 1);
