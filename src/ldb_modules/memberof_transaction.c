@@ -113,6 +113,38 @@ struct tx_snapshot_group {
 static int tx_graph_flush(struct ldb_module *module,
                           struct tx_journal *journal);
 
+static int tx_size_add(size_t left, size_t right, size_t *result)
+{
+    if (right > SIZE_MAX - left) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    *result = left + right;
+    return LDB_SUCCESS;
+}
+
+static int tx_next_capacity(size_t current, size_t element_size,
+                            size_t *next)
+{
+    size_t capacity;
+
+    if (current == 0) {
+        capacity = 8;
+    } else {
+        if (current > SIZE_MAX / 2) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        capacity = current * 2;
+    }
+
+    if (element_size != 0 && capacity > SIZE_MAX / element_size) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    *next = capacity;
+    return LDB_SUCCESS;
+}
+
 static void *tx_hash_alloc(size_t size, void *pvt)
 {
     return talloc_size(pvt, size);
@@ -265,9 +297,10 @@ static int tx_set_add(struct tx_set *set, const char *key_string,
     }
 
     if (set->count == set->capacity) {
-        capacity = set->capacity == 0 ? 8 : set->capacity * 2;
-        if (capacity < set->capacity) {
-            return LDB_ERR_OPERATIONS_ERROR;
+        ret = tx_next_capacity(set->capacity,
+                               sizeof(set->ordered[0]), &capacity);
+        if (ret != LDB_SUCCESS) {
+            return ret;
         }
         ordered = talloc_realloc(set->storage, set->ordered,
                                  struct tx_set_entry *, capacity);
@@ -480,7 +513,12 @@ static int tx_snapshot_set_values(struct ldb_message *message,
     struct ldb_dn *dn = message->dn;
     TALLOC_CTX *tmp_ctx;
     size_t i;
+    size_t allocation_size;
     int ret;
+
+    if (count > UINT_MAX || (count != 0 && values == NULL)) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
 
     tmp_ctx = talloc_new(message);
     if (tmp_ctx == NULL) {
@@ -493,8 +531,13 @@ static int tx_snapshot_set_values(struct ldb_message *message,
             return LDB_ERR_OPERATIONS_ERROR;
         }
         for (i = 0; i < count; i++) {
-            copies[i].data = talloc_zero_size(copies,
-                                              values[i].length + 1);
+            if ((values[i].length != 0 && values[i].data == NULL)
+                    || tx_size_add(values[i].length, 1,
+                                   &allocation_size) != LDB_SUCCESS) {
+                talloc_free(tmp_ctx);
+                return LDB_ERR_OPERATIONS_ERROR;
+            }
+            copies[i].data = talloc_zero_size(copies, allocation_size);
             if (copies[i].data == NULL) {
                 talloc_free(tmp_ctx);
                 return LDB_ERR_OPERATIONS_ERROR;
@@ -517,7 +560,7 @@ static int tx_snapshot_set_values(struct ldb_message *message,
         return ret;
     }
     element->values = talloc_steal(message, copies);
-    element->num_values = count;
+    element->num_values = (unsigned int)count;
     talloc_free(tmp_ctx);
     return LDB_SUCCESS;
 }
@@ -529,6 +572,7 @@ static int tx_snapshot_apply_element(struct ldb_message *message,
     struct ldb_val *values;
     TALLOC_CTX *tmp_ctx;
     size_t current_count;
+    size_t allocation_count;
     size_t count = 0;
     size_t i;
     unsigned int j;
@@ -544,14 +588,18 @@ static int tx_snapshot_apply_element(struct ldb_message *message,
                                       change->num_values);
 
     case LDB_FLAG_MOD_ADD:
+        ret = tx_size_add(current_count, change->num_values,
+                          &allocation_count);
+        if (ret != LDB_SUCCESS) {
+            return ret;
+        }
         tmp_ctx = talloc_new(message);
         if (tmp_ctx == NULL) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
         values = talloc_array(tmp_ctx, struct ldb_val,
-                              current_count + change->num_values);
-        if (values == NULL
-                && current_count + change->num_values != 0) {
+                              allocation_count);
+        if (values == NULL && allocation_count != 0) {
             talloc_free(tmp_ctx);
             return LDB_ERR_OPERATIONS_ERROR;
         }
@@ -632,6 +680,7 @@ static int tx_snapshot_add(struct tx_journal *journal,
     struct ldb_message **messages;
     struct ldb_message *message;
     const char *key;
+    size_t new_count;
     int ret;
 
     if (tx_snapshot_lookup(journal, source->dn) != NULL) {
@@ -641,10 +690,15 @@ static int tx_snapshot_add(struct tx_journal *journal,
     if (message == NULL) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
+    ret = tx_size_add(journal->snapshot->count, 1, &new_count);
+    if (ret != LDB_SUCCESS || new_count > UINT_MAX) {
+        talloc_free(message);
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
     messages = talloc_realloc(journal->snapshot,
                               journal->snapshot->msgs,
                               struct ldb_message *,
-                              journal->snapshot->count + 1);
+                              new_count);
     if (messages == NULL) {
         return LDB_ERR_OPERATIONS_ERROR;
     }
@@ -1724,11 +1778,13 @@ static int tx_append_node(TALLOC_CTX *mem_ctx,
 {
     struct tx_node **new_array;
     size_t new_capacity;
+    int ret;
 
     if (*count == *capacity) {
-        new_capacity = *capacity == 0 ? 8 : *capacity * 2;
-        if (new_capacity < *capacity) {
-            return LDB_ERR_OPERATIONS_ERROR;
+        ret = tx_next_capacity(*capacity, sizeof((*array)[0]),
+                               &new_capacity);
+        if (ret != LDB_SUCCESS) {
+            return ret;
         }
         new_array = talloc_realloc(mem_ctx, *array,
                                    struct tx_node *, new_capacity);
@@ -1752,11 +1808,13 @@ static int tx_append_component(TALLOC_CTX *mem_ctx,
 {
     struct tx_component **new_array;
     size_t new_capacity;
+    int ret;
 
     if (*count == *capacity) {
-        new_capacity = *capacity == 0 ? 8 : *capacity * 2;
-        if (new_capacity < *capacity) {
-            return LDB_ERR_OPERATIONS_ERROR;
+        ret = tx_next_capacity(*capacity, sizeof((*array)[0]),
+                               &new_capacity);
+        if (ret != LDB_SUCCESS) {
+            return ret;
         }
         new_array = talloc_realloc(mem_ctx, *array,
                                    struct tx_component *, new_capacity);
