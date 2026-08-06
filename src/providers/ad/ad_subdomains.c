@@ -1219,7 +1219,7 @@ static void ad_get_slave_domain_connect_done(struct tevent_req *subreq)
                                     NULL, false, 0,
                                     SLAVE_DOMAIN_FILTER, attrs, NULL);
     if (subreq == NULL) {
-        tevent_req_error(req, ret);
+        tevent_req_error(req, ENOMEM);
         return;
     }
 
