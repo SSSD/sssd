@@ -337,12 +337,59 @@ static bool is_group_filtered(struct sss_nc_ctx *ncache,
     return false;
 }
 
+static void
+sss_nss_protocol_cache_initgr_group(TALLOC_CTX **mem_ctx,
+                                    struct sss_nss_ctx *nss_ctx,
+                                    struct sss_nss_cmd_ctx *cmd_ctx,
+                                    struct sss_domain_info *domain,
+                                    struct ldb_message *msg)
+{
+    struct sized_string *name;
+    struct sized_string pwfield;
+    uint32_t gid;
+    errno_t ret;
+
+    /* With group members ignored, initgroups already has every field needed
+     * for a complete group memory-cache entry. Cache the same snapshot so
+     * callers do not have to resolve every returned GID separately. */
+    if (!domain->ignore_group_members
+            || nss_ctx->grp_mc_ctx == NULL
+            || (cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) != 0) {
+        return;
+    }
+
+    if (*mem_ctx == NULL) {
+        *mem_ctx = talloc_new(NULL);
+        if (*mem_ctx == NULL) {
+            return;
+        }
+    } else {
+        talloc_free_children(*mem_ctx);
+    }
+
+    ret = sss_nss_get_grent(*mem_ctx, nss_ctx, domain, msg, &gid, &name);
+    if (ret != EOK) {
+        return;
+    }
+
+    to_sized_string(&pwfield, sss_nss_get_pwfield(nss_ctx, domain));
+    ret = sss_mmap_cache_gr_store(&nss_ctx->grp_mc_ctx, name, &pwfield,
+                                  gid, 0, "", 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to store initgroups group %s (%s) in mem-cache "
+              "[%d]: %s!\n",
+              name->str, domain->name, ret, sss_strerror(ret));
+    }
+}
+
 errno_t
 sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
                              struct sss_nss_cmd_ctx *cmd_ctx,
                              struct sss_packet *packet,
                              struct cache_req_result *result)
 {
+    TALLOC_CTX *tmp_ctx;
     struct sss_domain_info *domain;
     struct sss_domain_info *grp_dom;
     struct ldb_message *user;
@@ -372,6 +419,9 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     if (ret != EOK) {
         return ret;
     }
+
+    tmp_ctx = NULL;
+
     sss_packet_get_body(packet, &body, &body_len);
     rp = 2 * sizeof(uint32_t);
 
@@ -435,6 +485,9 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
         SAFEALIGN_COPY_UINT32(&body[rp], &gid, &rp);
         num_results++;
 
+        sss_nss_protocol_cache_initgr_group(&tmp_ctx, nss_ctx, cmd_ctx,
+                                            grp_dom, msg);
+
         /* Do not add the GID of the original primary group if the user is
          * already an explicit member of the group. */
         if (orig_gid == gid) {
@@ -465,6 +518,7 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
                   "Failed to store initgroups %s (%s) in mem-cache [%d]: %s!\n",
                   rawname.str, domain->name, ret, sss_strerror(ret));
             sss_packet_set_size(packet, 0);
+            talloc_free(tmp_ctx);
             return ret;
         }
     }
@@ -472,6 +526,8 @@ sss_nss_protocol_fill_initgr(struct sss_nss_ctx *nss_ctx,
     sss_packet_get_body(packet, &body, &body_len);
     SAFEALIGN_COPY_UINT32(body, &num_results, NULL);
     SAFEALIGN_SETMEM_UINT32(body + sizeof(uint32_t), 0, NULL); /* reserved */
+
+    talloc_free(tmp_ctx);
 
     return EOK;
 }
