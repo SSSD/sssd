@@ -56,6 +56,11 @@
 #define MBO_GROUP_BASE 28500
 #define NUM_GHOSTS 10
 
+#define TX_MBO_MARKER_DN "@MEMBEROF-TRANSACTIONAL"
+#define TX_MBO_MARKER_ATTR "@GHOST-DIRECT-VERSION"
+#define TX_MBO_GHOST_DIRECT "ghostDirect"
+#define TX_MBO_SCALE_MEMBERS 3500
+
 #define TEST_AUTOFS_MAP_BASE 29500
 
 struct sysdb_test_ctx {
@@ -3996,6 +4001,230 @@ static bool test_message_has_value(struct ldb_message *msg,
     return false;
 }
 
+static int test_tx_marker_set(struct sysdb_test_ctx *test_ctx,
+                              const char *version)
+{
+    static const char *attrs[] = { TX_MBO_MARKER_ATTR, NULL };
+    struct ldb_context *ldb = test_ctx->sysdb->ldb;
+    struct ldb_result *res = NULL;
+    struct ldb_message *msg;
+    struct ldb_dn *dn;
+    TALLOC_CTX *tmp_ctx;
+    bool in_transaction = false;
+    bool exists;
+    int ret;
+
+    tmp_ctx = talloc_new(test_ctx);
+    if (tmp_ctx == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    dn = ldb_dn_new(tmp_ctx, ldb, TX_MBO_MARKER_DN);
+    if (dn == NULL) {
+        ret = LDB_ERR_OPERATIONS_ERROR;
+        goto done;
+    }
+    ret = ldb_search(ldb, tmp_ctx, &res, dn, LDB_SCOPE_BASE, attrs, NULL);
+    if (ret != LDB_SUCCESS) {
+        goto done;
+    }
+    if (res->count > 1) {
+        ret = LDB_ERR_OPERATIONS_ERROR;
+        goto done;
+    }
+    exists = res->count == 1;
+
+    msg = ldb_msg_new(tmp_ctx);
+    if (msg == NULL) {
+        ret = LDB_ERR_OPERATIONS_ERROR;
+        goto done;
+    }
+    msg->dn = ldb_dn_copy(msg, dn);
+    if (msg->dn == NULL) {
+        ret = LDB_ERR_OPERATIONS_ERROR;
+        goto done;
+    }
+    if (exists) {
+        ret = ldb_msg_add_empty(msg, TX_MBO_MARKER_ATTR,
+                                LDB_FLAG_MOD_REPLACE, NULL);
+        if (ret != LDB_SUCCESS) {
+            goto done;
+        }
+    }
+    ret = ldb_msg_add_string(msg, TX_MBO_MARKER_ATTR, version);
+    if (ret != LDB_SUCCESS) {
+        goto done;
+    }
+
+    ret = ldb_transaction_start(ldb);
+    if (ret != LDB_SUCCESS) {
+        goto done;
+    }
+    in_transaction = true;
+    ret = exists ? ldb_modify(ldb, msg) : ldb_add(ldb, msg);
+    if (ret != LDB_SUCCESS) {
+        goto done;
+    }
+    ret = ldb_transaction_commit(ldb);
+    if (ret == LDB_SUCCESS) {
+        in_transaction = false;
+    }
+
+done:
+    if (in_transaction) {
+        ldb_transaction_cancel(ldb);
+    }
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+static int test_tx_marker_get(TALLOC_CTX *mem_ctx,
+                              struct sysdb_test_ctx *test_ctx,
+                              const char **_version)
+{
+    static const char *attrs[] = { TX_MBO_MARKER_ATTR, NULL };
+    struct ldb_context *ldb = test_ctx->sysdb->ldb;
+    struct ldb_result *res = NULL;
+    struct ldb_dn *dn;
+    const char *version;
+    int ret;
+
+    *_version = NULL;
+    dn = ldb_dn_new(mem_ctx, ldb, TX_MBO_MARKER_DN);
+    if (dn == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    ret = ldb_search(ldb, mem_ctx, &res, dn, LDB_SCOPE_BASE, attrs, NULL);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+    if (res->count != 1) {
+        return LDB_ERR_NO_SUCH_OBJECT;
+    }
+    version = ldb_msg_find_attr_as_string(res->msgs[0],
+                                          TX_MBO_MARKER_ATTR, NULL);
+    if (version == NULL) {
+        return LDB_ERR_NO_SUCH_ATTRIBUTE;
+    }
+    *_version = talloc_strdup(mem_ctx, version);
+    return *_version == NULL ? LDB_ERR_OPERATIONS_ERROR : LDB_SUCCESS;
+}
+
+static struct ldb_message *
+test_tx_identity_message(TALLOC_CTX *mem_ctx,
+                         struct ldb_dn *dn,
+                         const char *name,
+                         const char *category)
+{
+    struct ldb_message *msg;
+    int ret;
+
+    msg = ldb_msg_new(mem_ctx);
+    if (msg == NULL) {
+        return NULL;
+    }
+    msg->dn = ldb_dn_copy(msg, dn);
+    if (msg->dn == NULL) {
+        talloc_free(msg);
+        return NULL;
+    }
+    ret = ldb_msg_add_string(msg, SYSDB_NAME, name);
+    if (ret == LDB_SUCCESS) {
+        ret = ldb_msg_add_string(msg, SYSDB_OBJECTCATEGORY, category);
+    }
+    if (ret != LDB_SUCCESS) {
+        talloc_free(msg);
+        return NULL;
+    }
+
+    return msg;
+}
+
+static int test_tx_add_member_values(struct ldb_message *msg,
+                                     struct ldb_dn **members,
+                                     size_t num_members,
+                                     int flags)
+{
+    struct ldb_message_element *el;
+    const char *value;
+    size_t i;
+    int ret;
+
+    ret = ldb_msg_add_empty(msg, SYSDB_MEMBER, flags, &el);
+    if (ret != LDB_SUCCESS || num_members == 0) {
+        return ret;
+    }
+    el->values = talloc_zero_array(msg, struct ldb_val, num_members);
+    if (el->values == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    for (i = 0; i < num_members; i++) {
+        value = ldb_dn_get_linearized(members[i]);
+        if (value == NULL) {
+            return LDB_ERR_INVALID_DN_SYNTAX;
+        }
+        el->values[i].data = (uint8_t *)talloc_strdup(el->values, value);
+        if (el->values[i].data == NULL) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        el->values[i].length = strlen(value);
+    }
+    el->num_values = num_members;
+    return LDB_SUCCESS;
+}
+
+static int test_tx_modify_members(TALLOC_CTX *mem_ctx,
+                                  struct ldb_context *ldb,
+                                  struct ldb_dn *group_dn,
+                                  struct ldb_dn **members,
+                                  size_t num_members,
+                                  int flags)
+{
+    struct ldb_message *msg;
+    int ret;
+
+    msg = ldb_msg_new(mem_ctx);
+    if (msg == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    msg->dn = ldb_dn_copy(msg, group_dn);
+    if (msg->dn == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    ret = test_tx_add_member_values(msg, members, num_members, flags);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+    return ldb_modify(ldb, msg);
+}
+
+static int test_tx_modify_ghost(TALLOC_CTX *mem_ctx,
+                                struct ldb_context *ldb,
+                                struct ldb_dn *group_dn,
+                                const char *ghost,
+                                int flags)
+{
+    struct ldb_message *msg;
+    int ret;
+
+    msg = ldb_msg_new(mem_ctx);
+    if (msg == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    msg->dn = ldb_dn_copy(msg, group_dn);
+    if (msg->dn == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    ret = ldb_msg_add_empty(msg, SYSDB_GHOST, flags, NULL);
+    if (ret == LDB_SUCCESS && ghost != NULL) {
+        ret = ldb_msg_add_string(msg, SYSDB_GHOST, ghost);
+    }
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    return ldb_modify(ldb, msg);
+}
+
 START_TEST(test_group_rename)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -4251,6 +4480,571 @@ START_TEST(test_group_rename_preserves_memberships)
     }
     ck_assert_msg(!found_old, "initgroups returned the old group name");
     ck_assert_msg(found_new, "initgroups did not return the renamed group");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_transactional_memberof_empty_transactions)
+{
+    struct sysdb_test_ctx *test_ctx;
+    size_t i;
+    int lret;
+    errno_t ret;
+
+    if (getenv("SSSD_MEMBEROF_LEGACY") != NULL) {
+        return;
+    }
+
+    ret = setup_sysdb_tests(&test_ctx);
+    ck_assert_msg(ret == EOK, "Could not set up the empty transaction test");
+
+    for (i = 0; i < 16; i++) {
+        lret = ldb_transaction_start(test_ctx->sysdb->ldb);
+        ck_assert_int_eq(lret, LDB_SUCCESS);
+        lret = ldb_transaction_cancel(test_ctx->sysdb->ldb);
+        ck_assert_int_eq(lret, LDB_SUCCESS);
+
+        lret = ldb_transaction_start(test_ctx->sysdb->ldb);
+        ck_assert_int_eq(lret, LDB_SUCCESS);
+        lret = ldb_transaction_commit(test_ctx->sysdb->ldb);
+        ck_assert_int_eq(lret, LDB_SUCCESS);
+    }
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_transactional_memberof_marker_rollback)
+{
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_context *ldb;
+    struct ldb_message *msg;
+    struct ldb_dn *group_dn;
+    struct ldb_dn *marker_dn;
+    const char *group_name;
+    const char *version;
+    int lret;
+    errno_t ret;
+
+    if (getenv("SSSD_MEMBEROF_LEGACY") != NULL) {
+        return;
+    }
+
+    ret = setup_sysdb_tests(&test_ctx);
+    ck_assert_msg(ret == EOK, "Could not set up the test");
+    lret = test_tx_marker_set(test_ctx, "0");
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    talloc_free(test_ctx);
+
+    ret = setup_sysdb_tests(&test_ctx);
+    ck_assert_msg(ret == EOK, "Could not reopen the test database");
+    ldb = test_ctx->sysdb->ldb;
+    group_name = sss_create_internal_fqname(test_ctx, "tx-rollback-group",
+                                            test_ctx->domain->name);
+    ck_assert_msg(group_name != NULL, "Could not create rollback group name");
+    group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, group_name);
+    marker_dn = ldb_dn_new(test_ctx, ldb, TX_MBO_MARKER_DN);
+    ck_assert_msg(group_dn != NULL, "Could not create rollback group DN");
+    ck_assert_msg(marker_dn != NULL, "Could not create marker DN");
+
+    lret = ldb_transaction_start(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    msg = test_tx_identity_message(test_ctx, group_dn, group_name,
+                                   SYSDB_GROUP_CLASS);
+    if (msg == NULL) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not create rollback test group");
+    }
+    lret = ldb_add(ldb, msg);
+    if (lret != LDB_SUCCESS) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not add rollback test group: %d", lret);
+    }
+    lret = ldb_delete(ldb, marker_dn);
+    if (lret != LDB_SUCCESS) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not stage marker deletion: %d", lret);
+    }
+
+    /* The missing marker makes prepare_commit fail after the group add. */
+    lret = ldb_transaction_commit(ldb);
+    ck_assert_msg(lret != LDB_SUCCESS,
+                  "Marker deletion did not fail prepare_commit");
+    talloc_free(test_ctx);
+
+    ret = setup_sysdb_tests(&test_ctx);
+    ck_assert_msg(ret == EOK, "Could not reopen after rollback");
+    group_name = sss_create_internal_fqname(test_ctx, "tx-rollback-group",
+                                            test_ctx->domain->name);
+    ck_assert_msg(group_name != NULL, "Could not recreate rollback group name");
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain, group_name,
+                                     NULL, &msg);
+    ck_assert_int_eq(ret, ENOENT);
+
+    lret = test_tx_marker_get(test_ctx, test_ctx, &version);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    ck_assert_str_eq(version, "0");
+
+    ret = sysdb_store_group(test_ctx->domain, group_name, 38200, NULL, 0, 0);
+    ck_assert_msg(ret == EOK, "Could not upgrade the migration marker");
+    lret = test_tx_marker_get(test_ctx, test_ctx, &version);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    ck_assert_str_eq(version, "1");
+
+    ret = sysdb_delete_group(test_ctx->domain, group_name, 0);
+    ck_assert_msg(ret == EOK, "Could not remove rollback test group");
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_transactional_memberof_operation_replay)
+{
+    static const char *group_attrs[] = {
+        SYSDB_MEMBER, SYSDB_MEMBERUID, NULL
+    };
+    static const char *user_attrs[] = { SYSDB_MEMBEROF, NULL };
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_context *ldb;
+    struct ldb_message *msg;
+    struct ldb_result *res = NULL;
+    struct ldb_dn *user_a_dn;
+    struct ldb_dn *user_b_dn;
+    struct ldb_dn *temp_dn;
+    struct ldb_dn *group_dn;
+    struct ldb_dn *member[1];
+    const char *user_a;
+    const char *user_b;
+    const char *temp_user;
+    const char *group;
+    const char *user_b_dn_str;
+    const char *group_dn_str;
+    int lret;
+    errno_t ret;
+
+    if (getenv("SSSD_MEMBEROF_LEGACY") != NULL) {
+        return;
+    }
+
+    ret = setup_sysdb_tests(&test_ctx);
+    ck_assert_msg(ret == EOK, "Could not set up the replay test");
+    ldb = test_ctx->sysdb->ldb;
+    user_a = sss_create_internal_fqname(test_ctx, "tx-replay-a",
+                                        test_ctx->domain->name);
+    user_b = sss_create_internal_fqname(test_ctx, "tx-replay-b",
+                                        test_ctx->domain->name);
+    temp_user = sss_create_internal_fqname(test_ctx, "tx-replay-temp",
+                                           test_ctx->domain->name);
+    group = sss_create_internal_fqname(test_ctx, "tx-replay-group",
+                                       test_ctx->domain->name);
+    ck_assert_msg(user_a != NULL && user_b != NULL && temp_user != NULL
+                  && group != NULL, "Could not create replay names");
+
+    user_a_dn = sysdb_user_dn(test_ctx, test_ctx->domain, user_a);
+    user_b_dn = sysdb_user_dn(test_ctx, test_ctx->domain, user_b);
+    temp_dn = sysdb_user_dn(test_ctx, test_ctx->domain, temp_user);
+    group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, group);
+    ck_assert_msg(user_a_dn != NULL && user_b_dn != NULL && temp_dn != NULL
+                  && group_dn != NULL, "Could not create replay DNs");
+    user_b_dn_str = ldb_dn_get_linearized(user_b_dn);
+    group_dn_str = ldb_dn_get_linearized(group_dn);
+    ck_assert_msg(user_b_dn_str != NULL && group_dn_str != NULL,
+                  "Could not linearize replay DNs");
+
+    lret = ldb_transaction_start(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    msg = test_tx_identity_message(test_ctx, user_a_dn, user_a,
+                                   SYSDB_USER_CLASS);
+    lret = msg == NULL ? LDB_ERR_OPERATIONS_ERROR : ldb_add(ldb, msg);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    msg = test_tx_identity_message(test_ctx, group_dn, group,
+                                   SYSDB_GROUP_CLASS);
+    member[0] = user_a_dn;
+    lret = msg == NULL ? LDB_ERR_OPERATIONS_ERROR
+                       : test_tx_add_member_values(msg, member, 1, 0);
+    if (lret == LDB_SUCCESS) {
+        lret = ldb_add(ldb, msg);
+    }
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    msg = test_tx_identity_message(test_ctx, user_b_dn, user_b,
+                                   SYSDB_USER_CLASS);
+    lret = msg == NULL ? LDB_ERR_OPERATIONS_ERROR : ldb_add(ldb, msg);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    member[0] = user_a_dn;
+    lret = test_tx_modify_members(test_ctx, ldb, group_dn, member, 1,
+                                  LDB_FLAG_MOD_DELETE);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    member[0] = user_b_dn;
+    lret = test_tx_modify_members(test_ctx, ldb, group_dn, member, 1,
+                                  LDB_FLAG_MOD_ADD);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    lret = ldb_delete(ldb, user_b_dn);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    msg = test_tx_identity_message(test_ctx, user_b_dn, user_b,
+                                   SYSDB_USER_CLASS);
+    lret = msg == NULL ? LDB_ERR_OPERATIONS_ERROR : ldb_add(ldb, msg);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    lret = ldb_rename(ldb, user_b_dn, temp_dn);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    lret = ldb_rename(ldb, temp_dn, user_b_dn);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    lret = ldb_transaction_commit(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    lret = ldb_search(ldb, test_ctx, &res, group_dn, LDB_SCOPE_BASE,
+                      group_attrs, NULL);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    ck_assert_int_eq(res->count, 1);
+    ck_assert_msg(test_message_has_value(res->msgs[0], SYSDB_MEMBER,
+                                         user_b_dn_str),
+                  "Replay group lost its final direct member");
+    ck_assert_msg(test_message_has_value(res->msgs[0], SYSDB_MEMBERUID,
+                                         user_b),
+                  "Replay group has an incorrect memberUid");
+    talloc_zfree(res);
+
+    lret = ldb_search(ldb, test_ctx, &res, user_b_dn, LDB_SCOPE_BASE,
+                      user_attrs, NULL);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    ck_assert_int_eq(res->count, 1);
+    ck_assert_msg(test_message_has_value(res->msgs[0], SYSDB_MEMBEROF,
+                                         group_dn_str),
+                  "Re-added user lost its final membership");
+    talloc_zfree(res);
+
+    lret = ldb_search(ldb, test_ctx, &res, user_a_dn, LDB_SCOPE_BASE,
+                      user_attrs, NULL);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    ck_assert_int_eq(res->count, 1);
+    ck_assert_msg(!test_message_has_value(res->msgs[0], SYSDB_MEMBEROF,
+                                          group_dn_str),
+                  "Removed user retained a stale membership");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_transactional_memberof_ghost_writes)
+{
+    static const char *attrs[] = {
+        SYSDB_GHOST, TX_MBO_GHOST_DIRECT, NULL
+    };
+    const char *old_ghost = "tx-ghost-old@example.test";
+    const char *new_ghost = "tx-ghost-new@example.test";
+    const char *missing_ghost = "tx-ghost-missing@example.test";
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_context *ldb;
+    struct ldb_message *msg;
+    struct ldb_result *res = NULL;
+    struct ldb_dn *child_dn;
+    struct ldb_dn *parent_dn;
+    struct ldb_dn *member[1];
+    const char *child;
+    const char *parent;
+    int lret;
+    errno_t ret;
+
+    if (getenv("SSSD_MEMBEROF_LEGACY") != NULL) {
+        return;
+    }
+
+    ret = setup_sysdb_tests(&test_ctx);
+    ck_assert_msg(ret == EOK, "Could not set up the ghost-write test");
+    ldb = test_ctx->sysdb->ldb;
+    child = sss_create_internal_fqname(test_ctx, "tx-ghost-child",
+                                       test_ctx->domain->name);
+    parent = sss_create_internal_fqname(test_ctx, "tx-ghost-parent",
+                                        test_ctx->domain->name);
+    ck_assert_msg(child != NULL && parent != NULL,
+                  "Could not create ghost-write group names");
+    child_dn = sysdb_group_dn(test_ctx, test_ctx->domain, child);
+    parent_dn = sysdb_group_dn(test_ctx, test_ctx->domain, parent);
+    ck_assert_msg(child_dn != NULL && parent_dn != NULL,
+                  "Could not create ghost-write group DNs");
+
+    lret = ldb_transaction_start(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    msg = test_tx_identity_message(test_ctx, child_dn, child,
+                                   SYSDB_GROUP_CLASS);
+    lret = msg == NULL ? LDB_ERR_OPERATIONS_ERROR
+                       : ldb_msg_add_string(msg, SYSDB_GHOST, old_ghost);
+    if (lret == LDB_SUCCESS) {
+        lret = ldb_add(ldb, msg);
+    }
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    msg = test_tx_identity_message(test_ctx, parent_dn, parent,
+                                   SYSDB_GROUP_CLASS);
+    member[0] = child_dn;
+    lret = msg == NULL ? LDB_ERR_OPERATIONS_ERROR
+                       : test_tx_add_member_values(msg, member, 1, 0);
+    if (lret == LDB_SUCCESS) {
+        lret = ldb_add(ldb, msg);
+    }
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    lret = ldb_transaction_commit(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    lret = ldb_transaction_start(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    lret = test_tx_modify_ghost(test_ctx, ldb, child_dn, new_ghost,
+                                LDB_FLAG_MOD_REPLACE);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    lret = ldb_transaction_commit(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    lret = ldb_search(ldb, test_ctx, &res, child_dn, LDB_SCOPE_BASE,
+                      attrs, NULL);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    ck_assert_int_eq(res->count, 1);
+    ck_assert_msg(test_message_has_value(res->msgs[0], SYSDB_GHOST,
+                                         new_ghost),
+                  "Child did not retain the replacement ghost");
+    ck_assert_msg(test_message_has_value(res->msgs[0],
+                                         TX_MBO_GHOST_DIRECT, new_ghost),
+                  "Child did not retain direct ghost provenance");
+    ck_assert_msg(!test_message_has_value(res->msgs[0], SYSDB_GHOST,
+                                          old_ghost),
+                  "Child retained the replaced ghost");
+    talloc_zfree(res);
+
+    lret = ldb_search(ldb, test_ctx, &res, parent_dn, LDB_SCOPE_BASE,
+                      attrs, NULL);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    ck_assert_int_eq(res->count, 1);
+    ck_assert_msg(test_message_has_value(res->msgs[0], SYSDB_GHOST,
+                                         new_ghost),
+                  "Parent did not inherit the replacement ghost");
+    ck_assert_msg(!test_message_has_value(res->msgs[0], SYSDB_GHOST,
+                                          old_ghost),
+                  "Parent retained the replaced inherited ghost");
+    ck_assert_msg(!test_message_has_value(res->msgs[0],
+                                          TX_MBO_GHOST_DIRECT, new_ghost),
+                  "Parent incorrectly recorded an inherited ghost as direct");
+    talloc_zfree(res);
+
+    lret = ldb_transaction_start(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    lret = test_tx_modify_ghost(test_ctx, ldb, child_dn, missing_ghost,
+                                LDB_FLAG_MOD_DELETE);
+    ck_assert_msg(lret != LDB_SUCCESS,
+                  "Deleting an absent ghost unexpectedly succeeded");
+    lret = ldb_transaction_cancel(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    lret = ldb_search(ldb, test_ctx, &res, child_dn, LDB_SCOPE_BASE,
+                      attrs, NULL);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    ck_assert_int_eq(res->count, 1);
+    ck_assert_msg(test_message_has_value(res->msgs[0], SYSDB_GHOST,
+                                         new_ghost),
+                  "Rejected ghost write changed the child");
+    ck_assert_msg(!test_message_has_value(res->msgs[0], SYSDB_GHOST,
+                                          missing_ghost),
+                  "Rejected ghost write added an unexpected value");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_transactional_memberof_large_replace)
+{
+    static const char *group_attrs[] = {
+        SYSDB_MEMBER, SYSDB_MEMBERUID, NULL
+    };
+    static const char *user_attrs[] = { SYSDB_MEMBEROF, NULL };
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_context *ldb;
+    struct ldb_message_element *el;
+    struct ldb_message *msg;
+    struct ldb_dn **user_dns;
+    struct ldb_dn *group_dn;
+    TALLOC_CTX *tmp_ctx;
+    char **user_names;
+    const char *group_name;
+    const char *group_dn_str;
+    size_t i;
+    int lret;
+    errno_t ret;
+
+    if (getenv("SSSD_MEMBEROF_LEGACY") != NULL) {
+        return;
+    }
+
+    ret = setup_sysdb_tests(&test_ctx);
+    ck_assert_msg(ret == EOK, "Could not set up the scale test");
+    ldb = test_ctx->sysdb->ldb;
+    user_names = talloc_zero_array(test_ctx, char *, TX_MBO_SCALE_MEMBERS);
+    user_dns = talloc_zero_array(test_ctx, struct ldb_dn *,
+                                 TX_MBO_SCALE_MEMBERS);
+    ck_assert_msg(user_names != NULL, "Could not allocate scale user names");
+    ck_assert_msg(user_dns != NULL, "Could not allocate scale user DNs");
+
+    for (i = 0; i < TX_MBO_SCALE_MEMBERS; i++) {
+        user_names[i] = test_asprintf_fqname(user_names, test_ctx->domain,
+                                             "tx-scale-user-%04zu", i);
+        ck_assert_msg(user_names[i] != NULL,
+                      "Could not create scale user name %zu", i);
+        user_dns[i] = sysdb_user_dn(user_dns, test_ctx->domain,
+                                    user_names[i]);
+        ck_assert_msg(user_dns[i] != NULL,
+                      "Could not create scale user DN %zu", i);
+    }
+    group_name = sss_create_internal_fqname(test_ctx, "tx-scale-group",
+                                            test_ctx->domain->name);
+    ck_assert_msg(group_name != NULL, "Could not create scale group name");
+    group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, group_name);
+    ck_assert_msg(group_dn != NULL, "Could not create scale group DN");
+    group_dn_str = ldb_dn_get_linearized(group_dn);
+    ck_assert_msg(group_dn_str != NULL, "Could not linearize scale group DN");
+
+    lret = ldb_transaction_start(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    for (i = 0; i < TX_MBO_SCALE_MEMBERS; i++) {
+        tmp_ctx = talloc_new(test_ctx);
+        if (tmp_ctx == NULL) {
+            ldb_transaction_cancel(ldb);
+            ck_abort_msg("Out of memory creating scale users");
+        }
+        msg = test_tx_identity_message(tmp_ctx, user_dns[i],
+                                       user_names[i], SYSDB_USER_CLASS);
+        lret = msg == NULL ? LDB_ERR_OPERATIONS_ERROR : ldb_add(ldb, msg);
+        talloc_free(tmp_ctx);
+        if (lret != LDB_SUCCESS) {
+            ldb_transaction_cancel(ldb);
+            ck_abort_msg("Could not add scale user %zu: %d", i, lret);
+        }
+    }
+
+    msg = test_tx_identity_message(test_ctx, group_dn, group_name,
+                                   SYSDB_GROUP_CLASS);
+    if (msg == NULL) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not create scale group");
+    }
+    lret = test_tx_add_member_values(msg, user_dns, TX_MBO_SCALE_MEMBERS, 0);
+    if (lret == LDB_SUCCESS) {
+        lret = ldb_add(ldb, msg);
+    }
+    if (lret != LDB_SUCCESS) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not add scale group: %d", lret);
+    }
+    lret = ldb_transaction_commit(ldb);
+    if (lret != LDB_SUCCESS) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not commit scale graph: %d", lret);
+    }
+
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain, group_name,
+                                     group_attrs, &msg);
+    ck_assert_int_eq(ret, EOK);
+    el = ldb_msg_find_element(msg, SYSDB_MEMBER);
+    ck_assert_msg(el != NULL, "Scale group has no member attribute");
+    ck_assert_int_eq(el->num_values, TX_MBO_SCALE_MEMBERS);
+    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+    ck_assert_msg(el != NULL, "Scale group has no memberUid attribute");
+    ck_assert_int_eq(el->num_values, TX_MBO_SCALE_MEMBERS);
+    talloc_zfree(msg);
+
+    msg = ldb_msg_new(test_ctx);
+    ck_assert_msg(msg != NULL, "Could not allocate scale replacement");
+    msg->dn = ldb_dn_copy(msg, group_dn);
+    ck_assert_msg(msg->dn != NULL, "Could not copy scale group DN");
+    lret = test_tx_add_member_values(msg, user_dns, 4,
+                                     LDB_FLAG_MOD_REPLACE);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    lret = ldb_transaction_start(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    for (i = 0; i < TX_MBO_SCALE_MEMBERS; i++) {
+        struct ldb_message *overlay;
+
+        tmp_ctx = talloc_new(test_ctx);
+        if (tmp_ctx == NULL) {
+            ldb_transaction_cancel(ldb);
+            ck_abort_msg("Out of memory creating overlay update");
+        }
+        overlay = ldb_msg_new(tmp_ctx);
+        if (overlay != NULL) {
+            overlay->dn = ldb_dn_copy(overlay, user_dns[i]);
+        }
+        lret = overlay == NULL || overlay->dn == NULL
+             ? LDB_ERR_OPERATIONS_ERROR
+             : ldb_msg_add_empty(overlay, SYSDB_CACHE_EXPIRE,
+                                 LDB_FLAG_MOD_REPLACE, NULL);
+        if (lret == LDB_SUCCESS) {
+            lret = ldb_msg_add_string(overlay, SYSDB_CACHE_EXPIRE,
+                                      "123456789");
+        }
+        if (lret == LDB_SUCCESS) {
+            lret = ldb_modify(ldb, overlay);
+        }
+        talloc_free(tmp_ctx);
+        if (lret != LDB_SUCCESS) {
+            ldb_transaction_cancel(ldb);
+            ck_abort_msg("Could not stage overlay update %zu: %d", i,
+                         lret);
+        }
+    }
+    lret = ldb_modify(ldb, msg);
+    if (lret != LDB_SUCCESS) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not stage large replacement: %d", lret);
+    }
+    lret = ldb_transaction_commit(ldb);
+    if (lret != LDB_SUCCESS) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not commit large replacement: %d", lret);
+    }
+
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain, group_name,
+                                     group_attrs, &msg);
+    ck_assert_int_eq(ret, EOK);
+    el = ldb_msg_find_element(msg, SYSDB_MEMBER);
+    ck_assert_msg(el != NULL, "Replaced group has no member attribute");
+    ck_assert_int_eq(el->num_values, 4);
+    el = ldb_msg_find_element(msg, SYSDB_MEMBERUID);
+    ck_assert_msg(el != NULL, "Replaced group has no memberUid attribute");
+    ck_assert_int_eq(el->num_values, 4);
+    talloc_zfree(msg);
+
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain,
+                                    user_names[0], user_attrs, &msg);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBEROF, group_dn_str),
+                  "Retained user lost its group");
+    talloc_zfree(msg);
+
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain,
+                                    user_names[TX_MBO_SCALE_MEMBERS - 1],
+                                    user_attrs, &msg);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert_msg(!test_message_has_value(msg, SYSDB_MEMBEROF, group_dn_str),
+                  "Removed user retained its group");
+    talloc_zfree(msg);
+
+    lret = ldb_transaction_start(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    lret = ldb_delete(ldb, group_dn);
+    for (i = 0; lret == LDB_SUCCESS && i < TX_MBO_SCALE_MEMBERS; i++) {
+        lret = ldb_delete(ldb, user_dns[i]);
+    }
+    if (lret != LDB_SUCCESS) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not stage scale cleanup: %d", lret);
+    }
+    lret = ldb_transaction_commit(ldb);
+    if (lret != LDB_SUCCESS) {
+        ldb_transaction_cancel(ldb);
+        ck_abort_msg("Could not commit scale cleanup: %d", lret);
+    }
 
     talloc_free(test_ctx);
 }
@@ -8437,6 +9231,20 @@ Suite *create_sysdb_suite(void)
     tcase_add_loop_test(tc_memberof, test_sysdb_remove_local_group_by_gid,
                         MBO_GROUP_BASE , MBO_GROUP_BASE + 10);
     suite_add_tcase(s, tc_memberof);
+
+    TCase *tc_transactional = tcase_create("Transactional memberof Tests");
+    tcase_set_timeout(tc_transactional, 300);
+    tcase_add_test(tc_transactional,
+                   test_transactional_memberof_empty_transactions);
+    tcase_add_test(tc_transactional,
+                   test_transactional_memberof_marker_rollback);
+    tcase_add_test(tc_transactional,
+                   test_transactional_memberof_operation_replay);
+    tcase_add_test(tc_transactional,
+                   test_transactional_memberof_ghost_writes);
+    tcase_add_test(tc_transactional,
+                   test_transactional_memberof_large_replace);
+    suite_add_tcase(s, tc_transactional);
 
     TCase *tc_subdomain = tcase_create("SYSDB sub-domain Tests");
 
