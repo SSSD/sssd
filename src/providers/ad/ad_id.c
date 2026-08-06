@@ -412,14 +412,15 @@ static void ad_account_info_done(struct tevent_req *subreq)
     req = tevent_req_callback_data(subreq, struct tevent_req);
 
     ret = ad_handle_acct_info_recv(subreq);
+    talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
               "ad_handle_acct_info_recv failed [%d]: %s\n",
               ret, sss_strerror(ret));
-        /* The caller wouldn't fail either, just report the error up */
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
     }
-    talloc_zfree(subreq);
-    tevent_req_done(req);
 }
 
 errno_t ad_account_info_recv(struct tevent_req *req)
