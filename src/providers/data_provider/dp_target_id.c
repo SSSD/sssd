@@ -770,7 +770,7 @@ static void dp_get_account_info_request_done(struct tevent_req *subreq)
 
     ret = dp_req_recv_no_output(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
     }
@@ -819,7 +819,7 @@ static void dp_get_account_info_initgroups_resolv_done(struct tevent_req *subreq
 
     ret = dp_sr_resolve_groups_recv(state, subreq);
     talloc_free(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
     }
