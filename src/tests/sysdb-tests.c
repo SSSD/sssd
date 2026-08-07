@@ -4853,6 +4853,99 @@ START_TEST(test_transactional_memberof_ghost_writes)
 }
 END_TEST
 
+START_TEST(test_transactional_memberof_failed_writes_preserve_journal)
+{
+    static const char *group_attrs[] = { SYSDB_MEMBER, NULL };
+    struct sysdb_test_ctx *test_ctx;
+    struct ldb_context *ldb;
+    struct ldb_message *msg;
+    struct ldb_dn *present_dn;
+    struct ldb_dn *missing_dn;
+    struct ldb_dn *group_dn;
+    struct ldb_dn *member[1];
+    const char *present_user;
+    const char *missing_user;
+    const char *group;
+    const char *missing_dn_str;
+    const char *present_dn_str;
+    int lret;
+    errno_t ret;
+
+    if (getenv("SSSD_MEMBEROF_LEGACY") != NULL) {
+        return;
+    }
+
+    ret = setup_sysdb_tests(&test_ctx);
+    ck_assert_msg(ret == EOK, "Could not set up the failed-write test");
+    ldb = test_ctx->sysdb->ldb;
+    present_user = sss_create_internal_fqname(test_ctx, "tx-fail-present",
+                                               test_ctx->domain->name);
+    missing_user = sss_create_internal_fqname(test_ctx, "tx-fail-missing",
+                                               test_ctx->domain->name);
+    group = sss_create_internal_fqname(test_ctx, "tx-fail-group",
+                                        test_ctx->domain->name);
+    ck_assert_msg(present_user != NULL && missing_user != NULL
+                  && group != NULL, "Could not create failed-write names");
+
+    ret = sysdb_store_user(test_ctx->domain, present_user, NULL, 38301, 0,
+                           "Present User", "/home/tx-fail-present", "/bin/sh",
+                           NULL, NULL, NULL, -1, 0);
+    ck_assert_int_eq(ret, EOK);
+    ret = sysdb_store_user(test_ctx->domain, missing_user, NULL, 38302, 0,
+                           "Missing User", "/home/tx-fail-missing", "/bin/sh",
+                           NULL, NULL, NULL, -1, 0);
+    ck_assert_int_eq(ret, EOK);
+    ret = sysdb_store_group(test_ctx->domain, group, 38300, NULL, 0, 0);
+    ck_assert_int_eq(ret, EOK);
+    ret = sysdb_add_group_member(test_ctx->domain, group, present_user,
+                                 SYSDB_MEMBER_USER, false);
+    ck_assert_int_eq(ret, EOK);
+
+    present_dn = sysdb_user_dn(test_ctx, test_ctx->domain, present_user);
+    missing_dn = sysdb_user_dn(test_ctx, test_ctx->domain, missing_user);
+    group_dn = sysdb_group_dn(test_ctx, test_ctx->domain, group);
+    ck_assert_msg(present_dn != NULL && missing_dn != NULL && group_dn != NULL,
+                  "Could not create failed-write DNs");
+    present_dn_str = ldb_dn_get_linearized(present_dn);
+    missing_dn_str = ldb_dn_get_linearized(missing_dn);
+    ck_assert_msg(present_dn_str != NULL && missing_dn_str != NULL,
+                  "Could not linearize the member DNs");
+
+    lret = ldb_transaction_start(ldb);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+    member[0] = missing_dn;
+    lret = test_tx_modify_members(test_ctx, ldb, group_dn, member, 1,
+                                  LDB_FLAG_MOD_DELETE);
+    ck_assert_msg(lret != LDB_SUCCESS,
+                  "Deleting an absent member unexpectedly succeeded");
+
+    member[0] = present_dn;
+    lret = test_tx_modify_members(test_ctx, ldb, group_dn, member, 1,
+                                  LDB_FLAG_MOD_ADD);
+    ck_assert_msg(lret != LDB_SUCCESS,
+                  "Adding a duplicate member unexpectedly succeeded");
+
+    member[0] = missing_dn;
+    lret = test_tx_modify_members(test_ctx, ldb, group_dn, member, 1,
+                                  LDB_FLAG_MOD_ADD);
+    ck_assert_int_eq(lret, LDB_SUCCESS);
+
+    lret = ldb_transaction_commit(ldb);
+    ck_assert_msg(lret == LDB_SUCCESS,
+                  "Expected write errors poisoned a valid transaction");
+
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain, group,
+                                     group_attrs, &msg);
+    ck_assert_int_eq(ret, EOK);
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBER, present_dn_str),
+                  "Failed delete removed the existing member");
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBER, missing_dn_str),
+                  "Successful write after expected failures was not staged");
+
+    talloc_free(test_ctx);
+}
+END_TEST
+
 START_TEST(test_transactional_memberof_large_replace)
 {
     static const char *group_attrs[] = {
@@ -9242,6 +9335,8 @@ Suite *create_sysdb_suite(void)
                    test_transactional_memberof_operation_replay);
     tcase_add_test(tc_transactional,
                    test_transactional_memberof_ghost_writes);
+    tcase_add_test(tc_transactional,
+                   test_transactional_memberof_failed_writes_preserve_journal);
     tcase_add_test(tc_transactional,
                    test_transactional_memberof_large_replace);
     suite_add_tcase(s, tc_transactional);
