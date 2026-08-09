@@ -4268,8 +4268,8 @@ msgstr "ipv6_only: 호스트이름을 IPv6 주소로만 확인을 시도합니�
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3416
-msgid "Default: ipv4_first"
-msgstr "기본값: ipv4_first"
+msgid "Default: ipv6_first"
+msgstr "기본값: ipv6_first"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3422 sssd.conf.5.xml:3461

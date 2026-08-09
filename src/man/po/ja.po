@@ -4495,8 +4495,8 @@ msgstr "ipv6_only: ホスト名を IPv6 アドレスに名前解決すること�
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3592
-msgid "Default: ipv4_first"
-msgstr "初期値: ipv4_first"
+msgid "Default: ipv6_first"
+msgstr "初期値: ipv6_first"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3598

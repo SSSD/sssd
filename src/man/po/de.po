@@ -4686,8 +4686,8 @@ msgstr "ipv6_only: versucht, nur Rechnernamen zu IPv6-Adressen aufzulösen"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3592
-msgid "Default: ipv4_first"
-msgstr "Voreinstellung: ipv4_first"
+msgid "Default: ipv6_first"
+msgstr "Voreinstellung: ipv6_first"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3598

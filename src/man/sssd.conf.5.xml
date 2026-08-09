@@ -3732,7 +3732,7 @@ pam_json_services = gdm-switchable-auth
                             ipv6_only: Only attempt to resolve hostnames to IPv6 addresses.
                         </para>
                         <para>
-                            Default: ipv4_first
+                            Default: ipv6_first
                         </para>
                     </listitem>
                 </varlistentry>

@@ -5208,8 +5208,8 @@ msgstr "ipv6_only: tenta di risolvere i nomi host solo in indirizzi IPv6."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3592
-msgid "Default: ipv4_first"
-msgstr "Predefinito: ipv4_first"
+msgid "Default: ipv6_first"
+msgstr "Predefinito: ipv6_first"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3598
