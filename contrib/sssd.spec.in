@@ -80,7 +80,7 @@ BuildRequires: docbook-style-xsl
 BuildRequires: doxygen
 BuildRequires: findutils
 BuildRequires: gcc
-BuildRequires: gdm-pam-extensions-devel
+BuildRequires: gdm-pam-extensions-devel < 1:51
 BuildRequires: gettext-devel
 BuildRequires: jansson-devel
 BuildRequires: libcap-devel
