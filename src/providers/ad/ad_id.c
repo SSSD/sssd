@@ -904,7 +904,6 @@ static void ad_get_account_domain_evaluate(struct tevent_req *req)
           "Found object in domain %s\n", obj_dom->name);
     state->domain = obj_dom->name;
 
-    ret = EOK;
     tevent_req_done(req);
 }
 
