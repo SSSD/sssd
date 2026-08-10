@@ -173,7 +173,7 @@ def create_nested_group(session_multihost, create_aduser_group, request):
     ad_user = f'testuser-{run_id}'
     ad_group = f'testgroup-{run_id}'
     l1_grp = f'testgrp-l1-{run_id}'
-    l2_grp = f'testgrp-l1-{run_id}'
+    l2_grp = f'testgrp-l2-{run_id}'
     ad_op = ADOperations(session_multihost.ad[0])
     ad_op.create_ad_unix_group(l1_grp)
     ad_op.create_ad_unix_group(l2_grp)
