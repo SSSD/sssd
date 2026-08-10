@@ -9,6 +9,70 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  files-changed:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      system_tests: ${{ steps.filter.outputs.system_tests }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: dorny/paths-filter@v4
+      id: filter
+      with:
+        # Include this workflow so edits to the CI job itself still run the checks.
+        filters: |
+          system_tests:
+            - 'src/tests/system/**'
+            - '.github/workflows/static-code-analysis.yml'
+
+  python-system-tests:
+    needs: files-changed
+    # ruff/black/mypy on src/tests/system, not the runtime suite. Skip on
+    # push/PR unless those files or this workflow changed; nightly still runs.
+    if: github.event_name == 'schedule' || needs.files-changed.outputs.system_tests == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/setup-python@v7
+      with:
+        python-version: '3.x'
+
+    - name: Checkout repository
+      uses: actions/checkout@v7
+
+    - name: Setup virtual environment
+      working-directory: ./src/tests/system
+      run: |
+        sudo apt-get update
+
+        # Install dependencies for python-ldap
+        sudo apt-get install -y libsasl2-dev python3-dev libldap2-dev libssl-dev libssh-dev
+
+        pip3 install virtualenv
+        python3 -m venv .venv
+        source .venv/bin/activate
+        pip3 install -r ./requirements.txt
+        # ruff replaces flake8, pycodestyle, and isort; black kept (ruff lint is Black-compatible)
+        pip3 install ruff mypy black
+
+    - name: ruff
+      if: always()
+      working-directory: ./src/tests/system
+      run: source .venv/bin/activate && ruff check .
+
+    - name: black
+      if: always()
+      working-directory: ./src/tests/system
+      run: source .venv/bin/activate && black --check --diff .
+
+    - name: mypy
+      if: always()
+      working-directory: ./src/tests/system
+      run: source .venv/bin/activate && mypy --install-types --non-interactive tests
+
   codeql:
     runs-on: ubuntu-latest
     permissions:
