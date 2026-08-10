@@ -109,6 +109,38 @@ def create_adgrp(session_multihost, request, run_powershell_script):
     request.addfinalizer(delete_adgrp)
 
 
+@pytest.fixture(scope="function")
+def enable_sshd_password_auth(session_multihost, request):
+    """ Temporarily enable PasswordAuthentication in sshd for tests
+    that need SSH password login on STIG-hardened systems """
+    client = session_multihost.client[0]
+    check = client.run_command(
+        'grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config',
+        raiseonerr=False
+    )
+    if check.returncode != 0:
+        return
+    client.run_command(
+        'cp -f /etc/ssh/sshd_config /etc/ssh/sshd_config.orig_stig',
+        raiseonerr=False
+    )
+    client.run_command(
+        'sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g"'
+        ' /etc/ssh/sshd_config',
+        raiseonerr=False
+    )
+    client.run_command('systemctl restart sshd', raiseonerr=False)
+
+    def restore_sshd():
+        """ Restore sshd config """
+        client.run_command(
+            'cp -f /etc/ssh/sshd_config.orig_stig /etc/ssh/sshd_config',
+            raiseonerr=False
+        )
+        client.run_command('systemctl restart sshd', raiseonerr=False)
+    request.addfinalizer(restore_sshd)
+
+
 @pytest.fixture(autouse=True)
 def capture_sssd_logs(session_multihost, request):
     """This will print sssd logs in case of test failure"""
