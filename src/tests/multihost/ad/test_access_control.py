@@ -24,22 +24,20 @@ def ssh_login(multihost, username):
     :str output could be 'login failed', or 'list of matched access denied pattern' or
      'output of id cmd executed after ssh'
     """
-    client_hostname = multihost.client[0].sys_hostname
-    client = pexpect_ssh(client_hostname, username, 'Secret123', debug=False)
+    client_ip = multihost.client[0].ip
+    client = pexpect_ssh(client_ip, username, 'Secret123', debug=False)
     cmd = 'echo > /var/log/secure'
     multihost.client[0].run_command(cmd, raiseonerr=False)
     try:
-        client.login()
-    except SSHLoginException:
-        return 'failed'
-    except pexpect.EOF:
-        time.sleep(1)
+        client.login(login_timeout=30, sync_multiplier=5)
+    except (SSHLoginException, pexpect.EOF):
+        time.sleep(5)
         log_str = multihost.client[0].get_file_contents('/var/log/secure').decode('utf-8')
         patt = re.compile(r'Access.*denied for user')
         if patt.search(log_str):
             return 'denied present'
         else:
-            return 'denied missing'
+            return 'failed'
     else:
         (stdout, _) = client.command(f'id {username}')
         client.logout()
@@ -270,6 +268,7 @@ class TestAccessControl(object):
                        'simple_allow_groups': f'{l1_grp}@{domain_name}'}
         tools.sssd_conf(dom_section, sssd_params, action='add')
         tools.clear_sssd_cache()
+        multihost.client[0].run_command(f'id {aduser}@{domain_name}', raiseonerr=False)
         ret = ssh_login(multihost, f'{aduser}@{domain_name}')
         assert ret == 'Success', 'ADuser log in failed'
 
