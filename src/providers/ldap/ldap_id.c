@@ -998,7 +998,9 @@ static void groups_get_done(struct tevent_req *subreq)
         ret = ENOENT;
     }
 
-    if (ret != EOK) {
+    /* error'ing here with ENOENT causes the initgroups operation to fail
+     * if a user has no groups stored in the backend */
+    if (ret != EOK && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
     }
