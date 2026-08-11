@@ -123,18 +123,20 @@ def enable_sshd_password_auth(session_multihost, request):
     )
     if check.returncode != 0:
         return
-    client.run_command(
+    backup_main = client.run_command(
         'cp -f /etc/ssh/sshd_config /etc/ssh/sshd_config.orig_stig',
         raiseonerr=False
     )
+    # Also back up drop-in files where STIG sets the directive
+    backup_dropin = client.run_command(
+        'cp -a /etc/ssh/sshd_config.d /etc/ssh/sshd_config.d.orig_stig',
+        raiseonerr=False
+    )
+    if backup_main.returncode != 0 or backup_dropin.returncode != 0:
+        return
     client.run_command(
         'sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g"'
         ' /etc/ssh/sshd_config',
-        raiseonerr=False
-    )
-    # Also fix drop-in files where STIG sets the directive
-    client.run_command(
-        'cp -a /etc/ssh/sshd_config.d /etc/ssh/sshd_config.d.orig_stig',
         raiseonerr=False
     )
     client.run_command(
@@ -150,9 +152,10 @@ def enable_sshd_password_auth(session_multihost, request):
             'cp -f /etc/ssh/sshd_config.orig_stig /etc/ssh/sshd_config',
             raiseonerr=False
         )
+        # Overwrite drop-in files from backup; keep the .d directory
         client.run_command(
-            'rm -rf /etc/ssh/sshd_config.d &&'
-            ' mv /etc/ssh/sshd_config.d.orig_stig /etc/ssh/sshd_config.d',
+            'cp -af /etc/ssh/sshd_config.d.orig_stig/.'
+            ' /etc/ssh/sshd_config.d/',
             raiseonerr=False
         )
         client.run_command('systemctl restart sshd', raiseonerr=False)
@@ -881,6 +884,58 @@ def samba_share_permissions(session_multihost, request):
     request.addfinalizer(delete_share_directory)
 
 # ################### Session scoped fixtures #########################
+
+
+@pytest.fixture(scope='session', autouse=True)
+def enable_aes_encryption_on_ad(session_multihost, request):
+    """ Enable AES Kerberos encryption on AD for FIPS/STIG compatibility.
+    FIPS:STIG crypto policy on RHEL 9.x only permits AES encryption types
+    but the AD server may not have AES enabled by default. Without this,
+    realm join fails with 'The encryption types desired are not available
+    in active directory' as adcli finds all encryption types are
+    not permitted by the crypto policy. This configures msDS-SupportedEncryptionTypes
+    on domain controllers and sets the registry-level Kerberos encryption
+    policy to enable AES-128 and AES-256 (value 24 = 0x08 + 0x10). """
+    policy = session_multihost.client[0].run_command(
+        'update-crypto-policies --show', raiseonerr=False
+    ).stdout_text.strip()
+    if 'STIG' not in policy:
+        return
+
+    powershell_cmd = (
+        'powershell.exe -inputformat none -noprofile '
+        '"Import-Module ActiveDirectory; '
+        'Get-ADComputer -Filter {PrimaryGroupID -eq 516} '
+        '-Properties msDS-SupportedEncryptionTypes | '
+        "Set-ADComputer -Replace @{'msDS-SupportedEncryptionTypes' = 24}; "
+        'New-Item -Path '
+        "'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+        "\\Policies\\System\\Kerberos\\Parameters' -Force; "
+        'Set-ItemProperty -Path '
+        "'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+        "\\Policies\\System\\Kerberos\\Parameters' "
+        "-Name 'SupportedEncryptionTypes' -Value 24 "
+        '-Type DWord -Force; '
+        'gpupdate /force"'
+    )
+    session_multihost.ad[0].run_command(powershell_cmd, raiseonerr=False)
+
+    def restore_aes():
+        """ Revert AES Kerberos encryption settings on AD """
+        restore_cmd = (
+            'powershell.exe -inputformat none -noprofile '
+            '"Import-Module ActiveDirectory; '
+            'Get-ADComputer -Filter {PrimaryGroupID -eq 516} | '
+            "Set-ADComputer -Clear 'msDS-SupportedEncryptionTypes'; "
+            'Remove-ItemProperty -Path '
+            "'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+            "\\Policies\\System\\Kerberos\\Parameters' "
+            "-Name 'SupportedEncryptionTypes' "
+            '-ErrorAction SilentlyContinue; '
+            'gpupdate /force"'
+        )
+        session_multihost.ad[0].run_command(restore_cmd, raiseonerr=False)
+    request.addfinalizer(restore_aes)
 
 
 @pytest.fixture(scope='session', autouse=True)
