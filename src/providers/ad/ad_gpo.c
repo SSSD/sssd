@@ -2140,6 +2140,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
     LDAPURLDesc *lud;
     struct sdap_domain *sdom;
     struct sdap_search_base **search_bases;
+    bool noexist_delete = true;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct ad_gpo_access_state);
@@ -2253,6 +2254,15 @@ ad_gpo_connect_done(struct tevent_req *subreq)
         }
     }
 
+    /* Set this to false explicitly to allow
+    *  normal GPO processing with auto_private_groups
+    *  enabled. (if true, ENOENT results in sysdb_delete_user()
+    *  inside groups_by_user_done() */
+    if (sss_domain_is_mpg(state->host_domain) == true
+        && !state->conn->no_mpg_user_fallback) {
+        noexist_delete = false;
+    }
+
     subreq = groups_by_user_send(state, state->ev,
                                  state->access_ctx->ad_id_ctx->sdap_id_ctx,
                                  sdom, state->conn,
@@ -2262,7 +2272,7 @@ ad_gpo_connect_done(struct tevent_req *subreq)
                                  NULL,
                                  state->access_ctx->host_attr_map,
                                  SDAP_OPTS_USER,
-                                 true,
+                                 noexist_delete,
                                  true);
     tevent_req_set_callback(subreq, ad_gpo_target_dn_retrieval_done, req);
 
