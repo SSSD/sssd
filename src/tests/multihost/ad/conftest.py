@@ -883,6 +883,35 @@ def samba_share_permissions(session_multihost, request):
 
 
 @pytest.fixture(scope='session', autouse=True)
+def enable_aes_encryption_on_ad(session_multihost, request):
+    """ Enable AES Kerberos encryption on AD for FIPS/STIG compatibility.
+    FIPS:STIG crypto policy on RHEL 9.x only permits AES encryption types
+    but the AD server may not have AES enabled by default. Without this,
+    realm join fails with 'The encryption types desired are not available
+    in active directory' as adcli finds all encryption types are
+    not permitted by the crypto policy. This configures msDS-SupportedEncryptionTypes
+    on domain controllers and sets the registry-level Kerberos encryption
+    policy to enable AES-128 and AES-256 (value 24 = 0x08 + 0x10). """
+    powershell_cmd = (
+        'powershell.exe -inputformat none -noprofile '
+        '"Import-Module ActiveDirectory; '
+        'Get-ADComputer -Filter {PrimaryGroupID -eq 516} '
+        '-Properties msDS-SupportedEncryptionTypes | '
+        "Set-ADComputer -Replace @{'msDS-SupportedEncryptionTypes' = 24}; "
+        'New-Item -Path '
+        "'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+        "\\Policies\\System\\Kerberos\\Parameters' -Force; "
+        'Set-ItemProperty -Path '
+        "'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+        "\\Policies\\System\\Kerberos\\Parameters' "
+        "-Name 'SupportedEncryptionTypes' -Value 24 "
+        '-Type DWord -Force; '
+        'gpupdate /force"'
+    )
+    session_multihost.ad[0].run_command(powershell_cmd, raiseonerr=False)
+
+
+@pytest.fixture(scope='session', autouse=True)
 def fips_ad_support_policy(session_multihost, request):
     """ Enable FIPS:AD-SUPPORT crypto policy added in bz2056676"""
     old_policy = session_multihost.client[0].run_command(
