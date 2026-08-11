@@ -1415,6 +1415,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
         if (ar->filter_type != BE_FILTER_NAME
                 && ar->filter_type != BE_FILTER_SECID
                 && ar->filter_type != BE_FILTER_UUID) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type %d for %s request\n",
+                                      ar->filter_type, be_req2str(ar->entry_type));
             ret = EINVAL;
             goto done;
         }
@@ -1448,6 +1450,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_NETGROUP:
         if (ar->filter_type != BE_FILTER_NAME) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type %d for %s request\n",
+                                      ar->filter_type, be_req2str(ar->entry_type));
             ret = EINVAL;
             goto done;
         }
@@ -1461,6 +1465,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_SERVICES:
         if (ar->filter_type == BE_FILTER_SECID
                 || ar->filter_type == BE_FILTER_UUID) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type %d for %s request\n",
+                                      ar->filter_type, be_req2str(ar->entry_type));
             ret = EINVAL;
             goto done;
         }
@@ -1475,6 +1481,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_BY_SECID:
         if (ar->filter_type != BE_FILTER_SECID) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type %d for %s request\n",
+                                      ar->filter_type, be_req2str(ar->entry_type));
             ret = EINVAL;
             goto done;
         }
@@ -1488,6 +1496,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_BY_UUID:
         if (ar->filter_type != BE_FILTER_UUID) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type %d for %s request\n",
+                                      ar->filter_type, be_req2str(ar->entry_type));
             ret = EINVAL;
             goto done;
         }
@@ -1502,6 +1512,8 @@ sdap_handle_acct_req_send(TALLOC_CTX *mem_ctx,
     case BE_REQ_USER_AND_GROUP:
         if (!(ar->filter_type == BE_FILTER_NAME ||
               ar->filter_type == BE_FILTER_IDNUM)) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type %d for %s request\n",
+                                      ar->filter_type, be_req2str(ar->entry_type));
             ret = EINVAL;
             goto done;
         }

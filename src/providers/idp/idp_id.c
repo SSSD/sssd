@@ -457,6 +457,8 @@ idp_handle_acct_req_send(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_INITGROUPS: /* init groups for user */
         if (ar->filter_type != BE_FILTER_NAME) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type %d for %s request\n",
+                                      ar->filter_type, be_req2str(ar->entry_type));
             ret = EINVAL;
             goto done;
         }
