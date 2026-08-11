@@ -114,8 +114,11 @@ def enable_sshd_password_auth(session_multihost, request):
     """ Temporarily enable PasswordAuthentication in sshd for tests
     that need SSH password login on STIG-hardened systems """
     client = session_multihost.client[0]
+    # Check both main config and drop-in files under sshd_config.d/
+    # RHEL 9 STIG sets PasswordAuthentication in drop-in files
     check = client.run_command(
-        'grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config',
+        'grep -rq "^PasswordAuthentication no"'
+        ' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/ 2>/dev/null',
         raiseonerr=False
     )
     if check.returncode != 0:
@@ -129,12 +132,27 @@ def enable_sshd_password_auth(session_multihost, request):
         ' /etc/ssh/sshd_config',
         raiseonerr=False
     )
+    # Also fix drop-in files where STIG sets the directive
+    client.run_command(
+        'cp -a /etc/ssh/sshd_config.d /etc/ssh/sshd_config.d.orig_stig',
+        raiseonerr=False
+    )
+    client.run_command(
+        'sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g"'
+        ' /etc/ssh/sshd_config.d/*.conf 2>/dev/null',
+        raiseonerr=False
+    )
     client.run_command('systemctl restart sshd', raiseonerr=False)
 
     def restore_sshd():
         """ Restore sshd config """
         client.run_command(
             'cp -f /etc/ssh/sshd_config.orig_stig /etc/ssh/sshd_config',
+            raiseonerr=False
+        )
+        client.run_command(
+            'rm -rf /etc/ssh/sshd_config.d &&'
+            ' mv /etc/ssh/sshd_config.d.orig_stig /etc/ssh/sshd_config.d',
             raiseonerr=False
         )
         client.run_command('systemctl restart sshd', raiseonerr=False)
@@ -365,7 +383,12 @@ def adjoin(session_multihost, request):
     def adleave():
         """ Disjoin AD """
         session_multihost.client[0].run_command(
+<<<<<<< HEAD
             "cp -af /etc/sssd/sssd.conf.adjoin /etc/sssd/sssd.conf")
+=======
+            f"cp -af /etc/sssd/sssd.conf.adjoin {SSSD_DEFAULT_CONF}",
+            raiseonerr=False)
+>>>>>>> bf003fcaa (Fix STIG fixture to handle sshd drop-in config files)
         _adleave(client_ad)
 
     request.addfinalizer(adleave)
