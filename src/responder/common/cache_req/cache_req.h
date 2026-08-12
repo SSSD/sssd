@@ -38,6 +38,7 @@ enum cache_req_type {
 
     CACHE_REQ_INITGROUPS,
     CACHE_REQ_INITGROUPS_BY_UPN,
+    CACHE_REQ_INITGROUPS_BY_UID,
 
 #ifdef BUILD_SUBID
     CACHE_REQ_SUBID_RANGES_BY_NAME,
@@ -365,6 +366,18 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
                               const char *name);
 
 #define cache_req_initgr_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_initgr_by_uid_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct resp_ctx *rctx,
+                             struct sss_nc_ctx *ncache,
+                             int cache_refresh_percent,
+                             const char *domain,
+                             uid_t uid);
+
+#define cache_req_initgr_by_uid_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
