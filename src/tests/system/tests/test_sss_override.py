@@ -323,3 +323,44 @@ def test_sss_overrides__use_fully_qualified_names_is_true(client: Client, provid
     assert client.auth.ssh.password("o-user1", "Secret123") is False
     assert client.auth.ssh.password(f"user1@{client.sssd.default_domain}", "Secret123")
     assert client.auth.ssh.password(f"o-user1@{client.sssd.default_domain}", "Secret123")
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1919942)
+@pytest.mark.topology([KnownTopology.LDAP, KnownTopology.AD, KnownTopology.Samba])
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_sss_override__home_takes_precedence_over_override_homedir(client: Client, provider: GenericProvider):
+    """
+    :title: sss_override per-user homedir takes precedence over override_homedir
+    :setup:
+        1. Create user 'user1'
+        2. Configure SSSD with 'override_homedir = /home/%u1'
+        3. Start SSSD
+        4. Look up 'user1' to confirm override_homedir template is applied
+        5. Create sss_override for 'user1' setting home to '/home/override_user1'
+        6. Restart SSSD
+    :steps:
+        1. Run getent passwd user1 before the sss_override is applied
+        2. Run getent passwd user1 after the sss_override is applied
+    :expectedresults:
+        1. Home directory matches '/home/%u1' - the override_homedir template
+        2. Home directory matches '/home/override_user1' - sss_override takes precedence
+    :customerscenario: True
+    :requirement: IDM-SSSD-TC: ldap_provider: local_overrides: sss_override overrides override_homedir
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["override_homedir"] = "/home/%u1"
+    client.sssd.start()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None, "User 'user1' not found before override!"
+    assert result.home == "/home/user11", f"override_homedir was not applied, got: {result.home}"
+
+    client.sss_override.user("user1").add(home="/home/override_user1")
+    client.sssd.restart()
+
+    result = client.tools.getent.passwd("user1")
+    assert result is not None, "User 'user1' not found after override!"
+    assert (
+        result.home == "/home/override_user1"
+    ), f"sss_override did not take precedence over override_homedir, got: {result.home}"
