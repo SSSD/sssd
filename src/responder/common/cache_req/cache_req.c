@@ -46,6 +46,7 @@ cache_req_get_plugin(enum cache_req_type type)
 
         &cache_req_initgroups_by_name,
         &cache_req_initgroups_by_upn,
+        &cache_req_initgroups_by_uid,
 
 #ifdef BUILD_SUBID
         &cache_req_subid_ranges_by_name,

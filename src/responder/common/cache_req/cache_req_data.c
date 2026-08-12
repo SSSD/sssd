@@ -148,6 +148,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_USER_BY_ID:
     case CACHE_REQ_GROUP_BY_ID:
     case CACHE_REQ_OBJECT_BY_ID:
+    case CACHE_REQ_INITGROUPS_BY_UID:
         data->id = input->id;
         break;
     case CACHE_REQ_OBJECT_BY_SID:
