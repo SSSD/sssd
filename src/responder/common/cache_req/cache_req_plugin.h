@@ -302,6 +302,7 @@ extern const struct cache_req_plugin cache_req_group_by_name;
 extern const struct cache_req_plugin cache_req_group_by_id;
 extern const struct cache_req_plugin cache_req_initgroups_by_name;
 extern const struct cache_req_plugin cache_req_initgroups_by_upn;
+extern const struct cache_req_plugin cache_req_initgroups_by_uid;
 #ifdef BUILD_SUBID
 extern const struct cache_req_plugin cache_req_subid_ranges_by_name;
 #endif

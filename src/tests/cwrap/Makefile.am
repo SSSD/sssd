@@ -71,6 +71,7 @@ SSSD_CACHE_REQ_OBJ = \
     ../../../src/responder/common/cache_req/plugins/cache_req_group_by_filter.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_initgroups_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_initgroups_by_upn.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_initgroups_by_uid.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_object_by_sid.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_object_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_object_by_id.c \
