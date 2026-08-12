@@ -71,6 +71,40 @@
 #endif
 #endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
 
+/* GDM 51 replaced the uppercase function-like macros of its PAM extension
+ * headers with lowercase static inline functions. Provide the old macro
+ * names as aliases so the code below keeps compiling with both old and new
+ * gdm-pam-extensions. */
+#ifdef HAVE_GDM_PAM_EXTENSIONS
+#ifndef GDM_PAM_EXTENSION_SUPPORTED
+#define GDM_PAM_EXTENSION_SUPPORTED(name) \
+    gdm_pam_extension_supported(name)
+#endif
+#ifndef GDM_PAM_EXTENSION_MESSAGE_TO_BINARY_PROMPT_MESSAGE
+#define GDM_PAM_EXTENSION_MESSAGE_TO_BINARY_PROMPT_MESSAGE(extended_message, binary_message) \
+    gdm_pam_extension_message_to_binary_prompt_message((GdmPamExtensionMessage *)(extended_message), binary_message)
+#endif
+#ifndef GDM_PAM_EXTENSION_CHOICE_LIST_REQUEST_INIT
+#define GDM_PAM_EXTENSION_CHOICE_LIST_REQUEST_INIT(request, title, num_items) \
+    gdm_pam_extension_choice_list_request_init(request, title, num_items)
+#endif
+#ifndef GDM_PAM_EXTENSION_REPLY_TO_CHOICE_LIST_RESPONSE
+#define GDM_PAM_EXTENSION_REPLY_TO_CHOICE_LIST_RESPONSE(reply) \
+    gdm_pam_extension_reply_to_choice_list_response(reply)
+#endif
+#endif /* HAVE_GDM_PAM_EXTENSIONS */
+
+#ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
+#ifndef GDM_PAM_EXTENSION_CUSTOM_JSON_REQUEST_INIT
+#define GDM_PAM_EXTENSION_CUSTOM_JSON_REQUEST_INIT(request, proto_name, proto_version, json_str) \
+    gdm_pam_extension_custom_json_request_init(request, proto_name, proto_version, json_str)
+#endif
+#ifndef GDM_PAM_EXTENSION_REPLY_TO_CUSTOM_JSON_RESPONSE
+#define GDM_PAM_EXTENSION_REPLY_TO_CUSTOM_JSON_RESPONSE(reply) \
+    gdm_pam_extension_reply_to_custom_json_response(reply)
+#endif
+#endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
+
 #include "sss_pam_compat.h"
 #include "sss_pam_macros.h"
 #include "util/client_envs.h"
