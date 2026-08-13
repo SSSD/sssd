@@ -87,6 +87,16 @@ const char *global_full_attrs[]  = { ORIG_ATTRS, EXTRA_ATTRS, NULL };
 
 struct sss_nss_test_ctx *sss_nss_test_ctx;
 
+struct group_mmap_store {
+    char name[256];
+    gid_t gid;
+};
+
+static bool capture_group_mmap_stores;
+static size_t group_mmap_store_count;
+static struct group_mmap_store group_mmap_stores[2];
+static char group_mmap_ctx_sentinel;
+
 /* Mock NSS structure */
 struct sss_nss_ctx *
 mock_nctx(TALLOC_CTX *mem_ctx)
@@ -180,6 +190,34 @@ int __wrap_sss_cmd_send_empty(struct cli_ctx *cctx, TALLOC_CTX *freectx)
 {
     sss_nss_test_ctx->tctx->done = true;
     sss_nss_test_ctx->tctx->error = ENOENT;
+    return EOK;
+}
+
+int __wrap_sss_mmap_cache_gr_store(struct sss_mc_ctx **_mcc,
+                                   const struct sized_string *name,
+                                   const struct sized_string *pw,
+                                   gid_t gid, size_t memnum,
+                                   const char *membuf, size_t memsize)
+{
+    struct group_mmap_store *store;
+
+    assert_true(capture_group_mmap_stores);
+    assert_non_null(_mcc);
+    assert_ptr_equal(*_mcc,
+                     (struct sss_mc_ctx *)&group_mmap_ctx_sentinel);
+    assert_non_null(name);
+    assert_non_null(pw);
+    assert_string_equal(pw->str, "*");
+    assert_int_equal(memnum, 0);
+    assert_non_null(membuf);
+    assert_int_equal(memsize, 0);
+    assert_true(group_mmap_store_count < N_ELEMENTS(group_mmap_stores));
+    assert_true(name->len <= sizeof(group_mmap_stores[0].name));
+
+    store = &group_mmap_stores[group_mmap_store_count++];
+    memcpy(store->name, name->str, name->len);
+    store->gid = gid;
+
     return EOK;
 }
 
@@ -3160,6 +3198,8 @@ struct group testinitgr_gr2 = {
 
 void test_sss_nss_initgroups(void **state)
 {
+    struct sss_mc_ctx *old_grp_mc_ctx;
+    bool old_ignore_group_members;
     errno_t ret;
     struct sysdb_attrs *attrs;
 
@@ -3201,6 +3241,15 @@ void test_sss_nss_initgroups(void **state)
                              SYSDB_MEMBER_USER);
     assert_int_equal(ret, EOK);
 
+    old_ignore_group_members =
+        sss_nss_test_ctx->tctx->dom->ignore_group_members;
+    old_grp_mc_ctx = sss_nss_test_ctx->nctx->grp_mc_ctx;
+    sss_nss_test_ctx->tctx->dom->ignore_group_members = true;
+    sss_nss_test_ctx->nctx->grp_mc_ctx =
+        (struct sss_mc_ctx *)&group_mmap_ctx_sentinel;
+    capture_group_mmap_stores = true;
+    group_mmap_store_count = 0;
+
     mock_input_user_or_group("testinitgr");
     will_return(__wrap_sss_packet_get_cmd, SSS_NSS_INITGR);
     will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
@@ -3213,7 +3262,19 @@ void test_sss_nss_initgroups(void **state)
 
     /* Wait until the test finishes with EOK */
     ret = test_ev_loop(sss_nss_test_ctx->tctx);
+    capture_group_mmap_stores = false;
+    sss_nss_test_ctx->tctx->dom->ignore_group_members =
+        old_ignore_group_members;
+    sss_nss_test_ctx->nctx->grp_mc_ctx = old_grp_mc_ctx;
     assert_int_equal(ret, EOK);
+
+    assert_int_equal(group_mmap_store_count, 2);
+    assert_string_equal(group_mmap_stores[0].name,
+                        testinitgr_gr1.gr_name);
+    assert_int_equal(group_mmap_stores[0].gid, testinitgr_gr1.gr_gid);
+    assert_string_equal(group_mmap_stores[1].name,
+                        testinitgr_gr2.gr_name);
+    assert_int_equal(group_mmap_stores[1].gid, testinitgr_gr2.gr_gid);
 }
 
 /* Test that searching for a nonexistent user yields ENOENT.
