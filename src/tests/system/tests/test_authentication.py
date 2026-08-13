@@ -224,3 +224,37 @@ def test_authentication__user_login_when_the_provider_is_offline(
         "user1", "BadPassword"
     ), "User logged in with an incorrect password!"
     assert client.auth.parametrize(method).password("user1", "Secret123"), "User failed login!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.parametrize(
+    "prompting_section",
+    ["prompting/password", "prompting/password/su-l"],
+    ids=["global_prompt", "service_prompt"],
+)
+def test_authentication__custom_password_prompt_is_shown_at_login(
+    client: Client, provider: GenericProvider, prompting_section: str
+):
+    """
+    :title: Custom password prompt text is shown at login
+    :description:
+        'su -' uses the 'su-l' PAM service, so the per-service case targets
+        '[prompting/password/su-l]', not '[prompting/password/su]'.
+    :setup:
+        1. Create user
+        2. Set a custom 'password_prompt', either globally or for the 'su -' PAM service ('su-l')
+        3. Start SSSD
+    :steps:
+        1. Authenticate as the user via 'su -'
+    :expectedresults:
+        1. The custom prompt text is shown and authentication succeeds
+    :customerscenario: True
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.section(prompting_section)["password_prompt"] = "My custom prompt"
+    client.sssd.start()
+
+    result = client.host.conn.run("su - user1 -c 'su - user1 -c whoami'", input="Secret123")
+    assert "My custom prompt" in result.stderr, "Custom password prompt was not shown!"
+    assert "user1" in result.stdout, "'user1' failed to log in!"
