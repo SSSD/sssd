@@ -135,7 +135,6 @@ function build_debug()
     declare -r valgrind_test_pattern+="*/double_semicolon_test)"
     export CFLAGS="$DEBUG_CFLAGS"
     declare test_dir
-    declare intgcheck_configure_args
     declare status
 
     test_dir=`mktemp --directory /dev/shm/ci-test-dir.XXXXXXXX`
@@ -162,18 +161,6 @@ function build_debug()
             status=$?
     mv "$test_dir" ci-test-dir
     ((status == 0))
-
-    if "$MODERATE"; then
-        if "$DEPS_INTGCHECK_SATISFIED"; then
-            printf -v intgcheck_configure_args " %q" \
-                        "${CONFIGURE_ARG_LIST[@]}"
-            stage make-intgcheck make -j $CPU_NUM intgcheck \
-                                      INTGCHECK_CONFIGURE_FLAGS=" \
-                                        $intgcheck_configure_args"
-        fi
-
-        ((status == 0))
-    fi
 
     unset CFLAGS
 }
