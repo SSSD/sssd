@@ -100,7 +100,7 @@ struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
                               const char *ca_db,
                               const char *pkcs12_client_creds,
                               enum client_auth_method client_auth_method,
-                              const char *key_passwd);
+                              const char *key_passwd, bool use_gssapi);
 
 const char *get_http_data(struct rest_ctx *rest_ctx);
 
@@ -200,6 +200,9 @@ json_t *token_data_to_json(struct devicecode_ctx *dc_ctx);
 char *get_jwt(struct rest_ctx *rest_ctx, const char *token_endpoint,
               const char *client_id);
 
+/* oidc_child_gssapi.c */
+errno_t oidc_setup_gssapi(const char *keytab_name);
+
 /* oidc_child_id.c */
 errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     char *idp_type,
@@ -208,7 +211,8 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     const char *client_id, const char *client_secret,
                     const char *pkcs12_client_creds,
                     enum client_auth_method client_auth_method,
-                    const char *token_endpoint, const char *scope, char **out);
+                    const char *token_endpoint, const char *scope,
+                    bool use_gssapi, char **out);
 
 /* libcrypto/oidc_child_get_jwk.c */
 errno_t get_jwk_from_pkcs12(TALLOC_CTX *mem_ctx,

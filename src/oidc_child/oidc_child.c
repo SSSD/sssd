@@ -279,6 +279,7 @@ done:
 
 static struct devicecode_ctx *get_dc_ctx(TALLOC_CTX *mem_ctx,
                                          bool libcurl_debug, const char *ca_db,
+                                         bool use_gssapi,
                                          const char *issuer_url,
                                          const char *device_auth_endpoint,
                                          const char *token_endpoint,
@@ -300,7 +301,7 @@ static struct devicecode_ctx *get_dc_ctx(TALLOC_CTX *mem_ctx,
 
     dc_ctx->rest_ctx = get_rest_ctx(dc_ctx, libcurl_debug, ca_db,
                                     pkcs12_client_creds, client_auth_method,
-                                    key_passwd);
+                                    key_passwd, use_gssapi);
     if (dc_ctx->rest_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get curl context.\n");
         ret = ENOMEM;
@@ -350,6 +351,8 @@ struct cli_opts {
     char *scope;
     char *client_secret;
     bool client_secret_stdin;
+    bool use_gssapi;
+    char *keytab;
     char *ca_db;
     char *user_identifier_attr;
     bool libcurl_debug;
@@ -375,6 +378,7 @@ static void free_cli_opts_members(struct cli_opts *opts)
         sss_erase_mem_securely(opts->client_secret, strlen(opts->client_secret));
     }
     free(opts->client_secret);
+    free(opts->keytab);
     free(opts->ca_db);
     free(opts->user_identifier_attr);
     free(opts->search_str);
@@ -497,6 +501,10 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
                 _("Client secret/PKCS#12 password (if needed)"), NULL},
         {"client-secret-stdin", 0, POPT_ARG_NONE, NULL, 's',
                 _("Read client secret/PKCS#12 password from standard input"), NULL},
+        {"client-use-gssapi", 0, POPT_ARG_NONE, NULL, 'g',
+                _("Use GSSAPI/Kerberos for client authentication"), NULL},
+        {"keytab", 0, POPT_ARG_STRING, &opts->keytab, 0,
+                _("Keytab file for GSSAPI client authentication"), NULL},
         {"idp-type", 0, POPT_ARG_STRING, &opts->idp_type, 0,
                 _("Type of the IdP (entra_id, keycloak etc)"), NULL},
         {"name", 0, POPT_ARG_STRING, &tmp_name, 0, _("Name of user or group"),
@@ -533,6 +541,9 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
             break;
         case 's':
             opts->client_secret_stdin = true;
+            break;
+        case 'g':
+            opts->use_gssapi = true;
             break;
         case 'r':
             opts->return_tokens = true;
@@ -576,6 +587,13 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
     }
 
     if (!set_client_auth_method(tmp_cam, opts)) {
+        goto done;
+    }
+
+    if (opts->use_gssapi && (opts->client_secret != NULL
+                             || opts->client_secret_stdin)) {
+        fprintf(stderr, "\n--client-use-gssapi and --client-secret* options "
+                        "are mutually exclusive.\n\n");
         goto done;
     }
 
@@ -720,6 +738,15 @@ int main(int argc, const char *argv[])
     }
     talloc_steal(main_ctx, debug_prg_name);
 
+    if (opts.use_gssapi) {
+        ret = oidc_setup_gssapi(opts.keytab);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to acquire GSSAPI credentials from keytab.\n");
+            goto done;
+        }
+    }
+
     if (opts.oidc_cmd == GET_DEVICE_CODE
                 || IS_ID_CMD(opts.oidc_cmd)) {
         if (opts.client_secret_stdin) {
@@ -746,7 +773,8 @@ int main(int argc, const char *argv[])
                           opts.client_id, opts.client_secret,
                           opts.pkcs12_client_creds,
                           opts.client_auth_method,
-                          opts.token_endpoint, opts.scope, &out);
+                          opts.token_endpoint, opts.scope,
+                          opts.use_gssapi, &out);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Id lookup failed.\n");
             goto done;
@@ -764,6 +792,7 @@ int main(int argc, const char *argv[])
                 || opts.oidc_cmd == GET_ACCESS_TOKEN
                 || opts.oidc_cmd == REFRESH_ACCESS_TOKEN) {
         dc_ctx = get_dc_ctx(main_ctx, opts.libcurl_debug, opts.ca_db,
+                            opts.use_gssapi,
                             opts.issuer_url,
                             opts.device_auth_endpoint, opts.token_endpoint,
                             opts.userinfo_endpoint, opts.jwks_uri, opts.scope,
