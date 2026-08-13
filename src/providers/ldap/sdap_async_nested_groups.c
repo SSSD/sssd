@@ -1731,7 +1731,7 @@ static errno_t set_nested_member_attrs(struct sdap_nested_group_ctx *gctx)
 
     /* pull down everything we need */
     gctx->nested_member_attrs = talloc_array(gctx, const char *,
-                                             SDAP_OPTS_USER + SDAP_OPTS_GROUP +
+                                             gctx->opts->user_map_cnt + SDAP_OPTS_GROUP +
                                              gctx->opts->fsp_map_cnt +
                                              1 + 1);
     if (gctx->nested_member_attrs == NULL) {
@@ -1744,7 +1744,7 @@ static errno_t set_nested_member_attrs(struct sdap_nested_group_ctx *gctx)
 
     /* Collect attributes from user_map, skip objectclass by starting with
      * SDAP_AT_USER_NAME */
-    for (int i = SDAP_AT_USER_NAME; i < SDAP_OPTS_USER; i++) {
+    for (int i = SDAP_AT_USER_NAME; i < gctx->opts->user_map_cnt; i++) {
         if (gctx->opts->user_map[i].name != NULL
             && !string_in_list_size(gctx->opts->user_map[i].name,
                                     gctx->nested_member_attrs, attr_idx, false)) {
@@ -1879,7 +1879,7 @@ sdap_nested_group_lookup_member_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
     maps[0].map = group_ctx->opts->user_map;
-    maps[0].num_attrs = SDAP_OPTS_USER;
+    maps[0].num_attrs = group_ctx->opts->user_map_cnt;
     maps[0].map_type = SDAP_NESTED_GROUP_DN_USER;
     maps[0].required_attrs[0] = group_ctx->opts->user_map[SDAP_AT_USER_NAME].name;
     if (sdap_idmap_domain_has_algorithmic_mapping(group_ctx->opts->idmap_ctx,
