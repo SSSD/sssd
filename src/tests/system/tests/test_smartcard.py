@@ -7,6 +7,7 @@ SSSD smart card authentication test
 from __future__ import annotations
 
 import pytest
+from pytest_mh.cli import CLIBuilderArgs
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology
@@ -309,3 +310,226 @@ def test_smartcard__without_soft_ocsp_with_unreachable_responder(client: Client,
     assert (
         "PIN" not in result.stderr or result.rc != 0
     ), f"Expected authentication to fail without soft_ocsp when OCSP is unreachable! rc={result.rc}"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.builtwith(client="virtualsmartcard")
+def test_smartcard__unlock_console_with_vlock(client: Client):
+    """
+    :title: Use smart card to unlock console with vlock
+    :setup:
+        1. Create local user and setup smart card authentication
+    :steps:
+        1. Login as user and lock terminal with vlock
+        2. Enter incorrect pin
+        3. Enter correct pin
+    :expectedresults:
+        1. User logged in and vlock locks the terminal and prompts for PIN
+        2. Authentication is unsuccessful
+        3. Authentication is successful
+    :customerscenario: False
+    """
+    if "Fedora" in client.host.distro_name and client.host.distro_major == 45:
+        pytest.skip("virt_cacard crashes on Fedora 45 due to OpenSSL 4.x incompatibility")
+
+    username = "localuser1"
+    client.local.user(username).add()
+    client.smartcard.setup_local_card(client, username)
+
+    cli = client.host.cli
+    args: CLIBuilderArgs = {
+        "login": (cli.option.SWITCH, True),
+        "user": (cli.option.POSITIONAL, username),
+    }
+    su_cmd = " ".join(cli.argv("su", args))
+
+    result = client.host.conn.expect(
+        rf"""
+        proc exitmsg {{ msg code }} {{
+            catch close
+            lassign [wait] pid spawnid os_error_flag rc
+            puts ""
+            puts "expect result: $msg"
+            puts "expect exit code: $code"
+            puts "expect spawn exit code: $rc"
+            exit $code
+        }}
+
+        set timeout 60
+        spawn {su_cmd}
+
+        expect {{
+            "$ " {{ }}
+            timeout {{exitmsg "No shell prompt after su" 201}}
+            eof {{exitmsg "Unexpected end of file after su" 202}}
+        }}
+
+        send "vlock\r"
+
+        expect {{
+            "PIN for" {{send "wrongpin\r"}}
+            timeout {{exitmsg "No PIN prompt from vlock" 201}}
+            eof {{exitmsg "Unexpected end of file during vlock" 202}}
+        }}
+
+        expect {{
+            "PIN for" {{send "{TOKEN_PIN}\r"}}
+            "$ " {{exitmsg "vlock unlocked with wrong PIN" 1}}
+            timeout {{exitmsg "No re-prompt after wrong PIN" 201}}
+            eof {{exitmsg "Unexpected end of file after wrong PIN" 202}}
+        }}
+
+        expect {{
+            "$ " {{exitmsg "vlock unlock successful" 0}}
+            timeout {{exitmsg "Timeout after vlock unlock" 201}}
+            eof {{exitmsg "Unexpected end of file after vlock" 202}}
+        }}
+
+        exitmsg "Unexpected code path" 203
+        """,
+        verbose=False,
+    )
+
+    assert (
+        result.rc == 0
+    ), f"vlock smartcard authentication failed: rc={result.rc}, stdout={result.stdout}, stderr={result.stderr}"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.builtwith(client="virtualsmartcard")
+def test_smartcard__login_fails_when_wrong_pin_is_entered(client: Client):
+    """
+    :title: Smartcard login fails when the wrong pin is entered.
+    :setup:
+        1. Create a local user and initialize a smart card mapped to the user
+    :steps:
+        1. Authenticate as the user via 'su' with an incorrect PIN
+    :expectedresults:
+        1. Authentication fails
+    :customerscenario: True
+    """
+    client.local.user("user1").add()
+    client.smartcard.setup_local_card(client, "user1")
+
+    assert not client.auth.su.smartcard("user1", "000000"), "Authentication should have failed with a wrong PIN!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.builtwith(client="virtualsmartcard")
+def test_smartcard__login_fails_when_card_is_not_mapped(client: Client):
+    """
+    :title: Smartcard authentication fails when card is not mapped to the user
+    :setup:
+        1. Create two local users and initialize a smart card mapped to only the first user
+    :steps:
+        1. Authenticate as the first user via 'su' with the smart card PIN
+        2. Attempt to authenticate as the second user via 'su' with the same smart card PIN
+    :expectedresults:
+        1. Authentication succeeds using the certificate
+        2. Authentication fails because the certificate does not map to the second user
+    :customerscenario: True
+    """
+    client.local.user("user1").add()
+    client.local.user("user2").add()
+    client.smartcard.setup_local_card(client, "user1")
+
+    assert client.auth.su.smartcard("user1", TOKEN_PIN), "Smart card authentication failed for the mapped user!"
+    assert not client.auth.su.smartcard(
+        "user2", TOKEN_PIN
+    ), "Authentication should fail for a user the certificate does not map to!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.parametrize(
+    "pam_p11_allowed_services, expect_cert_auth",
+    [(None, True), ("-su-l", False)],
+    ids=["su_l_allowed_by_default", "su_l_removed_from_allowed_services"],
+)
+@pytest.mark.builtwith(client="virtualsmartcard")
+def test_smartcard__certificate_authentication_is_limited_to_allowed_pam_services(
+    client: Client, pam_p11_allowed_services: str | None, expect_cert_auth: bool
+):
+    """
+    :title: Smartcard authentication is only used for PAM services allowed by pam_p11_allowed_services
+    :setup:
+        1. Optionally remove the 'su-l' service (used by ``su -``) from 'pam_p11_allowed_services'
+        2. Create a local user and initialize a smart card mapped to the user
+    :steps:
+        1. Authenticate as the user via 'su -' presenting the smart card PIN
+    :expectedresults:
+        1. Authentication uses the certificate when 'su-l' is an allowed service; when it is not,
+           'su -' does not prompt for a PIN and the PIN is rejected as a regular password
+    :customerscenario: True
+    """
+    client.local.user("user1").add()
+    if pam_p11_allowed_services is not None:
+        client.sssd.pam["pam_p11_allowed_services"] = pam_p11_allowed_services
+    client.smartcard.setup_local_card(client, "user1")
+
+    result = client.auth.su.smartcard_with_output("user1", TOKEN_PIN)
+    if expect_cert_auth:
+        assert result.rc == 0, "Smart card authentication should have succeeded!"
+        assert "PIN" in result.stderr, "'su -' should have prompted for a PIN!"
+    else:
+        assert "PIN" not in result.stderr, "'su -' should not prompt for a PIN when it is not an allowed service!"
+        assert result.rc != 0, f"'{TOKEN_PIN}' should not be accepted as user1's login password!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.builtwith(client="virtualsmartcard")
+def test_smartcard__login_succeeds_when_cert_auth_required(client: Client):
+    """
+    :title: Smartcard login succeeds when certificate authentication is required
+    :setup:
+        1. Create a local user and initialize a smart card mapped to the user
+        2. Require certificate-based authentication (authselect 'with-smartcard-required')
+    :steps:
+        1. Authenticate as the user via ``sssctl user-checks`` with the ``login`` PAM
+           service and the smart card PIN
+    :expectedresults:
+        1. Authentication succeeds
+    :customerscenario: True
+    """
+    client.local.user("user1").add()
+    client.smartcard.setup_local_card(client, "user1")
+    client.authselect.select("sssd", ["with-smartcard-required"])
+
+    result = client.sssctl.user_checks("user1", action="auth", service="login", auth_input=TOKEN_PIN)
+    assert "pam_authenticate for user [user1]: Success" in result.stderr
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.builtwith(client="virtualsmartcard")
+def test_smartcard__login_fails_when_cert_auth_required_without_card(client: Client):
+    """
+    :title: Smartcard login fails when certificate authentication is required and no card is present
+    :setup:
+        1. Create a local user
+        2. Reduce the smart card wait timeouts
+        3. Initialize a smart card mapped to the user and require certificate-based
+           authentication (authselect 'with-smartcard-required')
+        4. Remove the smart card
+    :steps:
+        1. Attempt to authenticate as the user via ``sssctl user-checks`` with the
+           ``login`` PAM service
+    :expectedresults:
+        1. Authentication fails because no smart card was inserted before the timeout
+    :customerscenario: True
+    """
+    client.local.user("user1").add()
+    client.sssd.pam["p11_child_timeout"] = "1"
+    client.sssd.pam["p11_wait_for_card_timeout"] = "1"
+    client.smartcard.setup_local_card(client, "user1")
+    client.authselect.select("sssd", ["with-smartcard-required"])
+    client.smartcard.remove_card()
+
+    result = client.sssctl.user_checks("user1", action="auth", service="login", auth_input=TOKEN_PIN)
+    assert (
+        "Authentication service cannot retrieve authentication info" in result.stderr
+    ), "Authentication should have failed without a card!"
