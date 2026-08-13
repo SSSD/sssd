@@ -58,6 +58,7 @@ struct oauth2_data {
     char *code;
     char *init_prompt;
     char *link_prompt;
+    char *complete_uri;
 };
 
 struct sc_data {
