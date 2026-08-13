@@ -3189,6 +3189,41 @@ pam_json_services = gdm-switchable-auth
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>bot_accounts_enabled (boolean)</term>
+                    <listitem>
+                        <para>
+                            Enable bot accounts for this domain.
+                        </para>
+                        <para>
+                            Bot accounts are special, ephemeral accounts,
+                            that represent a workload acting on behalf of a
+                            real user. The bot name has the format:
+                            BOT~$UID~$RANDOM where $UID is the user ID of the
+                            desired user and $RANDOM is an auto-generated random
+                            string to distinguish between multiple workloads.
+                        </para>
+                        <para>
+                            When SSSD resolves the bot input name it lookups the
+                            UID in the cache and creates a transformed user
+                            entry where the original username is set to the bot
+                            name and the original shell is set to
+                            sss-confined-shell, keeping the UID, GID and GECOS
+                            fields intact.
+                        </para>
+                        <para>
+                            <emphasis>NOTE:</emphasis> This is currently useful
+                            for IPA users only.
+                        </para>
+                        <para>
+                            If set to TRUE, SSSD will look up bot accounts
+                            for this domain.
+                        </para>
+                        <para>
+                            Default: FALSE
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>auth_provider (string)</term>
                     <listitem>
                         <para>
