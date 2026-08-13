@@ -7,7 +7,6 @@ SSSD smart card authentication test
 from __future__ import annotations
 
 import pytest
-from pytest_mh.cli import CLIBuilderArgs
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.topology import KnownTopology
@@ -337,63 +336,7 @@ def test_smartcard__unlock_console_with_vlock(client: Client):
     client.local.user(username).add()
     client.smartcard.setup_local_card(client, username)
 
-    cli = client.host.cli
-    args: CLIBuilderArgs = {
-        "login": (cli.option.SWITCH, True),
-        "user": (cli.option.POSITIONAL, username),
-    }
-    su_cmd = " ".join(cli.argv("su", args))
-
-    result = client.host.conn.expect(
-        rf"""
-        proc exitmsg {{ msg code }} {{
-            catch close
-            lassign [wait] pid spawnid os_error_flag rc
-            puts ""
-            puts "expect result: $msg"
-            puts "expect exit code: $code"
-            puts "expect spawn exit code: $rc"
-            exit $code
-        }}
-
-        set timeout 60
-        spawn {su_cmd}
-
-        expect {{
-            "$ " {{ }}
-            timeout {{exitmsg "No shell prompt after su" 201}}
-            eof {{exitmsg "Unexpected end of file after su" 202}}
-        }}
-
-        send "vlock\r"
-
-        expect {{
-            "PIN for" {{send "wrongpin\r"}}
-            timeout {{exitmsg "No PIN prompt from vlock" 201}}
-            eof {{exitmsg "Unexpected end of file during vlock" 202}}
-        }}
-
-        expect {{
-            "PIN for" {{send "{TOKEN_PIN}\r"}}
-            "$ " {{exitmsg "vlock unlocked with wrong PIN" 1}}
-            timeout {{exitmsg "No re-prompt after wrong PIN" 201}}
-            eof {{exitmsg "Unexpected end of file after wrong PIN" 202}}
-        }}
-
-        expect {{
-            "$ " {{exitmsg "vlock unlock successful" 0}}
-            timeout {{exitmsg "Timeout after vlock unlock" 201}}
-            eof {{exitmsg "Unexpected end of file after vlock" 202}}
-        }}
-
-        exitmsg "Unexpected code path" 203
-        """,
-        verbose=False,
-    )
-
-    assert (
-        result.rc == 0
-    ), f"vlock smartcard authentication failed: rc={result.rc}, stdout={result.stdout}, stderr={result.stderr}"
+    assert client.auth.su.vlock_smartcard(username, TOKEN_PIN), "vlock smartcard authentication failed"
 
 
 @pytest.mark.importance("high")
