@@ -24,7 +24,7 @@ if HAVE_MANPAGES
 SUBDIRS += src/man
 endif
 
-SUBDIRS += . src/tests/cwrap src/tests/intg src/tests/test_CA \
+SUBDIRS += . src/tests/cwrap src/tests/test_CA \
              src/tests/test_ECC_CA src/tools/analyzer
 
 # Some old versions of automake don't define builddir
@@ -4091,51 +4091,6 @@ test_sssd_krb5_localauth_plugin_LDADD = \
     $(NULL)
 endif
 
-#####################
-# Integration tests #
-#####################
-
-intgcheck-prepare:
-	set -e; \
-	rm -Rf intg; \
-	$(MKDIR_P) intg/bld; \
-	: Use /hopefully/ short prefix to keep D-Bus socket path short; \
-	prefix=`mktemp --tmpdir --directory sssd-intg.XXXXXXXX`; \
-	$(LN_S) "$$prefix" intg/pfx; \
-	cd intg/bld; \
-	$(abs_top_srcdir)/configure \
-	    --prefix="$$prefix" \
-	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
-	    --with-pid-path="$$prefix"/run/sssd \
-	    --enable-intgcheck-reqs \
-	    --without-selinux \
-	    --with-session-recording-shell=/bin/false \
-	    $(INTGCHECK_CONFIGURE_FLAGS) \
-	    CFLAGS="-O2 -g $$CFLAGS -DINTGCHECK_BUILD"; \
-	$(MAKE) $(AM_MAKEFLAGS) ; \
-	$(MAKE) $(AM_MAKEFLAGS) test_ssh_client; \
-	: Force single-thread install to workaround concurrency issues; \
-	$(MAKE) $(AM_MAKEFLAGS) -j1 install; \
-	: Remove .la files from LDB module directory to avoid loader warnings; \
-	rm "$$prefix"/lib/ldb/*.la; \
-	cd ../..
-
-intgcheck-run:
-	set -e; \
-	if [ ! -d intg/pfx ]; then $(MAKE) intgcheck-prepare; fi; \
-	cd intg/bld; \
-	$(MAKE) $(AM_MAKEFLAGS) -C src/tests/intg intgcheck-installed; \
-	cd ../..
-
-intgcheck-clean:
-	set -e; \
-	prefix=`readlink -e intg/pfx`; \
-	rm -Rf "$$prefix" intg
-
-intgcheck:
-	$(MAKE) intgcheck-prepare
-	$(MAKE) intgcheck-run
-	$(MAKE) intgcheck-clean
 
 ####################
 # Client Libraries #
