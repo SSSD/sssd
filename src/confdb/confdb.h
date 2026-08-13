@@ -261,6 +261,7 @@
 #define CONFDB_DOMAIN_TYPE_APP "application"
 #define CONFDB_DOMAIN_INHERIT_FROM "inherit_from"
 #define CONFDB_DOMAIN_LOCAL_AUTH_POLICY "local_auth_policy"
+#define CONFDB_DOMAIN_BOT_ACCOUNTS_ENABLED "bot_accounts_enabled"
 
 /* Proxy Provider */
 #define CONFDB_PROXY_LIBNAME "proxy_lib_name"
@@ -375,6 +376,7 @@ struct sss_domain_info {
     bool case_sensitive;
     bool case_preserve;
     bool avoid_by_id_lookups;
+    bool bot_accounts_enabled;
 
     gid_t override_gid;
     const char *override_homedir;
