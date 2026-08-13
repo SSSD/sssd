@@ -165,6 +165,7 @@ responder_common_tests_SOURCES =\
     ../../../src/responder/common/responder_cmd.c \
     ../../../src/tests/cmocka/common_mock_resp_dp.c \
     ../../../src/util/session_recording.c \
+    ../../../src/util/sss_bot.c \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
 responder_common_tests_CFLAGS = \
