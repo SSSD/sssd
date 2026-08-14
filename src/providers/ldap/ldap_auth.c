@@ -1068,8 +1068,11 @@ sdap_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (pd->pam_status != PAM_SUCCESS) {
+        tevent_req_error(req, EINVAL);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, params->ev);
 
     return req;
@@ -1152,8 +1155,7 @@ static void sdap_pam_auth_handler_done(struct tevent_req *subreq)
     }
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    tevent_req_done_or_error(req, ret);
 }
 
 errno_t
@@ -1383,8 +1385,11 @@ sdap_pam_chpass_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (pd->pam_status != PAM_SUCCESS) {
+        tevent_req_error(req, EINVAL);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, params->ev);
 
     return req;
@@ -1502,8 +1507,11 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
         }
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (state->pd->pam_status != PAM_SUCCESS) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static int
@@ -1634,8 +1642,7 @@ static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
     }
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    tevent_req_done_or_error(req, ret);
 }
 
 static void sdap_pam_chpass_handler_last_done(struct tevent_req *subreq)
@@ -1658,8 +1665,8 @@ static void sdap_pam_chpass_handler_last_done(struct tevent_req *subreq)
     state->pd->pam_status = PAM_SUCCESS;
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+
+    tevent_req_done_or_error(req, ret);
 }
 
 errno_t
