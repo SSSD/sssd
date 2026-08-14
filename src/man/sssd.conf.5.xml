@@ -925,8 +925,8 @@
                     <term>filter_users_in_groups (boolean)</term>
                     <listitem>
                         <para>
-                            If you want filtered user still be group members
-                            set this option to false.
+                            If you want filtered users to remain group members
+                            set this option to false
                         </para>
                         <para>
                             Default: true
@@ -1894,8 +1894,8 @@ pam_gssapi_services = sudo, sudo-i
                             fails.
                         </para>
                         <para>
-                            If False, every user that is able to obtained
-                            required service ticket will be authenticated.
+                            If False, every user should be able to obtain
+                            the required service ticket will be authenticated.
                         </para>
                         <para>
                             Note: This option can also be set per-domain which
