@@ -3367,10 +3367,9 @@ static void ipa_subdomains_handler_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh subdomains [%d]: %s\n",
               ret, sss_strerror(ret));
-        tevent_req_error(req, ret);
-    } else {
-        tevent_req_done(req);
     }
+
+    tevent_req_done_or_error(req, ret);
 }
 
 static errno_t ipa_subdomains_handler_recv(TALLOC_CTX *mem_ctx,

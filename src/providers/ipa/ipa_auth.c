@@ -235,8 +235,11 @@ ipa_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (pd->pam_status != PAM_SUCCESS) {
+        tevent_req_error(req, EINVAL);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, params->ev);
 
     return req;
@@ -305,8 +308,11 @@ static void ipa_pam_auth_handler_krb5_done(struct tevent_req *subreq)
     }
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static void ipa_pam_auth_handler_flag_done(struct tevent_req *subreq)
@@ -354,8 +360,11 @@ static void ipa_pam_auth_handler_flag_done(struct tevent_req *subreq)
     }
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static void ipa_pam_auth_handler_connect_done(struct tevent_req *subreq)
@@ -416,8 +425,11 @@ static void ipa_pam_auth_handler_connect_done(struct tevent_req *subreq)
     return;
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static void ipa_pam_auth_handler_auth_done(struct tevent_req *subreq)
@@ -462,8 +474,11 @@ static void ipa_pam_auth_handler_auth_done(struct tevent_req *subreq)
     return;
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static void ipa_pam_auth_handler_retry_done(struct tevent_req *subreq)
@@ -482,8 +497,11 @@ static void ipa_pam_auth_handler_retry_done(struct tevent_req *subreq)
         state->pd->pam_status = PAM_SYSTEM_ERR;
     }
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 errno_t
