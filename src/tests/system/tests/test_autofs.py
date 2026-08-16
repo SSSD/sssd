@@ -217,3 +217,238 @@ def test_autofs__works_with_some_offline_domains(client: Client, nfs: NFS, provi
     assert client.automount.dumpmaps() == {
         "/var/export": {"map": "auto.export", "keys": [str(key)]},
     }, "Automount maps do not match!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_autofs__maps_are_served_from_cache_when_provider_is_offline(
+    client: Client, nfs: NFS, provider: GenericProvider
+):
+    """
+    :title: Automount maps are served from cache when provider is offline
+    :description:
+        Once SSSD has fetched automount maps from an online provider it stores them in its
+        cache. This test verifies that the autofs responder keeps serving those cached maps
+        after the provider becomes unreachable: the maps are first loaded and mounted while
+        online, then all traffic to the provider is blocked so SSSD goes offline, and the same
+        mount must still succeed from cache without contacting the provider.
+    :setup:
+        1. Create NFS export
+        2. Create auto.master map
+        3. Create auto.export map
+        4. Add /var/export (auto.export) key to auto.master
+        5. Add "NFS export" key as "export" to auto.export
+        6. Enable autofs responder
+        7. Start SSSD
+        8. Reload autofs daemon
+    :steps:
+        1. Access /var/export/export (populates cache)
+        2. Block traffic to the provider
+        3. Reload autofs daemon
+        4. Access /var/export/export again
+        5. Dump automount maps "automount -m"
+    :expectedresults:
+        1. Directory is mounted to the NFS share
+        2. Provider becomes unreachable
+        3. Autofs daemon reloads successfully
+        4. Directory is still accessible from cache
+        5. /var/export contains auto.export map and "export" key
+    :customerscenario: False
+    """
+    nfs_export = nfs.export("export").add()
+    auto_master = provider.automount.map("auto.master").add()
+    auto_export = provider.automount.map("auto.export").add()
+    auto_master.key("/var/export").add(info=auto_export)
+    key = auto_export.key("export").add(info=nfs_export)
+
+    client.sssd.common.autofs()
+    client.sssd.start()
+    client.automount.reload()
+
+    assert client.automount.mount("/var/export/export", nfs_export), "Unable to mount /var/export/export while online!"
+
+    client.firewall.outbound.reject_host(provider)
+    client.automount.reload()
+
+    assert client.automount.mount(
+        "/var/export/export", nfs_export
+    ), "Unable to mount /var/export/export while offline!"
+    assert client.automount.dumpmaps() == {
+        "/var/export": {"map": "auto.export", "keys": [str(key)]},
+    }, "Automount maps do not match while offline!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_autofs__explicit_ldap_autofs_search_base_configures_lookup_scope(
+    client: Client, nfs: NFS, provider: GenericProvider
+):
+    """
+    :title: Automount maps are found when ldap_autofs_search_base is explicitly set
+    :description:
+        By default SSSD derives the search base for automount maps from the domain
+        configuration. The ldap_autofs_search_base option lets an administrator restrict the
+        lookup to a specific subtree. This test sets ldap_autofs_search_base explicitly to the
+        provider naming context and verifies that the maps are still discovered and mounted
+        correctly, confirming the option scopes the search without breaking map resolution.
+    :setup:
+        1. Create NFS export
+        2. Create auto.master map
+        3. Create auto.export map
+        4. Add /var/export (auto.export) key to auto.master
+        5. Add "NFS export" key as "export" to auto.export
+        6. Enable autofs responder
+        7. Set ldap_autofs_search_base to the provider naming context
+        8. Start SSSD
+        9. Reload autofs daemon
+    :steps:
+        1. Access /var/export/export
+        2. Dump automount maps "automount -m"
+    :expectedresults:
+        1. Directory can be accessed and it is correctly mounted to the NFS share
+        2. /var/export contains auto.export map and "export" key
+    :customerscenario: False
+    """
+    nfs_export = nfs.export("export").add()
+    auto_master = provider.automount.map("auto.master").add()
+    auto_export = provider.automount.map("auto.export").add()
+    auto_master.key("/var/export").add(info=auto_export)
+    key = auto_export.key("export").add(info=nfs_export)
+
+    client.sssd.common.autofs()
+    client.sssd.domain["ldap_autofs_search_base"] = provider.naming_context
+    client.sssd.start()
+    client.automount.reload()
+
+    assert client.automount.mount("/var/export/export", nfs_export), "Unable to mount /var/export/export!"
+    assert client.automount.dumpmaps() == {
+        "/var/export": {"map": "auto.export", "keys": [str(key)]},
+    }, "Automount maps do not match!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_autofs__autofs_provider_none_serves_maps_from_warm_cache(client: Client, nfs: NFS, provider: GenericProvider):
+    """
+    :title: Automount maps are served from warm cache when autofs_provider is set to none
+    :description:
+        A "warm cache" is a cache that was already populated by earlier online lookups against
+        the provider. This test first runs with a live autofs provider so the automount maps are
+        fetched and stored in the SSSD cache. The provider is then disabled by setting
+        autofs_provider = none, which stops SSSD from performing any live map lookups. The maps
+        must still be served from the previously populated (warm) cache.
+    :setup:
+        1. Create NFS export
+        2. Create auto.master map
+        3. Create auto.export map
+        4. Add /var/export (auto.export) key to auto.master
+        5. Add "NFS export" key as "export" to auto.export
+        6. Enable autofs responder
+        7. Start SSSD
+        8. Reload autofs daemon
+    :steps:
+        1. Access /var/export/export (populates cache)
+        2. Stop SSSD
+        3. Set autofs_provider = none
+        4. Start SSSD
+        5. Reload autofs daemon
+        6. Access /var/export/export
+        7. Dump automount maps "automount -m"
+    :expectedresults:
+        1. Directory is mounted to the NFS share
+        2. SSSD is stopped
+        3. autofs_provider is changed to none
+        4. SSSD starts successfully
+        5. Autofs daemon reloads successfully
+        6. Directory is still accessible from warm cache
+        7. /var/export contains auto.export map and "export" key
+    :customerscenario: False
+    """
+    nfs_export = nfs.export("export").add()
+    auto_master = provider.automount.map("auto.master").add()
+    auto_export = provider.automount.map("auto.export").add()
+    auto_master.key("/var/export").add(info=auto_export)
+    key = auto_export.key("export").add(info=nfs_export)
+
+    client.sssd.common.autofs()
+    client.sssd.start()
+    client.automount.reload()
+
+    assert client.automount.mount(
+        "/var/export/export", nfs_export
+    ), "Unable to mount /var/export/export with provider!"
+
+    client.sssd.stop()
+    client.sssd.domain["autofs_provider"] = "none"
+    client.sssd.start()
+    client.automount.reload()
+
+    assert client.automount.mount(
+        "/var/export/export", nfs_export
+    ), "Unable to mount /var/export/export with provider=none!"
+    assert client.automount.dumpmaps() == {
+        "/var/export": {"map": "auto.export", "keys": [str(key)]},
+    }, "Automount maps do not match with provider=none!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_autofs__new_map_entries_added_to_provider_are_visible_after_reload(
+    client: Client, nfs: NFS, provider: GenericProvider
+):
+    """
+    :title: New automount map entries added to provider are visible after autofs reload
+    :description:
+        Automount maps can change on the provider after SSSD is already running. This test
+        verifies that a newly added map key is picked up by SSSD and the autofs responder: it
+        starts with a map that contains a single export, adds a second export key on the
+        provider while SSSD is running, reloads the autofs daemon, and confirms both the old
+        and the new entry are resolvable and mountable.
+    :setup:
+        1. Create two NFS exports
+        2. Create auto.master map
+        3. Create auto.export map
+        4. Add /var/export (auto.export) key to auto.master
+        5. Add only the first NFS export key to auto.export
+        6. Enable autofs responder
+        7. Start SSSD
+        8. Reload autofs daemon
+    :steps:
+        1. Access /var/export/export1
+        2. Add the second NFS export key to auto.export
+        3. Reload autofs daemon
+        4. Access /var/export/export2
+        5. Dump automount maps "automount -m"
+    :expectedresults:
+        1. First export is mounted successfully
+        2. Second key is added to the provider
+        3. Autofs daemon reloads successfully
+        4. Second export is mounted successfully
+        5. /var/export contains both export1 and export2 keys
+    :customerscenario: False
+    """
+    nfs_export1 = nfs.export("export1").add()
+    nfs_export2 = nfs.export("export2").add()
+    auto_master = provider.automount.map("auto.master").add()
+    auto_export = provider.automount.map("auto.export").add()
+    auto_master.key("/var/export").add(info=auto_export)
+    key1 = auto_export.key("export1").add(info=nfs_export1)
+
+    client.sssd.common.autofs()
+    client.sssd.start()
+    client.automount.reload()
+
+    assert client.automount.mount("/var/export/export1", nfs_export1), "Unable to mount /var/export/export1!"
+
+    key2 = auto_export.key("export2").add(info=nfs_export2)
+    client.automount.reload()
+
+    assert client.automount.mount("/var/export/export2", nfs_export2), "Unable to mount /var/export/export2!"
+
+    maps = client.automount.dumpmaps()
+    assert str(key1) in maps["/var/export"]["keys"], "export1 key missing from automount maps!"
+    assert str(key2) in maps["/var/export"]["keys"], "export2 key missing from automount maps!"
