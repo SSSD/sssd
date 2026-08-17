@@ -508,66 +508,6 @@ errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
     return EOK;
 }
 
-static const char *get_id_string(TALLOC_CTX *mem_ctx, json_t *id_object)
-{
-    switch (json_typeof(id_object)) {
-    case JSON_STRING:
-        return talloc_strdup(mem_ctx, json_string_value(id_object));
-        break;
-    case JSON_INTEGER:
-        return talloc_asprintf(mem_ctx, "%" JSON_INTEGER_FORMAT,
-                                        json_integer_value(id_object));
-        break;
-    default:
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unexpected user identifier type.\n");
-    }
-
-    return NULL;
-}
-
-const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
-                                const char *user_identifier_attr,
-                                const char *user_info_type)
-{
-    json_t *id_object = NULL;
-    const char *user_identifier = NULL;
-    const char *id_attr_list[] = { "sub", "id", NULL };
-    size_t c;
-
-    if (user_identifier_attr != NULL) {
-        id_attr_list[0] = user_identifier_attr;
-        id_attr_list[1] = NULL;
-    }
-
-    for (c = 0; id_attr_list[c] != NULL; c++) {
-        id_object = json_object_get(userinfo, id_attr_list[c]);
-        if (id_object != NULL) {
-            user_identifier = get_id_string(mem_ctx, id_object);
-            if (user_identifier == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE,
-                      "Failed to get user identifier string.\n");
-            }
-            break;
-        } else {
-            DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Failed to read attribute [%s] from %s data.\n",
-                  id_attr_list[c],
-                  user_info_type != NULL ? user_info_type : "userinfo");
-        }
-    }
-
-    if (user_identifier == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "No attribute to identify the user found.\n");
-    } else {
-        DEBUG(SSSDBG_CONF_SETTINGS, "User identifier: [%s].\n",
-                                    user_identifier);
-    }
-
-    return user_identifier;
-}
-
 const char *get_bearer_token(TALLOC_CTX *mem_ctx, const char *json_inp)
 {
     return get_str_attr_from_json_string(mem_ctx, json_inp, ACCESS_TOKEN);

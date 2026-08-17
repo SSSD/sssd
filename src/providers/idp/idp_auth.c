@@ -114,17 +114,22 @@ set_oidc_auth_extra_args(TALLOC_CTX *mem_ctx, struct idp_auth_ctx *idp_auth_ctx,
     }
     c++;
 
-    if (idp_auth_ctx->idp_type != NULL
+    if (idp_auth_ctx->auth_user_identifier_attr != NULL) {
+        extra_args[c] = talloc_asprintf(extra_args,
+                                        "--user-identifier-attribute=%s",
+                                        idp_auth_ctx->auth_user_identifier_attr);
+    } else if (idp_auth_ctx->idp_type != NULL
             && strncasecmp(idp_auth_ctx->idp_type, "keycloak:", 9) == 0) {
         /* Keycloak is using the 'id' attribute as 'sub' for OIDC */
         extra_args[c] = talloc_strdup(extra_args,
                                       "--user-identifier-attribute=sub");
     } else {
+        /* Entra ID and other IdPs use the 'id' attribute by default. */
         extra_args[c] = talloc_strdup(extra_args,
                                       "--user-identifier-attribute=id");
     }
     if (extra_args[c] == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to set user identifier attribute.\n");
         ret = ENOMEM;
         goto done;
     }
