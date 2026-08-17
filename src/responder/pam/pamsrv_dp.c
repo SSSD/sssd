@@ -73,6 +73,8 @@ pam_dp_send_req_done(struct tevent_req *subreq)
             preq->pd->pam_status = PAM_PERM_DENIED;
         } else if (ret == ERR_PASSWORD_EXPIRED) {
             preq->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
+        } else if (ret == ETIMEDOUT || ret == ERR_NETWORK_IO) {
+            preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
         } else {
             preq->pd->pam_status = PAM_SYSTEM_ERR;
         }
