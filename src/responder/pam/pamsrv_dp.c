@@ -71,6 +71,8 @@ pam_dp_send_req_done(struct tevent_req *subreq)
               ret, sss_strerror(ret));
         if (ret == ERR_ACCESS_DENIED) {
             preq->pd->pam_status = PAM_PERM_DENIED;
+        } else if (ret == ERR_PASSWORD_EXPIRED) {
+            preq->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
         } else {
             preq->pd->pam_status = PAM_SYSTEM_ERR;
         }
