@@ -247,28 +247,21 @@ ad_handle_acct_info_done(struct tevent_req *subreq)
     } else {
         ret = sdap_handle_acct_req_recv(subreq);
     }
+    talloc_zfree(subreq);
     if (ret == ERR_OFFLINE
         && state->conn[state->cindex+1] != NULL
         && state->conn[state->cindex]->ignore_mark_offline) {
          /* This is a special case: GC does not work.
           *  We need to Fall back to ldap
           */
-        ret = ENOENT;
-    }
-    talloc_zfree(subreq);
-    if (ret != EOK) {
-        goto fail;
-    }
-
-    if (ret == EOK) {
+    } else if (ret == EOK) {
         tevent_req_done(req);
         return;
     } else if (ret != ENOENT) {
-        ret = EIO;
         goto fail;
     }
 
-    /* Ret is only ENOENT now. Try the next connection */
+    /* Try the next connection */
     state->cindex++;
     ret = ad_handle_acct_info_step(req);
     if (ret != EAGAIN) {
