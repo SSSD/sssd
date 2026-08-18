@@ -2738,19 +2738,6 @@ pam_json_services = gdm-switchable-auth
                 </varlistentry>
 
                 <varlistentry>
-                    <term>entry_cache_computer_timeout (integer)</term>
-                    <listitem>
-                        <para>
-                            How many seconds to keep the local computer
-                            entry before asking the backend again
-                        </para>
-                        <para>
-                            Default: entry_cache_timeout
-                        </para>
-                    </listitem>
-                </varlistentry>
-
-                <varlistentry>
                     <term>offline_timeout (integer)</term>
                     <listitem>
                         <para>
