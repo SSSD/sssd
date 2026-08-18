@@ -90,7 +90,7 @@ cache_req_create_result(TALLOC_CTX *mem_ctx,
         }
     }
 
-    if (bot != NULL) {
+    if (bot != NULL && domain->bot_accounts_enabled) {
         result->bot = sss_bot_copy(result, bot);
         if (result->bot == NULL) {
             talloc_free(result);
