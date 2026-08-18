@@ -722,7 +722,9 @@ static void sss_dp_get_account_domain_done(struct tevent_req *subreq)
                                                 &state->domain_name);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "Could not get account info [%d]: %s\n",
+        DEBUG(ret == ERR_GET_ACCT_DOM_NOT_SUPPORTED ? SSSDBG_TRACE_INTERNAL
+                                                    : SSSDBG_IMPORTANT_INFO,
+              "Could not get account info [%d]: %s\n",
               ret, sss_strerror(ret));
         tevent_req_error(req, ret);
         return;
