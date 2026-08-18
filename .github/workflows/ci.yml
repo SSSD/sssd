@@ -38,7 +38,7 @@ jobs:
         path: sssd
 
     - name: Setup containers
-      uses: SSSD/sssd-ci-containers/actions/setup@master
+      uses: justin-stephenson/sssd-ci-containers/actions/setup@master
       with:
         path: sssd-ci-containers
         tag: ${{ matrix.tag }}
