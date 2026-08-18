@@ -1747,6 +1747,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
 
     /* Proxy provider does not support security ID lookups. */
     if (data->filter_type == BE_FILTER_SECID) {
+        DEBUG(SSSDBG_OP_FAILURE, "Security lookups are not supported\n");
         return ERR_INVALID_FILTER;
     }
 
@@ -1764,6 +1765,8 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         case BE_FILTER_IDNUM:
             uid = (uid_t) strtouint32(data->filter_value, &endptr, 10);
             if (errno || *endptr || (data->filter_value == endptr)) {
+                DEBUG(SSSDBG_OP_FAILURE, "Malformed id: [%s]\n",
+                                         data->filter_value);
                 return ERR_INVALID_FILTER;
             }
             ret = get_pw_uid(ctx, domain, uid);
@@ -1784,20 +1787,25 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         case BE_FILTER_IDNUM:
             gid = (gid_t) strtouint32(data->filter_value, &endptr, 10);
             if (errno || *endptr || (data->filter_value == endptr)) {
+                DEBUG(SSSDBG_OP_FAILURE, "Malformed id: [%s]\n",
+                                         data->filter_value);
                 return ERR_INVALID_FILTER;
             }
             ret = get_gr_gid(mem_ctx, ctx, sysdb, domain, gid, 0);
             break;
         default:
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
             return ERR_INVALID_FILTER;
         }
         break;
 
     case BE_REQ_INITGROUPS: /* init groups for user */
         if (data->filter_type != BE_FILTER_NAME) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
             return ERR_INVALID_FILTER;
         }
         if (ctx->ops.initgroups_dyn == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Initgroups call not supported\n");
             return ERR_INTERNAL;
         }
         ret = get_initgr(mem_ctx, ctx, sysdb, domain, data->filter_value);
@@ -1805,10 +1813,12 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
 
     case BE_REQ_NETGROUP:
         if (data->filter_type != BE_FILTER_NAME) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
             return ERR_INVALID_FILTER;
         }
         if (ctx->ops.setnetgrent == NULL || ctx->ops.getnetgrent_r == NULL ||
             ctx->ops.endnetgrent == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Netgroups call not supported\n");
             return ERR_INTERNAL;
         }
 
@@ -1827,6 +1837,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             break;
         case BE_FILTER_IDNUM:
             if (ctx->ops.getservbyport_r == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "Services are not supported\n");
                 return ERR_INTERNAL;
             }
             ret = get_serv_byport(ctx, domain,
@@ -1842,6 +1853,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             ret = enum_services(ctx, sysdb, domain);
             break;
         default:
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
             return ERR_INVALID_FILTER;
         }
         break;
@@ -1867,6 +1879,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         break;
 
     default: /*fail*/
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
         return ERR_INVALID_FILTER;
     }
 
