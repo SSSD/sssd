@@ -80,6 +80,8 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    /* Parse a potential bot name and remember uid here, to avoid parsing it
+     * again for each domain. */
     ret = sss_bot_parse(data, input->name.input, &data->bot);
     if (ret != EOK && ret != EINVAL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse bot name [%d]: %s\n", ret,
@@ -87,29 +89,15 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    /* If this is an ephemeral bot account, we want to switch to lookup by uid */
     if (ret == EOK) {
         switch (type) {
         case CACHE_REQ_USER_BY_NAME:
         case CACHE_REQ_USER_BY_UPN:
-            DEBUG(SSSDBG_TRACE_FUNC, "%s is a bot acting on behalf of %u\n",
-                  data->bot->input, data->bot->uid);
-            DEBUG(SSSDBG_TRACE_FUNC, "Switching to user-by-id lookup\n");
-
-            type = CACHE_REQ_USER_BY_ID;
-            input->id = data->bot->uid;
-            break;
         case CACHE_REQ_INITGROUPS:
         case CACHE_REQ_INITGROUPS_BY_UPN:
-            DEBUG(SSSDBG_TRACE_FUNC, "%s is a bot acting on behalf of %u\n",
-                  data->bot->input, data->bot->uid);
-            DEBUG(SSSDBG_TRACE_FUNC, "Switching to initgroups-by-id lookup\n");
-
-            type = CACHE_REQ_INITGROUPS_BY_UID;
             input->id = data->bot->uid;
             break;
         default:
-            /* Other types do not support bot lookup. Proceed as usual. */
             talloc_zfree(data->bot);
         }
     }
@@ -295,6 +283,10 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid cache request type!\n");
         ret = ERR_INTERNAL;
         goto done;
+    }
+
+    if (data->bot != NULL) {
+        data->id = data->bot->uid;
     }
 
     if (input->attrs != NULL) {
