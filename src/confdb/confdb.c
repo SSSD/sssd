@@ -1475,17 +1475,6 @@ static errno_t confdb_init_domain_timeouts(struct confdb_ctx *cdb,
         goto done;
     }
 
-    /* Override the computer timeout, if specified */
-    ret = get_entry_as_uint32(res->msgs[0], &domain->computer_timeout,
-                              CONFDB_DOMAIN_COMPUTER_CACHE_TIMEOUT,
-                              entry_cache_timeout);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_FATAL_FAILURE,
-              "Invalid value for [%s]\n",
-              CONFDB_DOMAIN_COMPUTER_CACHE_TIMEOUT);
-        goto done;
-    }
-
     /* Override the resolver timeout, if specified */
     ret = get_entry_as_uint32(res->msgs[0], &domain->resolver_timeout,
                               CONFDB_DOMAIN_RESOLVER_CACHE_TIMEOUT,
