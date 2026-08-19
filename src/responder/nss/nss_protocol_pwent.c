@@ -259,6 +259,7 @@ sss_nss_protocol_fill_pwent(struct sss_nss_ctx *nss_ctx,
     /* First two fields (length and reserved), filled up later. */
     ret = sss_packet_grow(packet, 2 * sizeof(uint32_t));
     if (ret != EOK) {
+        talloc_free(tmp_ctx);
         return ret;
     }
 
