@@ -61,7 +61,7 @@ def test_socket__responders__socket_activation_lifecycle(client: Client, provide
         ssh_result = client.host.conn.run(f"sss_ssh_authorizedkeys {u.name}", raise_on_error=False)
         assert ssh_result.rc == 0, f"SSH authorizedkeys lookup failed for {u.name}"
 
-    assert client.sssd.svc.is_active(service_unit), f"{responder} service should be active after request"
+    assert client.sssd.svc.is_active(service_unit), f"{responder} responder should be active after request"
 
 
 @pytest.mark.importance("low")
@@ -106,7 +106,7 @@ def test_socket__responders__socket_activation_lifecycle_autofs(client: Client, 
     result = client.automount.mount("/var/export/export", nfs_export)
     assert result, "AUTOFS mount failed for /var/export/export"
 
-    assert client.sssd.svc.is_active(service_unit), f"{responder} service should be active after request"
+    assert client.sssd.svc.is_active(service_unit), f"{responder} responder should be active after request"
 
 
 @pytest.mark.importance("low")
@@ -156,7 +156,103 @@ def test_socket__responders__mixed_socket_and_traditional_services(
     elif socket_responder == "ssh":
         client.host.conn.run(f"sss_ssh_authorizedkeys {u.name}", raise_on_error=False)
 
-    assert client.sssd.svc.is_active(socket_service), f"{socket_responder} service should be active after request"
+    assert client.sssd.svc.is_active(socket_service), f"{socket_responder} responder should be active after request"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_socket__responders__all_socket_activated(client: Client, provider: GenericProvider):
+    """
+    :title: All Responders Socket-Activated (No Traditional Services)
+    :description: |
+        Verify that SSSD operates correctly when all responders are socket-activated
+        and the services line is empty.
+    :setup:
+        1. Add test user and sudo rule to LDAP backend
+        2. Configure SSSD with empty services line
+        3. Enable socket activation for all responders
+    :steps:
+        1. Verify all socket units are active
+        2. Verify sudo and pam service units are inactive before any test request
+        3. Trigger NSS request and verify NSS service is active
+        4. Trigger PAM request and verify PAM service activates
+        5. Trigger sudo request and verify sudo service activates
+    :expectedresults:
+        1. All socket units are active
+        2. Sudo and pam service units are inactive (nss may already be active from system NSS lookups)
+        3. NSS service is active after lookup
+        4. PAM service becomes active after authentication
+        5. Sudo service becomes active after sudo list
+    :customerscenario: False
+    """
+    u = provider.user("user1").add(password="Secret123")
+    provider.sudorule("test").add(user=u, host="ALL", command="/bin/ls")
+
+    client.sssd.common.sudo()
+    client.sssd.sssd["services"] = ""
+    client.sssd.restart(clean=True)
+    client.sssd.common.socket_responders(None)
+
+    responders = ["nss", "pam", "sudo"]
+    for r in responders:
+        assert client.sssd.svc.is_active(f"sssd-{r}.socket"), f"{r} socket should be active"
+
+    assert not client.sssd.svc.is_active("sssd-sudo.service"), "sudo responder should be inactive before request"
+    assert not client.sssd.svc.is_active("sssd-pam.service"), "pam responder should be inactive before request"
+
+    entry = client.tools.getent.passwd(u.name)
+    assert entry is not None, f"NSS lookup failed for {u.name}"
+    assert entry.name == u.name
+    assert client.sssd.svc.is_active("sssd-nss.service"), "NSS responder should be active after lookup"
+
+    result = client.auth.ssh.password(u.name, "Secret123")
+    assert result, f"PAM authentication failed for {u.name}"
+    assert client.sssd.svc.is_active("sssd-pam.service"), "PAM responder should be active after auth"
+
+    assert client.auth.sudo.list(u.name, "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed"
+    assert client.sssd.svc.is_active("sssd-sudo.service"), "Sudo responder should be active after sudo list"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_socket__responders__socket_activation_lifecycle_sudo(client: Client, provider: GenericProvider):
+    """
+    :title: Socket-Activated Sudo Responder Lifecycle
+    :description: |
+        Verify that the socket-activated sudo responder:
+        1. Has its socket unit active
+        2. Has its service unit inactive initially
+        3. Starts automatically on first sudo rule lookup via systemd socket activation
+    :setup:
+        1. Add test user and sudo rule to LDAP backend
+        2. Configure SSSD with socket activation enabled for sudo
+    :steps:
+        1. Verify sudo socket unit is active and service unit is inactive
+        2. Trigger sudo rule lookup for user
+        3. Verify sudo service unit becomes active
+        4. Verify sudo rule is returned correctly
+    :expectedresults:
+        1. Sudo service unit is inactive before first request
+        2. Sudo rule lookup succeeds
+        3. Sudo service unit becomes active after first request
+        4. User can list and run the allowed sudo command
+    :customerscenario: False
+    """
+    u = provider.user("user1").add(password="Secret123")
+    provider.sudorule("test").add(user=u, host="ALL", command="/bin/ls")
+
+    client.sssd.common.sudo()
+    client.sssd.sssd["services"] = "nss, pam"
+    client.sssd.restart(clean=True)
+    client.sssd.common.socket_responders(["sudo"])
+
+    assert client.sssd.svc.is_active("sssd-sudo.socket"), "Sudo socket should be active"
+    assert not client.sssd.svc.is_active("sssd-sudo.service"), "Sudo responder should be inactive before request"
+
+    assert client.auth.sudo.list(u.name, "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed"
+    assert client.sssd.svc.is_active("sssd-sudo.service"), "Sudo responder should be active after sudo list"
+
+    assert client.auth.sudo.run(u.name, "Secret123", command="/bin/ls /root"), "Sudo command failed"
 
 
 @pytest.mark.importance("low")
