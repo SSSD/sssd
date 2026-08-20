@@ -102,6 +102,18 @@
             in kdcinfo file. By default plugin returns KRB5_PLUGIN_NO_HANDLE
             to the caller immediately on first DNS resolving failure.
         </para>
+        <para>
+            If the environment variable SSSD_KRB5_LOCATOR_KDC_ADDRESS is set
+            to a KDC address the plugin will use this address instead of
+            reading the kdcinfo file. The address format is the same as in the
+            kdcinfo file (see above).
+        </para>
+        <para>
+            If the environment variable SSSD_KRB5_LOCATOR_KPASSWD_ADDRESS is
+            set to a kpasswd server address the plugin will use this address
+            instead of reading the kpasswdinfo file. The address format is the
+            same as in the kpasswdinfo file (see above).
+        </para>
     </refsect1>
 
     <xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
