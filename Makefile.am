@@ -320,6 +320,7 @@ if HAVE_CMOCKA
         test_krb5_idp_plugin \
         test_sss_pam_data \
         test_pamsrv_json \
+        test_sss_bot \
         $(NULL)
 
 
@@ -582,6 +583,7 @@ SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/plugins/cache_req_group_by_filter.c \
 	src/responder/common/cache_req/plugins/cache_req_initgroups_by_name.c \
 	src/responder/common/cache_req/plugins/cache_req_initgroups_by_upn.c \
+	src/responder/common/cache_req/plugins/cache_req_initgroups_by_uid.c \
 	src/responder/common/cache_req/plugins/cache_req_object_by_sid.c \
 	src/responder/common/cache_req/plugins/cache_req_object_by_name.c \
 	src/responder/common/cache_req/plugins/cache_req_object_by_id.c \
@@ -616,6 +618,7 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_utils.c \
     src/providers/data_provider_req.c \
     src/util/session_recording.c \
+    src/util/sss_bot.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
@@ -697,6 +700,7 @@ dist_noinst_HEADERS = \
     src/util/strtonum.h \
     src/util/client_envs.h \
     src/util/sss_client_envs.h \
+    src/util/sss_bot.h \
     src/util/sss_cli_cmd.h \
     src/util/sss_chain_id_tevent.h \
     src/util/sss_chain_id.h \
@@ -2478,6 +2482,7 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/responder_common.c \
      src/responder/common/responder_utils.c \
      src/util/session_recording.c \
+     src/util/sss_bot.c \
      $(SSSD_CACHE_REQ_OBJ) \
      $(SSSD_RESPONDER_IFACE_OBJ) \
      $(NULL)
@@ -2645,6 +2650,28 @@ test_pamsrv_json_LDADD = \
 if BUILD_SAMBA
 test_pamsrv_json_LDADD += $(NDR_KRB5PAC_LIBS)
 endif
+
+test_sss_bot_SOURCES = \
+    src/tests/cmocka/test_sss_bot.c \
+    src/util/sss_bot.c \
+    src/util/util.c \
+    src/util/util_ext.c \
+    $(NULL)
+test_sss_bot_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(DHASH_CFLAGS) \
+    $(NULL)
+test_sss_bot_LDADD = \
+    $(TALLOC_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(DHASH_LIBS) \
+    $(POPT_LIBS) \
+    libsss_test_common.la \
+    libsss_debug.la \
+    $(NULL)
 
 test_sss_pam_data_SOURCES = \
     src/util/sss_pam_data.c \
