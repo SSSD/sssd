@@ -277,9 +277,9 @@ id_provider = idp
 idp_type = entra_id
 idp_client_id = 12345678-abcd-0101-efef-ba9876543210
 idp_client_secret = YOUR-CLIENT-SCERET
-idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token
+idp_token_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/token
 idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me
-idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode
+idp_device_auth_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/devicecode
 idp_id_scope = https://graph.microsoft.com/.default
 idp_auth_scope = openid profile email
 </programlisting>
