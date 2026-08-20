@@ -2830,7 +2830,6 @@ static bool pam_can_user_cache_auth(struct sss_domain_info *domain,
 
 static void pam_dom_forwarder(struct pam_auth_req *preq)
 {
-    TALLOC_CTX *tmp_ctx = NULL;
     int ret;
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
@@ -2841,11 +2840,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     size_t c;
     char *local_policy = NULL;
     bool found = false;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return;
-    }
 
     if (!preq->pd->domain) {
         preq->pd->domain = preq->domain->name;
@@ -2858,7 +2852,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Untrusted user %"SPRIuid" cannot access non-public domain %s.\n",
               client_euid(preq->cctx->creds), preq->pd->domain);
-        talloc_free(tmp_ctx);
         preq->pd->pam_status = PAM_PERM_DENIED;
         pam_reply(preq);
         return;
@@ -2868,7 +2861,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
      * as untrusted users can't request a domain */
     if (preq->is_uid_trusted &&
             !is_domain_requested(preq->pd, preq->pd->domain)) {
-        talloc_free(tmp_ctx);
         preq->pd->pam_status = PAM_USER_UNKNOWN;
         pam_reply(preq);
         return;
@@ -2879,7 +2871,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                                 preq->pd->authtok,
                                 preq->pd->user,
                                 preq->cached_auth_failed)) {
-        talloc_free(tmp_ctx);
         preq->use_cached_auth = true;
         pam_reply(preq);
         return;
@@ -2899,7 +2890,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
             if (ret != EOK) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
                       "Failed to evaluate local auth policy\n");
-                talloc_free(tmp_ctx);
                 preq->pd->pam_status = PAM_AUTH_ERR;
                 pam_reply(preq);
                 return;
@@ -2932,7 +2922,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                      * */
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Certificate user object has no name.\n");
-                    talloc_free(tmp_ctx);
                     preq->pd->pam_status = PAM_USER_UNKNOWN;
                     pam_reply(preq);
                     return;
@@ -2975,7 +2964,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
 
         if (found) {
             if (local_policy != NULL && strcasecmp(local_policy, "only") == 0) {
-                talloc_free(tmp_ctx);
                 DEBUG(SSSDBG_IMPORTANT_INFO,
                       "Local auth only set and matching certificate was found, "
                       "skipping online auth\n");
@@ -3009,7 +2997,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
             } else {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "User and certificate user do not match.\n");
-                talloc_free(tmp_ctx);
                 preq->pd->pam_status = PAM_AUTH_ERR;
                 pam_reply(preq);
                 return;
@@ -3018,7 +3005,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     }
 
     if (local_policy != NULL && strcasecmp(local_policy, "only") == 0) {
-        talloc_free(tmp_ctx);
         DEBUG(SSSDBG_IMPORTANT_INFO, "Local auth only set, skipping online auth\n");
         if (preq->pd->cmd == SSS_PAM_PREAUTH) {
             preq->pd->pam_status = PAM_SUCCESS;
@@ -3034,8 +3020,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     preq->callback = pam_reply;
     ret = pam_dp_send_req(preq);
     DEBUG(SSSDBG_CONF_SETTINGS, "pam_dp_send_req returned %d\n", ret);
-
-    talloc_free(tmp_ctx);
 
     if (ret != EOK) {
         preq->pd->pam_status = PAM_SYSTEM_ERR;
