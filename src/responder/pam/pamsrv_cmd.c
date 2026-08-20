@@ -2858,6 +2858,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
         DEBUG(SSSDBG_MINOR_FAILURE,
               "Untrusted user %"SPRIuid" cannot access non-public domain %s.\n",
               client_euid(preq->cctx->creds), preq->pd->domain);
+        talloc_free(tmp_ctx);
         preq->pd->pam_status = PAM_PERM_DENIED;
         pam_reply(preq);
         return;
@@ -2867,6 +2868,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
      * as untrusted users can't request a domain */
     if (preq->is_uid_trusted &&
             !is_domain_requested(preq->pd, preq->pd->domain)) {
+        talloc_free(tmp_ctx);
         preq->pd->pam_status = PAM_USER_UNKNOWN;
         pam_reply(preq);
         return;
@@ -2877,6 +2879,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                                 preq->pd->authtok,
                                 preq->pd->user,
                                 preq->cached_auth_failed)) {
+        talloc_free(tmp_ctx);
         preq->use_cached_auth = true;
         pam_reply(preq);
         return;
@@ -2896,6 +2899,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
             if (ret != EOK) {
                 DEBUG(SSSDBG_FATAL_FAILURE,
                       "Failed to evaluate local auth policy\n");
+                talloc_free(tmp_ctx);
                 preq->pd->pam_status = PAM_AUTH_ERR;
                 pam_reply(preq);
                 return;
@@ -2928,6 +2932,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
                      * */
                     DEBUG(SSSDBG_CRIT_FAILURE,
                           "Certificate user object has no name.\n");
+                    talloc_free(tmp_ctx);
                     preq->pd->pam_status = PAM_USER_UNKNOWN;
                     pam_reply(preq);
                     return;
@@ -3004,6 +3009,7 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
             } else {
                 DEBUG(SSSDBG_CRIT_FAILURE,
                       "User and certificate user do not match.\n");
+                talloc_free(tmp_ctx);
                 preq->pd->pam_status = PAM_AUTH_ERR;
                 pam_reply(preq);
                 return;
