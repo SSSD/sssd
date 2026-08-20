@@ -1,0 +1,55 @@
+name: "ci"
+on:
+  push:
+  pull_request:
+jobs:
+  system:
+    if: github.event_name == 'push' || !contains(github.event.pull_request.labels.*.name, 'Accepted')
+    needs: [prepare]
+  steps:
+  - name: Install dependencies
+    shell: bash
+    run: |
+      set -ex
+      sudo apt-get update
+      sudo apt-get install -y podman docker-compose
+
+  - name: Start podman socket
+    shell: bash
+    run: |
+      sudo systemctl enable podman.socket
+      sudo systemctl restart podman.socket
+
+  - name: Checkout sssd-ci-containers repository
+    uses: actions/checkout@v3
+    with:
+      repository: SSSD/sssd-ci-containers
+      path: ${{ inputs.path }}
+
+  - name: Add override
+    shell: bash
+    env:
+      OVERRIDE: ${{ inputs.override }}
+    run: |
+      if [[ ! -z $OVERRIDE ]]; then
+        echo "$OVERRIDE" > "${{ inputs.path }}/docker-compose.override.yml"
+        cat "${{ inputs.path }}/docker-compose.override.yml"
+      fi
+
+  - name: Setup DNS
+    shell: bash
+    run: |
+      sudo make -C "${{ inputs.path }}" setup-dns-files
+
+  - name: Trust container CA
+    shell: bash
+    run: |
+        sudo cp "${{ inputs.path }}/data/certs/ca.crt" /usr/local/share/ca-certificates
+        sudo update-ca-certificates
+
+  - name: Print docker-compose config
+    shell: bash
+    run: |
+      export REGISTRY="${{ inputs.registry }}"
+      export TAG="${{ inputs.tag }}"
+      docker-compose --project-directory "${{ inputs.path }}" config
