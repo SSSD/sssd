@@ -855,17 +855,14 @@ static void auth_connect_done(struct tevent_req *subreq)
                                             NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        /* As sdap_cli_resolve_and_connect_recv() returns EIO in case all the
-         * servers are down and we have to go offline, let's treat it
+        /* As sdap_cli_resolve_and_connect_recv() returns ERR_SERVER_FAILURE
+         * in case all the servers are down and we have to go offline, let's treat it
          * accordingly here and allow the PAM responder to switch to offline
          * authentication.
          *
-         * Unfortunately, there's not much pattern within our code and the way
-         * to indicate we're going down in this part of the code is returning an
-         * ETIMEDOUT.
          */
-        if (ret == EIO) {
-            tevent_req_error(req, ETIMEDOUT);
+        if (ret == ERR_SERVER_FAILURE) {
+            tevent_req_error(req, ERR_SERVER_FAILURE);
         } else {
             if (auth_connect_send(req) == NULL) {
                 tevent_req_error(req, ENOMEM);
@@ -962,8 +959,7 @@ static void auth_bind_user_done(struct tevent_req *subreq)
     switch (ret) {
     case EOK:
         break;
-    case ETIMEDOUT:
-    case ERR_NETWORK_IO:
+    case ERR_SERVER_FAILURE:
         if (auth_connect_send(req) == NULL) {
             tevent_req_error(req, ENOMEM);
         }
@@ -1116,8 +1112,7 @@ static void sdap_pam_auth_handler_done(struct tevent_req *subreq)
     case ERR_AUTH_FAILED:
         state->pd->pam_status = PAM_AUTH_ERR;
         break;
-    case ETIMEDOUT:
-    case ERR_NETWORK_IO:
+    case ERR_SERVER_FAILURE:
         state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
         be_mark_offline(state->be_ctx);
         break;
@@ -1497,8 +1492,7 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
                 }
             }
             break;
-        case ETIMEDOUT:
-        case ERR_NETWORK_IO:
+        case ERR_SERVER_FAILURE:
             state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
             be_mark_offline(state->be_ctx);
             break;
@@ -1601,7 +1595,7 @@ static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
     case ERR_CHPASS_DENIED:
         state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
         break;
-    case ERR_NETWORK_IO:
+    case ERR_SERVER_FAILURE:
         state->pd->pam_status = PAM_AUTHTOK_ERR;
         break;
     default:
