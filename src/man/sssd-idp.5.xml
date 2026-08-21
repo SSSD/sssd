@@ -190,6 +190,50 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>idp_auth_user_identifier_attr (string)</term>
+                    <listitem>
+                        <para>
+                            Attribute used to identify the authenticated user
+                            in userinfo data or token claims. If not set, the
+                            default depends on the IdP type (Entra ID and most
+                            providers use <quote>id</quote>; Keycloak uses
+                            <quote>sub</quote>).
+                        </para>
+                        <para>
+                            For hybrid Active Directory and Entra ID
+                            deployments where <quote>id_provider = ad</quote>
+                            and <quote>auth_provider = idp</quote>, set this to
+                            <quote>onPremisesImmutableId</quote>. That value is
+                            normally the base64-encoded Active Directory
+                            <quote>objectGUID</quote> (Azure AD Connect default
+                            sourceAnchor). SSSD decodes it with the same
+                            conversion used for AD objectGUID values so the
+                            identifier matches the UUID stored in the SSSD
+                            cache.
+                        </para>
+                        <para>
+                            If the configured attribute is missing or cannot be
+                            decoded (for example cloud-only Entra users without
+                            <quote>onPremisesImmutableId</quote>), SSSD falls
+                            back to the provider default attributes
+                            (<quote>sub</quote>/<quote>id</quote>).
+                        </para>
+                        <para>
+                            Note: Microsoft Graph does not return
+                            <quote>onPremisesImmutableId</quote> by default.
+                            The <quote>idp_userinfo_endpoint</quote> must
+                            request it with <quote>$select</quote>. This only
+                            applies when Azure AD Connect uses objectGUID as
+                            the sourceAnchor; other sourceAnchor values cannot
+                            be matched to AD objectGUID.
+                        </para>
+                        <para>
+                            Default: Not set (provider-specific default is
+                            used)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>idp_request_timeout (integer)</term>
                     <listitem>
                         <para>
@@ -284,6 +328,25 @@ idp_id_scope = https://graph.microsoft.com/.default
 idp_auth_scope = openid profile email
 </programlisting>
 <programlisting>
+[domain/ad.example.com]
+id_provider = ad
+auth_provider = idp
+access_provider = permit
+
+ad_domain = ad.example.com
+krb5_realm = AD.EXAMPLE.COM
+
+idp_type = entra_id
+idp_client_id = 12345678-abcd-0101-efef-ba9876543210
+idp_client_secret = YOUR-CLIENT-SECRET
+idp_token_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/token
+idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me?$select=id,userPrincipalName,onPremisesImmutableId
+idp_device_auth_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/devicecode
+idp_id_scope = https://graph.microsoft.com/.default
+idp_auth_scope = openid profile email
+idp_auth_user_identifier_attr = onPremisesImmutableId
+</programlisting>
+<programlisting>
 [domain/keycloak]
 idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/
 id_provider = idp
@@ -295,6 +358,15 @@ idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/master/
 idp_id_scope = profile
 idp_auth_scope = openid profile email
 </programlisting>
+        </para>
+        <para>
+            In the hybrid Active Directory and Entra ID example above,
+            <quote>onPremisesImmutableId</quote> is used during authentication
+            so the IdP result matches the AD objectGUID UUID stored in the
+            SSSD cache. Request the attribute via
+            <quote>$select</quote> on the Graph userinfo endpoint. The
+            attribute is only populated for users synchronized from Active
+            Directory when objectGUID is the sourceAnchor.
         </para>
     </refsect1>
 
