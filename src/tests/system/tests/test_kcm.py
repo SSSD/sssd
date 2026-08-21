@@ -109,7 +109,7 @@ def test_kcm__kinit_collection(client: Client, kdc: KDC, ccache_storage: str):
 
     client.sssd.common.kcm(kdc)
     client.sssd.kcm["ccache_storage"] = ccache_storage
-    client.sssd.start()
+    client.sssd.config_apply()
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
