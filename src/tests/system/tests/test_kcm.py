@@ -109,6 +109,8 @@ def test_kcm__ccache_holds_multiple_and_all_types_of_principals(client: Client, 
     client.local.user("tuser").add(password="Secret123")
 
     client.sssd.common.kcm(kdc)
+    client.sssd.kcm["ccache_storage"] = ccache_storage
+    client.sssd.config_apply()
 
     with client.ssh("tuser", "Secret123") as ssh:
         with client.auth.kerberos(ssh) as krb:
