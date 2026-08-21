@@ -108,7 +108,7 @@ def test_kcm__ccache_holds_multiple_and_all_types_of_principals(client: Client, 
     kdc.principal("host/myhost").add(password=None)
     client.local.user("tuser").add(password="Secret123")
 
-    client.sssd.common.kcm(kdc)
+    client.sssd.common.kcm(kdc, local_domain=False)
     client.sssd.kcm["ccache_storage"] = ccache_storage
     client.sssd.start()
 
