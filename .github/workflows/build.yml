@@ -98,6 +98,10 @@ jobs:
             echo "::group::Build configuration"
             autoreconf -f -i
 
+            # We have to explicitly pass --datadir and --sysconfdir because the software
+            # uses these vars not only in Makefiles, but also as substitutions in various
+            # .in files. At the same time these values default contain the '${prefix}'
+            # string verbatim, which does not get expanded during the substitution.
             env CFLAGS=-isystem/usr/local/include \
                 CPPFLAGS='-isystem/usr/local/include' \
                 LDFLAGS=-L/usr/local/lib \
@@ -105,7 +109,9 @@ jobs:
                 SOFTHSM2_PATH=/usr/local/lib/softhsm/libsofthsm2.so \
                 MAKE=gmake \
                 LIBS=-lintl \
-                ./configure --disable-cifs-idmap-plugin \
+                ./configure --datadir=/usr/local/share \
+                    --sysconfdir=/usr/local/etc \
+                    --disable-cifs-idmap-plugin \
                     --disable-linux-caps \
                     --without-autofs \
                     --without-selinux \
