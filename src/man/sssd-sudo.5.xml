@@ -137,8 +137,8 @@ ldap_sudo_search_base = ou=sudoers,dc=example,dc=com
         <para>
             The <emphasis>smart refresh</emphasis> periodically downloads rules
             that are new or were modified after the last update. Its primary
-            goal is to keep the database growing by fetching only small
-            increments that do not generate large amounts of network traffic.
+            goal is to grow the database incrementally by fetching only small
+            updates, avoiding large amounts of network traffic.
         </para>
         <para>
             The <emphasis>full refresh</emphasis> simply deletes all sudo rules
