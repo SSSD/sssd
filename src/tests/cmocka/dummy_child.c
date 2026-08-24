@@ -127,6 +127,23 @@ int main(int argc, const char *argv[])
                       len, written);
                 _exit(1);
             }
+        } else if (strcasecmp(action, "check_extra_env") == 0) {
+            const char *var1 = getenv("TEST_ENV_VAR1");
+            const char *var2 = getenv("TEST_ENV_VAR2");
+
+            if (var1 == NULL || strcmp(var1, "foo") != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "TEST_ENV_VAR1 not set correctly, got: %s\n",
+                      var1 ? var1 : "(null)");
+                _exit(1);
+            }
+
+            if (var2 == NULL || strcmp(var2, "bar") != 0) {
+                DEBUG(SSSDBG_CRIT_FAILURE,
+                      "TEST_ENV_VAR2 not set correctly, got: %s\n",
+                      var2 ? var2 : "(null)");
+                _exit(1);
+            }
         }
     }
 
