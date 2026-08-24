@@ -295,6 +295,7 @@ static void sdap_get_tgt_done(struct tevent_req *subreq);
 
 struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
                                      struct tevent_context *ev,
+                                     const char *kdc_address,
                                      const char *realm_str,
                                      const char *princ_str,
                                      const char *keytab_name,
@@ -304,6 +305,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req, *subreq;
     struct sdap_get_tgt_state *state;
     struct io_buffer *buf;
+    const char *extra_env[] = {NULL, NULL, NULL}; /* name, value, NULL */
     int ret;
 
     req = tevent_req_create(mem_ctx, &state, struct sdap_get_tgt_state);
@@ -322,7 +324,12 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sss_child_start(state, state->ev, LDAP_CHILD, NULL, false, NULL,
+    if (kdc_address != NULL) {
+        extra_env[0] = "SSSD_KRB5_LOCATOR_KDC_ADDRESS";
+        extra_env[1] = kdc_address;
+    }
+
+    ret = sss_child_start(state, state->ev, LDAP_CHILD, NULL, false, extra_env,
                           LDAP_CHILD_LOG_FILE, STDOUT_FILENO,
                           child_callback, req,
                           timeout, get_tgt_timeout_handler, req, false,
