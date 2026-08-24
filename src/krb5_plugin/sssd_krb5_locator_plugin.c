@@ -172,13 +172,13 @@ done:
 }
 
 static int buf_to_addr_port_list(struct sssd_ctx *ctx,
-                                 uint8_t *buf, size_t buf_size,
+                                 const uint8_t *buf, size_t buf_size,
                                  struct addr_port **list)
 {
     struct addr_port *l = NULL;
     int ret;
-    uint8_t *p;
-    uint8_t *pn;
+    const uint8_t *p;
+    const uint8_t *pn;
     size_t c;
     size_t len;
     size_t addr_len;
@@ -221,7 +221,7 @@ static int buf_to_addr_port_list(struct sssd_ctx *ctx,
         }
 
         free(tmp);
-        tmp = strndup((char *) p, len);
+        tmp = strndup((const char *) p, len);
         if (tmp == NULL) {
             ret = ENOMEM;
             goto done;
