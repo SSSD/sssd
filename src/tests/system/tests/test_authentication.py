@@ -10,7 +10,7 @@ import re
 
 import pytest
 from sssd_test_framework.roles.client import Client
-from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.roles.generic import GenericADProvider, GenericProvider
 from sssd_test_framework.roles.kdc import KDC
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
@@ -375,3 +375,75 @@ def test_ensure_localauth_plugin_is_not_configured(client: Client, provider: Gen
 
     with pytest.raises(Exception):
         client.fs.read("/var/lib/sss/pubconf/krb5.include.d/localauth_plugin")
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=[1762420, 1883467])
+@pytest.mark.topology(KnownTopologyGroup.AnyDC)
+def test_authentication__user_lookup_over_ldaps(client: Client, provider: GenericProvider):
+    """
+    :title: SSSD resolves user identity over LDAPS when port 389 is blocked
+    :description:
+        When outbound LDAP (port 389) is blocked, SSSD must resolve user identity
+        using LDAPS (port 636). The domain CA certificate is installed and SSSD is
+        configured via client.sssd.common.use_ldaps(), which sets ad_use_ldaps for
+        AD/Samba and ldap_tls_cacert for all providers.
+    :setup:
+        1. Create a user on the provider
+        2. Configure SSSD for LDAPS using use_ldaps()
+        3. Block outbound TCP port 389 to force LDAPS
+    :steps:
+        1. Start SSSD
+        2. Look up the user with getent passwd
+        3. Check SSSD domain log for an ldaps:// connection URI
+    :expectedresults:
+        1. SSSD starts successfully
+        2. User is resolved with the correct name
+        3. Domain log shows an ldaps:// connection URI
+    :customerscenario: True
+    """
+    user = provider.user("ldaps-user").add()
+
+    client.sssd.common.use_ldaps(provider)
+    client.firewall.outbound.drop_port(389)
+    client.sssd.start()
+
+    result = client.tools.getent.passwd(user.name)
+    assert result is not None, f"User '{user.name}' not found via getent passwd"
+    assert result.name == user.name
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert "ldaps://" in log, "SSSD domain log should show an ldaps:// connection"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=[1762420, 1883467])
+@pytest.mark.topology(KnownTopologyGroup.AnyDC)
+def test_authentication__user_authentication_over_ldaps(client: Client, provider: GenericProvider):
+    """
+    :title: SSSD authenticates user over LDAPS when port 389 is blocked
+    :description:
+        When outbound LDAP (port 389) is blocked, SSSD must authenticate users
+        using LDAPS (port 636). The domain CA certificate is installed and SSSD is
+        configured via client.sssd.common.use_ldaps().
+    :setup:
+        1. Create a user on the provider with a known password
+        2. Configure SSSD for LDAPS using use_ldaps()
+        3. Block outbound TCP port 389 to force LDAPS
+    :steps:
+        1. Start SSSD
+        2. Authenticate as the user via su
+    :expectedresults:
+        1. SSSD starts successfully
+        2. Authentication succeeds over LDAPS
+    :customerscenario: True
+    """
+    user = provider.user("ldaps-authuser").add(password="Secret123")
+
+    client.sssd.common.use_ldaps(provider)
+    client.firewall.outbound.drop_port(389)
+    client.sssd.start()
+
+    assert client.auth.su.password(user.name, "Secret123"), (
+        f"Authentication failed for '{user.name}' over LDAPS"
+    )
