@@ -701,6 +701,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         const char *binary,
                         const char *extra_args[], bool extra_args_only,
+                        const char *extra_env[],
                         const char *logfile,
                         int child_out_fd,
                         sss_child_sigchld_callback_t cb, void *pvt,
@@ -752,7 +753,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
         exec_child_ex(tmp_ctx,
                       pipefd_to_child, pipefd_from_child,
                       binary, logfile,
-                      extra_args, extra_args_only, NULL,
+                      extra_args, extra_args_only, extra_env,
                       STDIN_FILENO, child_out_fd);
 
         /* We should never get here */

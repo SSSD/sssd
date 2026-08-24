@@ -68,11 +68,14 @@ typedef void (*sss_child_sigchld_callback_t)(int child_status,
  * There is also a watch attached to SIGCHLD 'pvt' so callback won't be called
  * if 'pvt' was freed. But basic handling - waitpid() - is still performed
  * automatically.
+ *
+ * extra_env format: {"NAME1", "value1", "NAME2", "value2", NULL}
  */
 errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         const char *binary,
                         const char *extra_args[], bool extra_args_only,
+                        const char *extra_env[],  /* extra environment variables */
                         const char *logfile,
                         int child_out_fd,  /* FD that binary uses to write response to */
                         sss_child_sigchld_callback_t cb,  /* SIGCHLD handler */
