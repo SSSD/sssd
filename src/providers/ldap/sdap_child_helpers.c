@@ -234,7 +234,7 @@ errno_t sdap_select_principal_from_keytab_sync(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_child_start(mem_ctx, NULL, LDAP_CHILD, NULL, false,
+    ret = sss_child_start(mem_ctx, NULL, LDAP_CHILD, NULL, false, NULL,
                           LDAP_CHILD_LOG_FILE, STDOUT_FILENO,
                           NULL, NULL,
                           0, NULL, NULL, false, &io);
@@ -322,7 +322,7 @@ struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sss_child_start(state, state->ev, LDAP_CHILD, NULL, false,
+    ret = sss_child_start(state, state->ev, LDAP_CHILD, NULL, false, NULL,
                           LDAP_CHILD_LOG_FILE, STDOUT_FILENO,
                           child_callback, req,
                           timeout, get_tgt_timeout_handler, req, false,

@@ -1222,7 +1222,7 @@ nsupdate_child_send(TALLOC_CTX *mem_ctx,
     state->child_status = ETIMEDOUT;
 
     ret = sss_child_start(state, ev,
-                          NSUPDATE_PATH, args, true,
+                          NSUPDATE_PATH, args, true, NULL,
                           NULL, STDERR_FILENO,
                           nsupdate_child_handler, req,
                           DYNDNS_TIMEOUT,
