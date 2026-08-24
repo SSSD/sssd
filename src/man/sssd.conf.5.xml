@@ -1894,7 +1894,7 @@ pam_gssapi_services = sudo, sudo-i
                             fails.
                         </para>
                         <para>
-                            If False, every user that is able to obtain 
+                            If False, every user that is able to obtain
                             a required service ticket will be authenticated.
                         </para>
                         <para>
