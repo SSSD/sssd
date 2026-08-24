@@ -41,12 +41,6 @@ typedef errno_t
                                     struct tevent_req *,
                                     time_t *_expiration_time);
 
-struct sss_failover_vtable_kinit {
-    sss_failover_vtable_kinit_send_t send;
-    sss_failover_vtable_kinit_recv_t recv;
-    void *data;
-};
-
 typedef struct tevent_req *
 (*sss_failover_vtable_connect_send_t)(TALLOC_CTX *mem_ctx,
                                       struct tevent_context *ev,
@@ -78,6 +72,11 @@ typedef void
                                       void *connection,
                                       void *pvt);
 
+struct sss_failover_vtable_kinit {
+    sss_failover_vtable_kinit_send_t send;
+    sss_failover_vtable_kinit_recv_t recv;
+    void *data;
+};
 
 struct sss_failover_vtable_connect {
     sss_failover_vtable_connect_send_t send;
@@ -120,16 +119,16 @@ struct sss_failover_vtable {
 };
 
 void
-sss_failover_vtable_set_connect(struct sss_failover_ctx *fctx,
-                                sss_failover_vtable_connect_send_t send_fn,
-                                sss_failover_vtable_connect_recv_t recv_fn,
-                                void *data);
-
-void
 sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,
                               sss_failover_vtable_kinit_send_t send_fn,
                               sss_failover_vtable_kinit_recv_t recv_fn,
                               void *data);
+
+void
+sss_failover_vtable_set_connect(struct sss_failover_ctx *fctx,
+                                sss_failover_vtable_connect_send_t send_fn,
+                                sss_failover_vtable_connect_recv_t recv_fn,
+                                void *data);
 
 void
 sss_failover_vtable_set_disconnected(struct sss_failover_ctx *fctx,
