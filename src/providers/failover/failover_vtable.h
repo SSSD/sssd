@@ -29,6 +29,11 @@
 struct sss_failover_ctx;
 enum sss_failover_transaction_tls;
 
+typedef void
+(*sss_failover_vtable_new_candidates_t)(struct sss_failover_ctx *fctx,
+                                        struct sss_failover_server **servers,
+                                        void *pvt);
+
 typedef struct tevent_req *
 (*sss_failover_vtable_kinit_send_t)(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
@@ -72,12 +77,16 @@ typedef void
                                       void *connection,
                                       void *pvt);
 
+struct sss_failover_vtable_new_candidates {
+    sss_failover_vtable_new_candidates_t cb;
+    void *data;
+};
+
 struct sss_failover_vtable_kinit {
     sss_failover_vtable_kinit_send_t send;
     sss_failover_vtable_kinit_recv_t recv;
     void *data;
 };
-
 struct sss_failover_vtable_connect {
     sss_failover_vtable_connect_send_t send;
     sss_failover_vtable_connect_recv_t recv;
@@ -100,6 +109,9 @@ struct sss_failover_vtable_conn_op_done {
 };
 
 struct sss_failover_vtable {
+    /* New list of candidate server is available. */
+    struct sss_failover_vtable_new_candidates new_candidates;
+
     /* Obtain TGT for the host. */
     struct sss_failover_vtable_kinit kinit;
 
@@ -117,6 +129,11 @@ struct sss_failover_vtable {
     /* Operation using the connection finished. */
     struct sss_failover_vtable_conn_op_done conn_op_done;
 };
+
+void
+sss_failover_vtable_set_new_candidates(struct sss_failover_ctx *fctx,
+                                       sss_failover_vtable_new_candidates_t cb,
+                                       void *data);
 
 void
 sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,

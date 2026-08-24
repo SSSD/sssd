@@ -695,6 +695,12 @@ sss_failover_refresh_candidates_done(struct tevent_req *subreq)
     state->fctx->candidates->servers = talloc_steal(state->fctx->candidates,
                                                     candidates);
 
+    if (state->fctx->vtable->new_candidates.cb != NULL) {
+        state->fctx->vtable->new_candidates.cb(
+            state->fctx, state->fctx->candidates->servers,
+            state->fctx->vtable->new_candidates.data);
+    }
+
 done:
     if (ret != EOK) {
         tevent_req_error(req, ret);

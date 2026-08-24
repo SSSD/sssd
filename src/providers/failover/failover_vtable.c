@@ -24,6 +24,15 @@
 #include "util/util.h"
 
 void
+sss_failover_vtable_set_new_candidates(struct sss_failover_ctx *fctx,
+                                       sss_failover_vtable_new_candidates_t cb,
+                                       void *data)
+{
+    fctx->vtable->new_candidates.cb = cb;
+    fctx->vtable->new_candidates.data = data;
+}
+
+void
 sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,
                               sss_failover_vtable_kinit_send_t send_fn,
                               sss_failover_vtable_kinit_recv_t recv_fn,
