@@ -24,17 +24,6 @@
 #include "util/util.h"
 
 void
-sss_failover_vtable_set_connect(struct sss_failover_ctx *fctx,
-                                sss_failover_vtable_connect_send_t send_fn,
-                                sss_failover_vtable_connect_recv_t recv_fn,
-                                void *data)
-{
-    fctx->vtable->connect.send = send_fn;
-    fctx->vtable->connect.recv = recv_fn;
-    fctx->vtable->connect.data = data;
-}
-
-void
 sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,
                               sss_failover_vtable_kinit_send_t send_fn,
                               sss_failover_vtable_kinit_recv_t recv_fn,
@@ -43,6 +32,17 @@ sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,
     fctx->vtable->kinit.send = send_fn;
     fctx->vtable->kinit.recv = recv_fn;
     fctx->vtable->kinit.data = data;
+}
+
+void
+sss_failover_vtable_set_connect(struct sss_failover_ctx *fctx,
+                                sss_failover_vtable_connect_send_t send_fn,
+                                sss_failover_vtable_connect_recv_t recv_fn,
+                                void *data)
+{
+    fctx->vtable->connect.send = send_fn;
+    fctx->vtable->connect.recv = recv_fn;
+    fctx->vtable->connect.data = data;
 }
 
 void
