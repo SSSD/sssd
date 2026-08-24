@@ -95,8 +95,6 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
           keytab != NULL ? keytab : "default", principal, realm, lifetime,
           server->name);
 
-    /* TODO write kdcinfo */
-
     kdc_address = talloc_asprintf(state, "%s:%" PRIu16, server->addr->human,
                                   server->port);
     if (kdc_address == NULL) {
