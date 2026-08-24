@@ -156,7 +156,7 @@
                             The namingContexts attribute must have a
                             single value with the DN of the search base of the
                             LDAP server to make this work. Multiple values are
-                            are not supported.
+                            not supported.
                         </para>
                     </listitem>
                 </varlistentry>
