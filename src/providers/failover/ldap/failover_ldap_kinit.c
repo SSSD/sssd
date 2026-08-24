@@ -78,8 +78,6 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    /* TODO do not acquire TGT if we already have a valid one */
-
     opts = talloc_get_type_abort(pvt, struct sdap_options);
 
     sss_failover_ldap_kinit_options(opts, &keytab, &realm, &principal,
