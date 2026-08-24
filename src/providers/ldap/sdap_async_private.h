@@ -94,6 +94,7 @@ const char *sdap_get_server_peer_str_safe(struct sdap_handle *sh);
 
 struct tevent_req *sdap_get_tgt_send(TALLOC_CTX *mem_ctx,
                                      struct tevent_context *ev,
+                                     const char *kdc_address,
                                      const char *realm_str,
                                      const char *princ_str,
                                      const char *keytab_name,
