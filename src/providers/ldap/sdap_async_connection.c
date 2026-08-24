@@ -1229,7 +1229,7 @@ static void sdap_kinit_kdc_resolved(struct tevent_req *subreq)
 
     DEBUG(SSSDBG_TRACE_LIBS, "KDC resolved, attempting to get TGT...\n");
 
-    tgtreq = sdap_get_tgt_send(state, state->ev, state->realm,
+    tgtreq = sdap_get_tgt_send(state, state->ev, NULL, state->realm,
                                state->principal, state->keytab,
                                state->lifetime, state->timeout);
     if (!tgtreq) {
