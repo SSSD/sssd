@@ -29,10 +29,6 @@
 struct sss_failover_ctx;
 enum sss_failover_transaction_tls;
 
-struct sss_failover_vtable_kinit_output_data {
-    time_t expiration_time;
-};
-
 typedef struct tevent_req *
 (*sss_failover_vtable_kinit_send_t)(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
