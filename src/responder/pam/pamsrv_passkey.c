@@ -1018,7 +1018,7 @@ static errno_t passkey_child_exec(struct tevent_req *req)
     state->child_status = ETIMEDOUT;
 
     ret = sss_child_start(state, state->ev,
-                          PASSKEY_CHILD_PATH, state->extra_args, false,
+                          PASSKEY_CHILD_PATH, state->extra_args, false, NULL,
                           state->logfile, STDOUT_FILENO,
                           (state->kerberos_pa) ? NULL : pam_passkey_auth_done, req,
                           state->timeout,

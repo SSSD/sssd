@@ -447,7 +447,7 @@ static errno_t start_krb5_child(struct tevent_req *req)
     }
 
     ret = sss_child_start(child_state, ev,
-                          KRB5_CHILD, krb5_child_extra_args, false,
+                          KRB5_CHILD, krb5_child_extra_args, false, NULL,
                           KRB5_CHILD_LOG_FILE, STDOUT_FILENO,
                           sss_child_handle_exited, NULL,
                           dp_opt_get_int(kr->krb5_ctx->opts, KRB5_AUTH_TIMEOUT),

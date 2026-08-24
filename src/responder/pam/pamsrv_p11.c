@@ -903,7 +903,7 @@ struct tevent_req *pam_check_cert_send(TALLOC_CTX *mem_ctx,
     state->ev = ev;
 
     ret = sss_child_start(state, ev,
-                          P11_CHILD_PATH, extra_args, false,
+                          P11_CHILD_PATH, extra_args, false, NULL,
                           P11_CHILD_LOG_FILE, STDOUT_FILENO,
                           NULL, NULL,
                           (unsigned)(timeout),

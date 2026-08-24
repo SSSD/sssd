@@ -4817,7 +4817,7 @@ ad_gpo_process_cse_send(TALLOC_CTX *mem_ctx,
         goto immediately;
     }
 
-    ret = sss_child_start(state, ev, GPO_CHILD, NULL, false,
+    ret = sss_child_start(state, ev, GPO_CHILD, NULL, false, NULL,
                           GPO_CHILD_LOG_FILE, AD_GPO_CHILD_OUT_FILENO,
                           /* no SIGCHLD cb */ NULL, NULL,
                           timeout,
