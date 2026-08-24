@@ -66,6 +66,7 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
     const char *principal;
     const char *realm;
     bool canonicalize;
+    char *kdc_address;
     int timeout;
     int lifetime;
     errno_t ret;
@@ -98,8 +99,16 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
 
     /* TODO write kdcinfo */
 
-    subreq = sdap_get_tgt_send(state, ev, realm, principal, keytab, lifetime,
-                               timeout);
+    kdc_address = talloc_asprintf(state, "%s:%" PRIu16, server->addr->human,
+                                  server->port);
+    if (kdc_address == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    subreq = sdap_get_tgt_send(state, ev, kdc_address, realm, principal, keytab,
+                               lifetime, timeout);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
         ret = ENOMEM;
