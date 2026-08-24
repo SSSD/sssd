@@ -140,7 +140,7 @@ sss_failover_ldap_kinit_done(struct tevent_req *subreq)
     ret = sdap_get_tgt_recv(subreq, state, &result, &kerr, &ccname,
                             &state->expiration_time);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ETIMEDOUT) {
         goto done;
     }
 
