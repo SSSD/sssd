@@ -1007,9 +1007,11 @@ class TestADParamsPorted:
           2. Search logs for specific message(s) in sssd domain log.
              Failed to resolve server 'unresolved.<AD_DOMAIN1>'
              Going offline
+          3. Retry steps 1 and 2 (if needed) upto 10 times.
         :expectedresults:
           1. User is not found.
           2. The line(s) are present in the log.
+          3. The log message eventually appears in the log.
         :customerscenario: False
         """
         adjoin(membersw='adcli')
@@ -1028,18 +1030,27 @@ class TestADParamsPorted:
         client.sssd_conf(dom_section, sssd_params)
         client.clear_sssd_cache()
 
+        domain = multihost.ad[0].domainname.lower()
+        domain_log = f"/var/log/sssd/sssd_{domain}.log"
+        server_name = f'unresolved.{domain}'
+        resolve_prefix = f"Failed to resolve server '{server_name}'"
+
         # Search for the user and get its uid
         usr_cmd = multihost.client[0].run_command(
             f'getent passwd {aduser}', raiseonerr=False)
 
-        # Download the sssd domain log
-        log_str = multihost.client[0].get_file_contents(
-            f"/var/log/sssd/sssd_{multihost.ad[0].domainname.lower()}.log"). \
-            decode('utf-8')
+        # c-ares may log resolve failure / offline asynchronously
+        log_str = ''
+        for _ in range(10):
+            log_str = multihost.client[0].get_file_contents(
+                domain_log).decode('utf-8')
+            if resolve_prefix in log_str and "Going offline" in log_str:
+                break
+            multihost.client[0].run_command(
+                f'getent passwd {aduser}', raiseonerr=False)
+            time.sleep(3)
 
-        assert f"Failed to resolve server 'unresolved." \
-               f"{multihost.ad[0].domainname.lower()}': " \
-               f"Domain name not found" in log_str
+        assert resolve_prefix in log_str
         assert "Going offline" in log_str
         assert usr_cmd.returncode == 2, f"User {aduser} was found!"
 
