@@ -840,3 +840,105 @@ def test_ldap__resolver_provider_lookup_services_by_port(client: Client, ldap: L
         assert protocol in result.protocol, f"Service '{protocol}' was not found!"
     else:
         raise AssertionError("No service entry found!")
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.parametrize("timeout, expect_expire", [(15, True), (0, True), (-100, True)])
+@pytest.mark.importance("medium")
+def test_ldap__connection_expire_timeout_releases_connection(
+    client: Client, ldap: LDAP, timeout: int, expect_expire: bool
+):
+    """
+    :title: LDAP connection is released after ldap_connection_expire_timeout
+    :setup:
+        1. Create user "user-1" and "user-2"
+        2. Set ldap_connection_expire_timeout to @timeout
+        3. Start SSSD
+    :steps:
+        1. Lookup user-1 to establish a connection
+        2. Wait for timeout to expire (or a short period for instant-expire values)
+        3. Lookup user-2 to trigger a new connection
+        4. Verify the connection was recycled by checking domain logs
+    :expectedresults:
+        1. User-1 is found
+        2. Timeout period passes
+        3. User-2 is found
+        4. Log contains "Connection is about to expire, releasing it" for positive timeouts,
+           or connection is instantly recycled for zero/negative values
+    :customerscenario: False
+    """
+    ldap.user("user-1").add()
+    ldap.user("user-2").add()
+    client.sssd.domain["ldap_connection_expire_timeout"] = str(timeout)
+    client.sssd.start()
+
+    result = client.tools.id("user-1")
+    assert result is not None, "user-1 not found!"
+
+    wait = timeout + 5 if timeout > 0 else 5
+    time.sleep(wait)
+
+    result = client.tools.id("user-2")
+    assert result is not None, "user-2 not found!"
+
+    if timeout > 0:
+        log = client.fs.read(client.sssd.logs.domain())
+        assert "Connection is about to expire, releasing it" in log, (
+            "Connection expire message not found in domain log!"
+        )
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.importance("medium")
+def test_ldap__connection_expire_timeout_out_of_range(client: Client, ldap: LDAP):
+    """
+    :title: SSSD rejects ldap_connection_expire_timeout value out of integer range
+    :setup:
+        1. Create user "user-1"
+        2. Set ldap_connection_expire_timeout to a value exceeding INT_MAX
+    :steps:
+        1. Start SSSD
+        2. Check domain log for "Numerical result out of range" error
+    :expectedresults:
+        1. SSSD starts but the domain may fail to initialize properly
+        2. Log contains the out-of-range error message
+    :customerscenario: False
+    """
+    ldap.user("user-1").add()
+    out_of_range = str(2**31)
+    client.sssd.domain["ldap_connection_expire_timeout"] = out_of_range
+    client.sssd.start(raise_on_error=False, check_config=False)
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert "Numerical result out of range" in log, (
+        "Expected 'Numerical result out of range' error not found in domain log!"
+    )
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.importance("low")
+def test_ldap__connection_expire_timeout_default_value_is_logged(client: Client, ldap: LDAP):
+    """
+    :title: Default ldap_connection_expire_timeout value (900) is logged at startup
+    :setup:
+        1. Create user "user-1"
+        2. Do not set ldap_connection_expire_timeout (use default)
+        3. Start SSSD
+    :steps:
+        1. Lookup user-1
+        2. Check domain log for the default timeout value
+    :expectedresults:
+        1. User is found
+        2. Log contains "Option ldap_connection_expire_timeout has value 900"
+    :customerscenario: False
+    """
+    ldap.user("user-1").add()
+    client.sssd.start()
+
+    result = client.tools.id("user-1")
+    assert result is not None, "user-1 not found!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert "Option ldap_connection_expire_timeout has value 900" in log, (
+        "Default ldap_connection_expire_timeout value (900) not found in domain log!"
+    )
