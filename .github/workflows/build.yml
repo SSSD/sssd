@@ -118,8 +118,8 @@ jobs:
                     --without-selinux \
                     --without-nfsv4-idmapd-plugin \
                     --with-smb-idmap-interface-version=6 \
-                    --with-adcli-path=${LOCALBASE}/sbin/adcli \
-                    --with-realm-path=${LOCALBASE}/sbin/realm \
+                    --with-adcli-path=/usr/local/sbin/adcli \
+                    --with-realm-path=/usr/local/sbin/realm \
                     --with-xml-catalog-path=/usr/local/share/xml/catalog \
                     --with-passkey
             echo "::endgroup::"
