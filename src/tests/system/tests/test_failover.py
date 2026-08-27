@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
-from sssd_test_framework.topology import KnownTopologyGroup
+from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.parametrize("value, expected", [(None, 31), (15, 31), (60, 60)])
@@ -61,27 +61,107 @@ def test_failover__reactivation_timeout_is_honored(
     ), f"'Primary server reactivation timeout set to {expected} seconds' not found in logs!"
 
 
-@pytest.mark.importance("low")
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-def test_failover__connect_using_ipv4_second_family(client: Client, provider: GenericProvider):
+# We do not authenticate the host on LDAP provider
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=2466974)
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.topology(KnownTopology.Samba)
+@pytest.mark.preferred_topology(KnownTopology.IPA)
+def test_failover__go_offline_if_kinit_fails(client: Client, provider: GenericProvider):
     """
-    :title: Make sure that we can connect using secondary protocol
+    :title: SSSD goes offline when Kerberos authentication fails
     :setup:
         1. Create user
-        2. Set family_order to "ipv6_first"
-        3. Set IPv6 address in /etc/hosts so it resolves but it
-           points to non-exesting machine
-        4. Start SSSD
+        2. Block outbound port 88 (Kerberos)
+        3. Start SSSD
     :steps:
-        1. Resolve user
+        1. Try to resolve user
+        2. Check domain status
     :expectedresults:
-        1. SSSD goes online and the user is resolved
+        1. User is not found
+        2. SSSD is offline
     :customerscenario: False
     """
     user = provider.user("testuser").add()
-    client.sssd.domain["lookup_family_order"] = "ipv6_first"
-    client.fs.append("/etc/hosts", "cafe:cafe::3 %s" % provider.host.hostname)
+    client.firewall.outbound.drop_port((88, "tcp"))
+    client.firewall.outbound.drop_port((88, "udp"))
     client.sssd.start()
 
+    # Make sure SSSD tries to connect
     result = client.tools.id(user.name)
-    assert result is not None, f"{user.name} was not found, SSSD did not switch to IPv4 family!"
+    assert result is None, f"{user.name} was found, SSSD is not offline!"
+
+    # SSSD was not able to connect. But check that it was actually set to offline internal state.
+    assert client.sssd.default_domain is not None, "No default domain?"
+    status = client.sssctl.domain_status(client.sssd.default_domain, online=True)
+    assert "Offline" in status.stdout, "SSSD is not offline!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_failover__go_offline_if_ldap_fails(client: Client, provider: GenericProvider):
+    """
+    :title: SSSD goes offline when LDAP connection fails
+    :setup:
+        1. Create user
+        2. Block outbound port 389 (LDAP)
+        3. Start SSSD
+    :steps:
+        1. Try to resolve user
+        2. Check domain status
+    :expectedresults:
+        1. User is not found
+        2. SSSD is offline
+    :customerscenario: False
+    """
+    user = provider.user("testuser").add()
+    client.firewall.outbound.drop_port((389, "tcp"))
+    client.sssd.start()
+
+    # Make sure SSSD tries to connect
+    result = client.tools.id(user.name)
+    assert result is None, f"{user.name} was found, SSSD is not offline!"
+
+    # SSSD was not able to connect. But check that it was actually set to offline internal state.
+    assert client.sssd.default_domain is not None, "No default domain?"
+    status = client.sssctl.domain_status(client.sssd.default_domain, online=True)
+    assert "Offline" in status.stdout, "SSSD is not offline!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=1283798)
+@pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_failover__login_via_backup_when_primary_is_unavailable(
+    client: Client, provider: GenericProvider, method: str
+):
+    """
+    :title: User login succeeds via backup server when primary is unavailable
+    :setup:
+        1. Create user "user-1"
+        2. Set primary server to an invalid (unreachable) server
+        3. Set backup server to the real provider
+        4. Start SSSD
+    :steps:
+        1. Login as user-1
+        2. Check that SSSD is connected to the backup server
+    :expectedresults:
+        1. User can login via the backup server
+        2. SSSD is connected to the backup server
+    :customerscenario: True
+    """
+    provider.user("user-1").add(password="Secret123")
+    client.sssd.set_invalid_primary_server(provider)
+    client.sssd.enable_responder("ifp")
+    client.sssd.start()
+
+    assert client.auth.parametrize(method).password(
+        "user-1", "Secret123"
+    ), "User login failed, failover to backup server did not work!"
+
+    assert client.sssd.default_domain is not None, "Default domain is not set!"
+    status = client.sssctl.domain_status(client.sssd.default_domain, active=True)
+    assert provider.host.hostname in status.stdout, f"SSSD is not connected to backup server {provider.host.hostname}!"
