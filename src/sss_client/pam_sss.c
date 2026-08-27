@@ -2077,8 +2077,9 @@ static int prompt_multi_cert_gdm(pam_handle_t *pamh, struct pam_items *pi)
         request->list.items[c++].text = prompt;
     }
 
-    GDM_PAM_EXTENSION_MESSAGE_TO_BINARY_PROMPT_MESSAGE(request,
-                                                       &prompt_message);
+    GDM_PAM_EXTENSION_MESSAGE_TO_BINARY_PROMPT_MESSAGE(
+                                        (GdmPamExtensionMessage *)request,
+                                        &prompt_message);
     prompt_messages[0] = &prompt_message;
 
     ret = conv->conv(1, prompt_messages, &reply, conv->appdata_ptr);
