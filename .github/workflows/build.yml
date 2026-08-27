@@ -118,7 +118,14 @@ jobs:
                     --without-selinux \
                     --without-nfsv4-idmapd-plugin \
                     --with-smb-idmap-interface-version=6 \
+<<<<<<< HEAD
                     --with-xml-catalog-path=/usr/local/share/xml/catalog
+=======
+                    --with-adcli-path=/usr/local/sbin/adcli \
+                    --with-realm-path=/usr/local/sbin/realm \
+                    --with-xml-catalog-path=/usr/local/share/xml/catalog \
+                    --with-passkey
+>>>>>>> 35b38806f (FreeBSD CI: Do not reference an unset LOCALBASE variable)
             echo "::endgroup::"
 
             echo "::group::Building"
