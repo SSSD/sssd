@@ -525,3 +525,382 @@ def test_ldap__limit_search_base_group(client: Client, provider: LDAP):
     assert (
         "(h2,ou2_usr1,ldap.test)" not in result.members
     ), "'ou1_grp2' members did not match the expected ones when search base is limited."
+
+
+@pytest.mark.ticket(bz=1902280)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__reset_cached_timestamps_to_reflect_changes(client: Client, ldap: LDAP):
+    """
+    :title: SSSCTL cache-expire to also reset cached timestamp
+    :setup:
+        1. Add users and groups to LDAP
+        2. Configure and start SSSD
+    :steps:
+        1. Lookup group
+        2. Lookup group after clearing the cache with sssctl
+    :expectedresults:
+        1. User is found
+        2. User is not found
+    :customerscenario: True
+    """
+    u = ldap.user("user1").add()
+    ldap.group("group1", rfc2307bis=True).add().add_member(u)
+
+    client.sssd.domain["ldap_schema"] = "rfc2307bis"
+    client.sssd.domain["ldap_group_member"] = "member"
+
+    client.sssd.start()
+
+    res = client.tools.getent.group("group1")
+    assert res is not None, "Group should exist"
+    assert "user1" in res.members, "User should be in group"
+
+    ldap.group("group1", rfc2307bis=True).remove_member(ldap.user("user1"))
+    client.sssctl.cache_expire(everything=True)
+
+    res = client.tools.getent.group("group1")
+    assert res is not None, "Group should still exist"
+    assert "user1" not in res.members, "User should be removed from group"
+
+
+@pytest.mark.parametrize(
+    ("ip_addresses", "aliases"),
+    [
+        (["192.168.1.1"], []),
+        (["192.168.1.1", "192.168.1.2"], ["host1", "host2"]),
+        (["2001:db8:1::1", "2001:db8:1::2"], ["host1.ldap.test", "host2.ldap.test"]),
+    ],
+)
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_hosts(client: Client, ldap: LDAP, ip_addresses, aliases):
+    """
+    :title: Resolver provider lookup hosts
+    :setup:
+        1. Create hosts and host aliases
+        2. Start SSSD
+    :steps:
+        1. Lookup host and check for IP addresses
+        2. Lookup host and check for aliases
+    :expectedresults:
+        1. All IP addresses found
+        2. All aliases found
+    :customerscenario: False
+    """
+    ldap.hosts("host0").add(ip_address=ip_addresses, aliases=aliases)
+    client.sssd.start()
+
+    result = client.tools.getent.hosts("host0", service="sss")
+    if result is not None and result.ip is not None:
+        for ip in ip_addresses:
+            assert ip in result.ip, f"Host IP addresses {ip} was not found!"
+        if result.aliases is not None:
+            for host in aliases:
+                assert host in result.aliases, f"'Host alias {host} for 'host0' was not found!"
+    else:
+        raise AssertionError("Hosts entry not found!")
+
+    for alias in aliases:
+        result = client.tools.getent.hosts(alias, service="sss")
+        if result is not None and result.ip is not None:
+            for ip in ip_addresses:
+                assert ip in result.ip, f"Alias IP addresses {ip} was not found!"
+
+
+@pytest.mark.parametrize(
+    "ip_addresses",
+    [
+        ["192.168.1.1"],
+        ["192.168.1.1", "192.168.1.2"],
+        ["2001:db8:1::1", "2001:db8:1::2"],
+    ],
+)
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_hosts_by_ip(client: Client, ldap: LDAP, ip_addresses):
+    """
+    :title: Resolver provider lookup hosts by ip
+    :setup:
+        1. Create hosts and host aliases
+        2. Start SSSD
+    :steps:
+        1. Lookup host IP address
+    :expectedresults:
+        1. IP addresses found
+    :customerscenario: False
+    """
+    ldap.hosts("host0").add(ip_address=ip_addresses, aliases=[])
+    client.sssd.start()
+
+    for ip in ip_addresses:
+        result = client.tools.getent.hosts(ip, service="sss")
+        if result is not None and result.ip is not None:
+            assert ip in result.ip, f"Host IP addresses {ip} was not found!"
+        else:
+            raise AssertionError("Host entry not found by IP!")
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.importance("medium")
+def test_ldap__resolver_provider_lookup_hosts_mixed_ip_versions(client: Client, ldap: LDAP):
+    """
+    :title: Resolver provider lookup hosts with mixed ip versions
+
+    ``getent hosts`` has two other commands, ``ahosts``  and ``ahostsv6``.
+    ``hosts`` is used, when results contains both ipv4 and ipv4 addresses, only ipv6
+    will be returned.
+
+    :setup:
+        1. Create hosts and host aliases
+        2. Start SSSD
+    :steps:
+        1. Lookup host and check for IP addresses
+        2. Lookup host and check for aliases
+    :expectedresults:
+        1. All IP addresses found
+        2. Only ipv6 aliases are found
+    :customerscenario: False
+    """
+    ip_addresses = [
+        "2001:db8:1::1",
+        "2001:db8:1::2",
+        "192.168.1.1",
+        "192.168.1.2",
+    ]
+    ipv6_addresses = ["2001:db8:1::1", "2001:db8:1::2"]
+    aliases = ["host1.ldap.test", "host2.ldap.test"]
+
+    ldap.hosts("host0").add(ip_address=ip_addresses, aliases=aliases)
+    client.sssd.start()
+
+    result = client.tools.getent.hosts("host0", service="sss")
+    if result is not None and result.ip is not None:
+        for ip in ipv6_addresses:
+            assert ip in result.ip, f"Host IPv6 address {ip} was not found!"
+        for alias in aliases:
+            if result.aliases is not None:
+                assert alias in result.aliases, f"'Host alias {alias} was not found!"
+    else:
+        raise AssertionError("No hosts entry found!")
+
+
+@pytest.mark.parametrize(
+    ("ip_address", "aliases"),
+    [
+        ("192.168.1.1", []),
+        ("192.168.2.1", ["net1", "net2"]),
+    ],
+)
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_networks(client: Client, ldap: LDAP, ip_address, aliases):
+    """
+    :title: Resolver provider lookup networks
+    :setup:
+        1. Create network and network aliases
+        2. Start SSSD
+    :steps:
+        1. Lookup IP addresses
+        2. Lookup network
+        3. Lookup network aliases
+    :expectedresults:
+        1. IP addresses found
+        2. Network found
+        3. Network aliases found
+    :customerscenario: False
+    """
+    ldap.networks("net0").add(ip_address=ip_address, aliases=aliases)
+    client.sssd.start()
+
+    result = client.tools.getent.networks("net0", service="sss")
+    if result is not None and result.name is not None and result.ip is not None:
+        assert "net0" == result.name, "Network 'net0'  was not found!"
+        assert all(ip in result.ip for ip in ip_address), f"Network IP addresses {ip_address} was not found!"
+    else:
+        raise AssertionError("No networks entry found!")
+
+    result = client.tools.getent.networks(ip_address, service="sss")
+    if result is not None:
+        assert "net0" == result.name, "Network 'net0'  was not found!"
+        if result.aliases is not None:
+            for network in aliases:
+                assert network in result.aliases, f"Network alias {network} for 'net0' was not found!"
+    else:
+        raise AssertionError("No networks entry found by IP!")
+
+    for alias in aliases:
+        result = client.tools.getent.networks(alias, service="sss")
+        if result is not None and result.ip is not None:
+            assert ip_address == result.ip, f"Network IP addresses {ip_address} was not found!"
+
+
+@pytest.mark.parametrize(
+    ("port", "protocol", "aliases"),
+    [
+        (12345, "tcp", []),
+        (12345, "tcp", ["service1"]),
+    ],
+)
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_services(client: Client, ldap: LDAP, port, protocol, aliases):
+    """
+    :title: Resolver provider lookup services
+    :setup:
+        1. Create services
+        2. Start SSSD
+    :steps:
+        1. Lookup service
+        2. Lookup service by alias
+    :expectedresults:
+        1. Service found and port and protocol matches
+        2. Service alias found
+    :customerscenario: False
+    """
+    ldap.services("service0").add(port=port, protocol=protocol, aliases=aliases)
+    client.sssd.start()
+
+    result = client.tools.getent.services("service0", service="sss")
+    if result is not None and result.name is not None and result.port is not None and result.protocol is not None:
+        assert "service0" == result.name, "Service 'service0' was not found!"
+        assert port == result.port, f"Service port '{str(port)}' was not found!"
+        assert protocol in result.protocol, f"Service protocol '{protocol}' was not found!"
+        for service in aliases:
+            assert service in aliases, f"Alias service  '{service}' was not found!"
+    else:
+        raise AssertionError("No service entry found!")
+
+    for alias in aliases:
+        result = client.tools.getent.services(alias, service="sss")
+        if result is not None and result.name is not None and result.port is not None and result.protocol is not None:
+            assert port == result.port, f"Alias service port '{str(port)}'  port was not found!"
+            assert protocol == result.protocol, f"Alias service protocol  '{protocol}'  protocol was not found!"
+
+
+@pytest.mark.parametrize(("port", "protocol"), [(12345, "tcp"), (12345, "udp")])
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_services_by_port(client: Client, ldap: LDAP, port, protocol):
+    """
+    :title: Resolver provider lookup services by port
+    :setup:
+        1. Create services
+        2. Start SSSD
+    :steps:
+        1. Lookup service by port
+    :expectedresults:
+        1. Service found and port and protocol matches
+    :customerscenario: False
+    """
+    ldap.services("service0").add(port=port, protocol=protocol, aliases=[])
+    client.sssd.start()
+
+    result = client.tools.getent.services(str(port), service="sss")
+    if result is not None and result.name is not None and result.port is not None and result.protocol is not None:
+        assert "service0" == result.name, "Service 'service0' was not found!"
+        assert port == result.port, f"Service port'{str(port)}'  was not found!"
+        assert protocol in result.protocol, f"Service '{protocol}' was not found!"
+    else:
+        raise AssertionError("No service entry found!")
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.parametrize("timeout, expect_expire", [(15, True), (0, True), (-100, True)])
+@pytest.mark.importance("medium")
+def test_ldap__connection_expire_timeout_releases_connection(
+    client: Client, ldap: LDAP, timeout: int, expect_expire: bool
+):
+    """
+    :title: LDAP connection is released after ldap_connection_expire_timeout
+    :setup:
+        1. Create user "user-1" and "user-2"
+        2. Set ldap_connection_expire_timeout to @timeout
+        3. Start SSSD
+    :steps:
+        1. Lookup user-1 to establish a connection
+        2. Wait for timeout to expire (or a short period for instant-expire values)
+        3. Lookup user-2 to trigger a new connection
+        4. Verify the connection was recycled by checking domain logs
+    :expectedresults:
+        1. User-1 is found
+        2. Timeout period passes
+        3. User-2 is found
+        4. Log contains "Connection is about to expire, releasing it" for positive timeouts,
+           or connection is instantly recycled for zero/negative values
+    :customerscenario: False
+    """
+    ldap.user("user-1").add()
+    ldap.user("user-2").add()
+    client.sssd.domain["ldap_connection_expire_timeout"] = str(timeout)
+    client.sssd.start()
+
+    result = client.tools.id("user-1")
+    assert result is not None, "user-1 not found!"
+
+    wait = timeout + 5 if timeout > 0 else 5
+    time.sleep(wait)
+
+    result = client.tools.id("user-2")
+    assert result is not None, "user-2 not found!"
+
+    if timeout > 0:
+        log = client.fs.read(client.sssd.logs.domain())
+        assert (
+            "Connection is about to expire, releasing it" in log
+        ), "Connection expire message not found in domain log!"
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.importance("medium")
+def test_ldap__connection_expire_timeout_out_of_range(client: Client, ldap: LDAP):
+    """
+    :title: SSSD rejects ldap_connection_expire_timeout value out of integer range
+    :setup:
+        1. Create user "user-1"
+        2. Set ldap_connection_expire_timeout to a value exceeding INT_MAX
+    :steps:
+        1. Start SSSD
+        2. Check domain log for "Numerical result out of range" error
+    :expectedresults:
+        1. SSSD starts but the domain may fail to initialize properly
+        2. Log contains the out-of-range error message
+    :customerscenario: False
+    """
+    ldap.user("user-1").add()
+    out_of_range = str(2**31)
+    client.sssd.domain["ldap_connection_expire_timeout"] = out_of_range
+    client.sssd.start(raise_on_error=False, check_config=False)
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert (
+        "Numerical result out of range" in log
+    ), "Expected 'Numerical result out of range' error not found in domain log!"
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.importance("low")
+def test_ldap__connection_expire_timeout_default_value_is_logged(client: Client, ldap: LDAP):
+    """
+    :title: Default ldap_connection_expire_timeout value (900) is logged at startup
+    :setup:
+        1. Create user "user-1"
+        2. Do not set ldap_connection_expire_timeout (use default)
+        3. Start SSSD
+    :steps:
+        1. Lookup user-1
+        2. Check domain log for the default timeout value
+    :expectedresults:
+        1. User is found
+        2. Log contains "Option ldap_connection_expire_timeout has value 900"
+    :customerscenario: False
+    """
+    ldap.user("user-1").add()
+    client.sssd.start()
+
+    result = client.tools.id("user-1")
+    assert result is not None, "user-1 not found!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert (
+        "Option ldap_connection_expire_timeout has value 900" in log
+    ), "Default ldap_connection_expire_timeout value (900) not found in domain log!"
