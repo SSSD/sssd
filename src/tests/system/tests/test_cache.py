@@ -439,42 +439,45 @@ def test_cache__both_ldap_user_email_and_extra_attribute_email_are_stored(client
 @pytest.mark.importance("high")
 @pytest.mark.ticket(bz=785898)
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_cache__entry_cache_nowait_percentage_triggers_background_refresh(client: Client, provider: LDAP):
+def test_cache__nowait_percentage_serves_cache_then_refreshes_in_background(client: Client, provider: LDAP):
     """
-    :title: entry_cache_nowait_percentage triggers midway background cache refresh
+    :title: entry_cache_nowait_percentage serves a cached entry and refreshes it in the background
+    :description:
+        With 'entry_cache_nowait_percentage' set, SSSD returns a cached entry immediately (no wait) but
+        silently triggers a background refresh once the entry reaches that percentage of
+        'entry_cache_timeout', keeping the cache warm without making the client wait on the provider.
     :setup:
         1. Create user "user1"
-        2. Configure SSSD and set 'entry_cache_timeout to 60', 'entry_cache_nowait_percentage to 50',
+        2. Configure SSSD and set 'entry_cache_timeout to 20', 'entry_cache_nowait_percentage to 50',
            and 'memcache_timeout to 1'
         3. Start SSSD
         4. Lookup user to populate the cache
     :steps:
         1. Truncate the domain log
-        2. Wait 35 seconds past the 50% nowait threshold and lookup user
-        3. Wait 5 seconds and read the domain log
+        2. Repeatedly lookup user within the nowait window until the background refresh is logged
     :expectedresults:
         1. Domain log is empty after truncation
-        2. User is returned from cache
-        3. Domain log contains "Got request for"
+        2. Domain log contains "Got request for", the background refresh reached the provider before expiry
     :customerscenario: True
     :requirement: SSSD - Default debug level
     """
     provider.user("user1").add(password="Secret123")
 
-    client.sssd.domain["entry_cache_timeout"] = "60"
+    client.sssd.domain["entry_cache_timeout"] = "20"
     client.sssd.nss["entry_cache_nowait_percentage"] = "50"
     client.sssd.nss["memcache_timeout"] = "1"
     client.sssd.start()
 
-    assert client.tools.getent.passwd("user1") is not None, "Initial user lookup failed"
+    assert client.tools.getent.passwd("user1") is not None, "Initial user lookup failed!"
 
     client.host.conn.run(f"truncate -s 0 {client.sssd.logs.domain()}")
 
-    time.sleep(35)
+    refreshed = False
+    for _ in range(9):
+        time.sleep(2)
+        assert client.tools.getent.passwd("user1") is not None, "User lookup failed!"
+        if "Got request for" in client.fs.read(client.sssd.logs.domain()):
+            refreshed = True
+            break
 
-    assert client.tools.getent.passwd("user1") is not None, "User lookup after midpoint failed"
-
-    time.sleep(5)
-
-    log = client.fs.read(client.sssd.logs.domain())
-    assert "Got request for" in log, "Background midpoint cache refresh was not triggered"
+    assert refreshed, "Background midpoint cache refresh was not triggered!"

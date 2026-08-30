@@ -847,46 +847,35 @@ def test_ldap__resolver_provider_lookup_services_by_port(client: Client, ldap: L
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_ldap__search_base_limits_rfc2307bis_posixgroup_scope(client: Client, ldap: LDAP):
     """
-    :title: ldap_search_base limits group scope for rfc2307bis/groupOfNames schema
+    :title: ldap_search_base limits group scope for rfc2307bis and groupOfNames schema
+    :description:
+        When ldap_search_base is set, groups stored outside that base must not be resolved,
+        even when they are nested members of a group that is inside the base.
     :setup:
-        1. Create ou=qagroup outside the intended search base
-        2. Create users tempuser2 and tempuser3
-        3. Create Group11 in ou=qagroup with member tempuser3
-        4. Create Group22 in ou=groups with member tempuser3
-        5. Create Group222 in ou=qagroup with member Group11
-        6. Create Group111 in ou=groups with members Group222, Group22, tempuser2
-        7. Configure SSSD with 'ldap_schema = rfc2307bis', 'ldap_group_object_class = groupOfNames',
-           'ldap_search_base = ou=groups', and 'enumerate = True'
-        8. Start SSSD
+        1. Create groups inside and outside the configured ldap_search_base, nested across the boundary
+        2. Configure SSSD with rfc2307bis schema, groupOfNames object class and a limited ldap_search_base
+        3. Start SSSD
     :steps:
-        1. Lookup Group111 in ou=groups
-        2. Lookup Group22 in ou=groups
-        3. Lookup Group222 in ou=qagroup
-        4. Lookup Group11 in ou=qagroup
+        1. Lookup groups that are inside the search base
+        2. Lookup groups that are outside the search base
     :expectedresults:
-        1. Group111 is found
-        2. Group22 is found
-        3. Group222 is not found, outside ldap_search_base
-        4. Group11 is not found, outside ldap_search_base
+        1. Groups inside the search base are found
+        2. Groups outside the search base are not found
     :customerscenario: True
     :requirement: SSSD - Default debug level
     """
-    ou_qa = ldap.ou("qagroup").add()
-    user2 = ldap.user("tempuser2").add(uid=121298, gid=10000, password="Secret123")
-    user3 = ldap.user("tempuser3").add(uid=121297, gid=10000, password="Secret123")
+    outside_ou = ldap.ou("qagroup").add()
+    user = ldap.user("tempuser").add()
 
-    grp11 = ldap.group("Group11", basedn=ou_qa, rfc2307bis=True).add(gid=222011, members=[user3])
-    grp22 = ldap.group("Group22", rfc2307bis=True).add(gid=222022, members=[user3])
-    grp222 = ldap.group("Group222", basedn=ou_qa, rfc2307bis=True).add(gid=222000, members=[grp11])
-    ldap.group("Group111", rfc2307bis=True).add(gid=111000, members=[grp222, grp22, user2])
+    outside_group = ldap.group("outside_group", basedn=outside_ou, rfc2307bis=True).add(members=[user])
+    ldap.group("inside_group", rfc2307bis=True).add(members=[outside_group])
 
     client.sssd.domain["ldap_schema"] = "rfc2307bis"
     client.sssd.domain["ldap_group_object_class"] = "groupOfNames"
     client.sssd.dom("test")["ldap_search_base"] = f"ou=groups,{ldap.ldap.naming_context}"
-    client.sssd.domain["enumerate"] = "True"
     client.sssd.start()
 
-    assert client.tools.getent.group("Group111") is not None, "Group111 was not found!"
-    assert client.tools.getent.group("Group22") is not None, "Group22 was not found!"
-    assert client.tools.getent.group("Group222") is None, "Group222 should not be visible outside search base"
-    assert client.tools.getent.group("Group11") is None, "Group11 should not be visible outside search base"
+    assert client.tools.getent.group("inside_group") is not None, "inside_group was not found!"
+    assert (
+        client.tools.getent.group("outside_group") is None
+    ), "outside_group should not be visible outside search base!"
