@@ -18,7 +18,17 @@ import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.kdc import KDC
+from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
+
+
+def _assert_ldap_krb5_srv_records(client: Client, discovery_domain: str) -> None:
+    for query in (
+        f"_ldap._tcp.{discovery_domain}",
+        f"_kerberos._udp.{discovery_domain}",
+    ):
+        assert client.net.has_srv_record(query), f"No SRV record for {query}"
+
 
 NOBODY_C_SOURCE = (
     "#include <unistd.h>\n"
@@ -390,3 +400,279 @@ def test_ldap_krb5__password_change_via_ssh(client: Client, provider: GenericPro
     ), f"krb5_child initial auth message not found: {log_content[:500]}!"
 
     assert client.auth.ssh.password("puser1", new_password), "Auth with new password failed after password change!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__dns_srv_discovery_with_srv_uri(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: DNS SRV discovery for LDAP using _srv_ URI
+    :setup:
+        1. Add user and configure SSSD with ldap_uri=_srv_, krb5_server=_srv_
+        2. Restart SSSD
+    :steps:
+        1. Authenticate user via SSH
+        2. Check logs for LDAP SRV resolution
+        3. Check logs for LDAP SRV marked as resolved
+        4. Check logs for Kerberos SRV resolution
+    :expectedresults:
+        1. Authentication succeeds
+        2. Logs show LDAP SRV discovery attempt
+        3. Logs show LDAP SRV marked as resolved
+        4. Logs show Kerberos SRV marked as resolved
+    :customerscenario: True
+    """
+    discovery_domain = getattr(provider.host, "client", {}).get("dns_discovery_domain") or provider.domain
+    client.net.prepare_ldap_krb5_srv_discovery(
+        discovery_domain=discovery_domain,
+        ldap_hostname=provider.host.hostname,
+        kdc_hostname=kdc.host.hostname,
+        client_hostname=client.host.hostname,
+    )
+    _assert_ldap_krb5_srv_records(client, discovery_domain)
+
+    a_result = client.net.dig(provider.host.hostname)
+    assert a_result and any(
+        r.get("type") == "A" for r in a_result
+    ), f"No A record for {provider.host.hostname}; LDAP host must be resolvable via DNS"
+
+    provider.user("puser1").add()
+    kdc.principal("puser1").add()
+
+    client.authselect.select("sssd")
+    client.sssd.common.krb5_auth(kdc)
+
+    client.sssd.domain["ldap_uri"] = "_srv_"
+    client.sssd.domain["krb5_server"] = "_srv_"
+    client.sssd.domain["dns_discovery_domain"] = discovery_domain
+    client.sssd.domain["debug_level"] = "0xFFF0"
+
+    client.sssd.restart(clean=True)
+
+    assert client.tools.id("puser1"), "id failed for puser1 before SSH login"
+    if not client.auth.ssh.password("puser1", "Secret123"):
+        domain = client.sssd.default_domain
+        krb_log = client.fs.read("/var/log/sssd/krb5_child.log")
+        sssd_log = client.fs.read(f"/var/log/sssd/sssd_{domain}.log")
+        raise AssertionError(
+            "Authentication failed with DNS SRV discovery; "
+            f"krb5_child.log tail: {krb_log[-1500:]!r}; "
+            f"sssd_{domain}.log tail: {sssd_log[-1500:]!r}"
+        )
+
+    domain = client.sssd.default_domain
+    log_content = client.fs.read(f"/var/log/sssd/sssd_{domain}.log")
+
+    assert (
+        f"Trying to resolve SRV record of '_ldap._tcp.{discovery_domain}'" in log_content
+        or f"Trying to resolve SRV record of '_LDAP._tcp.{discovery_domain}'" in log_content
+    ), "LDAP SRV discovery attempt not found in logs!"
+
+    assert (
+        "Marking SRV lookup of service 'LDAP' as 'resolved'" in log_content
+    ), "LDAP SRV lookup was not marked as resolved!"
+
+    assert (
+        f"Trying to resolve SRV record of '_KERBEROS._udp.{discovery_domain}'" in log_content
+        or f"Trying to resolve SRV record of '_kerberos._udp.{discovery_domain}'" in log_content
+    ), "Kerberos SRV discovery attempt not found in logs!"
+    assert (
+        "Marking SRV lookup of service 'KERBEROS' as 'resolved'" in log_content
+    ), "Kerberos SRV lookup was not marked as resolved!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=700805)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__kerberos_srv_discovery_with_ldap_uri_set(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: Kerberos DNS SRV discovery works when LDAP URI is set
+    :setup:
+        1. Add user and configure SSSD with explicit ldap_uri
+        2. Restart SSSD
+    :steps:
+        1. Authenticate user via SSH
+        2. Check logs for Kerberos SRV servers added
+        3. Check logs for Kerberos SRV resolution attempt
+        4. Verify no "unknown" errors in logs
+    :expectedresults:
+        1. Authentication succeeds
+        2. Logs show Kerberos SRV for UDP and TCP
+        3. Logs show Kerberos SRV resolution attempt
+        4. No "unknown" errors in logs
+    :customerscenario: True
+    """
+    discovery_domain = getattr(provider.host, "client", {}).get("dns_discovery_domain") or provider.domain
+    client.net.prepare_ldap_krb5_srv_discovery(
+        discovery_domain=discovery_domain,
+        ldap_hostname=provider.host.hostname,
+        kdc_hostname=kdc.host.hostname,
+        client_hostname=client.host.hostname,
+    )
+    _assert_ldap_krb5_srv_records(client, discovery_domain)
+
+    provider.user("puser1").add()
+    kdc.principal("puser1").add()
+
+    client.sssd.common.krb5_auth(kdc)
+
+    # krb5_auth() sets krb5_server from mhc; use SRV discovery for Kerberos (BZ 700805).
+    client.sssd.domain["krb5_server"] = "_srv_"
+    client.sssd.domain["dns_discovery_domain"] = discovery_domain
+    client.sssd.domain["dns_resolver_timeout"] = "60"
+    client.sssd.domain["ldap_opt_timeout"] = "60"
+    client.sssd.domain["debug_level"] = "0xFFF0"
+
+    client.sssd.restart(clean=True)
+
+    assert client.tools.id("puser1"), "id failed for puser1 before SSH login"
+    if not client.auth.ssh.password("puser1", "Secret123"):
+        domain = client.sssd.default_domain
+        krb_log = client.fs.read("/var/log/sssd/krb5_child.log")
+        sssd_log = client.fs.read(f"/var/log/sssd/sssd_{domain}.log")
+        raise AssertionError(
+            "Authentication failed; Kerberos SRV discovery should work even with "
+            f"explicit ldap_uri; krb5_child.log tail: {krb_log[-1500:]!r}; "
+            f"sssd_{domain}.log tail: {sssd_log[-1500:]!r}"
+        )
+
+    domain = client.sssd.default_domain
+    log_content = client.fs.read(f"/var/log/sssd/sssd_{domain}.log")
+
+    assert (
+        "Adding new SRV server to service 'KERBEROS' using 'udp'" in log_content
+    ), "Kerberos SRV discovery (UDP) did not occur!"
+    assert (
+        "Adding new SRV server to service 'KERBEROS' using 'tcp'" in log_content
+    ), "Kerberos SRV discovery (TCP) did not occur!"
+
+    assert (
+        f"Trying to resolve SRV record of '_KERBEROS._udp.{discovery_domain}'" in log_content
+        or f"Trying to resolve SRV record of '_kerberos._udp.{discovery_domain}'" in log_content
+    ), "Kerberos SRV lookup attempt not found in logs!"
+
+    assert (
+        "unknown" not in log_content.lower()
+    ), "BZ 700805 regression: 'unknown' error found in logs during DNS SRV discovery!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__dns_discovery_with_discovery_domain_set(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: DNS SRV discovery uses dns_discovery_domain when explicitly set
+    :setup:
+        1. Ensure _ldap._tcp SRV for the provider domain and A record for LDAP host
+        2. Add user and configure SSSD; remove ldap_uri; set dns_discovery_domain
+        3. Restart SSSD
+    :steps:
+        1. Run id for puser1
+    :expectedresults:
+        1. User resolves; LDAP was reached via DNS SRV for the discovery domain
+    :customerscenario: True
+    """
+    discovery_domain = getattr(provider.host, "client", {}).get("dns_discovery_domain") or provider.domain
+    client.net.prepare_ldap_krb5_srv_discovery(
+        discovery_domain=discovery_domain,
+        ldap_hostname=provider.host.hostname,
+        kdc_hostname=kdc.host.hostname,
+        client_hostname=client.host.hostname,
+    )
+    _assert_ldap_krb5_srv_records(client, discovery_domain)
+
+    a_result = client.net.dig(provider.host.hostname)
+    assert a_result and any(
+        r.get("type") == "A" for r in a_result
+    ), f"No A record for {provider.host.hostname}; LDAP host must be resolvable via DNS"
+
+    provider.user("puser1").add()
+    kdc.principal("puser1").add()
+
+    client.sssd.common.krb5_auth(kdc)
+
+    if "ldap_uri" in client.sssd.domain:
+        del client.sssd.domain["ldap_uri"]
+
+    client.sssd.domain["dns_discovery_domain"] = discovery_domain
+    client.sssd.restart(clean=True)
+
+    result = client.tools.id("puser1")
+    assert result is not None, "User lookup failed; LDAP DNS SRV discovery did not work"
+    assert result.user.name == "puser1", f"Expected user puser1 but got {result.user.name}"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=732935)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__ldap_sasl_canonicalize_handles_reverse_dns_mismatch(client: Client, provider: LDAP, kdc: KDC):
+    """
+    :title: ldap_sasl_canonicalize handles reverse DNS mismatch with GSSAPI (BZ 732935)
+    :setup:
+        1. Resolve LDAP and KDC IPv4 on the client
+        2. Configure bogus PTR for the LDAP IP (local named + hosts)
+        3. Enable GSSAPI on LDAP server; add puser1 to LDAP and KDC
+        4. Configure SSSD for LDAP+GSSAPI (hostname ldap_uri, rdns=false)
+    :steps:
+        1. Run getent passwd puser1 with hostname ldap_uri
+        2. Run getent passwd puser1 with IPv4 ldap_uri and ldap_sasl_canonicalize=true
+        3. Run getent passwd puser1 with ldap_sasl_canonicalize=false and hostname ldap_uri
+    :expectedresults:
+        1. User lookup succeeds without ldap_sasl_canonicalize
+        2. User lookup fails when ldap_sasl_canonicalize=true and PTR does not match
+           the Kerberos LDAP service hostname
+        3. User lookup succeeds with ldap_sasl_canonicalize=false (workaround)
+    :customerscenario: True
+    """
+    ldap_ip, kdc_ip = client.net.setup_sasl_canonicalize_bogus_ptr(
+        ldap_hostname=provider.host.hostname,
+        ldap_host=provider.host,
+        kdc_hostname=kdc.host.hostname,
+        kdc_host=kdc.host,
+        provider_domain=provider.domain,
+        client_hostname=client.host.hostname,
+    )
+
+    provider.enable_gssapi(kdc)
+
+    provider.user("puser1").add()
+    kdc.principal("puser1").add()
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["ldap_sasl_mech"] = "GSSAPI"
+    client.sssd.domain["ldap_sasl_authid"] = f"host/{client.host.hostname}"
+    ldap_hostname_uri = f"ldap://{provider.host.hostname}"
+    client.sssd.domain["ldap_uri"] = ldap_hostname_uri
+    for tls_opt in ("ldap_tls_cacert", "ldap_tls_reqcert", "ldap_id_use_start_tls"):
+        if tls_opt in provider.host.client:
+            client.sssd.domain[tls_opt] = provider.host.client[tls_opt]
+    client.sssd.domain["lookup_family_order"] = "ipv4_first"
+    client.sssd.domain["krb5_canonicalize"] = "false"
+    client.sssd.domain["debug_level"] = "0xFFF0"
+
+    client.sssd.restart(clean=True)
+    result_baseline = client.tools.getent.passwd("puser1")
+    assert result_baseline is not None, "getent passwd puser1 must succeed without ldap_sasl_canonicalize"
+
+    client.sssd.domain["ldap_uri"] = f"ldap://{ldap_ip}"
+    client.sssd.domain["ldap_id_use_start_tls"] = "false"
+    client.sssd.domain["ldap_sasl_canonicalize"] = "true"
+    client.sssd.restart(clean=True)
+
+    result_with_canonicalize = client.tools.getent.passwd("puser1")
+    assert result_with_canonicalize is None, (
+        "getent passwd puser1 must fail with ldap_uri as IPv4 and "
+        "ldap_sasl_canonicalize=true when reverse DNS PTR does not match "
+        "the Kerberos LDAP service hostname (BZ 732935)"
+    )
+
+    client.sssd.domain["ldap_uri"] = ldap_hostname_uri
+    for tls_opt in ("ldap_tls_cacert", "ldap_tls_reqcert", "ldap_id_use_start_tls"):
+        if tls_opt in provider.host.client:
+            client.sssd.domain[tls_opt] = provider.host.client[tls_opt]
+    client.sssd.domain["ldap_sasl_canonicalize"] = "false"
+    client.sssd.restart(clean=True)
+
+    result_with_fix = client.tools.getent.passwd("puser1")
+    assert result_with_fix is not None, (
+        "getent passwd puser1 must succeed with ldap_sasl_canonicalize=false " "while bogus PTR remains in place"
+    )
