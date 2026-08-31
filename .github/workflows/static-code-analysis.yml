@@ -113,57 +113,6 @@ jobs:
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
 
-  python-system-tests:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-    - uses: actions/setup-python@v7
-      with:
-        python-version: '3.x'
-
-    - name: Checkout repository
-      uses: actions/checkout@v7
-
-    - name: Setup virtual environment
-      working-directory: ./src/tests/system
-      run: |
-        sudo apt-get update
-
-        # Install dependencies for python-ldap
-        sudo apt-get install -y libsasl2-dev python3-dev libldap2-dev libssl-dev libssh-dev
-
-        pip3 install virtualenv
-        python3 -m venv .venv
-        source .venv/bin/activate
-        pip3 install -r ./requirements.txt
-        pip3 install flake8 pycodestyle isort mypy black
-
-    - name: flake8
-      if: always()
-      working-directory: ./src/tests/system
-      run: source .venv/bin/activate && flake8 .
-
-    - name: pycodestyle
-      if: always()
-      working-directory: ./src/tests/system
-      run: source .venv/bin/activate && pycodestyle .
-
-    - name: isort
-      if: always()
-      working-directory: ./src/tests/system
-      run: source .venv/bin/activate && isort --check-only .
-
-    - name: black
-      if: always()
-      working-directory: ./src/tests/system
-      run: source .venv/bin/activate && black --check --diff .
-
-    - name: mypy
-      if: always()
-      working-directory: ./src/tests/system
-      run: source .venv/bin/activate && mypy --install-types --non-interactive tests
-
   pre-commit:
     runs-on: ubuntu-latest
     permissions:
