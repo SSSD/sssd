@@ -1514,8 +1514,6 @@ ldap_account_expire_policy = ad
             because these attributes are included in the default Active
             Directory schema.
         </para>
-        <para>
-        </para>
     </refsect1>
 
 	<xi:include xmlns:xi="http://www.w3.org/2001/XInclude" href="include/seealso.xml" />
