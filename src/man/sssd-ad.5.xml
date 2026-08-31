@@ -1106,7 +1106,7 @@ ad_gpo_map_deny = +my_pam_service
                             <command>realm</command> will be used. Since
                             the helper is started as the user SSSD is running
                             as there might be the chance that the renewal will
-                            fail if this user does not has permissions to
+                            fail if this user does not have permissions to
                             modify the keytab file where the machine account
                             credentials are stored. This will typically be the
                             case for <command>adcli</command>.
