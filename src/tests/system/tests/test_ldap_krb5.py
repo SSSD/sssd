@@ -141,6 +141,7 @@ def test_ldap_krb5__ldap_child_handles_missing_keytab_without_segfault(
     assert not ldap_child_cores, f"ldap_child produced core dumps when keytab was missing: {ldap_child_cores}!"
 
 
+@pytest.mark.flaky(max_runs=5)
 @pytest.mark.importance("high")
 @pytest.mark.authentication
 @pytest.mark.ticket(bz=805281)

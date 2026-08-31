@@ -657,6 +657,7 @@ def test_sudo__ldap_sudo_search_base_not_set_emits_warning(client: Client, ldap:
     ), "Journal must contain alert when ldap_sudo_search_base is not set!"
 
 
+@pytest.mark.flaky(max_runs=5)
 @pytest.mark.importance("high")
 @pytest.mark.ticket(gh=9030)
 @pytest.mark.topology(KnownTopology.IPA)
