@@ -1088,7 +1088,34 @@ ad_gpo_map_deny = +my_pam_service
                             after startup.
                         </para>
                         <para>
+<<<<<<< HEAD
                             Default: 86400:750 (24h and 15m)
+=======
+                            The optional fourth string value identifies the
+                            helper binary which should be used for the renewal.
+                            Currently <command>adcli</command> and
+                            <command>realm</command> are supported. If this
+                            value is missing or empty in the value string
+                            <command>realm</command> will be used. Since
+                            the helper is started as the user SSSD is running
+                            as there might be the chance that the renewal will
+                            fail if this user does not have permissions to
+                            modify the keytab file where the machine account
+                            credentials are stored. This will typically be the
+                            case for <command>adcli</command>.
+                        </para>
+                        <para>
+                            <command>realm</command> is not updating the keytab
+                            directly but is calling the
+                            <command>realmd</command> process, which runs as
+                            root user, for this task. <command>realmd</command>
+                            can allow access to non-privileged users with the
+                            help of PolicyKit and by default SSSD provides
+                            suitable rules for the user SSSD is running as.
+                        </para>
+                        <para>
+                            Default: 86400:750:300:realm (24h, 12m30s and 5m)
+>>>>>>> d351ef4a5 (Man: Correct the minor typo in sssd-ad.5.xml)
                         </para>
                     </listitem>
                 </varlistentry>
