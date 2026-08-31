@@ -70,6 +70,48 @@ jobs:
               volumes:
               - ../sssd:/sssd:rw
 
+    - name: Build SSSD on the client and IPA
+      uses: SSSD/sssd-ci-containers/actions/exec@master
+      with:
+        log-file: build.log
+        working-directory: /sssd
+        where: |
+          client
+          ipa
+        script: |
+          #!/bin/bash
+          set -ex
+
+          ./contrib/ci/run --deps-only
+          autoreconf -if
+
+          mkdir -p /dev/shm/sssd
+          pushd /dev/shm/sssd
+          /sssd/configure --enable-silent-rules
+          make rpms
+
+    - name: Install SSSD on the client and IPA
+      uses: SSSD/sssd-ci-containers/actions/exec@master
+      with:
+        log-file: install.log
+        user: root
+        where: |
+          client
+          ipa
+        script: |
+          #!/bin/bash
+          set -ex
+
+          # Avoid error 'Lower version of database is expected!' for locally built installed rpms
+          systemctl stop sssd
+          rm -f /var/lib/sss/db/*
+
+          dnf install -y /dev/shm/sssd/rpmbuild/RPMS/*/*.rpm
+          rm -fr /dev/shm/sssd
+
+          # We need to reenable sssd-kcm since it was disabled by removing sssd not not enabled again
+          systemctl enable --now sssd-kcm.socket
+
     - name: Restart SSSD on IPA server
       uses: SSSD/sssd-ci-containers/actions/exec@master
       with:
