@@ -17,6 +17,9 @@ exclude = [".venv"]
 # E/W ≈ pycodestyle, F ≈ pyflakes/flake8, I ≈ isort; defaults are Black-compatible
 select = ["E", "W", "F", "I"]
 
+[tool.ruff.lint.pycodestyle]
+max-line-length = 119
+
 [tool.ruff.lint.isort]
 required-imports = ["from __future__ import annotations"]
 
