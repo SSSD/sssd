@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         tag: ${{ fromJson(needs.prepare.outputs.matrix).multihost }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
     steps:
