@@ -7,6 +7,7 @@ SSSD Authentication Test Cases
 from __future__ import annotations
 
 import re
+import time
 
 import pytest
 from sssd_test_framework.roles.client import Client
@@ -409,3 +410,260 @@ def test_authentication__custom_password_prompt_is_shown_at_login(
     result = client.host.conn.run("su - user1 -c 'su - user1 -c whoami'", input="Secret123")
     assert "My custom prompt" in result.stderr, "Custom password prompt was not shown!"
     assert "user1" in result.stdout, "'user1' failed to log in!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_authentication__cached_auth_timeout_default_no_caching(client: Client, provider: GenericProvider):
+    """
+    :title: Without cached_auth_timeout, password change immediately invalidates authentication
+    :description:
+        By default, cached_auth_timeout is 0 (disabled). After the user's password changes
+        on the server, the next login attempt must fail with the old password.
+    :setup:
+        1. Create user with password Secret123
+        2. Start SSSD without cached_auth_timeout (default = 0)
+    :steps:
+        1. Authenticate user with Secret123
+        2. Change user's password to NewSecret123 on the provider
+        3. Invalidate SSSD cache
+        4. Authenticate user with old password Secret123
+        5. Authenticate user with new password NewSecret123
+    :expectedresults:
+        1. Login succeeds
+        2. Password changed
+        3. Cache invalidated
+        4. Login fails (no cached auth, fresh auth uses new password)
+        5. Login succeeds with new password
+    :customerscenario: False
+    """
+    user = provider.user("user1").add(password="Secret123")
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    user.modify(password="NewSecret123")
+    client.sssctl.cache_expire(everything=True)
+
+    assert not client.auth.ssh.password("user1", "Secret123"), "Old password should fail after server-side change"
+    assert client.auth.ssh.password("user1", "NewSecret123"), "New password should succeed"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_authentication__cached_auth_timeout_allows_old_credentials_within_timeout(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Cached authentication allows login with old password within timeout window
+    :description:
+        When cached_auth_timeout is set, a user who authenticated recently can still
+        log in with the old password even after the provider-side password changes,
+        until the timeout expires.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cached_auth_timeout = 30
+        3. Start SSSD
+    :steps:
+        1. Authenticate user with Secret123 (caches credentials)
+        2. Change user's password to NewSecret123 on the provider
+        3. Immediately authenticate with old password Secret123
+        4. Authenticate with wrong password
+    :expectedresults:
+        1. Login succeeds and credentials are cached
+        2. Password changed on provider
+        3. Login succeeds (cached_auth_timeout not yet expired, old password still works from cache)
+        4. Login fails (wrong password rejected from cache)
+    :customerscenario: True
+    """
+    user = provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["cached_auth_timeout"] = "30"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed and cache credentials"
+
+    user.modify(password="NewSecret123")
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Old password should still work within cached_auth_timeout"
+    assert not client.auth.ssh.password("user1", "wrongpassword"), "Wrong password should be rejected even from cache"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_authentication__cached_auth_timeout_expires_and_requires_fresh_auth(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Cached authentication expires and forces fresh provider authentication
+    :description:
+        After cached_auth_timeout expires, SSSD must perform fresh online authentication.
+        The old cached password must then fail if the provider-side password changed.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cached_auth_timeout = 10
+        3. Start SSSD
+    :steps:
+        1. Authenticate user with Secret123 (caches credentials)
+        2. Change user's password to NewSecret123 on the provider
+        3. Wait for cached_auth_timeout to expire (11 seconds)
+        4. Authenticate with old password Secret123
+        5. Authenticate with new password NewSecret123
+    :expectedresults:
+        1. Login succeeds and credentials are cached
+        2. Password changed on provider
+        3. Timeout elapsed
+        4. Login fails (cached_auth_timeout expired, fresh auth uses new password)
+        5. Login succeeds with new password
+    :customerscenario: True
+    """
+    user = provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["cached_auth_timeout"] = "10"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    user.modify(password="NewSecret123")
+
+    time.sleep(11)
+
+    assert not client.auth.ssh.password("user1", "Secret123"), "Old password should fail after cached_auth_timeout expired"
+    assert client.auth.ssh.password("user1", "NewSecret123"), "New password should succeed after timeout"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_authentication__cached_auth_timeout_local_password_change_updates_cache(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Password changed via passwd command is reflected in cached authentication
+    :description:
+        When a user changes their password via the passwd command (through SSSD PAM),
+        the new password is cached. The old password must no longer work from cache.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cached_auth_timeout = 60
+        3. Start SSSD
+    :steps:
+        1. Authenticate user with Secret123 (caches credentials)
+        2. Change password to NewSecret123 via SSH passwd command
+        3. Authenticate with old password Secret123
+        4. Authenticate with new password NewSecret123
+    :expectedresults:
+        1. Login succeeds
+        2. Password changed via passwd
+        3. Login fails (old password not in new cache)
+        4. Login succeeds with new password
+    :customerscenario: False
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["cached_auth_timeout"] = "60"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    assert client.auth.passwd.password(
+        "user1", "Secret123", "NewSecret123"
+    ), "Password change via passwd should succeed"
+
+    assert not client.auth.ssh.password("user1", "Secret123"), "Old password should be rejected after passwd change"
+    assert client.auth.ssh.password("user1", "NewSecret123"), "New password should work"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_authentication__cached_auth_timeout_offline_auth_within_timeout(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Cached credentials allow login when SSSD is offline within timeout window
+    :description:
+        When cached_auth_timeout is set and SSSD goes offline, previously cached
+        credentials must allow the user to authenticate during the timeout window.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cached_auth_timeout = 60
+        3. Start SSSD
+    :steps:
+        1. Authenticate user with Secret123 (caches credentials)
+        2. Block outbound traffic and bring SSSD offline
+        3. Authenticate user with Secret123 while offline
+        4. Authenticate with wrong password while offline
+    :expectedresults:
+        1. Login succeeds and credentials are cached
+        2. SSSD is offline
+        3. Login succeeds (cached credentials valid within timeout)
+        4. Login fails (wrong password rejected from cache)
+    :customerscenario: True
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["cached_auth_timeout"] = "60"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed and cache credentials"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Cached credentials should work while offline within timeout"
+    assert not client.auth.ssh.password("user1", "wrongpassword"), (
+        "Wrong password should be rejected from cache while offline"
+    )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_authentication__cached_auth_timeout_offline_failed_login_lockout(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Offline failed login lockout is enforced when using cached_auth_timeout
+    :description:
+        When SSSD is offline and offline_failed_login_attempts is reached, the user
+        is locked out for offline_failed_login_delay minutes before being allowed to retry.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cached_auth_timeout = 60,
+           offline_failed_login_attempts = 2, offline_failed_login_delay = 1
+        3. Start SSSD
+    :steps:
+        1. Authenticate user with Secret123 (caches credentials)
+        2. Bring SSSD offline
+        3. Attempt login with wrong password (attempt 1)
+        4. Attempt login with wrong password (attempt 2 — lockout threshold reached)
+        5. Attempt login with correct password (should be locked out)
+        6. Wait for offline_failed_login_delay to expire (65 seconds)
+        7. Authenticate with correct password
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD offline
+        3. Login fails (wrong password)
+        4. Login fails (wrong password, lockout threshold reached)
+        5. Login fails (account locked out offline)
+        6. Delay elapsed
+        7. Login succeeds
+    :customerscenario: False
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["cached_auth_timeout"] = "60"
+    client.sssd.pam["offline_failed_login_attempts"] = "2"
+    client.sssd.pam["offline_failed_login_delay"] = "1"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    assert not client.auth.ssh.password("user1", "wrongpassword"), "Wrong password attempt 1 should fail"
+    assert not client.auth.ssh.password("user1", "wrongpassword"), "Wrong password attempt 2 should fail"
+    assert not client.auth.ssh.password("user1", "Secret123"), "Correct password should fail after lockout"
+
+    time.sleep(65)
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Login should succeed after lockout delay expires"
