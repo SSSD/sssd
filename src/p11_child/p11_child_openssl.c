@@ -293,7 +293,7 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
     int use_ssl;
     const X509_NAME *issuer_name = NULL;
     X509_OBJECT *x509_obj;
-    STACK_OF(X509_OBJECT) *store_objects;
+    STACK_OF(X509_OBJECT) *store_objects = NULL;
     const EVP_MD *ocsp_dgst = NULL;
     char *tmp_str;
 
@@ -335,7 +335,11 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
         goto done;
     }
 
+#if OPENSSL_VERSION_NUMBER >= 0x30300000L
+    store_objects = X509_STORE_get1_objects(p11_ctx->x509_store);
+#else
     store_objects = X509_STORE_get0_objects(p11_ctx->x509_store);
+#endif
     if (store_objects == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "No objects found in certificate store, OCSP failed.\n");
@@ -495,6 +499,9 @@ static errno_t do_ocsp(struct p11_ctx *p11_ctx, X509 *cert)
     ret = EOK;
 
 done:
+#if OPENSSL_VERSION_NUMBER >= 0x30300000L
+    sk_X509_OBJECT_pop_free(store_objects, X509_OBJECT_free);
+#endif
     OCSP_BASICRESP_free(ocsp_basic);
     OCSP_RESPONSE_free(ocsp_resp);
     OCSP_REQUEST_free(ocsp_req);
