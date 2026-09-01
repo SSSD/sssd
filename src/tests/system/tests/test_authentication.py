@@ -7,6 +7,7 @@ SSSD Authentication Test Cases
 from __future__ import annotations
 
 import re
+import time
 
 import pytest
 from sssd_test_framework.roles.client import Client
@@ -409,3 +410,576 @@ def test_authentication__custom_password_prompt_is_shown_at_login(
     result = client.host.conn.run("su - user1 -c 'su - user1 -c whoami'", input="Secret123")
     assert "My custom prompt" in result.stderr, "Custom password prompt was not shown!"
     assert "user1" in result.stdout, "'user1' failed to log in!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_credentials_expiration_within_window(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Offline auth succeeds within credential expiration window
+    :description:
+        When offline_credentials_expiration is set to 1 day and the clock is
+        advanced 23 hours, cached credentials should still be valid.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cache_credentials=True, offline_credentials_expiration=1
+        3. Start SSSD
+    :steps:
+        1. Authenticate user to cache credentials
+        2. Block server and bring SSSD offline
+        3. Skew clock forward 23 hours
+        4. Authenticate user with cached credentials
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. Clock skewed
+        4. Login succeeds (within 1-day expiration window)
+    :customerscenario: False
+    """
+    client.chrony.require()
+
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.pam["offline_credentials_expiration"] = "1"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    with client.chrony.time_skew(23 * 3600):
+        assert client.auth.ssh.password("user1", "Secret123"), (
+            "Offline auth should succeed within credential expiration window"
+        )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_credentials_expiration_past_window(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Offline auth fails after credential expiration window
+    :description:
+        When offline_credentials_expiration is set to 1 day and the clock is
+        advanced 25 hours, cached credentials should be expired and auth should fail.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cache_credentials=True, offline_credentials_expiration=1
+        3. Start SSSD
+    :steps:
+        1. Authenticate user to cache credentials
+        2. Block server and bring SSSD offline
+        3. Skew clock forward 25 hours
+        4. Authenticate user with cached credentials
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. Clock skewed
+        4. Login fails (past 1-day expiration window)
+    :customerscenario: False
+    """
+    client.chrony.require()
+
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.pam["offline_credentials_expiration"] = "1"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    with client.chrony.time_skew(25 * 3600):
+        assert not client.auth.ssh.password("user1", "Secret123"), (
+            "Offline auth should fail after credential expiration"
+        )
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_credentials_expiration_recovery_after_online(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Auth succeeds after server comes back online even with expired cached credentials
+    :description:
+        After cached credentials expire offline, the user should be able to
+        authenticate once the server is reachable again (fresh online auth).
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cache_credentials=True, offline_credentials_expiration=1
+        3. Start SSSD
+    :steps:
+        1. Authenticate user to cache credentials
+        2. Block server and bring SSSD offline
+        3. Skew clock forward 25 hours (past expiration)
+        4. Verify auth fails offline
+        5. Restore clock and unblock server
+        6. Restart SSSD to go online
+        7. Authenticate user
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. Clock skewed
+        4. Login fails (expired)
+        5. Server reachable
+        6. SSSD online
+        7. Login succeeds (fresh online auth)
+    :customerscenario: False
+    """
+    client.chrony.require()
+
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.pam["offline_credentials_expiration"] = "1"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    with client.chrony.time_skew(25 * 3600):
+        assert not client.auth.ssh.password("user1", "Secret123"), (
+            "Offline auth should fail after credential expiration"
+        )
+
+    client.firewall.outbound.accept_host(provider)
+    client.sssd.restart(clean=False)
+
+    assert client.auth.ssh.password("user1", "Secret123"), (
+        "Auth should succeed after server comes back online"
+    )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_failed_login_counter_increments_and_lockout(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Offline failed login counter increments and locks out user at threshold
+    :description:
+        With offline_failed_login_attempts set, each wrong password offline increments
+        the failedLoginAttempts counter in the cache. After reaching the threshold,
+        even the correct password is rejected.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cache_credentials=True,
+           offline_failed_login_attempts=3, offline_failed_login_delay=1
+        3. Start SSSD
+    :steps:
+        1. Authenticate user to cache credentials
+        2. Block server and bring SSSD offline
+        3. Attempt login with wrong password 3 times
+        4. Attempt login with correct password
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. All 3 attempts fail
+        4. Login fails (user locked out after reaching threshold)
+    :customerscenario: False
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.pam["offline_failed_login_attempts"] = "3"
+    client.sssd.pam["offline_failed_login_delay"] = "1"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    for i in range(3):
+        assert not client.auth.ssh.password("user1", "wrongpassword"), (
+            f"Wrong password attempt {i + 1} should fail"
+        )
+
+    assert not client.auth.ssh.password("user1", "Secret123"), (
+        "Correct password should be rejected after reaching offline_failed_login_attempts threshold"
+    )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_failed_login_counter_resets_on_online_auth(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Offline failed login counter resets after successful online authentication
+    :description:
+        After failed offline login attempts, bringing the server back online and
+        authenticating successfully should reset the failedLoginAttempts counter to 0.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cache_credentials=True,
+           offline_failed_login_attempts=4, offline_failed_login_delay=1
+        3. Start SSSD
+    :steps:
+        1. Authenticate user to cache credentials
+        2. Block server and bring SSSD offline
+        3. Attempt login with wrong password twice
+        4. Unblock server and restart SSSD
+        5. Authenticate with correct password (online)
+        6. Verify failedLoginAttempts is 0 in cache
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. Both attempts fail
+        4. SSSD is online
+        5. Login succeeds
+        6. Counter is reset to 0
+    :customerscenario: False
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.pam["offline_failed_login_attempts"] = "4"
+    client.sssd.pam["offline_failed_login_delay"] = "1"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    assert not client.auth.ssh.password("user1", "wrongpassword"), "Wrong password should fail"
+    assert not client.auth.ssh.password("user1", "wrongpassword"), "Wrong password should fail"
+
+    client.firewall.outbound.accept_host(provider)
+    client.sssd.restart(clean=False)
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Online auth should succeed"
+
+    domain = client.sssd.default_domain
+    result = client.ldb.search(
+        f"/var/lib/sss/db/cache_{domain}.ldb",
+        f"cn={domain},cn=sysdb",
+        filter=f"name=user1@{domain}",
+    )
+    for dn, attrs in result.items():
+        if "failedLoginAttempts" in attrs:
+            assert attrs["failedLoginAttempts"] == ["0"], (
+                f"failedLoginAttempts should be 0 after online auth, got {attrs['failedLoginAttempts']}"
+            )
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_failed_login_counter_does_not_exceed_threshold(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Offline failed login counter does not increment beyond the threshold
+    :description:
+        After reaching offline_failed_login_attempts threshold, further wrong
+        password attempts should not increment the counter beyond the configured limit.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cache_credentials=True,
+           offline_failed_login_attempts=3, offline_failed_login_delay=1
+        3. Start SSSD
+    :steps:
+        1. Authenticate user to cache credentials
+        2. Block server and bring SSSD offline
+        3. Attempt login with wrong password 5 times (exceeding threshold of 3)
+        4. Verify failedLoginAttempts is 3 (not 5) in cache
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. All attempts fail
+        4. Counter capped at threshold value
+    :customerscenario: False
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.pam["offline_failed_login_attempts"] = "3"
+    client.sssd.pam["offline_failed_login_delay"] = "1"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    for i in range(5):
+        assert not client.auth.ssh.password("user1", "wrongpassword"), (
+            f"Wrong password attempt {i + 1} should fail"
+        )
+
+    domain = client.sssd.default_domain
+    result = client.ldb.search(
+        f"/var/lib/sss/db/cache_{domain}.ldb",
+        f"cn={domain},cn=sysdb",
+        filter=f"name=user1@{domain}",
+    )
+    for dn, attrs in result.items():
+        if "failedLoginAttempts" in attrs:
+            assert attrs["failedLoginAttempts"] == ["3"], (
+                f"failedLoginAttempts should be capped at 3, got {attrs['failedLoginAttempts']}"
+            )
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_failed_login_delay_lockout_and_recovery(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Offline auth denied during login delay, succeeds after delay expires
+    :description:
+        After reaching offline_failed_login_attempts threshold, auth is denied
+        for offline_failed_login_delay minutes. After the delay, auth succeeds again.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cache_credentials=True,
+           offline_failed_login_attempts=3, offline_failed_login_delay=1
+        3. Start SSSD
+    :steps:
+        1. Authenticate user to cache credentials
+        2. Block server and bring SSSD offline
+        3. Attempt wrong password 3 times (reach threshold)
+        4. Attempt correct password (should be locked out)
+        5. Wait for offline_failed_login_delay to expire (65 seconds)
+        6. Authenticate with correct password
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. All fail
+        4. Login fails (locked out)
+        5. Delay expired
+        6. Login succeeds
+    :customerscenario: True
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.pam["offline_failed_login_attempts"] = "3"
+    client.sssd.pam["offline_failed_login_delay"] = "1"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    for i in range(3):
+        assert not client.auth.ssh.password("user1", "wrongpassword"), (
+            f"Wrong password attempt {i + 1} should fail"
+        )
+
+    assert not client.auth.ssh.password("user1", "Secret123"), (
+        "Correct password should be rejected during lockout"
+    )
+
+    time.sleep(65)
+
+    assert client.auth.ssh.password("user1", "Secret123"), (
+        "Login should succeed after offline_failed_login_delay expires"
+    )
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_failed_login_delay_zero_permanent_denial(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Offline failed login delay of 0 permanently denies auth until online
+    :description:
+        When offline_failed_login_delay=0, the user is permanently locked out
+        offline after reaching the failed login threshold. Only online auth recovers.
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cache_credentials=True,
+           offline_failed_login_attempts=3, offline_failed_login_delay=0
+        3. Start SSSD
+    :steps:
+        1. Authenticate user to cache credentials
+        2. Block server and bring SSSD offline
+        3. Attempt wrong password 3 times
+        4. Wait 30 seconds
+        5. Attempt correct password (should still be denied)
+        6. Unblock server and restart SSSD
+        7. Authenticate online
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. All fail
+        4. Time passes
+        5. Login fails (permanently denied offline)
+        6. SSSD online
+        7. Login succeeds
+    :customerscenario: False
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.pam["offline_failed_login_attempts"] = "3"
+    client.sssd.pam["offline_failed_login_delay"] = "0"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    for i in range(3):
+        assert not client.auth.ssh.password("user1", "wrongpassword"), (
+            f"Wrong password attempt {i + 1} should fail"
+        )
+
+    time.sleep(30)
+
+    assert not client.auth.ssh.password("user1", "Secret123"), (
+        "Login should be permanently denied offline when delay=0"
+    )
+
+    client.firewall.outbound.accept_host(provider)
+    client.sssd.restart(clean=False)
+
+    assert client.auth.ssh.password("user1", "Secret123"), (
+        "Login should succeed after going back online"
+    )
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1361563)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_password_change_shows_offline_message(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Password change while offline shows "System is offline" message
+    :description:
+        When the user attempts a password change while SSSD is offline,
+        the operation should fail with "System is offline, password change not possible".
+    :setup:
+        1. Create user with password Secret123
+        2. Start SSSD
+    :steps:
+        1. Authenticate user
+        2. Block server and bring SSSD offline
+        3. Attempt password change via passwd
+        4. Check output for offline message
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. Password change fails
+        4. Output contains "System is offline, password change not possible"
+    :customerscenario: True
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    result = client.host.conn.run(
+        "expect -c \"spawn passwd user1; expect eof\"",
+        raise_on_error=False,
+    )
+
+    assert "System is offline, password change not possible" in result.stdout or \
+        "System is offline, password change not possible" in result.stderr, (
+        "Offline password change should show 'System is offline' message"
+    )
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=875738)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_auth_failure_no_system_error(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Offline auth failure does not produce "System error" in logs
+    :description:
+        When a user fails offline authentication with a wrong password, SSSD
+        should report proper authentication failure, not "System error".
+    :setup:
+        1. Create user with password Secret123
+        2. Configure SSSD with cache_credentials=True
+        3. Start SSSD
+    :steps:
+        1. Authenticate user to cache credentials
+        2. Block server and bring SSSD offline
+        3. Attempt login with wrong password
+        4. Check PAM log for "System error"
+    :expectedresults:
+        1. Login succeeds
+        2. SSSD is offline
+        3. Login fails
+        4. "System error" is NOT in PAM log
+    :customerscenario: True
+    """
+    provider.user("user1").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    assert not client.auth.ssh.password("user1", "wrongpassword"), "Wrong password should fail"
+
+    log = client.fs.read(client.sssd.logs.pam)
+    assert "System error" not in log, (
+        "'System error' should not appear in PAM log for offline auth failure"
+    )
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1499658)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_authentication__offline_cache_injection_protection(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: Unsanitized input in cache lookup does not leak cached passwords
+    :description:
+        SSSD must sanitize user input when searching the local cache database.
+        A crafted username with LDAP filter injection characters should not
+        return other users' cached password hashes.
+    :setup:
+        1. Create user "victim" with password Secret123
+        2. Configure SSSD with cache_credentials=True
+        3. Start SSSD
+    :steps:
+        1. Authenticate victim to cache credentials
+        2. Attempt getent passwd with injection string
+    :expectedresults:
+        1. Login succeeds
+        2. Injection lookup returns no results (exit code 2)
+    :customerscenario: True
+    """
+    provider.user("victim").add(password="Secret123")
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("victim", "Secret123"), "Initial login should succeed"
+
+    result = client.host.conn.run(
+        "getent passwd 'xxx)(&(name=victim@ldap)(cachedPassword=$6$*))(xxx=xxx@xxx'",
+        raise_on_error=False,
+    )
+    assert result.rc == 2, (
+        f"Injection lookup should return no results (exit code 2), got exit code {result.rc}"
+    )
