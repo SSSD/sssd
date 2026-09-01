@@ -163,14 +163,10 @@ def test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms(
         4. Start SSSD
     :steps:
         1. Trigger user lookup
-        2. Truncate ldap_child.log
-        3. Trigger user lookup again
-        4. Read ldap_child.log for selected principal
+        2. Read ldap_child.log for selected principal
     :expectedresults:
-        1. First user lookup completes
-        2. ldap_child.log is truncated
-        3. Second user lookup completes
-        4. Wrong nfs principal is not selected; correct host principal is in the log
+        1. User lookup completes
+        2. Wrong nfs principal is not selected; correct host principal is in the log
     :customerscenario: True
     """
     provider.user("puser1").add(password="Secret123")
@@ -199,22 +195,18 @@ def test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms(
     client.sssd.domain["ldap_sasl_mech"] = "GSSAPI"
     client.sssd.domain["ldap_krb5_keytab"] = "/etc/krb5.keytab"
     client.sssd.domain["debug_level"] = "0xFFF0"
-
-    client.sssd.restart(clean=True)
-
-    client.tools.id("puser1")
-
-    client.host.conn.run("truncate -s 0 /var/log/sssd/ldap_child.log", raise_on_error=False)
+    client.sssd.start()
 
     client.tools.id("puser1")
+
+    # `id` can return before ldap_child finishes appending to ldap_child.log.
+    time.sleep(2)
 
     ldap_child_log = "/var/log/sssd/ldap_child.log"
     wrong_pattern = f"nfs/{client.host.hostname}@TEST.EXAMPLE.COM"
     correct_pattern = f"host/{client.host.hostname}@{kdc.realm}"
     selected_ok = f"Selected principal: {correct_pattern}"
 
-    # `id` can return before ldap_child finishes appending to ldap_child.log.
-    time.sleep(2)
     log_content = client.fs.read(ldap_child_log)
 
     assert f"Selected principal: {wrong_pattern}" not in log_content, f"SSSD incorrectly selected {wrong_pattern}!"
