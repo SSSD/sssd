@@ -272,6 +272,28 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* IPA manages the sudo search base itself (cn=sudo,$basedn) via
+     * sudo_ctx->sudo_sb. Record it on sdom as well so the generic
+     * sdap_set_config_options_with_rootdse() handler sees the base is
+     * already resolved and skips its whole-tree defaulting and the
+     * spurious "`ldap_sudo_search_base` is not set" warning (gh#9030).
+     * This is set at init, before any connection's rootDSE callback runs,
+     * so it is robust across reconnections unlike an option-string check. */
+    if (sudo_ctx->sdap_opts->sdom != NULL
+            && sudo_ctx->sdap_opts->sdom->sudo_search_bases == NULL) {
+        ret = sdap_parse_search_base(
+                  sudo_ctx->sdap_opts->sdom,
+                  sysdb_ctx_get_ldb(be_ctx->domain->sysdb),
+                  sudo_ctx->sdap_opts->basic,
+                  SDAP_SUDO_SEARCH_BASE,
+                  &sudo_ctx->sdap_opts->sdom->sudo_search_bases);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Could not set sudo search base on sdom\n");
+            goto done;
+        }
+    }
+
     ret = ipa_sudo_ptask_setup(be_ctx, sudo_ctx);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup periodic tasks "
