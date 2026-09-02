@@ -22,11 +22,20 @@
 #ifndef _NSS_NEG_CACHE_H_
 #define _NSS_NEG_CACHE_H_
 
+struct tevent_context;
 struct sss_nc_ctx;
 
-/* init the in memory negative cache */
-int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
-                    struct sss_nc_ctx **_ctx);
+/* init the in memory negative cache
+ *
+ * When max_entries is not 0 the cache refuses to grow beyond that many
+ * entries, and a periodic task running every prune_interval seconds drops
+ * the entries that have expired so that room is made for new ones. Pass
+ * prune_interval = 0, or ev = NULL, to leave the periodic task unscheduled;
+ * sss_ncache_prune() then has to be called explicitly.
+ */
+int sss_ncache_init(TALLOC_CTX *memctx, struct tevent_context *ev,
+                    uint32_t timeout, uint32_t max_entries,
+                    uint32_t prune_interval, struct sss_nc_ctx **_ctx);
 
 uint32_t sss_ncache_get_timeout(struct sss_nc_ctx *ctx);
 
