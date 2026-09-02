@@ -19,74 +19,55 @@
 */
 
 #include <errno.h>
-#include <talloc.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "util/sss_bot_parser.h"
 #include "util/sss_bot.h"
 #include "util/util_errors.h"
 
-errno_t
-sss_bot_parse(TALLOC_CTX *mem_ctx, const char *input, struct sss_bot **_bot)
+int
+sss_bot_cli_parse(const char *input, struct sss_bot **_bot)
 {
-    struct sss_bot_parser_data data;
     struct sss_bot *bot;
-    errno_t ret;
+    struct sss_bot_parser_data data;
+    int ret;
 
     ret = sss_bot_parse_const(input, &data);
-    if (ret != EOK) {
+    if (ret != 0) {
         return ret;
     }
 
-    bot = talloc_zero(mem_ctx, struct sss_bot);
+    bot = malloc(sizeof(struct sss_bot));
     if (bot == NULL) {
         return ENOMEM;
     }
 
-    bot->input = talloc_strdup(bot, data.input);
-    bot->name = talloc_strndup(bot, data.name, data.name_len);
-    bot->random = talloc_strndup(bot, data.random, data.random_len);
+    bot->input = strndup(data.input, data.input_len);
+    bot->name = strndup(data.name, data.name_len);
+    bot->random = strndup(data.random, data.random_len);
     bot->uid = data.uid;
 
     if (bot->input == NULL || bot->name == NULL || bot->random == NULL) {
-        ret = ENOMEM;
-        goto done;
+        sss_bot_cli_free(bot);
+        return ENOMEM;
     }
 
     *_bot = bot;
 
-    ret = EOK;
-
-done:
-    if (ret != EOK) {
-        talloc_free(bot);
-    }
-
-    return ret;
+    return 0;
 }
 
-struct sss_bot *
-sss_bot_copy(TALLOC_CTX *mem_ctx, struct sss_bot *bot)
+void
+sss_bot_cli_free(struct sss_bot *bot)
 {
-    struct sss_bot *copy;
-
     if (bot == NULL) {
-        return NULL;
+        return;
     }
 
-    copy = talloc_zero(mem_ctx, struct sss_bot);
-    if (copy == NULL) {
-        return NULL;
-    }
-
-    copy->input = talloc_strdup(copy, bot->input);
-    copy->name = talloc_strdup(copy, bot->name);
-    copy->random = talloc_strdup(copy, bot->random);
-    if (copy->input == NULL || copy->name == NULL || copy->random == NULL) {
-        talloc_free(copy);
-        return NULL;
-    }
-
-    copy->uid = bot->uid;
-
-    return copy;
+    free(bot->input);
+    free(bot->name);
+    free(bot->random);
+    free(bot);
 }
