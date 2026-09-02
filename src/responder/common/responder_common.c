@@ -999,6 +999,7 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
                                      struct sss_nc_ctx **ncache)
 {
     uint32_t neg_timeout;
+    uint32_t max_entries;
     int tmp_value;
     int ret;
 
@@ -1021,8 +1022,30 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
 
     neg_timeout = tmp_value;
 
+    /* max_entries */
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_NEGCACHE_MAX_ENTRIES,
+                         CONFDB_DEFAULT_NSS_NEGCACHE_MAX_ENTRIES, &tmp_value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal failure of setup negative cache size [%s].\n",
+              CONFDB_NSS_NEGCACHE_MAX_ENTRIES);
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (tmp_value < 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value of [%s]: %d\n",
+              CONFDB_NSS_NEGCACHE_MAX_ENTRIES, tmp_value);
+        ret = EINVAL;
+        goto done;
+    }
+
+    max_entries = tmp_value;
+
     /* negative cache init */
-    ret = sss_ncache_init(mem_ctx, neg_timeout, ncache);
+    ret = sss_ncache_init(mem_ctx, neg_timeout, max_entries, ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Fatal failure of initializing negative cache.\n");

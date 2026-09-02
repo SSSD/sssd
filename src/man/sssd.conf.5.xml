@@ -898,6 +898,43 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>negcache_max_entries (integer)</term>
+                    <listitem>
+                        <para>
+                            Maximum number of entries the negative cache is
+                            allowed to hold. Entries are never removed from
+                            the negative cache individually, not even when
+                            they expire, so once the limit is reached the
+                            whole cache is discarded and a new one, holding
+                            only the permanent entries, is created.
+                        </para>
+                        <para>
+                            Refreshing an existing cached entry is unaffected
+                            by the max entries limit.
+                        </para>
+                        <para>
+                            Setting a too-low limit will have a negative impact
+                            on the performance, as the cache will be discarded
+                            often and the entries that were still valid will
+                            produce a request to the backend the next time they
+                            are requested. In addition, several permanent
+                            entries are created automatically at start-up for
+                            some known cases (such as root, users and groups
+                            mentioned in <quote>filter_users</quote> and
+                            <quote>filter_groups</quote>, etc.); they are
+                            counted when checking the limit and they survive
+                            the discarding of the cache.
+                        </para>
+                        <para>
+                            A value of 0 means that the size of the negative
+                            cache is not limited.
+                        </para>
+                        <para>
+                            Default: 10000
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>filter_users, filter_groups (string)</term>
                     <listitem>
                         <para>

@@ -61,6 +61,13 @@ struct sss_nc_ctx {
     uint32_t timeout;
     struct sss_nc_id_range *uid_ranges;
     struct sss_nc_id_range *gid_ranges;
+    uint32_t max_entries;
+    /* Number of entries currently stored in the tdb, and how many of those
+     * are permanent. Entries are never taken out one by one, so these only
+     * grow until the whole cache is replaced by ncache_rebuild(), which
+     * recomputes both of them. */
+    uint32_t entries;
+    uint32_t permanents;
 };
 
 typedef int (*ncache_set_byname_fn_t)(struct sss_nc_ctx *, bool,
@@ -80,20 +87,42 @@ static int string_to_tdb_data(char *str, TDB_DATA *ret)
     return EOK;
 }
 
+/* open a memory only tdb with default hash size */
+static struct tdb_context *ncache_open_tdb(void)
+{
+    errno = 0;
+    return tdb_open("memcache", 0, TDB_INTERNAL, O_RDWR|O_CREAT, 0);
+}
+
+static int sss_ncache_destructor(struct sss_nc_ctx *ctx)
+{
+    if (ctx->tdb != NULL) {
+        tdb_close(ctx->tdb);
+        ctx->tdb = NULL;
+    }
+
+    return 0;
+}
+
 int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
-                    struct sss_nc_ctx **_ctx)
+                    uint32_t max_entries, struct sss_nc_ctx **_ctx)
 {
     struct sss_nc_ctx *ctx;
+    int ret;
 
     ctx = talloc_zero(memctx, struct sss_nc_ctx);
     if (!ctx) return ENOMEM;
 
-    errno = 0;
-    /* open a memory only tdb with default hash size */
-    ctx->tdb = tdb_open("memcache", 0, TDB_INTERNAL, O_RDWR|O_CREAT, 0);
-    if (!ctx->tdb) return errno;
+    ctx->tdb = ncache_open_tdb();
+    if (!ctx->tdb) {
+        ret = errno;
+        talloc_free(ctx);
+        return ret;
+    }
+    talloc_set_destructor(ctx, sss_ncache_destructor);
 
     ctx->timeout = timeout;
+    ctx->max_entries = max_entries;
 
     *_ctx = ctx;
     return EOK;
@@ -104,60 +133,208 @@ uint32_t sss_ncache_get_timeout(struct sss_nc_ctx *ctx)
     return ctx->timeout;
 }
 
+/* Read the expiration timestamp stored with an entry. Returns false, and
+ * leaves *_tstamp untouched, if the entry is malformed. */
+static bool ncache_entry_timestamp(const char *data,
+                                   unsigned long long int *_tstamp)
+{
+    unsigned long long int tstamp;
+    char *ep;
+
+    errno = 0;
+    tstamp = strtoull(data, &ep, 10);
+    if (errno != 0 || *ep != '\0') {
+        return false;
+    }
+
+    *_tstamp = tstamp;
+    return true;
+}
+
+/* A 0 timestamp means this is a permanent entry */
+static bool ncache_entry_is_permanent(const char *data)
+{
+    unsigned long long int tstamp;
+
+    return ncache_entry_timestamp(data, &tstamp) && (tstamp == 0);
+}
+
+static bool ncache_entry_is_expired(const char *data, time_t now)
+{
+    unsigned long long int tstamp;
+
+    if (!ncache_entry_timestamp(data, &tstamp)) {
+        return true;   /* malformed entry, never report it as cached */
+    }
+
+    return (tstamp != 0 && tstamp < (unsigned long long int) now);
+}
+
 static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
 {
     TDB_DATA key;
     TDB_DATA data;
-    unsigned long long int timestamp;
-    bool expired = false;
-    char *ep;
     int ret;
 
     DEBUG_CONDITIONAL(SSSDBG_TRACE_INTERNAL, "Checking negative cache for [%s]\n", str);
 
-    data.dptr = NULL;
-
     ret = string_to_tdb_data(str, &key);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        return ret;
+    }
 
     data = tdb_fetch(ctx->tdb, key);
-
     if (!data.dptr) {
+        return ENOENT;
+    }
+
+    /* An expired entry is not removed here: entries are only ever dropped
+     * all at once by ncache_rebuild(), until then they simply stop being
+     * reported. */
+    if (ncache_entry_is_expired((const char *) data.dptr, time(NULL))) {
         ret = ENOENT;
-        goto done;
-    }
-
-    errno = 0;
-    timestamp = strtoull((const char *)data.dptr, &ep, 10);
-    if (errno != 0 || *ep != '\0') {
-        /* Malformed entry, remove it and return no entry */
-        expired = true;
-        goto done;
-    }
-
-    if (timestamp == 0) {
-        /* a 0 timestamp means this is a permanent entry */
+    } else {
         ret = EEXIST;
-        goto done;
-    }
-
-    if (timestamp >= time(NULL)) {
-        /* still valid */
-        ret = EEXIST;
-        goto done;
-    }
-
-    expired = true;
-
-done:
-    if (expired) {
-        /* expired, remove and return no entry */
-        tdb_delete(ctx->tdb, key);
-        ret = ENOENT;
     }
 
     free(data.dptr);
     return ret;
+}
+
+/* Tell whether an entry has to be carried over to the new cache. */
+typedef bool (*ncache_keep_fn_t)(TDB_DATA key, TDB_DATA data, void *pvt);
+
+struct ncache_rebuild_state {
+    struct tdb_context *tdb;    /* the cache being built */
+    ncache_keep_fn_t keep;
+    void *pvt;
+    uint32_t entries;
+    uint32_t permanents;
+    errno_t error;
+};
+
+static int ncache_copy_entry(struct tdb_context *tdb,
+                             TDB_DATA key, TDB_DATA data, void *pvt)
+{
+    struct ncache_rebuild_state *state = (struct ncache_rebuild_state *) pvt;
+
+    if (!state->keep(key, data, state->pvt)) {
+        return 0;
+    }
+
+    if (tdb_store(state->tdb, key, data, TDB_INSERT) != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to carry [%s] over to the new negative cache: [%s]\n",
+              (const char *) key.dptr, tdb_errorstr(state->tdb));
+        state->error = EFAULT;
+        return -1;   /* stop the traversal */
+    }
+
+    state->entries++;
+    if (ncache_entry_is_permanent((const char *) data.dptr)) {
+        state->permanents++;
+    }
+
+    return 0;
+}
+
+/* Replace the cache with a brand new one holding only the entries selected
+ * by keep().
+ *
+ * Entries are never deleted from the negative cache one by one, throwing
+ * the whole tdb away is the only way they ever go away. Besides keeping the
+ * lookups free of any bookkeeping, this also hands the memory of the
+ * discarded entries back to the system instead of leaving it on the tdb
+ * free list. */
+static errno_t ncache_rebuild(struct sss_nc_ctx *ctx,
+                              ncache_keep_fn_t keep, void *pvt)
+{
+    struct ncache_rebuild_state state = { 0 };
+
+    state.keep = keep;
+    state.pvt = pvt;
+    state.error = EOK;
+
+    state.tdb = ncache_open_tdb();
+    if (state.tdb == NULL) {
+        state.error = (errno != 0) ? errno : EIO;
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to create a new negative cache: %d [%s]\n",
+              state.error, sss_strerror(state.error));
+        return state.error;
+    }
+
+    if (tdb_traverse_read(ctx->tdb, ncache_copy_entry, &state) < 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to walk the negative cache: [%s]\n",
+              tdb_errorstr(ctx->tdb));
+        state.error = EIO;
+    }
+
+    if (state.error != EOK) {
+        /* the current cache is still usable, keep it */
+        tdb_close(state.tdb);
+        return state.error;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Negative cache rebuilt, %u entries dropped, %u left\n",
+          ctx->entries > state.entries ? ctx->entries - state.entries : 0,
+          state.entries);
+
+    tdb_close(ctx->tdb);
+    ctx->tdb = state.tdb;
+    ctx->entries = state.entries;
+    ctx->permanents = state.permanents;
+
+    return EOK;
+}
+
+static bool ncache_keep_permanent(TDB_DATA key, TDB_DATA data, void *pvt)
+{
+    return ncache_entry_is_permanent((const char *) data.dptr);
+}
+
+/* Make room for one more entry.
+ *
+ * Since expired entries are never reclaimed on their own, the only way to
+ * make room once the cache is full is to start over with a new cache
+ * holding just the permanent entries, which are the ones that must
+ * survive. */
+static errno_t sss_ncache_make_room(struct sss_nc_ctx *ctx, const char *str)
+{
+    errno_t ret;
+
+    if (ctx->max_entries == 0 || ctx->entries < ctx->max_entries) {
+        /* the size is not limited, or there is still room */
+        return EOK;
+    }
+
+    /* when the permanent entries alone fill the cache there is nothing to
+     * be gained by dropping it */
+    if (ctx->permanents < ctx->max_entries) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Negative cache limit reached (%u), dropping the cache to make "
+              "room for [%s]\n", ctx->max_entries, str);
+
+        ret = ncache_rebuild(ctx, ncache_keep_permanent, NULL);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to drop the negative cache: %d [%s]\n",
+                  ret, sss_strerror(ret));
+            return ret;
+        }
+    }
+
+    if (ctx->entries >= ctx->max_entries) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "The %u permanent entries of the negative cache leave no room "
+              "for [%s], consider raising [%s]\n",
+              ctx->permanents, str, CONFDB_NSS_NEGCACHE_MAX_ENTRIES);
+        return ENOSPC;
+    }
+
+    return EOK;
 }
 
 static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
@@ -166,18 +343,33 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
     TDB_DATA data;
     char *timest;
     unsigned long long int timell;
+    bool is_new;
     int ret;
 
     ret = string_to_tdb_data(str, &key);
     if (ret != EOK) return ret;
 
+    /* Only an entry that is not stored yet can make the cache grow,
+     * replacing an existing one does not. */
+    is_new = !tdb_exists(ctx->tdb, key);
+
     if (permanent) {
+        /* Permanent entries come from the configuration, their number is
+         * bounded and they must never be dropped. */
         timest = talloc_strdup(ctx, "0");
     } else {
         /* EOK is tested in cwrap based unit test */
         if (ctx->timeout == 0) {
             return EOK;
         }
+
+        if (is_new) {
+            ret = sss_ncache_make_room(ctx, str);
+            if (ret != EOK) {
+                return ret;
+            }
+        }
+
         timell = ctx->timeout + (unsigned long long int)time(NULL);
         timest = talloc_asprintf(ctx, "%llu", timell);
     }
@@ -194,6 +386,11 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
         DEBUG(SSSDBG_CRIT_FAILURE, "Negative cache failed to set entry: [%s]\n",
                   tdb_errorstr(ctx->tdb));
         ret = EFAULT;
+    } else if (is_new) {
+        ctx->entries++;
+        if (permanent) {
+            ctx->permanents++;
+        }
     }
 
 done:
@@ -474,17 +671,6 @@ static int sss_ncache_set_id_range(TALLOC_CTX *memctx,
     DLIST_ADD(*ranges, range);
 
     return EOK;
-}
-
-static void sss_ncache_free_id_ranges(struct sss_nc_id_range **ranges)
-{
-    struct sss_nc_id_range *range;
-
-    while (*ranges != NULL) {
-        range = *ranges;
-        DLIST_REMOVE(*ranges, range);
-        talloc_free(range);
-    }
 }
 
 static int sss_ncache_set_uid_range(struct sss_nc_ctx *ctx,
@@ -984,95 +1170,80 @@ int sss_ncache_set_locate_sid(struct sss_nc_ctx *ctx,
     return ret;
 }
 
-static int delete_permanent(struct tdb_context *tdb,
-                            TDB_DATA key, TDB_DATA data, void *state)
+/* The counterpart of ncache_keep_permanent(): everything survives but the
+ * permanent entries, and the malformed ones. */
+static bool ncache_drop_permanent(TDB_DATA key, TDB_DATA data, void *pvt)
 {
     unsigned long long int timestamp;
-    bool remove_key = false;
-    char *ep;
 
     if (strncmp((char *)key.dptr,
                 NC_ENTRY_PREFIX, sizeof(NC_ENTRY_PREFIX) - 1) != 0) {
         /* not interested in this key */
-        return 0;
+        return true;
     }
 
-    errno = 0;
-    timestamp = strtoull((const char *)data.dptr, &ep, 10);
-    if (errno != 0 || *ep != '\0') {
-        /* Malformed entry, remove it */
-        remove_key = true;
-        goto done;
+    if (!ncache_entry_timestamp((const char *)data.dptr, &timestamp)) {
+        /* Malformed entry, drop it */
+        return false;
     }
 
-    if (timestamp == 0) {
-        /* a 0 timestamp means this is a permanent entry */
-        remove_key = true;
+    /* a 0 timestamp means this is a permanent entry */
+    return (timestamp != 0);
+}
+
+/* The filtered out ID ranges live outside of the tdb, so rebuilding the
+ * cache does not drop them, they have to be flushed on their own. */
+static void ncache_flush_id_ranges(struct sss_nc_id_range **ranges)
+{
+    struct sss_nc_id_range *range;
+    struct sss_nc_id_range *next;
+
+    for (range = *ranges; range != NULL; range = next) {
+        next = range->next;
+        talloc_free(range);
     }
 
-done:
-    if (remove_key) {
-        return tdb_delete(tdb, key);
-    }
-
-    return 0;
+    *ranges = NULL;
 }
 
 int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx)
 {
-    int ret;
+    ncache_flush_id_ranges(&ctx->uid_ranges);
+    ncache_flush_id_ranges(&ctx->gid_ranges);
 
-    ret = tdb_traverse(ctx->tdb, delete_permanent, NULL);
-    if (ret < 0)
-        return EIO;
-
-    sss_ncache_free_id_ranges(&ctx->uid_ranges);
-    sss_ncache_free_id_ranges(&ctx->gid_ranges);
-
-    return EOK;
+    return ncache_rebuild(ctx, ncache_drop_permanent, NULL);
 }
 
-static int delete_prefix(struct tdb_context *tdb,
-                         TDB_DATA key, TDB_DATA data, void *state)
+/* Drop the entries whose key starts with any of the given prefixes, with
+ * the exception of the permanent ones. */
+static bool ncache_drop_prefixed(TDB_DATA key, TDB_DATA data, void *pvt)
 {
-    const char *prefix = (const char *) state;
-    unsigned long long int timestamp;
-    char *ep = NULL;
+    const char **prefixes = (const char **) pvt;
 
-    if (strncmp((char *)key.dptr, prefix, strlen(prefix) - 1) != 0) {
-        /* not interested in this key */
-        return 0;
-    }
-
-    errno = 0;
-    timestamp = strtoull((const char *)data.dptr, &ep, 10);
-    if ((errno == 0) && (*ep == '\0') && (timestamp == 0)) {
+    if (ncache_entry_is_permanent((const char *)data.dptr)) {
         /* skip permanent entries */
-        return 0;
+        return true;
     }
 
-    return tdb_delete(tdb, key);
+    for (int i = 0; prefixes[i] != NULL; i++) {
+        if (strncmp((char *)key.dptr,
+                    prefixes[i], strlen(prefixes[i]) - 1) == 0) {
+            return false;
+        }
+    }
+
+    /* not interested in this key */
+    return true;
 }
 
 static int sss_ncache_reset_pfx(struct sss_nc_ctx *ctx,
                                 const char **prefixes)
 {
-    int ret;
-
     if (prefixes == NULL) {
         return EOK;
     }
 
-    for (int i = 0; prefixes[i] != NULL; i++) {
-        ret = tdb_traverse(ctx->tdb,
-                           delete_prefix,
-                           discard_const(prefixes[i]));
-        if (ret < 0) {
-            return EIO;
-        }
-    }
-
-    return EOK;
+    return ncache_rebuild(ctx, ncache_drop_prefixed, prefixes);
 }
 
 int sss_ncache_reset_users(struct sss_nc_ctx *ctx)
