@@ -4125,6 +4125,8 @@ if BUILD_KRB5_LOCALAUTH_PLUGIN
 test_sssd_krb5_localauth_plugin_SOURCES = \
     src/tests/cmocka/test_sssd_krb5_localauth_plugin.c \
     src/krb5_plugin/sssd_krb5_localauth_plugin.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
     $(NULL)
 test_sssd_krb5_localauth_plugin_CFLAGS = \
     $(AM_CFLAGS) \
@@ -5041,7 +5043,9 @@ sssd_krb5_localauth_plugin_la_SOURCES = \
     src/sss_client/common.c \
     src/sss_client/nss_mc_common.c \
     src/sss_client/nss_mc_passwd.c \
-    src/sss_client/nss_passwd.c
+    src/sss_client/nss_passwd.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c
 sssd_krb5_localauth_plugin_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)
