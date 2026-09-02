@@ -322,6 +322,7 @@ if HAVE_CMOCKA
         test_pamsrv_json \
         test_oidc_user_id \
         test_sss_bot \
+        test_sss_bot_cli \
         $(NULL)
 
 
@@ -618,6 +619,7 @@ SSSD_RESPONDER_OBJ = \
     src/providers/data_provider_req.c \
     src/util/session_recording.c \
     src/util/sss_bot.c \
+    src/util/sss_bot_parser.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
@@ -700,6 +702,7 @@ dist_noinst_HEADERS = \
     src/util/client_envs.h \
     src/util/sss_client_envs.h \
     src/util/sss_bot.h \
+    src/util/sss_bot_parser.h \
     src/util/sss_cli_cmd.h \
     src/util/sss_chain_id_tevent.h \
     src/util/sss_chain_id.h \
@@ -2482,6 +2485,7 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/responder_utils.c \
      src/util/session_recording.c \
      src/util/sss_bot.c \
+     src/util/sss_bot_parser.c \
      $(SSSD_CACHE_REQ_OBJ) \
      $(SSSD_RESPONDER_IFACE_OBJ) \
      $(NULL)
@@ -2676,6 +2680,7 @@ test_oidc_user_id_LDADD = \
 test_sss_bot_SOURCES = \
     src/tests/cmocka/test_sss_bot.c \
     src/util/sss_bot.c \
+    src/util/sss_bot_parser.c \
     src/util/util.c \
     src/util/util_ext.c \
     $(NULL)
@@ -2693,6 +2698,19 @@ test_sss_bot_LDADD = \
     $(POPT_LIBS) \
     libsss_test_common.la \
     libsss_debug.la \
+    $(NULL)
+
+test_sss_bot_cli_SOURCES = \
+    src/tests/cmocka/test_sss_bot_cli.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
+    $(NULL)
+test_sss_bot_cli_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(NULL)
+test_sss_bot_cli_LDADD = \
+    $(CMOCKA_LIBS) \
     $(NULL)
 
 test_sss_pam_data_SOURCES = \

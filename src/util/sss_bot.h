@@ -22,26 +22,25 @@
 #define __SSS_BOT_H__
 
 #include <stdint.h>
-#include <talloc.h>
-
+#include <sys/types.h>
 #include "util/util_errors.h"
-
-/* Bot name format: BOT~$UID~$RND[@REALM|@DOMAIN] */
-#define SSS_BOT_PREFIX "BOT~"
-#define SSS_BOT_PREFIX_LEN (sizeof(SSS_BOT_PREFIX) - 1)
 
 /* Shell override */
 #define SSS_BOT_SHELL "/usr/bin/sss-confined-shell"
 
 struct sss_bot {
-    const char *input; /* Original input name, may contain potential realm or domain */
-    const char *name; /* Bot account name, short name, without realm or domain */
-    const char *random; /* Random part of the name, extracted from the name */
+    char *input; /* Original input name, may contain potential realm or domain */
+    char *name; /* Bot account name, short name, without realm or domain */
+    char *random; /* Random part of the name, extracted from the name */
     uint32_t uid; /* UID number of the original user, extracted from the name */
 };
 
+#ifdef TALLOC_VERSION_MAJOR
+
 /**
  * Parse bot name.
+ *
+ * For talloc-aware code. talloc.h must be included before this header.
  *
  * Return EINVAL if the @input does not validate as a bot account.
  */
@@ -49,9 +48,28 @@ errno_t
 sss_bot_parse(TALLOC_CTX *mem_ctx, const char *input, struct sss_bot **_bot);
 
 /**
- * Deep copy sss_bot
+ * Deep copy sss_bot.
  */
 struct sss_bot *
 sss_bot_copy(TALLOC_CTX *mem_ctx, struct sss_bot *bot);
+
+#else
+
+/**
+ * Parse bot name.
+ *
+ * This is talloc-free version that can be used in client libraries.
+ *
+ * Free it with @sss_bot_cli_free.
+ *
+ * Return EINVAL if the @input does not validate as a bot account.
+ */
+int
+sss_bot_cli_parse(const char *input, struct sss_bot **_bot);
+
+void
+sss_bot_cli_free(struct sss_bot *bot);
+
+#endif /* TALLOC_VERSION_MAJOR */
 
 #endif /* __SSS_BOT_H__ */
