@@ -7,11 +7,15 @@ SSSD Authentication Test Cases
 from __future__ import annotations
 
 import re
+import textwrap
+from inspect import cleandoc
 
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.kdc import KDC
+from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
@@ -409,3 +413,108 @@ def test_authentication__custom_password_prompt_is_shown_at_login(
     result = client.host.conn.run("su - user1 -c 'su - user1 -c whoami'", input="Secret123")
     assert "My custom prompt" in result.stderr, "Custom password prompt was not shown!"
     assert "user1" in result.stdout, "'user1' failed to log in!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.authentication
+@pytest.mark.topology(KnownTopology.ALLREALMS)
+def test_authentication__pam_sss_domains_skips_non_matching_krb5_domains(
+    client: Client, samba: Samba, ipa: IPA, kdc: KDC
+):
+    """
+    :title: pam_sss.so 'domains' authenticates only against the listed Kerberos realm domain
+    :description:
+        Local users may authenticate via Kerberos against one of several configured realms
+        (Samba, IPA, or a standalone KDC). The same username exists in every realm with a
+        different password. Each PAM 'domains=' line restricts SSSD to that domain only, so
+        earlier lines fail with the wrong password and PAM falls through until the matching
+        domain succeeds (try-and-error via the domains option).
+    :setup:
+        1. Add a local user and create 'user1' in the Samba, IPA, and KDC realms with
+           different passwords
+        2. Configure three SSSD domains (samba, ipa, krb5) with id_provider=proxy/files and
+           auth_provider=krb5 using each provider's realm
+        3. Replace 'su-l' with three 'sufficient' pam_sss.so lines, each limited by 'domains='
+    :steps:
+        1. Authenticate as the local user via 'su -' using the Samba password and run klist
+        2. Authenticate as the local user via 'su -' using the IPA password and run klist
+        3. Authenticate as the local user via 'su -' using the KDC password and run klist
+    :expectedresults:
+        1. Authentication succeeds via 'domains=samba' and the TGT realm is the Samba realm
+        2. Authentication succeeds via 'domains=ipa' (after Samba fails) and the TGT realm is
+           the IPA realm
+        3. Authentication succeeds via 'domains=krb5' (after Samba and IPA fail) and the TGT
+           realm is the KDC realm
+    :customerscenario: True
+    """
+    client.local.user("user1").add(password="LocalSecret123")
+    samba.user("user1").add(password="SambaSecret123")
+    ipa.user("user1").add(password="IPASecret123")
+    kdc.principal("user1").add(password="KDCSecret123")
+
+    client.sssd.fs.write(
+        "/etc/krb5.conf",
+        textwrap.dedent(f"""
+            [libdefaults]
+            default_realm = {kdc.realm}
+            dns_lookup_realm = false
+            dns_lookup_kdc = false
+            ticket_lifetime = 24h
+            renew_lifetime = 7d
+            forwardable = yes
+
+            [realms]
+            {samba.realm} = {{
+              kdc = {samba.host.hostname}
+            }}
+            {ipa.realm} = {{
+              kdc = {ipa.host.hostname}
+            }}
+            {kdc.realm} = {{
+              kdc = {kdc.host.hostname}:88
+              admin_server = {kdc.host.hostname}:749
+            }}
+            """).lstrip(),
+        user="root",
+        group="root",
+        mode="0644",
+    )
+
+    for name, role in (("samba", samba), ("ipa", ipa), ("krb5", kdc)):
+        client.sssd.dom(name).update(
+            enabled="true",
+            id_provider="proxy",
+            proxy_lib_name="files",
+            auth_provider="krb5",
+            krb5_realm=role.realm,
+            krb5_server=role.host.hostname,
+        )
+    client.sssd.sssd["domains"] = "samba, ipa, krb5"
+    client.sssd.default_domain = "krb5"
+    client.sssd.start()
+
+    client.fs.backup("/etc/pam.d/su-l")
+    client.fs.write(
+        "/etc/pam.d/su-l",
+        cleandoc("""
+            auth        required    pam_env.so
+            auth        sufficient  pam_sss.so forward_pass domains=samba
+            auth        sufficient  pam_sss.so forward_pass domains=ipa
+            auth        sufficient  pam_sss.so forward_pass domains=krb5
+            auth        required    pam_deny.so
+            account     required    pam_sss.so
+            password    required    pam_sss.so
+            session     required    pam_sss.so
+            """),
+    )
+
+    for password, realm, domain in (
+        ("SambaSecret123", samba.realm, "samba"),
+        ("IPASecret123", ipa.realm, "ipa"),
+        ("KDCSecret123", kdc.realm, "krb5"),
+    ):
+        result = client.host.conn.run("su - user1 -c klist", input=password, raise_on_error=False)
+        assert result.rc == 0, f"Authentication with the {domain} password failed!"
+        assert (
+            f"krbtgt/{realm}@{realm}" in result.stdout
+        ), f"TGT should come from the {domain} realm ({realm}) when authenticating with that realm's password!"
