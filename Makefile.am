@@ -1386,6 +1386,8 @@ libsss_nss_idmap_la_SOURCES = \
     src/sss_client/nss_group.c \
     src/sss_client/nss_mc_initgr.c \
     src/sss_client/nss_mc_common.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
     src/util/strtonum.c \
     src/util/murmurhash3.c \
     src/util/io.c \
@@ -1395,6 +1397,7 @@ libsss_nss_idmap_la_LIBADD = \
     $(CLIENT_LIBS) \
     -lpthread \
     $(NULL)
+libsss_nss_idmap_la_CFLAGS = $(AM_CFLAGS)
 libsss_nss_idmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/sss_client/idmap/sss_nss_idmap.exports \
     -version-info 6:1:6
@@ -4207,9 +4210,13 @@ libnss_sss_la_SOURCES = \
     src/sss_client/nss_mc_passwd.c \
     src/sss_client/nss_mc_group.c \
     src/sss_client/nss_mc_initgr.c \
-    src/sss_client/nss_mc.h
+    src/sss_client/nss_mc.h \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
+    $(NULL)
 libnss_sss_la_LIBADD = \
     $(CLIENT_LIBS)
+libnss_sss_la_CFLAGS = $(AM_CFLAGS)
 libnss_sss_la_LDFLAGS = \
     -module \
     -version-info 2:0:0 \
@@ -4225,6 +4232,8 @@ sss_la_SOURCES = \
     src/sss_client/nss_mc_passwd.c \
     src/sss_client/nss_mc_group.c \
     src/sss_client/nfs/sss_nfs_client.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
     $(NULL)
 sss_la_CFLAGS = $(AM_CFLAGS)
 sss_la_LIBADD = \

@@ -28,6 +28,9 @@
 #include <time.h>
 #include "nss_mc.h"
 
+#include "util/sss_bot.h"
+#include "shared/safealign.h"
+
 #if HAVE_PTHREAD
 static pthread_mutex_t pw_mc_ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
 static struct sss_cli_mc_ctx pw_mc_ctx = SSS_CLI_MC_CTX_INITIALIZER(&pw_mc_ctx_mutex);
@@ -99,9 +102,164 @@ static errno_t sss_nss_mc_parse_result(struct sss_mc_rec *rec,
     return 0;
 }
 
-errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
-                            struct passwd *result,
-                            char *buffer, size_t buflen)
+static errno_t sss_nss_mc_parse_bot_result(struct sss_bot *bot,
+                                           struct sss_mc_rec *rec,
+                                           struct passwd *result,
+                                           char *buffer, size_t buflen)
+{
+    static const char *shell = SSS_BOT_SHELL;
+    struct passwd result_user;
+    char *buffer_user;
+    size_t len_name;
+    size_t len_passwd;
+    size_t len_gecos;
+    size_t len_dir;
+    size_t len_shell;
+    size_t rp = 0;
+    int ret;
+
+    /* Read original user. */
+    buffer_user = malloc(buflen);
+    if (buffer_user == NULL) {
+        return ENOMEM;
+    }
+    memset(buffer_user, '\0', buflen);
+
+    ret = sss_nss_mc_parse_result(rec, &result_user, buffer_user, buflen);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    len_name = strlen(bot->name) + 1;
+    len_passwd = strlen(result_user.pw_passwd) + 1;
+    len_gecos = strlen(result_user.pw_gecos) + 1;
+    len_dir = strlen(result_user.pw_dir) + 1;
+    len_shell = strlen(shell) + 1;
+
+    if (len_name + len_passwd + len_gecos + len_dir + len_shell > buflen) {
+        ret = ERANGE;
+        goto done;
+    }
+
+    /* Now override it with bot information. */
+    result->pw_name = &buffer[rp];
+    SAFEALIGN_SET_STRING(&buffer[rp], bot->name, len_name, &rp);
+
+    result->pw_passwd = &buffer[rp];
+    SAFEALIGN_SET_STRING(&buffer[rp], result_user.pw_passwd, len_passwd, &rp);
+
+    result->pw_gecos = &buffer[rp];
+    SAFEALIGN_SET_STRING(&buffer[rp], result_user.pw_gecos, len_gecos, &rp);
+
+    result->pw_dir = &buffer[rp];
+    SAFEALIGN_SET_STRING(&buffer[rp], result_user.pw_dir, len_dir, &rp);
+
+    result->pw_shell = &buffer[rp];
+    SAFEALIGN_SET_STRING(&buffer[rp], shell, len_shell, &rp);
+
+    result->pw_uid = result_user.pw_uid;
+    result->pw_gid = result_user.pw_gid;
+
+    ret = EOK;
+
+done:
+    free(buffer_user);
+    return ret;
+}
+
+static errno_t _sss_nss_mc_getpwuid_lookup(uid_t uid, struct sss_mc_rec **_rec)
+{
+    struct sss_mc_rec *rec = NULL;
+    struct sss_mc_pwd_data *data;
+    char uidstr[11];
+    uint32_t hash;
+    uint32_t slot;
+    int len;
+    int ret;
+
+    ret = sss_nss_mc_get_ctx("passwd", &pw_mc_ctx);
+    if (ret) {
+        return ret;
+    }
+
+    len = snprintf(uidstr, 11, "%ld", (long)uid);
+    if (len > 10) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    /* hashes are calculated including the NULL terminator */
+    hash = sss_nss_mc_hash(&pw_mc_ctx, uidstr, len+1);
+    slot = pw_mc_ctx.hash_table[hash];
+
+    /* If slot is not within the bounds of mmapped region and
+     * it's value is not MC_INVALID_VAL, then the cache is
+     * probably corrupted. */
+    while (MC_SLOT_WITHIN_BOUNDS(slot, pw_mc_ctx.dt_size)) {
+        /* free record from previous iteration */
+        free(rec);
+        rec = NULL;
+
+        ret = sss_nss_mc_get_record(&pw_mc_ctx, slot, &rec);
+        if (ret) {
+            goto done;
+        }
+
+        /* check record matches what we are searching for */
+        if (hash != rec->hash2) {
+            /* if uid hash does not match we can skip this immediately */
+            slot = sss_nss_mc_next_slot_with_hash(rec, hash);
+            continue;
+        }
+
+        data = (struct sss_mc_pwd_data *)rec->data;
+        if (uid == data->uid) {
+            break;
+        }
+
+        slot = sss_nss_mc_next_slot_with_hash(rec, hash);
+    }
+
+    if (!MC_SLOT_WITHIN_BOUNDS(slot, pw_mc_ctx.dt_size)) {
+        ret = ENOENT;
+        goto done;
+    }
+
+    *_rec = rec;
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        free(rec);
+        __sync_sub_and_fetch(&pw_mc_ctx.active_threads, 1);
+    }
+
+    return ret;
+}
+
+static errno_t _sss_nss_mc_getpwbot(struct sss_bot *bot,
+                                    struct passwd *result,
+                                    char *buffer, size_t buflen)
+{
+    struct sss_mc_rec *rec = NULL;
+    int ret;
+
+    ret = _sss_nss_mc_getpwuid_lookup(bot->uid, &rec);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    ret = sss_nss_mc_parse_bot_result(bot, rec, result, buffer, buflen);
+
+    free(rec);
+    __sync_sub_and_fetch(&pw_mc_ctx.active_threads, 1);
+
+    return ret;
+}
+
+static errno_t _sss_nss_mc_getpwnam(const char *name, size_t name_len,
+                                    struct passwd *result,
+                                    char *buffer, size_t buflen)
 {
     struct sss_mc_rec *rec = NULL;
     struct sss_mc_pwd_data *data;
@@ -177,70 +335,41 @@ done:
     return ret;
 }
 
+errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
+                            struct passwd *result,
+                            char *buffer, size_t buflen)
+{
+    struct sss_bot *bot;
+    int ret;
+
+    ret = sss_bot_cli_parse(name, &bot);
+    if (ret == EOK) {
+        ret = _sss_nss_mc_getpwbot(bot, result, buffer, buflen);
+        sss_bot_cli_free(bot);
+        return ret;
+    } else if (ret != EINVAL) {
+        return ret;
+    }
+
+    return _sss_nss_mc_getpwnam(name, name_len, result, buffer, buflen);
+}
+
 errno_t sss_nss_mc_getpwuid(uid_t uid,
                             struct passwd *result,
                             char *buffer, size_t buflen)
 {
     struct sss_mc_rec *rec = NULL;
-    struct sss_mc_pwd_data *data;
-    char uidstr[11];
-    uint32_t hash;
-    uint32_t slot;
-    int len;
     int ret;
 
-    ret = sss_nss_mc_get_ctx("passwd", &pw_mc_ctx);
-    if (ret) {
+    ret = _sss_nss_mc_getpwuid_lookup(uid, &rec);
+    if (ret != EOK) {
         return ret;
-    }
-
-    len = snprintf(uidstr, 11, "%ld", (long)uid);
-    if (len > 10) {
-        ret = EINVAL;
-        goto done;
-    }
-
-    /* hashes are calculated including the NULL terminator */
-    hash = sss_nss_mc_hash(&pw_mc_ctx, uidstr, len+1);
-    slot = pw_mc_ctx.hash_table[hash];
-
-    /* If slot is not within the bounds of mmapped region and
-     * it's value is not MC_INVALID_VAL, then the cache is
-     * probably corrupted. */
-    while (MC_SLOT_WITHIN_BOUNDS(slot, pw_mc_ctx.dt_size)) {
-        /* free record from previous iteration */
-        free(rec);
-        rec = NULL;
-
-        ret = sss_nss_mc_get_record(&pw_mc_ctx, slot, &rec);
-        if (ret) {
-            goto done;
-        }
-
-        /* check record matches what we are searching for */
-        if (hash != rec->hash2) {
-            /* if uid hash does not match we can skip this immediately */
-            slot = sss_nss_mc_next_slot_with_hash(rec, hash);
-            continue;
-        }
-
-        data = (struct sss_mc_pwd_data *)rec->data;
-        if (uid == data->uid) {
-            break;
-        }
-
-        slot = sss_nss_mc_next_slot_with_hash(rec, hash);
-    }
-
-    if (!MC_SLOT_WITHIN_BOUNDS(slot, pw_mc_ctx.dt_size)) {
-        ret = ENOENT;
-        goto done;
     }
 
     ret = sss_nss_mc_parse_result(rec, result, buffer, buflen);
 
-done:
     free(rec);
     __sync_sub_and_fetch(&pw_mc_ctx.active_threads, 1);
+
     return ret;
 }
