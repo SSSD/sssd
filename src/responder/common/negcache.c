@@ -43,7 +43,20 @@
 
 struct sss_nc_ctx {
     struct tdb_context *tdb;
+    struct tevent_context *ev;
+    struct tevent_timer *prune_te;
     uint32_t timeout;
+    uint32_t max_entries;
+    uint32_t prune_interval;
+    /* Number of entries currently stored in the tdb. Kept up to date by
+     * every code path that adds or removes an entry, and recomputed from
+     * scratch by sss_ncache_prune(). */
+    uint32_t entries;
+};
+
+struct ncache_prune_state {
+    time_t now;
+    uint32_t alive;
 };
 
 typedef int (*ncache_set_byname_fn_t)(struct sss_nc_ctx *, bool,
@@ -52,6 +65,21 @@ typedef int (*ncache_set_byname_fn_t)(struct sss_nc_ctx *, bool,
 static int sss_ncache_set_ent(struct sss_nc_ctx *ctx, bool permanent,
                               struct sss_domain_info *dom, const char *name,
                               ncache_set_byname_fn_t setter);
+
+static void sss_ncache_schedule_prune(struct sss_nc_ctx *ctx);
+
+/* Remove an entry and keep ctx->entries in sync. */
+static int ncache_delete(struct sss_nc_ctx *ctx, TDB_DATA key)
+{
+    int ret;
+
+    ret = tdb_delete(ctx->tdb, key);
+    if (ret == 0 && ctx->entries > 0) {
+        ctx->entries--;
+    }
+
+    return ret;
+}
 
 static int string_to_tdb_data(char *str, TDB_DATA *ret)
 {
@@ -63,8 +91,9 @@ static int string_to_tdb_data(char *str, TDB_DATA *ret)
     return EOK;
 }
 
-int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
-                    struct sss_nc_ctx **_ctx)
+int sss_ncache_init(TALLOC_CTX *memctx, struct tevent_context *ev,
+                    uint32_t timeout, uint32_t max_entries,
+                    uint32_t prune_interval, struct sss_nc_ctx **_ctx)
 {
     struct sss_nc_ctx *ctx;
 
@@ -76,7 +105,16 @@ int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
     ctx->tdb = tdb_open("memcache", 0, TDB_INTERNAL, O_RDWR|O_CREAT, 0);
     if (!ctx->tdb) return errno;
 
+    ctx->ev = ev;
     ctx->timeout = timeout;
+    ctx->max_entries = max_entries;
+    ctx->prune_interval = prune_interval;
+
+    /* Without a size limit there is nothing to make room for, so the
+     * expired entries can be left to be dropped when they are hit. */
+    if (max_entries != 0) {
+        sss_ncache_schedule_prune(ctx);
+    }
 
     *_ctx = ctx;
     return EOK;
@@ -87,13 +125,26 @@ uint32_t sss_ncache_get_timeout(struct sss_nc_ctx *ctx)
     return ctx->timeout;
 }
 
+static bool sss_ncache_entry_expired(const char *timestamp, unsigned long long int now)
+{
+    unsigned long long int tstamp;
+    char *ep;
+
+    errno = 0;
+    tstamp = strtoull(timestamp, &ep, 10);
+    if (errno != 0 || *ep != '\0') {
+        return true;   /* malformed timestamp */
+    }
+
+    /* A 0 timestamp means this is a permanent entry */
+    return (tstamp != 0 && tstamp < now);
+}
+
 static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
 {
     TDB_DATA key;
     TDB_DATA data;
-    unsigned long long int timestamp;
     bool expired = false;
-    char *ep;
     int ret;
 
     DEBUG_CONDITIONAL(SSSDBG_TRACE_INTERNAL, "Checking negative cache for [%s]\n", str);
@@ -110,37 +161,117 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
         goto done;
     }
 
-    errno = 0;
-    timestamp = strtoull((const char *)data.dptr, &ep, 10);
-    if (errno != 0 || *ep != '\0') {
-        /* Malformed entry, remove it and return no entry */
-        expired = true;
-        goto done;
-    }
-
-    if (timestamp == 0) {
-        /* a 0 timestamp means this is a permanent entry */
+    expired = sss_ncache_entry_expired((const char *) data.dptr, time(NULL));
+    if (!expired) {
         ret = EEXIST;
-        goto done;
     }
-
-    if (timestamp >= time(NULL)) {
-        /* still valid */
-        ret = EEXIST;
-        goto done;
-    }
-
-    expired = true;
 
 done:
     if (expired) {
         /* expired, remove and return no entry */
-        tdb_delete(ctx->tdb, key);
+        ncache_delete(ctx, key);
         ret = ENOENT;
     }
 
     free(data.dptr);
     return ret;
+}
+
+static int ncache_prune_expired(struct tdb_context *tdb,
+                                TDB_DATA key, TDB_DATA data, void *pvt)
+{
+    struct ncache_prune_state *state = (struct ncache_prune_state *) pvt;
+    bool expired;
+
+    expired = sss_ncache_entry_expired((const char *) data.dptr,
+                                       (unsigned long long) state->now);
+    if (expired) {
+        return tdb_delete(tdb, key);
+    }
+
+    state->alive++;
+    return 0;
+}
+
+errno_t sss_ncache_prune(struct sss_nc_ctx *ctx)
+{
+    struct ncache_prune_state st = { 0, 0 };
+
+    st.now = time(NULL);
+    if (tdb_traverse(ctx->tdb, ncache_prune_expired, &st) < 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to walk the negative cache: [%s]\n",
+              tdb_errorstr(ctx->tdb));
+        return EIO;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC,
+          "Negative cache pruned, %u entries dropped, %u left\n",
+          ctx->entries > st.alive ? ctx->entries - st.alive : 0, st.alive);
+
+    /* The traversal has just counted every surviving entry, so this also
+     * resyncs the counter should it ever have drifted. */
+    ctx->entries = st.alive;
+
+    return EOK;
+}
+
+static void sss_ncache_prune_handler(struct tevent_context *ev,
+                                     struct tevent_timer *te,
+                                     struct timeval current_time,
+                                     void *pvt)
+{
+    struct sss_nc_ctx *ctx = talloc_get_type(pvt, struct sss_nc_ctx);
+
+    ctx->prune_te = NULL;
+
+    /* An error here is not fatal: the entries stay around until the next
+     * run, so just keep the task scheduled. */
+    (void) sss_ncache_prune(ctx);
+
+    sss_ncache_schedule_prune(ctx);
+}
+
+static void sss_ncache_schedule_prune(struct sss_nc_ctx *ctx)
+{
+    struct timeval tv;
+
+    if (ctx->ev == NULL || ctx->prune_interval == 0) {
+        /* the periodic purge is disabled, sss_ncache_prune() has to be
+         * called explicitly */
+        return;
+    }
+
+    tv = tevent_timeval_current_ofs(ctx->prune_interval, 0);
+
+    talloc_zfree(ctx->prune_te);
+    ctx->prune_te = tevent_add_timer(ctx->ev, ctx, tv,
+                                     sss_ncache_prune_handler, ctx);
+    if (ctx->prune_te == NULL) {
+        /* Not fatal either, but from now on the cache only shrinks when
+         * expired entries are looked up again. */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to schedule the negative cache purge, the cache may "
+              "stop accepting new entries once it is full\n");
+    }
+}
+
+/* Tell whether there is still room for one more entry in the cache. */
+static int sss_ncache_check_limit(struct sss_nc_ctx *ctx, const char *str)
+{
+    if (ctx->max_entries == 0) {
+        /* the size of the cache is not limited */
+        return EOK;
+    }
+
+    if (ctx->entries >= ctx->max_entries) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Negative cache limit reached (%u), dropping [%s]\n",
+              ctx->max_entries, str);
+        return ENOSPC;
+    }
+
+    return EOK;
 }
 
 static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
@@ -149,18 +280,33 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
     TDB_DATA data;
     char *timest;
     unsigned long long int timell;
+    bool is_new;
     int ret;
 
     ret = string_to_tdb_data(str, &key);
     if (ret != EOK) return ret;
 
+    /* Only an entry that is not stored yet can make the cache grow,
+     * replacing an existing one does not. */
+    is_new = !tdb_exists(ctx->tdb, key);
+
     if (permanent) {
+        /* Permanent entries come from the configuration, their number is
+         * bounded and they must never be dropped. */
         timest = talloc_strdup(ctx, "0");
     } else {
         /* EOK is tested in cwrap based unit test */
         if (ctx->timeout == 0) {
             return EOK;
         }
+
+        if (is_new) {
+            ret = sss_ncache_check_limit(ctx, str);
+            if (ret != EOK) {
+                return ret;
+            }
+        }
+
         timell = ctx->timeout + (unsigned long long int)time(NULL);
         timest = talloc_asprintf(ctx, "%llu", timell);
     }
@@ -177,6 +323,8 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
         DEBUG(SSSDBG_CRIT_FAILURE, "Negative cache failed to set entry: [%s]\n",
                   tdb_errorstr(ctx->tdb));
         ret = EFAULT;
+    } else if (is_new) {
+        ctx->entries++;
     }
 
 done:
@@ -864,6 +1012,7 @@ int sss_ncache_set_locate_sid(struct sss_nc_ctx *ctx,
 static int delete_permanent(struct tdb_context *tdb,
                             TDB_DATA key, TDB_DATA data, void *state)
 {
+    struct sss_nc_ctx *ctx = talloc_get_type(state, struct sss_nc_ctx);
     unsigned long long int timestamp;
     bool remove_key = false;
     char *ep;
@@ -889,7 +1038,7 @@ static int delete_permanent(struct tdb_context *tdb,
 
 done:
     if (remove_key) {
-        return tdb_delete(tdb, key);
+        return ncache_delete(ctx, key);
     }
 
     return 0;
@@ -899,21 +1048,26 @@ int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx)
 {
     int ret;
 
-    ret = tdb_traverse(ctx->tdb, delete_permanent, NULL);
+    ret = tdb_traverse(ctx->tdb, delete_permanent, ctx);
     if (ret < 0)
         return EIO;
 
     return EOK;
 }
 
+struct ncache_prefix_state {
+    struct sss_nc_ctx *ctx;
+    const char *prefix;
+};
+
 static int delete_prefix(struct tdb_context *tdb,
                          TDB_DATA key, TDB_DATA data, void *state)
 {
-    const char *prefix = (const char *) state;
+    struct ncache_prefix_state *pfx = (struct ncache_prefix_state *) state;
     unsigned long long int timestamp;
     char *ep = NULL;
 
-    if (strncmp((char *)key.dptr, prefix, strlen(prefix) - 1) != 0) {
+    if (strncmp((char *)key.dptr, pfx->prefix, strlen(pfx->prefix) - 1) != 0) {
         /* not interested in this key */
         return 0;
     }
@@ -925,12 +1079,13 @@ static int delete_prefix(struct tdb_context *tdb,
         return 0;
     }
 
-    return tdb_delete(tdb, key);
+    return ncache_delete(pfx->ctx, key);
 }
 
 static int sss_ncache_reset_pfx(struct sss_nc_ctx *ctx,
                                 const char **prefixes)
 {
+    struct ncache_prefix_state pfx = { ctx, NULL };
     int ret;
 
     if (prefixes == NULL) {
@@ -938,9 +1093,8 @@ static int sss_ncache_reset_pfx(struct sss_nc_ctx *ctx,
     }
 
     for (int i = 0; prefixes[i] != NULL; i++) {
-        ret = tdb_traverse(ctx->tdb,
-                           delete_prefix,
-                           discard_const(prefixes[i]));
+        pfx.prefix = prefixes[i];
+        ret = tdb_traverse(ctx->tdb, delete_prefix, &pfx);
         if (ret < 0) {
             return EIO;
         }

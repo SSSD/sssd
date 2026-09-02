@@ -919,10 +919,13 @@ static int sss_responder_ctx_destructor(void *ptr)
 }
 
 static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
+                                     struct tevent_context *ev,
                                      struct confdb_ctx *cdb,
                                      struct sss_nc_ctx **ncache)
 {
     uint32_t neg_timeout;
+    uint32_t max_entries;
+    uint32_t prune_interval;
     int tmp_value;
     int ret;
 
@@ -945,8 +948,54 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
 
     neg_timeout = tmp_value;
 
+    /* max_entries */
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_NEGCACHE_MAX_ENTRIES,
+                         CONFDB_DEFAULT_NSS_NEGCACHE_MAX_ENTRIES, &tmp_value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal failure of setup negative cache size [%s].\n",
+              CONFDB_NSS_NEGCACHE_MAX_ENTRIES);
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (tmp_value < 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value of [%s]: %d\n",
+              CONFDB_NSS_NEGCACHE_MAX_ENTRIES, tmp_value);
+        ret = EINVAL;
+        goto done;
+    }
+
+    max_entries = tmp_value;
+
+    /* prune_interval */
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_NEGCACHE_PRUNE_INTERVAL,
+                         CONFDB_DEFAULT_NSS_NEGCACHE_PRUNE_INTERVAL,
+                         &tmp_value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal failure reading the negative cache purge interval [%s].\n",
+              CONFDB_NSS_NEGCACHE_PRUNE_INTERVAL);
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (tmp_value < 0) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value of [%s]: %d\n",
+              CONFDB_NSS_NEGCACHE_PRUNE_INTERVAL, tmp_value);
+        ret = EINVAL;
+        goto done;
+    }
+
+    prune_interval = tmp_value;
+
     /* negative cache init */
-    ret = sss_ncache_init(mem_ctx, neg_timeout, ncache);
+    ret = sss_ncache_init(mem_ctx, ev, neg_timeout, max_entries,
+                          prune_interval, ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Fatal failure of initializing negative cache.\n");
@@ -1227,7 +1276,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = responder_init_ncache(rctx, rctx->cdb, &rctx->ncache);
+    ret = responder_init_ncache(rctx, rctx->ev, rctx->cdb, &rctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "fatal error initializing negcache\n");
         goto fail;

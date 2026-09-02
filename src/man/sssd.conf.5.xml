@@ -898,6 +898,68 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>negcache_max_entries (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the maximum number of entries the
+                            negative cache is allowed to hold. Once the
+                            limit is reached, no new entry is cached until
+                            room is made by the periodic purge controlled by
+                            <quote>negcache_prune_interval</quote>, so that a
+                            large number of queries for nonexistent entries
+                            cannot make the memory used by the responders
+                            grow without bounds.
+                        </para>
+                        <para>
+                            Entries that are already cached keep being
+                            refreshed when they are hit again, and the
+                            entries coming from the
+                            <quote>filter_users</quote> and
+                            <quote>filter_groups</quote> options are never
+                            affected by this limit.
+                        </para>
+                        <para>
+                            A value of 0 means that the size of the negative
+                            cache is not limited.
+                        </para>
+                        <para>
+                            Default: 10000
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>negcache_prune_interval (integer)</term>
+                    <listitem>
+                        <para>
+                            How often, in seconds, the responders walk the
+                            negative cache and drop the entries that have
+                            expired.
+                        </para>
+                        <para>
+                            Expired entries are also dropped when they happen
+                            to be looked up again, but only this periodic
+                            purge makes room for new entries once
+                            <quote>negcache_max_entries</quote> has been
+                            reached. A shorter interval therefore keeps the
+                            cache closer to its nominal size at the cost of
+                            walking it more often, while a longer interval
+                            means that, under a burst of queries for
+                            nonexistent entries, new entries may be refused
+                            until room is made for them.
+                        </para>
+                        <para>
+                            A value of 0 disables the periodic purge.
+                        </para>
+                        <para>
+                            This option has no effect when
+                            <quote>negcache_max_entries</quote> is set to 0.
+                        </para>
+                        <para>
+                            Default: 60
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>filter_users, filter_groups (string)</term>
                     <listitem>
                         <para>
