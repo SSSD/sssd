@@ -41,6 +41,28 @@ struct _nss_sss_getpwnam_r_test_data {
     enum nss_status status;
 };
 
+enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
+                                    char *buffer, size_t buflen, int *errnop)
+{
+    struct _nss_sss_getpwnam_r_test_data *test_data;
+
+    assert_non_null(result);
+    assert_non_null(buffer);
+    assert_int_not_equal(buflen, 0);
+    assert_non_null(errnop);
+
+    test_data = sss_mock_ptr_type(struct _nss_sss_getpwnam_r_test_data *);
+
+    result->pw_uid = test_data->uid;
+    if (test_data->name != NULL) {
+        assert_true(buflen > strlen(test_data->name));
+        strncpy(buffer, test_data->name, buflen);
+        result->pw_name = buffer;
+    }
+
+    return test_data->status;
+}
+
 enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
                                     char *buffer, size_t buflen, int *errnop)
 {
@@ -171,6 +193,59 @@ void test_sss_userok(void **state)
     krb5_free_context(krb5_ctx);
 }
 
+void test_sss_bot_userok(void **state)
+{
+    krb5_error_code kerr;
+    struct krb5_localauth_vtable_st vtable = { 0 };
+    krb5_context krb5_ctx;
+    krb5_principal princ;
+    size_t c;
+
+    struct test_data {
+        struct _nss_sss_getpwnam_r_test_data nss;
+        const char *lname;
+        krb5_error_code kerr;
+    } test_data[] = {
+        {{ 1234, "BOT~1234~abc", NSS_STATUS_SUCCESS}, "BOT~1234~abc",     0},
+        /* UID mismatch */
+        {{ 9999, "BOT~1234~abc", NSS_STATUS_SUCCESS}, "BOT~1234~abc",
+                                                      KRB5_PLUGIN_NO_HANDLE},
+        /* pw_name mismatch */
+        {{ 1234, "other",        NSS_STATUS_SUCCESS}, "BOT~1234~abc",
+                                                      KRB5_PLUGIN_NO_HANDLE},
+        /* pw_name is NULL */
+        {{ 1234, NULL,           NSS_STATUS_SUCCESS}, "BOT~1234~abc",
+                                                      KRB5_PLUGIN_NO_HANDLE},
+        /* lname mismatch */
+        {{ 1234, "BOT~1234~abc", NSS_STATUS_SUCCESS}, "other",
+                                                      KRB5_PLUGIN_NO_HANDLE},
+        {{ 0, NULL, NSS_STATUS_NOTFOUND},             "BOT~1234~abc",
+                                                      KRB5_PLUGIN_NO_HANDLE},
+        {{ 0, NULL, NSS_STATUS_UNAVAIL},              "BOT~1234~abc",
+                                                      KRB5_PLUGIN_NO_HANDLE},
+        {{ 0, NULL, 0},                               NULL,               0}
+    };
+
+    kerr = krb5_init_context(&krb5_ctx);
+    assert_int_equal(kerr, 0);
+
+    kerr = localauth_sssd_initvt(krb5_ctx, 1, 1, (krb5_plugin_vtable) &vtable);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_parse_name(krb5_ctx, "BOT~1234~abc@REALM", &princ);
+    assert_int_equal(kerr, 0);
+
+
+    for (c = 0; test_data[c].lname != NULL; c++) {
+        will_return(_nss_sss_getpwnam_r, &test_data[c].nss);
+        kerr = vtable.userok(krb5_ctx, NULL, princ, test_data[c].lname);
+        assert_int_equal(kerr, test_data[c].kerr);
+    }
+
+    krb5_free_principal(krb5_ctx, princ);
+    krb5_free_context(krb5_ctx);
+}
+
 void test_sss_an2ln(void **state)
 {
     krb5_error_code kerr;
@@ -214,13 +289,58 @@ void test_sss_an2ln(void **state)
     krb5_free_context(krb5_ctx);
 }
 
+void test_sss_bot_an2ln(void **state)
+{
+    krb5_error_code kerr;
+    struct krb5_localauth_vtable_st vtable = { 0 };
+    krb5_context krb5_ctx;
+    krb5_principal princ;
+    size_t c;
+    char *lname;
+
+    struct test_data {
+        struct _nss_sss_getpwnam_r_test_data d;
+        krb5_error_code kerr;
+    } test_data[] = {
+        {{ 1234, "my_name", NSS_STATUS_SUCCESS},  0},
+        {{ 0,    "my_name", NSS_STATUS_NOTFOUND}, KRB5_LNAME_NOTRANS},
+        {{ 0,    "my_name", NSS_STATUS_UNAVAIL},  EIO},
+        {{ 0,    NULL,      0}                  , 0}
+    };
+
+    kerr = krb5_init_context(&krb5_ctx);
+    assert_int_equal(kerr, 0);
+
+    kerr = localauth_sssd_initvt(krb5_ctx, 1, 1, (krb5_plugin_vtable) &vtable);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_parse_name(krb5_ctx, "BOT~1234~abc@REALM", &princ);
+    assert_int_equal(kerr, 0);
+
+
+    for (c = 0; test_data[c].d.name != NULL; c++) {
+        will_return(_nss_sss_getpwuid_r, &test_data[c].d);
+        kerr = vtable.an2ln(krb5_ctx, NULL, NULL, NULL, princ, &lname);
+        assert_int_equal(kerr, test_data[c].kerr);
+        if (kerr == 0) {
+            assert_string_equal(lname, test_data[c].d.name);
+            vtable.free_string(krb5_ctx, NULL, lname);
+        }
+    }
+
+    krb5_free_principal(krb5_ctx, princ);
+    krb5_free_context(krb5_ctx);
+}
+
 int main(int argc, const char *argv[])
 {
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_localauth_sssd_initvt),
         cmocka_unit_test(test_sss_userok),
+        cmocka_unit_test(test_sss_bot_userok),
         cmocka_unit_test(test_sss_an2ln),
+        cmocka_unit_test(test_sss_bot_an2ln),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);
