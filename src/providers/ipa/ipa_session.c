@@ -595,8 +595,11 @@ ipa_pam_session_handler_done(struct tevent_req *subreq)
     }
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 errno_t
