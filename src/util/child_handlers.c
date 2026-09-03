@@ -419,11 +419,47 @@ static void log_child_command(TALLOC_CTX *mem_ctx, const char *binary,
     }
 }
 
+/* extra_env format: {"NAME1", "value1", "NAME2", "value2", NULL} */
+static errno_t child_setenv(const char *extra_env[])
+{
+    const char *name;
+    const char *value;
+    errno_t ret;
+    size_t i;
+
+    if (extra_env == NULL) {
+        return EOK;
+    }
+
+    for (i = 0; extra_env[i] != NULL; i += 2) {
+        name = extra_env[i];
+        value = extra_env[i + 1];
+
+        if (value == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Missing value for environment variable: %s\n", name);
+            return EINVAL;
+        }
+
+        ret = setenv(name, value, 1);
+        if (ret != 0) {
+            ret = errno;
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "setenv failed for %s [%d]: %s\n",
+                  name, ret, strerror(ret));
+            return ret;
+        }
+    }
+
+    return EOK;
+}
+
 /* Isn't static because it is used in unit test */
 void exec_child_ex(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
                    const char *binary, const char *logfile,
                    const char *extra_argv[], bool extra_args_only,
+                   const char *extra_env[],
                    int child_in_fd, int child_out_fd)
 {
     int ret;
@@ -471,6 +507,12 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
                              &argv);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "prepare_child_argv() failed.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ret = child_setenv(extra_env);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "child_setenv() failed.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -659,6 +701,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
                         struct tevent_context *ev,
                         const char *binary,
                         const char *extra_args[], bool extra_args_only,
+                        const char *extra_env[],
                         const char *logfile,
                         int child_out_fd,
                         sss_child_sigchld_callback_t cb, void *pvt,
@@ -710,7 +753,7 @@ errno_t sss_child_start(TALLOC_CTX *mem_ctx,
         exec_child_ex(tmp_ctx,
                       pipefd_to_child, pipefd_from_child,
                       binary, logfile,
-                      extra_args, extra_args_only,
+                      extra_args, extra_args_only, extra_env,
                       STDIN_FILENO, child_out_fd);
 
         /* We should never get here */

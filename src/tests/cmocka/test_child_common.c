@@ -38,6 +38,7 @@ void exec_child_ex(TALLOC_CTX *mem_ctx,
                    int *pipefd_to_child, int *pipefd_from_child,
                    const char *binary, const char *logfile,
                    const char *extra_argv[], bool extra_args_only,
+                   const char *extra_env[],
                    int child_in_fd, int child_out_fd);
 
 
@@ -106,7 +107,7 @@ void test_exec_child(void **state)
                       child_tctx->pipefd_to_child,
                       child_tctx->pipefd_from_child,
                       CHILD_DIR"/"TEST_BIN, NULL,
-                      NULL, false,
+                      NULL, false, NULL,
                       STDIN_FILENO, STDOUT_FILENO);
     } else {
             do {
@@ -179,7 +180,7 @@ static void extra_args_test(struct child_test_ctx *child_tctx,
                       child_tctx->pipefd_to_child,
                       child_tctx->pipefd_from_child,
                       CHILD_DIR"/"TEST_BIN, NULL, extra_args,
-                      extra_args_only,
+                      extra_args_only, NULL,
                       STDIN_FILENO, STDOUT_FILENO);
     } else {
             do {
@@ -262,7 +263,7 @@ void test_exec_child_handler(void **state)
                       child_tctx->pipefd_to_child,
                       child_tctx->pipefd_from_child,
                       CHILD_DIR"/"TEST_BIN, NULL,
-                      NULL, false,
+                      NULL, false, NULL,
                       STDIN_FILENO, STDOUT_FILENO);
     }
 
@@ -314,7 +315,7 @@ void test_exec_child_echo(void **state,
         exec_child_ex(child_tctx,
                       child_tctx->pipefd_to_child,
                       child_tctx->pipefd_from_child,
-                      CHILD_DIR"/"TEST_BIN, NULL, NULL, false,
+                      CHILD_DIR"/"TEST_BIN, NULL, NULL, false, NULL,
                       STDIN_FILENO, 3);
     }
 
@@ -497,7 +498,7 @@ void test_sss_child(void **state)
                       child_tctx->pipefd_to_child,
                       child_tctx->pipefd_from_child,
                       CHILD_DIR"/"TEST_BIN, NULL,
-                      NULL, false,
+                      NULL, false, NULL,
                       STDIN_FILENO, STDOUT_FILENO);
     }
 
@@ -524,6 +525,51 @@ void sss_child_cb(int pid, int wait_status, void *pvt)
     child_ctx->test_ctx->done = true;
 }
 
+void test_exec_child_extra_env(void **state)
+{
+    struct child_test_ctx *child_tctx = talloc_get_type(*state,
+                                                        struct child_test_ctx);
+    pid_t child_pid;
+    errno_t ret;
+    int status;
+
+    const char *extra_env[] = {
+        "TEST_ENV_VAR1", "foo",
+        "TEST_ENV_VAR2", "bar",
+        NULL
+    };
+
+    setenv("TEST_CHILD_ACTION", "check_extra_env", 1);
+
+    child_pid = fork();
+    assert_int_not_equal(child_pid, -1);
+    if (child_pid == 0) {
+        exec_child_ex(child_tctx,
+                      child_tctx->pipefd_to_child,
+                      child_tctx->pipefd_from_child,
+                      CHILD_DIR"/"TEST_BIN, NULL,
+                      NULL, false, extra_env,
+                      STDIN_FILENO, STDOUT_FILENO);
+    } else {
+        do {
+            errno = 0;
+            ret = waitpid(child_pid, &status, 0);
+        } while (ret == -1 && errno == EINTR);
+
+        if (ret > 0) {
+            ret = EIO;
+            if (WIFEXITED(status)) {
+                ret = WEXITSTATUS(status);
+                assert_int_equal(ret, 0);
+            }
+        } else {
+            DEBUG(SSSDBG_FUNC_DATA,
+                "Failed to wait for children %d\n", child_pid);
+            ret = EIO;
+        }
+    }
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -540,6 +586,9 @@ int main(int argc, const char *argv[])
                                         child_test_setup,
                                         child_test_teardown),
         cmocka_unit_test_setup_teardown(test_exec_child_extra_args,
+                                        child_test_setup,
+                                        child_test_teardown),
+        cmocka_unit_test_setup_teardown(test_exec_child_extra_env,
                                         child_test_setup,
                                         child_test_teardown),
         cmocka_unit_test_setup_teardown(test_exec_child_handler,

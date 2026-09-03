@@ -228,7 +228,7 @@ ad_machine_account_password_renewal_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = sss_child_start(state, ev,
-                          renewal_data->prog_path, extra_args, true,
+                          renewal_data->prog_path, extra_args, true, NULL,
                           /* no log file */ NULL, STDERR_FILENO,
                           /* no SIGCHLD cb */ NULL, NULL,
                           (unsigned)(be_ptask_get_timeout(be_ptask)),

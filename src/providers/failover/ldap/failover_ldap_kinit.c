@@ -56,7 +56,6 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
                              struct tevent_context *ev,
                              struct sss_failover_ctx *fctx,
                              struct sss_failover_server *server,
-                             bool addr_changed,
                              void *pvt)
 {
     struct sss_failover_ldap_kinit_state *state;
@@ -67,6 +66,7 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
     const char *principal;
     const char *realm;
     bool canonicalize;
+    char *kdc_address;
     int timeout;
     int lifetime;
     errno_t ret;
@@ -77,8 +77,6 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "tevent_req_create() failed\n");
         return NULL;
     }
-
-    /* TODO do not acquire TGT if we already have a valid one */
 
     opts = talloc_get_type_abort(pvt, struct sdap_options);
 
@@ -97,10 +95,16 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
           keytab != NULL ? keytab : "default", principal, realm, lifetime,
           server->name);
 
-    /* TODO write kdcinfo */
+    kdc_address = talloc_asprintf(state, "%s:%" PRIu16, server->addr->human,
+                                  server->port);
+    if (kdc_address == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
-    subreq = sdap_get_tgt_send(state, ev, realm, principal, keytab, lifetime,
-                               timeout);
+    subreq = sdap_get_tgt_send(state, ev, kdc_address, realm, principal, keytab,
+                               lifetime, timeout);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
         ret = ENOMEM;
@@ -136,7 +140,7 @@ sss_failover_ldap_kinit_done(struct tevent_req *subreq)
     ret = sdap_get_tgt_recv(subreq, state, &result, &kerr, &ccname,
                             &state->expiration_time);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ETIMEDOUT) {
         goto done;
     }
 
