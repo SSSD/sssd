@@ -1213,12 +1213,6 @@ ad_gpo_map_deny = +my_pam_service
                             details about patterns.
                         </para>
                         <para>
-                            NOTE: While it is still possible to use the old
-                            <emphasis>ipa_dyndns_iface</emphasis> option, users
-                            should migrate to using <emphasis>dyndns_iface</emphasis>
-                            in their config file.
-                        </para>
-                        <para>
                             Default: Use the IP addresses of the interface which
                             is used for AD LDAP connection
                         </para>
