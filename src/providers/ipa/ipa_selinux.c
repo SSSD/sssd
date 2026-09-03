@@ -594,7 +594,7 @@ static struct tevent_req *selinux_child_send(TALLOC_CTX *mem_ctx,
     }
 
     ret = sss_child_start(state, ev,
-                          SELINUX_CHILD, NULL, false,
+                          SELINUX_CHILD, NULL, false, NULL,
                           SELINUX_CHILD_LOG_FILE, STDOUT_FILENO,
                           selinux_child_done, req,
                           0, NULL, NULL, false,

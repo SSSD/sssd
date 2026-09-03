@@ -63,6 +63,8 @@
 #define SSSD_KRB5_LOCATOR_DEBUG "SSSD_KRB5_LOCATOR_DEBUG"
 #define SSSD_KRB5_LOCATOR_DISABLE "SSSD_KRB5_LOCATOR_DISABLE"
 #define SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES "SSSD_KRB5_LOCATOR_IGNORE_DNS_FAILURES"
+#define SSSD_KRB5_LOCATOR_KDC_ADDRESS "SSSD_KRB5_LOCATOR_KDC_ADDRESS"
+#define SSSD_KRB5_LOCATOR_KPASSWD_ADDRESS "SSSD_KRB5_LOCATOR_KPASSWD_ADDRESS"
 #define DEBUG_KEY "[sssd_krb5_locator] "
 #define PLUGIN_DEBUG(format, ...) do { \
     if (ctx->debug) { \
@@ -79,6 +81,8 @@ struct sssd_ctx {
     char *sssd_realm;
     struct addr_port *kdc_addr;
     struct addr_port *kpasswd_addr;
+    struct addr_port *kdc_addr_override;
+    struct addr_port *kpasswd_addr_override;
     bool debug;
     bool disabled;
     bool kpasswdinfo_used;
@@ -172,13 +176,13 @@ done:
 }
 
 static int buf_to_addr_port_list(struct sssd_ctx *ctx,
-                                 uint8_t *buf, size_t buf_size,
+                                 const uint8_t *buf, size_t buf_size,
                                  struct addr_port **list)
 {
     struct addr_port *l = NULL;
     int ret;
-    uint8_t *p;
-    uint8_t *pn;
+    const uint8_t *p;
+    const uint8_t *pn;
     size_t c;
     size_t len;
     size_t addr_len;
@@ -221,7 +225,7 @@ static int buf_to_addr_port_list(struct sssd_ctx *ctx,
         }
 
         free(tmp);
-        tmp = strndup((char *) p, len);
+        tmp = strndup((const char *) p, len);
         if (tmp == NULL) {
             ret = ENOMEM;
             goto done;
@@ -314,9 +318,23 @@ static int get_krb5info(const char *realm, struct sssd_ctx *ctx,
 
     switch (svc) {
         case locate_service_kdc:
+            if (ctx->kdc_addr_override != NULL) {
+                PLUGIN_DEBUG("Using KDC address from environment variable.\n");
+                ret = copy_addr_port_list(ctx->kdc_addr_override, false,
+                                          &(ctx->kdc_addr));
+                return ret;
+            }
+
             name_tmpl = KDCINFO_TMPL;
             break;
         case locate_service_kpasswd:
+            if (ctx->kpasswd_addr_override != NULL) {
+                PLUGIN_DEBUG("Using kpasswd address from environment variable.\n");
+                ret = copy_addr_port_list(ctx->kpasswd_addr_override, false,
+                                          &(ctx->kpasswd_addr));
+                return ret;
+            }
+
             name_tmpl = KPASSWDINFO_TMPL;
             break;
         default:
@@ -393,6 +411,31 @@ done:
     return ret;
 }
 
+static struct addr_port *
+parse_address_from_env(struct sssd_ctx *ctx, const char *var_name)
+{
+    struct addr_port *addr = NULL;
+    const char *dummy;
+    int ret;
+
+    dummy = getenv(var_name);
+    if (dummy == NULL) {
+        /* No env var given, that is fine. */
+        return NULL;
+    }
+
+    ret = buf_to_addr_port_list(ctx, (const uint8_t *)dummy, strlen(dummy),
+                                &addr);
+    if (ret != EOK) {
+        PLUGIN_DEBUG("Failed to parse address from environment variable "
+                     "[%s=%s], ignoring.\n", var_name, dummy);
+        return NULL;
+    }
+
+    PLUGIN_DEBUG("Using address override [%s=%s].\n", var_name, dummy);
+    return addr;
+}
+
 krb5_error_code sssd_krb5_locator_init(krb5_context context,
                                        void **private_data)
 {
@@ -428,6 +471,9 @@ krb5_error_code sssd_krb5_locator_init(krb5_context context,
         PLUGIN_DEBUG("SSSD KRB5 locator plugin ignores DNS resolving errors.\n");
     }
 
+    ctx->kdc_addr_override = parse_address_from_env(ctx, SSSD_KRB5_LOCATOR_KDC_ADDRESS);
+    ctx->kpasswd_addr_override = parse_address_from_env(ctx, SSSD_KRB5_LOCATOR_KPASSWD_ADDRESS);
+
     *private_data = ctx;
 
     return 0;
@@ -444,6 +490,8 @@ void sssd_krb5_locator_close(void *private_data)
 
     free_addr_port_list(&(ctx->kdc_addr));
     free_addr_port_list(&(ctx->kpasswd_addr));
+    free_addr_port_list(&(ctx->kdc_addr_override));
+    free_addr_port_list(&(ctx->kpasswd_addr_override));
     free(ctx->sssd_realm);
     free(ctx);
 
@@ -490,6 +538,7 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
             return KRB5_PLUGIN_NO_HANDLE;
         }
 
+        free_addr_port_list(&(ctx->kdc_addr));
         ret = get_krb5info(realm, ctx, locate_service_kdc);
         if (ret != EOK) {
             PLUGIN_DEBUG("get_krb5info failed.\n");
@@ -504,16 +553,16 @@ krb5_error_code sssd_krb5_locator_lookup(void *private_data,
         ret = get_krb5info(realm, ctx, locate_service_kpasswd);
         if (ret != EOK) {
             PLUGIN_DEBUG("reading kpasswd address failed, "
-                         "using kdc address.\n");
+                            "using kdc address.\n");
             free_addr_port_list(&(ctx->kpasswd_addr));
             ret = copy_addr_port_list(ctx->kdc_addr, true,
-                                      &(ctx->kpasswd_addr));
-            if (ret != EOK) {
-                PLUGIN_DEBUG("copying address list failed.\n");
-                return KRB5_PLUGIN_NO_HANDLE;
-            }
+                                        &(ctx->kpasswd_addr));
         } else {
             ctx->kpasswdinfo_used = true;
+        }
+        if (ret != EOK) {
+            PLUGIN_DEBUG("Failed to get kpasswd addresses.\n");
+            return KRB5_PLUGIN_NO_HANDLE;
         }
     }
 

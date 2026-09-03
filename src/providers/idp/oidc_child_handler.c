@@ -113,7 +113,7 @@ struct tevent_req *handle_oidc_child_send(TALLOC_CTX *mem_ctx,
     /* Create new child. */
     ret = sss_child_start(state, ev,
                           OIDC_CHILD, idp_req->oidc_child_extra_args, false,
-                          OIDC_CHILD_LOG_FILE, STDOUT_FILENO,
+                          NULL, OIDC_CHILD_LOG_FILE, STDOUT_FILENO,
                           sss_child_handle_exited, NULL,
                           dp_opt_get_int(idp_req->idp_options, IDP_REQ_TIMEOUT),
                           sss_child_handle_timeout,
