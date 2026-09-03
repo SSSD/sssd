@@ -241,6 +241,7 @@ static errno_t _sss_nss_mc_getpwbot(struct sss_bot *bot,
                                     struct passwd *result,
                                     char *buffer, size_t buflen)
 {
+    struct sss_mc_pwd_data *data;
     struct sss_mc_rec *rec = NULL;
     int ret;
 
@@ -249,8 +250,15 @@ static errno_t _sss_nss_mc_getpwbot(struct sss_bot *bot,
         return ret;
     }
 
+    data = (struct sss_mc_pwd_data *)rec->data;
+    if (!(data->flags & SSS_MC_PWD_BOT_ENABLED)) {
+        ret = ENOENT;
+        goto done;
+    }
+
     ret = sss_nss_mc_parse_bot_result(bot, rec, result, buffer, buflen);
 
+done:
     free(rec);
     __sync_sub_and_fetch(&pw_mc_ctx.active_threads, 1);
 
@@ -346,6 +354,13 @@ errno_t sss_nss_mc_getpwnam(const char *name, size_t name_len,
     if (ret == EOK) {
         ret = _sss_nss_mc_getpwbot(bot, result, buffer, buflen);
         sss_bot_cli_free(bot);
+
+        /* fallback if uid was not found or bot accounts are disabled on user's
+         * domain */
+        if (ret == ENOENT) {
+            return _sss_nss_mc_getpwnam(name, name_len, result, buffer, buflen);
+        }
+
         return ret;
     } else if (ret != EINVAL) {
         return ret;
