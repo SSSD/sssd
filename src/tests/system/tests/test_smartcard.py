@@ -126,6 +126,7 @@ def test_smartcard__two_tokens_match_on_second(client: Client, ipa: IPA):
 @pytest.mark.importance("critical")
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.parametrize("cert_selection", [1, 2])
+@pytest.mark.skip(reason="Needs krb5_child restart fix (f3a36bec2a6c) that is not backported to sssd-2-12.")
 def test_smartcard__two_tokens_match_on_both(client: Client, ipa: IPA, cert_selection: int):
     """
     :title: Two smart cards – valid certificate on both tokens
