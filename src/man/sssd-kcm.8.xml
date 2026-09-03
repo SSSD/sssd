@@ -276,8 +276,8 @@ systemctl restart sssd-kcm.service
                 <term>max_ccache_size (integer)</term>
                 <listitem>
                     <para>
-                        How big can a credential cache be per ccache. Each
-                        service ticket accounts into this quota.
+                        How big a credential cache be per ccache. Each
+                        service ticket counts toward this quota.
                     </para>
                     <para>
                         Default: 65536
