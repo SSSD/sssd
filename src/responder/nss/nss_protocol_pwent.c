@@ -19,6 +19,7 @@
 */
 
 #include "responder/nss/nss_protocol.h"
+#include "util/mmap_cache.h"
 #include "util/sss_nss.h"
 #include "util/sss_bot.h"
 
@@ -262,6 +263,7 @@ sss_nss_protocol_fill_pwent(struct sss_nss_ctx *nss_ctx,
     struct sized_string gecos;
     struct sized_string homedir;
     struct sized_string shell;
+    uint32_t flags;
     uint32_t gid;
     uint32_t uid;
     uint32_t num_results;
@@ -328,8 +330,14 @@ sss_nss_protocol_fill_pwent(struct sss_nss_ctx *nss_ctx,
                 && ((cmd_ctx->flags & SSS_NSS_EX_FLAG_INVALIDATE_CACHE) == 0)
                 && (nss_ctx->pwd_mc_ctx != NULL)
                 && (result->bot == NULL)) {
+            flags = 0;
+            if (result->domain->bot_accounts_enabled) {
+                flags |= SSS_MC_PWD_BOT_ENABLED;
+            }
+
             ret = sss_mmap_cache_pw_store(&nss_ctx->pwd_mc_ctx, name, &pwfield,
-                                          uid, gid, &gecos, &homedir, &shell);
+                                          uid, gid, flags,
+                                          &gecos, &homedir, &shell);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Failed to store user %s (%s) in mmap cache [%d]: %s!\n",

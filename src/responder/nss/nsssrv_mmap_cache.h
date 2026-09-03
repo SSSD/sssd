@@ -40,6 +40,7 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
                                 const struct sized_string *name,
                                 const struct sized_string *pw,
                                 uid_t uid, gid_t gid,
+                                uint32_t flags,
                                 const struct sized_string *gecos,
                                 const struct sized_string *homedir,
                                 const struct sized_string *shell);
