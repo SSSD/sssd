@@ -3438,8 +3438,9 @@ pam_json_services = gdm-switchable-auth
                             <quote>none</quote> disallows fetching selinux settings explicitly.
                         </para>
                         <para>
-                            Default: <quote>id_provider</quote> is used if it
-                            is set and can handle selinux loading requests.
+                            Default: the value of <quote>id_provider</quote> is used if it
+                            is set and can handle selinux loading requests. Otherwise the
+                            result is the same as if the selinux_provider is set to none.
                         </para>
                     </listitem>
                 </varlistentry>
