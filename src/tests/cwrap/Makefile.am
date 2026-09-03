@@ -71,6 +71,7 @@ SSSD_CACHE_REQ_OBJ = \
     ../../../src/responder/common/cache_req/plugins/cache_req_group_by_filter.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_initgroups_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_initgroups_by_upn.c \
+    ../../../src/responder/common/cache_req/plugins/cache_req_initgroups_by_uid.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_object_by_sid.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_object_by_name.c \
     ../../../src/responder/common/cache_req/plugins/cache_req_object_by_id.c \
@@ -165,6 +166,7 @@ responder_common_tests_SOURCES =\
     ../../../src/responder/common/responder_cmd.c \
     ../../../src/tests/cmocka/common_mock_resp_dp.c \
     ../../../src/util/session_recording.c \
+    ../../../src/util/sss_bot.c \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
 responder_common_tests_CFLAGS = \
