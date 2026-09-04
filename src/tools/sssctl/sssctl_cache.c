@@ -1146,7 +1146,8 @@ errno_t sssctl_gpo_remove(struct sss_cmdline *cmdline,
 
     if (opts.domain == NULL) {
         ERROR("%s\n", extended_help);
-        return EINVAL;
+        ret = EINVAL;
+        goto done;
     }
 
     attr = SYSDB_NAME;
