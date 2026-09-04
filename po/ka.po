@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-04-23 16:48+0000\n"
+"PO-Revision-Date: 2026-08-02 07:17+0000\n"
 "Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
 "memory@weblate.org>\n"
 "Language-Team: Georgian <https://translate.fedoraproject.org/projects/sssd/"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.7.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -1869,7 +1869,7 @@ msgstr ""
 
 #: src/monitor/monitor.c:1761
 msgid "Print version number and exit"
-msgstr ""
+msgstr "ვერსიის ჩვენება და გასვლა"
 
 #: src/monitor/monitor.c:1772
 #, c-format
@@ -1993,7 +1993,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:77
 msgid "Enter PIN:"
-msgstr ""
+msgstr "შეიყვანეთ PIN-კოდი:"
 
 #: src/sss_client/pam_sss.c:320
 msgid "Passwords do not match"
@@ -2074,7 +2074,7 @@ msgstr "ახალი პაროლი: "
 
 #: src/sss_client/pam_sss.c:2483
 msgid "Reenter new Password: "
-msgstr ""
+msgstr "გაიმეორეთ ახალი პაროლი: "
 
 #: src/sss_client/pam_sss.c:2676 src/sss_client/pam_sss.c:2679
 msgid "First Factor: "
@@ -2526,7 +2526,7 @@ msgstr "ბრძანების სტრიქონის დამუშ�
 #: src/tools/sssctl/sssctl_cache.c:790 src/tools/sssctl/sssctl_cache.c:1148
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:803
 #, c-format
@@ -2572,7 +2572,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_cache.c:931
 #, c-format
 msgid "\t%s: %s\n"
-msgstr ""
+msgstr "\t%s: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:933 src/tools/sssctl/sssctl_logs.c:50
 msgid "\n"
@@ -2638,7 +2638,7 @@ msgstr ""
 #: src/tools/sssctl/sssctl_cert.c:50 src/tools/sssctl/sssctl_cert.c:108
 #: src/tools/sssctl/sssctl_cert.c:214
 msgid "Show debug information"
-msgstr ""
+msgstr "გამართვის ინფორმაციის ჩვენება"
 
 #: src/tools/sssctl/sssctl_cert.c:56 src/tools/sssctl/sssctl_cert.c:114
 #: src/tools/sssctl/sssctl_cert.c:220
@@ -3161,6 +3161,8 @@ msgid ""
 "pam_authenticate for user [%s]: %s\n"
 "\n"
 msgstr ""
+"pam_authenticate for user [%s]: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:282
 msgid ""
@@ -3174,6 +3176,8 @@ msgid ""
 "pam_chauthtok: %s\n"
 "\n"
 msgstr ""
+"pam_chauthtok: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:286
 msgid ""
@@ -3187,6 +3191,8 @@ msgid ""
 "pam_acct_mgmt: %s\n"
 "\n"
 msgstr ""
+"pam_acct_mgmt: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:290
 msgid ""
@@ -3200,6 +3206,8 @@ msgid ""
 "pam_setcred: [%s]\n"
 "\n"
 msgstr ""
+"pam_setcred: [%s]\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:294
 msgid ""
@@ -3213,6 +3221,8 @@ msgid ""
 "pam_open_session: %s\n"
 "\n"
 msgstr ""
+"pam_open_session: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:298
 msgid ""
@@ -3226,6 +3236,8 @@ msgid ""
 "pam_close_session: %s\n"
 "\n"
 msgstr ""
+"pam_close_session: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:302
 msgid "unknown action\n"
