@@ -2807,7 +2807,6 @@ static bool pam_can_user_cache_auth(struct sss_domain_info *domain,
 
 static void pam_dom_forwarder(struct pam_auth_req *preq)
 {
-    TALLOC_CTX *tmp_ctx = NULL;
     int ret;
     struct pam_ctx *pctx =
             talloc_get_type(preq->cctx->rctx->pvt_ctx, struct pam_ctx);
@@ -2818,11 +2817,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     size_t c;
     char *local_policy = NULL;
     bool found = false;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        return;
-    }
 
     if (!preq->pd->domain) {
         preq->pd->domain = preq->domain->name;
@@ -2944,7 +2938,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
 
         if (found) {
             if (local_policy != NULL && strcasecmp(local_policy, "only") == 0) {
-                talloc_free(tmp_ctx);
                 DEBUG(SSSDBG_IMPORTANT_INFO,
                       "Local auth only set and matching certificate was found, "
                       "skipping online auth\n");
@@ -2986,7 +2979,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     }
 
     if (local_policy != NULL && strcasecmp(local_policy, "only") == 0) {
-        talloc_free(tmp_ctx);
         DEBUG(SSSDBG_IMPORTANT_INFO, "Local auth only set, skipping online auth\n");
         if (preq->pd->cmd == SSS_PAM_PREAUTH) {
             preq->pd->pam_status = PAM_SUCCESS;
@@ -3002,8 +2994,6 @@ static void pam_dom_forwarder(struct pam_auth_req *preq)
     preq->callback = pam_reply;
     ret = pam_dp_send_req(preq);
     DEBUG(SSSDBG_CONF_SETTINGS, "pam_dp_send_req returned %d\n", ret);
-
-    talloc_free(tmp_ctx);
 
     if (ret != EOK) {
         preq->pd->pam_status = PAM_SYSTEM_ERR;
