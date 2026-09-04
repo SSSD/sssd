@@ -701,3 +701,297 @@ def test_sudo__search_base_set_by_provider_no_warning(client: Client, provider: 
         r"`ldap_sudo_search_base` is not set",
         unit="sssd",
     ), "Journal must not contain search base alert when provider sets it!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.ticket(bz=902436)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_sudo__rules_available_from_cache_when_offline(client: Client, provider: GenericProvider):
+    """
+    :title: Sudo rules are available from cache when offline
+    :setup:
+        1. Create user "user-1"
+        2. Create user "user-2"
+        3. Create sudorule to allow "user-1" run all commands as "user-2" on all hosts
+        4. Enable SSSD sudo responder
+        5. Set "cache_credentials" to "True", "entry_cache_timeout" to "0"
+        6. Start SSSD
+    :steps:
+        1. Verify user-1 can run sudo as user-2
+        2. Block server and bring SSSD offline
+        3. Verify user-1 can still run sudo as user-2 from cache
+    :expectedresults:
+        1. Sudo is allowed
+        2. SSSD is offline
+        3. Sudo is still allowed from cache
+    :customerscenario: True
+    """
+    u1 = provider.user("user-1").add()
+    provider.user("user-2").add()
+    provider.sudorule("allow_all").add(user=u1, host="ALL", command="ALL", runasuser="ALL", nopasswd=True)
+
+    client.sssd.common.sudo()
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["entry_cache_timeout"] = "0"
+    client.sssd.start()
+
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(ALL) NOPASSWD: ALL"]), "Sudo list failed online!"
+    assert client.auth.sudo.run("user-1", command="/bin/true"), "Sudo run failed online!"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(ALL) NOPASSWD: ALL"]), (
+        "Sudo list failed offline!"
+    )
+    assert client.auth.sudo.run("user-1", command="/bin/true"), "Sudo run failed offline!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_sudo__denied_rules_enforced_when_offline(client: Client, provider: GenericProvider):
+    """
+    :title: Sudo denied rules are still enforced when offline
+    :setup:
+        1. Create user "user-1"
+        2. Create user "user-2"
+        3. Create sudorule that denies "user-1" all commands
+        4. Enable SSSD sudo responder
+        5. Set "cache_credentials" to "True", "entry_cache_timeout" to "0"
+        6. Start SSSD
+    :steps:
+        1. Verify user-1 cannot run sudo
+        2. Block server and bring SSSD offline
+        3. Verify user-1 still cannot run sudo from cache
+    :expectedresults:
+        1. Sudo is denied
+        2. SSSD is offline
+        3. Sudo is still denied from cache
+    :customerscenario: False
+    """
+    u1 = provider.user("user-1").add()
+    provider.user("user-2").add()
+    provider.sudorule("deny_all").add(user=u1, host="ALL", command="!ALL")
+
+    client.sssd.common.sudo()
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["entry_cache_timeout"] = "0"
+    client.sssd.start()
+
+    assert not client.auth.sudo.run("user-1", "Secret123", command="/bin/true"), "Sudo should be denied online!"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    assert not client.auth.sudo.run("user-1", "Secret123", command="/bin/true"), "Sudo should be denied offline!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=902436)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_sudo__repeated_sigusr2_online_attempts_no_crash(client: Client, provider: GenericProvider):
+    """
+    :title: Repeated SIGUSR2 signals to bring SSSD online do not crash SSSD
+    :description:
+        When SSSD is offline due to incorrect bind credentials, sending repeated
+        SIGUSR2 signals (bring online) should not crash SSSD or cause child
+        processes to terminate with a signal.
+    :setup:
+        1. Create user "user-1"
+        2. Create sudorule allowing "user-1" all commands
+        3. Enable SSSD sudo responder
+        4. Set "ldap_default_authtok" to a wrong password to force offline
+        5. Start SSSD
+    :steps:
+        1. Send SIGUSR2 to SSSD 30 times at 0.5s intervals
+        2. Check that SSSD is still running
+        3. Check that no child process terminated with a signal
+    :expectedresults:
+        1. Signals are sent successfully
+        2. SSSD is still running
+        3. No "terminated with signal" in sssd.log
+    :customerscenario: True
+    """
+    provider.user("user-1").add()
+    provider.sudorule("allow_all").add(user="user-1", host="ALL", command="ALL", nopasswd=True)
+
+    client.sssd.common.sudo()
+    client.sssd.domain["ldap_default_authtok"] = "WRONG_PASSWORD"
+    client.sssd.start()
+
+    client.host.conn.run(
+        'for i in $(seq 1 30); do pkill --signal SIGUSR2 sssd; sleep 0.5; done',
+        raise_on_error=False,
+    )
+
+    result = client.host.conn.run("pgrep sssd", raise_on_error=False)
+    assert result.rc == 0, "SSSD is not running after repeated SIGUSR2!"
+
+    log = client.fs.read(client.sssd.logs.monitor)
+    assert "terminated with signal" not in log, "Child process terminated with a signal!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.slow(seconds=15)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_sudo__full_refresh_downloads_new_rules(client: Client, provider: GenericProvider):
+    """
+    :title: Full refresh downloads new sudo rules automatically
+    :setup:
+        1. Create user "user-1"
+        2. Enable SSSD sudo responder
+        3. Set "ldap_sudo_full_refresh_interval" to "5", "ldap_sudo_smart_refresh_interval" to "1"
+        4. Set "cache_credentials" to "True", "entry_cache_timeout" to "0"
+        5. Start SSSD
+    :steps:
+        1. Verify user-1 cannot run sudo (no rule exists)
+        2. Add sudo rule allowing user-1 all commands
+        3. Wait for full refresh interval (7 seconds)
+        4. Block server and bring SSSD offline
+        5. Verify user-1 can run sudo from cache
+    :expectedresults:
+        1. Sudo is denied (no rules)
+        2. Rule is added on server
+        3. Full refresh picks up the new rule
+        4. SSSD is offline
+        5. Sudo is allowed from cache (proves the refresh downloaded the rule)
+    :customerscenario: False
+    """
+    u1 = provider.user("user-1").add()
+
+    client.sssd.common.sudo()
+    client.sssd.domain["ldap_sudo_full_refresh_interval"] = "5"
+    client.sssd.domain["ldap_sudo_smart_refresh_interval"] = "1"
+    client.sssd.domain["ldap_sudo_random_offset"] = "0"
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["entry_cache_timeout"] = "0"
+    client.sssd.start()
+
+    assert not client.auth.sudo.list("user-1", "Secret123"), "Sudo list should be empty before rule is added!"
+
+    provider.sudorule("allow_all").add(user=u1, host="ALL", command="ALL", nopasswd=True)
+    time.sleep(7)
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) NOPASSWD: ALL"]), (
+        "Sudo list failed after full refresh!"
+    )
+    assert client.auth.sudo.run("user-1", command="/bin/true"), "Sudo run failed after full refresh!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.slow(seconds=15)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_sudo__full_refresh_picks_up_modified_rules(client: Client, provider: GenericProvider):
+    """
+    :title: Full refresh picks up modified sudo rules
+    :setup:
+        1. Create user "user-1"
+        2. Create sudorule allowing user-1 to run "/bin/ls"
+        3. Enable SSSD sudo responder
+        4. Set "ldap_sudo_full_refresh_interval" to "5", "ldap_sudo_smart_refresh_interval" to "1"
+        5. Set "cache_credentials" to "True", "entry_cache_timeout" to "0"
+        6. Start SSSD
+    :steps:
+        1. Verify user-1 can run /bin/ls via sudo
+        2. Modify rule to allow "/bin/cat" instead
+        3. Wait for full refresh interval (7 seconds)
+        4. Block server and bring SSSD offline
+        5. Verify user-1 can run /bin/cat (not /bin/ls) from cache
+    :expectedresults:
+        1. Sudo allows /bin/ls
+        2. Rule is modified on server
+        3. Full refresh picks up the change
+        4. SSSD is offline
+        5. Sudo allows /bin/cat from cache (proves modification was refreshed)
+    :customerscenario: False
+    """
+    u1 = provider.user("user-1").add()
+    rule = provider.sudorule("test_rule").add(user=u1, host="ALL", command="/bin/ls", nopasswd=True)
+
+    client.sssd.common.sudo()
+    client.sssd.domain["ldap_sudo_full_refresh_interval"] = "5"
+    client.sssd.domain["ldap_sudo_smart_refresh_interval"] = "1"
+    client.sssd.domain["ldap_sudo_random_offset"] = "0"
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["entry_cache_timeout"] = "0"
+    client.sssd.start()
+
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) NOPASSWD: /bin/ls"]), (
+        "Sudo list failed for original rule!"
+    )
+
+    rule.modify(command="/bin/cat")
+    time.sleep(7)
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.bring_offline()
+
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) NOPASSWD: /bin/cat"]), (
+        "Sudo list failed after rule modification!"
+    )
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.slow(seconds=30)
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_sudo__full_refresh_retries_after_startup_offline(client: Client, provider: GenericProvider):
+    """
+    :title: Full refresh retries and succeeds after SSSD starts offline
+    :description:
+        When SSSD starts with the LDAP server unreachable, the initial sudo full
+        refresh fails. After the server becomes reachable again, the retry mechanism
+        should eventually download the rules.
+    :setup:
+        1. Create user "user-1"
+        2. Create sudorule allowing user-1 all commands
+        3. Enable SSSD sudo responder
+        4. Set "cache_credentials" to "True"
+        5. Block server before starting SSSD
+        6. Start SSSD
+    :steps:
+        1. Verify user-1 cannot resolve (SSSD is offline)
+        2. Unblock server
+        3. Bring SSSD online via SIGUSR2
+        4. Expire sudo cache and wait for refresh
+        5. Verify user-1 can run sudo
+    :expectedresults:
+        1. User cannot be resolved (offline)
+        2. Server is reachable again
+        3. SSSD goes online
+        4. Full refresh downloads the rules
+        5. Sudo is allowed
+    :customerscenario: False
+    """
+    u1 = provider.user("user-1").add()
+    provider.sudorule("allow_all").add(user=u1, host="ALL", command="ALL", nopasswd=True)
+
+    client.sssd.common.sudo()
+    client.sssd.domain["cache_credentials"] = "True"
+    client.sssd.domain["ldap_sudo_random_offset"] = "0"
+    client.sssd.domain["ldap_sudo_full_refresh_interval"] = "5"
+    client.sssd.domain["ldap_sudo_smart_refresh_interval"] = "1"
+
+    client.firewall.outbound.reject_host(provider)
+    client.sssd.start()
+
+    result = client.tools.id("user-1")
+    assert result is None, "User should not be found when SSSD is offline!"
+
+    client.firewall.outbound.accept_host(provider)
+    client.sssd.bring_online()
+    client.sssctl.cache_expire(everything=True)
+    time.sleep(10)
+
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) NOPASSWD: ALL"]), (
+        "Sudo list failed after coming back online!"
+    )
+    assert client.auth.sudo.run("user-1", command="/bin/true"), "Sudo run failed after coming back online!"
