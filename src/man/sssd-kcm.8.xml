@@ -277,7 +277,7 @@ systemctl restart sssd-kcm.service
                 <listitem>
                     <para>
                         How big can a credential cache be per ccache. Each
-                        service ticket accounts into this quota.
+                        service ticket counts toward this quota.
                     </para>
                     <para>
                         Default: 65536
