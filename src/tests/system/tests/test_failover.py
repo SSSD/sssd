@@ -156,3 +156,40 @@ def test_failover__go_offline_if_ldap_fails(client: Client, provider: GenericPro
     assert client.sssd.default_domain is not None, "No default domain?"
     status = client.sssctl.domain_status(client.sssd.default_domain, online=True)
     assert "Offline" in status.stdout, "SSSD is not offline!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=1283798)
+@pytest.mark.parametrize("method", ["su", "ssh"])
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_failover__login_via_backup_when_primary_is_unavailable(
+    client: Client, provider: GenericProvider, method: str
+):
+    """
+    :title: User login succeeds via backup server when primary is unavailable
+    :setup:
+        1. Create user "user-1"
+        2. Set primary server to an invalid (unreachable) server
+        3. Set backup server to the real provider
+        4. Start SSSD
+    :steps:
+        1. Login as user-1
+        2. Check that SSSD is connected to the backup server
+    :expectedresults:
+        1. User can login via the backup server
+        2. SSSD is connected to the backup server
+    :customerscenario: True
+    """
+    provider.user("user-1").add(password="Secret123")
+    client.sssd.set_invalid_primary_server(provider)
+    client.sssd.enable_responder("ifp")
+    client.sssd.start()
+
+    assert client.auth.parametrize(method).password("user-1", "Secret123"), (
+        "User login failed, failover to backup server did not work!"
+    )
+
+    assert client.sssd.default_domain is not None, "Default domain is not set!"
+    status = client.sssctl.domain_status(client.sssd.default_domain, active=True)
+    assert provider.host.hostname in status.stdout, f"SSSD is not connected to backup server {provider.host.hostname}!"
