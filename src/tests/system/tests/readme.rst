@@ -26,6 +26,8 @@ Tests can be written for a specific identity provider; IPA, LDAP, KRB, Samba or 
 * test_failover.py, any provider resolution and connectivity tests.
 * test_ldap.py, any test that is specific to LDAP.
 * test_ad.py, any test that is specific to AD.
+* test_adforest.py, AD forest multi-domain tests (root, child, tree).
+* test_adforest_gpo.py, AD forest GPO HBAC for users in child/tree while joined to root.
 * test_ipa.py, any test that is specific to IPA.
 * test_ipa_trust.py, any IPA trust test
 * test_krb.py, any test that is specific to kerberos.
