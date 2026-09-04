@@ -141,7 +141,6 @@ class TestNsAccountLock(object):
         """
         clean_sys(multihost)
         client = sssdTools(multihost.client[0])
-        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
         manage_user_roles(multihost, "cn=managed", "lock", "role")
@@ -151,7 +150,8 @@ class TestNsAccountLock(object):
         lock_check(multihost, "foo1")
         # User added to the above inactive managed role
         clean_sys(multihost)
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_dn = 'uid=foo2,ou=People,dc=example,dc=test'
         role_dn = "cn=managed,ou=people,dc=example,dc=test"
         add_member = [(ldap.MOD_ADD, 'nsRoleDN', role_dn.encode('utf-8'))]
@@ -163,7 +163,8 @@ class TestNsAccountLock(object):
         lock_check(multihost, "foo2")
         # User removed from the above inactive managed role
         clean_sys(multihost)
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_dn = 'uid=foo2,ou=People,dc=example,dc=test'
         role_dn = "cn=managed,ou=people,dc=example,dc=test"
         add_member = [(ldap.MOD_DELETE, 'nsRoleDN', role_dn.encode('utf-8'))]
@@ -197,10 +198,10 @@ class TestNsAccountLock(object):
         """
         clean_sys(multihost)
         client = sssdTools(multihost.client[0])
-        ldap_uri = f'ldap://{multihost.master[0].ip}'
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_dn = 'uid=foo3,ou=People,dc=example,dc=test'
         role_dn = "filtered"
         add_member = [(ldap.MOD_ADD, 'o', role_dn.encode('utf-8'))]
@@ -221,7 +222,8 @@ class TestNsAccountLock(object):
         lock_check(multihost, "foo4")
         # User removed from the above inactive filtered role
         clean_sys(multihost)
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_dn = 'uid=foo3,ou=People,dc=example,dc=test'
         role_dn = "filtered"
         add_member = [(ldap.MOD_DELETE, 'o', role_dn.encode('utf-8'))]
@@ -253,11 +255,10 @@ class TestNsAccountLock(object):
         """
         clean_sys(multihost)
         client = sssdTools(multihost.client[0])
-        master_e = multihost.master[0].ip
-        ldap_uri = f'ldap://{master_e}'
         ds_rootdn = 'cn=Directory Manager'
         ds_rootpw = 'Secret123'
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_info = {
             'cn': 'nested'.encode('utf-8'),
             'objectClass': [b'top',
@@ -283,7 +284,8 @@ class TestNsAccountLock(object):
         lock_check(multihost, "foo4")
         # Nested role has both the above roles and activated
         clean_sys(multihost)
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         manage_user_roles(multihost, "cn=nested", "unlock", "role")
         check_login_client(multihost, "foo1@example1", 'Secret123')
         check_login_client(multihost, "foo4@example1", 'Secret123')
