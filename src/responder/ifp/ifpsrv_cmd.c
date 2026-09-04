@@ -430,6 +430,7 @@ ifp_user_get_groups_build_reply(TALLOC_CTX *mem_ctx,
     num = res->count;
     groupnames = talloc_zero_array(mem_ctx, const char *, num + 1);
     if (groupnames == NULL) {
+        talloc_free(tmp_ctx);
         return ENOMEM;
     }
 
