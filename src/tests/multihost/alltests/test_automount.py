@@ -12,7 +12,7 @@ import re
 import subprocess
 import time
 import pytest
-from constants import ds_instance_name
+from constants import ds_instance_name, ds_rootdn, ds_rootpw
 from sssd.testlib.common.utils import sssdTools, LdapOperations
 
 JOURNALCTL_CMD = "journalctl -x -n 50 --no-pager"
@@ -255,9 +255,8 @@ class Testautofsresponder(object):
         start_nfs = 'systemctl start nfs-server'
         multihost.master[0].run_command(start_nfs)
         ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
-        ds_rootdn = 'cn=Directory Manager'
-        ds_rootpw = 'Secret123'
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         for ou_ou in ['auto.master', 'auto.direct', 'auto.home']:
             user_info = {'ou': f'{ou_ou}'.encode('utf-8'),
                          'objectClass': [b'top', b'automountMap']}

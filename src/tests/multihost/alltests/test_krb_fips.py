@@ -11,7 +11,7 @@ import time
 import re
 import pytest
 import ldap
-from constants import ds_suffix, krb_realm
+from constants import ds_suffix, krb_realm, ds_rootdn, ds_rootpw
 from sssd.testlib.common.ssh2_python import check_login_client, SSHClient
 from sssd.testlib.common.utils import sssdTools
 from sssd.testlib.common.utils import LdapOperations
@@ -252,14 +252,8 @@ class Testkrbfips(object):
         :title: krb5/fips: verify login fails when weak crypto is presented
         :id: cdd2ef0d-4921-40b3-b61e-0b271b2d5e00
         """
-        ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
-        ds_rootdn = 'cn=Directory Manager'
-        ds_rootpw = 'Secret123'
-        tools = sssdTools(multihost.client[0])
-        domain_name = tools.get_domain_section_name()
-        tools.clear_sssd_cache()
-        user = 'cracker@%s' % domain_name
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         krb = krb5srv(multihost.master[0], 'EXAMPLE.TEST')
         user_info = {'cn': 'cracker',
                      'uid': 'cracker',
