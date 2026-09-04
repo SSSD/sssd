@@ -1271,7 +1271,8 @@ errno_t save_passkey_data(TALLOC_CTX *mem_ctx,
      * takes care of automatically removing it from the hash table then */
     pctx->pk_table_data = talloc_zero(tmp_ctx, struct pam_passkey_table_data);
     if (pctx->pk_table_data == NULL) {
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     if (pctx->pk_table_data->table == NULL) {
