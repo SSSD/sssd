@@ -329,31 +329,26 @@ static void check_if_online_delayed(struct tevent_context *ev,
 static void be_check_online_done(struct tevent_req *req)
 {
     struct be_ctx *be_ctx;
-    struct dp_reply_std *reply;
     struct tevent_timer *time_event;
     struct timeval schedule;
     errno_t ret;
 
     be_ctx = tevent_req_callback_data(req, struct be_ctx);
 
-    ret = dp_req_recv_ptr(be_ctx, req, struct dp_reply_std, &reply);
+    ret = dp_req_recv_no_output(req);
     talloc_zfree(req);
-    if (ret != EOK) {
-        reply = NULL;
-        goto done;
-    }
-
-    switch (reply->dp_error) {
-    case DP_ERR_OK:
-        if (be_ctx->last_dp_state != DP_ERR_OK) {
-            be_ctx->last_dp_state = DP_ERR_OK;
+    switch (ret) {
+    case EOK:
+        if (be_ctx->last_dp_state != EOK) {
+            be_ctx->last_dp_state = EOK;
             sss_log(SSS_LOG_INFO, "Backend is online\n");
         }
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is online\n");
         break;
-    case DP_ERR_OFFLINE:
-        if (be_ctx->last_dp_state != DP_ERR_OFFLINE) {
-            be_ctx->last_dp_state = DP_ERR_OFFLINE;
+    case ERR_OFFLINE:
+    case ERR_NO_MORE_SERVERS:
+        if (be_ctx->last_dp_state != ERR_OFFLINE) {
+            be_ctx->last_dp_state = ERR_OFFLINE;
             sss_log(SSS_LOG_INFO, "Backend is offline\n");
         }
         DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline\n");
@@ -366,7 +361,7 @@ static void be_check_online_done(struct tevent_req *req)
 
     be_ctx->check_online_ref_count--;
 
-    if (reply->dp_error != DP_ERR_OK && be_ctx->check_online_ref_count > 0) {
+    if (ret != EOK && be_ctx->check_online_ref_count > 0) {
         be_ctx->check_online_retry_delay *= 2;
         if (be_ctx->check_online_retry_delay > ONLINE_CB_RETRY_MAX_DELAY) {
             be_ctx->check_online_retry_delay = ONLINE_CB_RETRY_MAX_DELAY;
@@ -390,8 +385,8 @@ static void be_check_online_done(struct tevent_req *req)
 
 done:
     be_ctx->check_online_ref_count = 0;
-    if (reply && reply->dp_error != DP_ERR_OFFLINE) {
-        if (reply->dp_error != DP_ERR_OK) {
+    if (ret != ERR_OFFLINE && ret != ERR_NO_MORE_SERVERS) {
+        if (ret != EOK) {
             reset_fo(be_ctx);
         }
         be_reset_offline(be_ctx);

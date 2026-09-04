@@ -27,7 +27,6 @@
 
 struct ipa_sudo_handler_state {
     uint32_t type;
-    struct dp_reply_std reply;
     struct ipa_sudo_ctx *sudo_ctx;
 };
 
@@ -80,10 +79,7 @@ ipa_sudo_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
-
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    tevent_req_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;
@@ -93,7 +89,6 @@ static void ipa_sudo_handler_done(struct tevent_req *subreq)
 {
     struct ipa_sudo_handler_state *state;
     struct tevent_req *req;
-    int dp_error;
     bool deleted;
     errno_t ret;
 
@@ -102,17 +97,17 @@ static void ipa_sudo_handler_done(struct tevent_req *subreq)
 
     switch (state->type) {
     case BE_REQ_SUDO_FULL:
-        ret = ipa_sudo_full_refresh_recv(subreq, &dp_error);
+        ret = ipa_sudo_full_refresh_recv(subreq);
         talloc_zfree(subreq);
 
         /* Postpone the periodic task since the refresh was just finished
          * per user request. */
-        if (ret == EOK && dp_error == DP_ERR_OK) {
+        if (ret == EOK) {
             be_ptask_postpone(state->sudo_ctx->full_refresh);
         }
         break;
     case BE_REQ_SUDO_RULES:
-        ret = ipa_sudo_rules_refresh_recv(subreq, &dp_error, &deleted);
+        ret = ipa_sudo_rules_refresh_recv(subreq, &deleted);
         talloc_zfree(subreq);
         if (ret == EOK && deleted == true) {
             ret = ENOENT;
@@ -120,28 +115,23 @@ static void ipa_sudo_handler_done(struct tevent_req *subreq)
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request type: %d\n", state->type);
-        dp_error = DP_ERR_FATAL;
         ret = ERR_INTERNAL;
         break;
     }
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static errno_t
 ipa_sudo_handler_recv(TALLOC_CTX *mem_ctx,
                       struct tevent_req *req,
-                      struct dp_reply_std *data)
+                      dp_no_output *_no_output)
 {
-    struct ipa_sudo_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct ipa_sudo_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }
@@ -281,7 +271,7 @@ ipa_sudo_init_ipa_schema(TALLOC_CTX *mem_ctx,
 
     dp_set_method(dp_methods, DPM_SUDO_HANDLER,
                   ipa_sudo_handler_send, ipa_sudo_handler_recv, sudo_ctx,
-                  struct ipa_sudo_ctx, struct dp_sudo_data, struct dp_reply_std);
+                  struct ipa_sudo_ctx, struct dp_sudo_data, dp_no_output);
 
     ret = EOK;
 

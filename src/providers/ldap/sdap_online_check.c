@@ -169,7 +169,6 @@ static errno_t sdap_online_check_recv(struct tevent_req *req)
 }
 
 struct sdap_online_check_handler_state {
-    struct dp_reply_std reply;
     struct sdap_id_ctx *id_ctx;
 };
 
@@ -207,10 +206,7 @@ sdap_online_check_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
-
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    tevent_req_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;
@@ -241,22 +237,21 @@ static void sdap_online_check_handler_done(struct tevent_req *subreq)
         }
     }
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static void sdap_online_check_subdomains_done(struct tevent_req *subreq)
 {
-    struct sdap_online_check_handler_state *state;
     struct tevent_req *req;
-    struct dp_reply_std *reply;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_online_check_handler_state);
 
-    ret = dp_req_recv_ptr(state, subreq, struct dp_reply_std, &reply);
+    ret = dp_req_recv_no_output(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -271,21 +266,14 @@ static void sdap_online_check_subdomains_done(struct tevent_req *subreq)
 
     /* We return the EOK of the initial online check here, the result of the
      * subdomains request is not important for the online-check request. */
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, EOK, NULL);
     tevent_req_done(req);
 }
 
 errno_t sdap_online_check_handler_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
-                                       struct dp_reply_std *data)
+                                       dp_no_output *_no_output)
 {
-    struct sdap_online_check_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct sdap_online_check_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }

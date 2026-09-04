@@ -35,7 +35,6 @@ struct hosts_get_state {
 
     size_t count;
     struct sysdb_attrs **hosts;
-    int dp_error;
 };
 
 static errno_t
@@ -61,7 +60,6 @@ hosts_get_send(TALLOC_CTX *memctx,
 
     state->ev = ev;
     state->id_ctx = id_ctx;
-    state->dp_error = DP_ERR_FATAL;
 
     state->op = sdap_id_op_create(state, id_ctx->conn->conn_cache);
     if (!state->op) {
@@ -111,14 +109,12 @@ hosts_get_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct hosts_get_state *state = tevent_req_data(req,
                                                     struct hosts_get_state);
-    int dp_error = DP_ERR_FATAL;
     errno_t ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        state->dp_error = dp_error;
         tevent_req_error(req, ret);
         return;
     }
@@ -142,7 +138,6 @@ hosts_get_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct hosts_get_state *state = tevent_req_data(req,
                                                     struct hosts_get_state);
-    int dp_error = DP_ERR_FATAL;
     errno_t ret;
     struct sysdb_attrs *attrs;
     time_t now = time(NULL);
@@ -151,8 +146,8 @@ hosts_get_done(struct tevent_req *subreq)
                               &state->count, &state->hosts);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->op, ret);
+    if (ret == EAGAIN) {
         /* retry */
         ret = hosts_get_retry(req);
         if (ret != EOK) {
@@ -203,10 +198,7 @@ hosts_get_done(struct tevent_req *subreq)
         goto done;
     }
 
-    dp_error = DP_ERR_OK;
-
 done:
-    state->dp_error = dp_error;
     if (ret == EOK) {
         tevent_req_done(req);
     } else {
@@ -215,23 +207,15 @@ done:
 }
 
 static errno_t
-hosts_get_recv(struct tevent_req *req,
-               int *dp_error_out)
+hosts_get_recv(struct tevent_req *req)
 {
-    struct hosts_get_state *state = tevent_req_data(req,
-                                                    struct hosts_get_state);
-
-    if (dp_error_out) {
-        *dp_error_out = state->dp_error;
-    }
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     return EOK;
 }
 
 struct sdap_hostid_handler_state {
-    struct dp_reply_std reply;
+    int dummy;
 };
 
 static void sdap_hostid_handler_done(struct tevent_req *subreq);
@@ -266,10 +250,7 @@ sdap_hostid_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
-
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    tevent_req_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;
@@ -277,34 +258,27 @@ immediately:
 
 static void sdap_hostid_handler_done(struct tevent_req *subreq)
 {
-    struct sdap_hostid_handler_state *state;
     struct tevent_req *req;
-    int dp_error;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_hostid_handler_state);
 
-    ret = hosts_get_recv(subreq, &dp_error);
+    ret = hosts_get_recv(subreq);
     talloc_zfree(subreq);
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    dp_reply_std_set(&state->reply, dp_error, ret, NULL);
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 errno_t
 sdap_hostid_handler_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
-                         struct dp_reply_std *data)
+                         dp_no_output *_no_output)
 {
-    struct sdap_hostid_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct sdap_hostid_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }
@@ -318,7 +292,7 @@ errno_t sdap_hostid_init(TALLOC_CTX *mem_ctx,
 
     dp_set_method(dp_methods, DPM_HOSTID_HANDLER,
                   sdap_hostid_handler_send, sdap_hostid_handler_recv, id_ctx,
-                  struct sdap_id_ctx, struct dp_hostid_data, struct dp_reply_std);
+                  struct sdap_id_ctx, struct dp_hostid_data, dp_no_output);
 
     return EOK;
 }
