@@ -241,7 +241,8 @@ static errno_t sss_nss_getby_svc(struct cli_ctx *cli_ctx,
                                  data, SSS_MC_NONE, NULL, 0);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_nss_get_object_send() failed\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     tevent_req_set_callback(subreq, sss_nss_getby_done, cmd_ctx);
@@ -1245,6 +1246,179 @@ static errno_t sss_nss_cmd_getorigbygroupname(struct cli_ctx *cli_ctx)
     return sss_nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_GROUP_BY_NAME);
 }
 
+struct sss_nss_getorigbyusername_wg_state {
+    struct sss_nss_cmd_ctx *cmd_ctx;
+    struct cache_req_result *user_result;
+};
+
+static void sss_nss_getorigbyusername_wg_user_done(struct tevent_req *subreq);
+static void sss_nss_getorigbyusername_wg_initgr_done(struct tevent_req *subreq);
+
+static errno_t
+sss_nss_cmd_getorigbyusername_with_groups(struct cli_ctx *cli_ctx)
+{
+    struct cache_req_data *data;
+    struct sss_nss_cmd_ctx *cmd_ctx;
+    struct sss_nss_ctx *nss_ctx;
+    struct tevent_req *subreq;
+    const char *rawname;
+    const char **attrs;
+    errno_t ret;
+    static const char *cache_attrs[] = { SYSDB_NAME,
+                                         SYSDB_OBJECTCATEGORY,
+                                         SYSDB_SID_STR,
+                                         SYSDB_DEFAULT_ATTRS,
+                                         NULL };
+
+    cmd_ctx = sss_nss_cmd_ctx_create(cli_ctx, cli_ctx, CACHE_REQ_USER_BY_NAME,
+                                     sss_nss_protocol_fill_orig);
+    if (cmd_ctx == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    cmd_ctx->include_initgroups = true;
+
+    ret = sss_nss_protocol_parse_name(cli_ctx, &rawname);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid request message!\n");
+        goto done;
+    }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Input name: %s\n", rawname);
+
+    nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sss_nss_ctx);
+
+    ret = add_strings_lists_ex(cmd_ctx, cache_attrs,
+                               nss_ctx->full_attribute_list,
+                               false, true, &attrs);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unable to concatenate attributes [%d]: %s\n",
+              ret, sss_strerror(ret));
+        ret = ENOMEM;
+        goto done;
+    }
+
+    data = cache_req_data_name_attrs(cmd_ctx, CACHE_REQ_USER_BY_NAME,
+                                     rawname, attrs);
+    if (data == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to set cache request data!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    subreq = sss_nss_get_object_send(cmd_ctx, cli_ctx->ev, cli_ctx,
+                                     data, SSS_MC_NONE, rawname, 0);
+    if (subreq == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "sss_nss_get_object_send() failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tevent_req_set_callback(subreq, sss_nss_getorigbyusername_wg_user_done,
+                            cmd_ctx);
+
+    ret = EOK;
+
+done:
+    if (ret != EOK) {
+        talloc_free(cmd_ctx);
+        return sss_nss_protocol_done(cli_ctx, ret);
+    }
+
+    return EOK;
+}
+
+static void
+sss_nss_getorigbyusername_wg_user_done(struct tevent_req *subreq)
+{
+    struct sss_nss_getorigbyusername_wg_state *state;
+    struct sss_nss_cmd_ctx *cmd_ctx;
+    struct cache_req_result *result;
+    struct tevent_req *initgr_req;
+    const char *name;
+    errno_t ret;
+
+    cmd_ctx = tevent_req_callback_data(subreq, struct sss_nss_cmd_ctx);
+
+    ret = sss_nss_get_object_recv(cmd_ctx, subreq, &result, &cmd_ctx->rawname);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, ret);
+        goto done;
+    }
+
+    if (result->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unexpected number of results [%u], expected [1].\n",
+              result->count);
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, EINVAL);
+        goto done;
+    }
+
+    state = talloc_zero(cmd_ctx, struct sss_nss_getorigbyusername_wg_state);
+    if (state == NULL) {
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, ENOMEM);
+        goto done;
+    }
+    state->cmd_ctx = cmd_ctx;
+    state->user_result = result;
+
+    name = ldb_msg_find_attr_as_string(result->msgs[0], SYSDB_NAME, NULL);
+    if (name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing user name in result.\n");
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, EINVAL);
+        goto done;
+    }
+
+    initgr_req = cache_req_initgr_by_name_send(state, cmd_ctx->cli_ctx->ev,
+                                cmd_ctx->cli_ctx->rctx,
+                                cmd_ctx->cli_ctx->rctx->ncache,
+                                cmd_ctx->nss_ctx->cache_refresh_percent,
+                                CACHE_REQ_POSIX_DOM,
+                                result->domain->name, name);
+    if (initgr_req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_send() failed\n");
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, ENOMEM);
+        goto done;
+    }
+
+    tevent_req_set_callback(initgr_req,
+                            sss_nss_getorigbyusername_wg_initgr_done,
+                            state);
+    return;
+
+done:
+    talloc_free(cmd_ctx);
+}
+
+static void
+sss_nss_getorigbyusername_wg_initgr_done(struct tevent_req *subreq)
+{
+    struct sss_nss_getorigbyusername_wg_state *state;
+    struct sss_nss_cmd_ctx *cmd_ctx;
+    errno_t ret;
+
+    state = tevent_req_callback_data(subreq,
+                                     struct sss_nss_getorigbyusername_wg_state);
+    cmd_ctx = state->cmd_ctx;
+
+    ret = cache_req_initgr_by_name_recv(state, subreq, NULL);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Initgroups cache refresh failed [%d]: %s, "
+              "skipping group memberships in response.\n",
+              ret, sss_strerror(ret));
+        cmd_ctx->include_initgroups = false;
+    }
+
+    sss_nss_protocol_reply(cmd_ctx->cli_ctx, cmd_ctx->nss_ctx, cmd_ctx,
+                           state->user_result, cmd_ctx->fill_fn);
+
+    talloc_free(cmd_ctx);
+}
 
 static errno_t sss_nss_cmd_getnamebycert(struct cli_ctx *cli_ctx)
 {
@@ -1388,6 +1562,7 @@ struct sss_cmd_table *get_sss_nss_cmds(void)
         { SSS_NSS_GETIDBYSID, sss_nss_cmd_getidbysid },
         { SSS_NSS_GETORIGBYNAME, sss_nss_cmd_getorigbyname },
         { SSS_NSS_GETORIGBYUSERNAME, sss_nss_cmd_getorigbyusername },
+        { SSS_NSS_GETORIGBYUSERNAME_WITH_GROUPS, sss_nss_cmd_getorigbyusername_with_groups },
         { SSS_NSS_GETORIGBYGROUPNAME, sss_nss_cmd_getorigbygroupname },
         { SSS_NSS_GETNAMEBYCERT, sss_nss_cmd_getnamebycert },
         { SSS_NSS_GETLISTBYCERT, sss_nss_cmd_getlistbycert },
