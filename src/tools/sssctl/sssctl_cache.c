@@ -716,3 +716,459 @@ errno_t sssctl_netgroup_show(struct sss_cmdline *cmdline,
 
     return EOK;
 }
+<<<<<<< HEAD
+=======
+
+typedef errno_t (*sssctl_gpo_traverse_func)(struct sss_domain_info *,
+                                            struct sssctl_object_info *,
+                                            struct sysdb_attrs *,
+                                            void *);
+
+static int sssctl_gpo_traverse(TALLOC_CTX *mem_ctx,
+                               const char *domain_prompt,
+                               struct sss_domain_info *domains,
+                               sssctl_gpo_traverse_func fn,
+                               void *private_data)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sssctl_object_info info[] = {
+        SSSCTL_CACHE_GPO_NAME,
+        SSSCTL_CACHE_GPO_GUID,
+        SSSCTL_CACHE_GPO_PATH,
+        SSSCTL_CACHE_NULL
+    };
+    struct sss_domain_info *dom = NULL;
+    const char **attrs = NULL;
+    const char *filter = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    attrs = sssctl_build_attrs(tmp_ctx, info);
+    if (attrs == NULL) {
+        ERROR("Unable to get attribute list!\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, "(%s=%s)", SYSDB_OBJECTCLASS, SYSDB_GPO_OC);
+    if (filter == NULL) {
+        ERROR("Unable to create filter\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    for (dom = domains; dom != NULL;
+         dom = get_next_domain(dom, SSS_GND_DESCEND)) {
+        struct ldb_message **msgs = NULL;
+        struct sysdb_attrs **sysdb_attrs = NULL;
+        struct ldb_dn *base_dn = NULL;
+        size_t count;
+
+        if (domain_prompt != NULL) {
+            PRINT("%s [%s]:\n", domain_prompt, dom->name);
+        }
+
+        base_dn = sysdb_gpos_base_dn(tmp_ctx, dom);
+        if (base_dn == NULL) {
+            ERROR("Unable to get GPOs base DN\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        ret = sysdb_search_entry(tmp_ctx, dom->sysdb, base_dn, LDB_SCOPE_SUBTREE,
+                                 filter, attrs, &count, &msgs);
+        if (ret == ENOENT) {
+            continue;
+        } else if (ret != EOK) {
+            ERROR("Unable to search sysdb: %s\n", sss_strerror(ret));
+            goto done;
+        }
+
+        ret = sysdb_msg2attrs(tmp_ctx, count, msgs, &sysdb_attrs);
+        if (ret != EOK) {
+            ERROR("Unable to convert message to sysdb attrs: %s\n", sss_strerror(ret));
+            goto done;
+        }
+        TALLOC_FREE(msgs);
+
+        for (size_t i = 0; i < count; i++) {
+            struct sysdb_attrs *entry = sysdb_attrs[i];
+
+            if (fn) {
+                ret = fn(dom, info, entry, private_data);
+                if (ret != EOK) {
+                    break;
+                }
+            }
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t sssctl_gpo_print(struct sss_domain_info *dom,
+                                struct sssctl_object_info *info,
+                                struct sysdb_attrs *entry,
+                                void *private_data)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *value = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(entry);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    for (size_t j = 0; info[j].attr != NULL; j++) {
+        ret = info[j].attr_fn(tmp_ctx, entry, dom, info[j].attr, &value);
+        if (ret == ENOENT) {
+            continue;
+        } else if (ret != EOK) {
+            ERROR("%s: Unable to read value [%d]: %s\n",
+                  info[j].msg, ret, sss_strerror(ret));
+            goto done;
+        }
+        PRINT("\t%s: %s\n", info[j].msg, value);
+    }
+    PRINT("\n");
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t sssctl_gpo_list(struct sss_cmdline *cmdline,
+                        struct sss_tool_ctx *tool_ctx)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *domain_prompt = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(tool_ctx);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    domain_prompt = talloc_strdup(tmp_ctx, "Cached GPOs in domain");
+    if (domain_prompt == NULL) {
+        ERROR("talloc failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    ret = sssctl_gpo_traverse(tmp_ctx, domain_prompt, tool_ctx->domains,
+                              sssctl_gpo_print, NULL);
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static bool confirm(const char *prompt)
+{
+    char str[5];
+
+    fprintf(stdout, "%s [y/n]\n", prompt);
+    fflush(stdout);
+
+    if (fgets(str, sizeof(str), stdin) == NULL) {
+        return false;
+    }
+
+    if (str[strlen(str) - 1] == '\n') {
+        str[strlen(str) - 1] = '\0';
+    }
+
+    if (strcmp(str, "y") == 0 || strcmp(str, "yes") == 0) {
+        return true;
+    }
+
+    fprintf(stdout, "Aborted.\n");
+    fflush(stdout);
+
+    return false;
+}
+
+static errno_t sssctl_gpo_remove_entry(TALLOC_CTX *mem_ctx,
+                                       struct sss_domain_info *dom,
+                                       struct sysdb_attrs *entry,
+                                       bool ask_for_confirm)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *gpo_name = NULL;
+    const char *gpo_guid = NULL;
+    const char *gpo_path = NULL;
+    char gpo_cache_realpath[PATH_MAX];
+    char gpo_realpath[PATH_MAX];
+    char *prompt = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(mem_ctx);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    ret = get_attr_string(tmp_ctx, entry, dom, SYSDB_GPO_GUID_ATTR, &gpo_guid);
+    if (ret != EOK) {
+        ERROR("Could not find GUID attribute from GPO entry\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+    ret = get_attr_string(tmp_ctx, entry, dom, SYSDB_NAME, &gpo_name);
+    if (ret != EOK) {
+        ERROR("Could not find description attribute from GPO entry\n");
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (ask_for_confirm) {
+        prompt = talloc_asprintf(tmp_ctx,
+                                 "About to delete GPO entry named [%s] with GUID "
+                                 "[%s] from database. Proceed?",
+                                 gpo_name, gpo_guid);
+        if (prompt == NULL) {
+            ERROR("talloc failed\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (!confirm(prompt)) {
+            ret = EOK;
+            goto done;
+        }
+    }
+
+    ret = sysdb_gpo_delete_gpo_by_guid(tmp_ctx, dom, gpo_guid);
+    if (ret != EOK) {
+        ERROR("Could not delete GPO entry from cache\n");
+        goto done;
+    }
+
+    ret = sysdb_attrs_get_string(entry, SYSDB_GPO_PATH_ATTR, &gpo_path);
+    if (ret == ENOENT) {
+        PRINT("The GPO path was not yet stored in cache. Please remove files "
+              "manually from [%s]\n", GPO_CACHE_PATH);
+        goto done;
+    } else if (ret != EOK) {
+        return ret;
+    }
+
+    if (realpath(gpo_path, gpo_realpath) == NULL) {
+        ret = errno;
+        ERROR("Could not determine real path for [%s]: %s\n", gpo_path, strerror(ret));
+        goto done;
+    }
+
+    if (realpath(GPO_CACHE_PATH, gpo_cache_realpath) == NULL) {
+        ret = errno;
+        ERROR("Could not determine real path for [%s]: %s\n", GPO_CACHE_PATH, strerror(ret));
+        goto done;
+    }
+
+    if (strncmp(gpo_realpath, gpo_cache_realpath, strlen(gpo_cache_realpath)) != 0) {
+        ERROR("The cached GPO path [%s] is not under [%s], ignoring.\n",
+              gpo_realpath, gpo_cache_realpath);
+        ret = EOK;
+        goto done;
+    }
+
+    if (ask_for_confirm) {
+        prompt = talloc_asprintf(tmp_ctx,
+                                 "About to recursively delete GPO downloaded "
+                                 "files [%s]. Proceed?",
+                                 gpo_path);
+        if (prompt == NULL) {
+            ERROR("talloc failed\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        if (!confirm(prompt)) {
+            ret = EOK;
+            goto done;
+        }
+    }
+
+    ret = sss_remove_tree(gpo_path);
+    if (ret != EOK) {
+        ERROR("Unable to remove downloaded GPO files: %s\n", sss_strerror(ret));
+        goto done;
+    }
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t sssctl_gpo_remove(struct sss_cmdline *cmdline,
+                          struct sss_tool_ctx *tool_ctx)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    struct sssctl_cache_opts opts = {0};
+    const char *attr;
+    errno_t ret;
+    struct sssctl_object_info info[] = {
+        SSSCTL_CACHE_GPO_NAME,
+        SSSCTL_CACHE_GPO_GUID,
+        SSSCTL_CACHE_GPO_PATH,
+        SSSCTL_CACHE_GPO_VERSION,
+        SSSCTL_CACHE_GPO_TIMEOUT,
+        SSSCTL_CACHE_NULL
+    };
+    struct sysdb_attrs *entry = NULL;
+    struct sss_domain_info *dom = NULL;
+    struct poptOption options[] = {
+        {"guid", 'g', POPT_ARG_NONE, &opts.guid, 0, _("Search by GPO guid"), NULL },
+        POPT_TABLEEND
+    };
+    const char *extended_help =
+        "This command requires the domain name to be given because the "
+        "same policy name (or GUID) might exists in different domains.\nE.g.:\n"
+        "  'Default Domain Policy'@one.test\n"
+        "  'Default Domain Policy'@two.test";
+
+    tmp_ctx = talloc_new(tool_ctx);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = parse_cmdline(cmdline, tool_ctx, options, extended_help, &opts.value,
+                        &opts.domain);
+    if (ret != EOK) {
+        ERROR("Failed to parse command line: %s\n", sss_strerror(ret));
+        goto done;
+    }
+
+    if (opts.domain == NULL) {
+        ERROR("%s\n", extended_help);
+        ret = EINVAL;
+        goto done;
+    }
+
+    attr = SYSDB_NAME;
+    if (opts.guid) {
+        attr = SYSDB_GPO_GUID_ATTR;
+    }
+
+    ret = sssctl_fetch_object(tmp_ctx, info, tool_ctx->domains, opts.domain,
+                              sysdb_gpos_base_dn, CACHED_GPO, attr, opts.value,
+                              &entry, &dom);
+    if (ret == ENOENT) {
+        PRINT(NOT_FOUND_MSG("GPO"), opts.value);
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        ERROR("Failed to fetch cache entry: %s\n", sss_strerror(ret));
+        goto done;
+    }
+
+    if (dom == NULL) {
+        ERROR("Could not determine object domain\n");
+        ret = ERR_DOMAIN_NOT_FOUND;
+        goto done;
+    }
+
+    ret = sssctl_gpo_remove_entry(tmp_ctx, dom, entry, true);
+
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+static errno_t sssctl_gpo_traverse_remove(struct sss_domain_info *dom,
+                                          struct sssctl_object_info *info,
+                                          struct sysdb_attrs *entry,
+                                          void *private_data)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *gpo_guid = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(entry);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    ret = get_attr_string(tmp_ctx, entry, dom, SYSDB_GPO_GUID_ATTR, &gpo_guid);
+    if (ret != EOK) {
+        ERROR("Could not find GUID attribute in GPO entry\n");
+        goto done;
+    }
+
+    ret = sssctl_gpo_remove_entry(tmp_ctx, dom, entry, false);
+    if (ret != EOK) {
+        ERROR("Failed to delete GPO: %s\n", sss_strerror(ret));
+        ret = EOK;
+        goto done;
+    }
+    PRINT("%s removed from cache\n", gpo_guid);
+
+    ret = EOK;
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+
+errno_t sssctl_gpo_purge(struct sss_cmdline *cmdline,
+                         struct sss_tool_ctx *tool_ctx)
+{
+    TALLOC_CTX *tmp_ctx = NULL;
+    const char *domain_prompt = NULL;
+    const char *prompt = NULL;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(tool_ctx);
+    if (tmp_ctx == NULL) {
+        ERROR("talloc failed\n");
+        return ENOMEM;
+    }
+
+    domain_prompt = talloc_strdup(tmp_ctx, "Removing GPOs from domain");
+    if (domain_prompt == NULL) {
+        ERROR("talloc failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    prompt = talloc_asprintf(tmp_ctx,
+        "About to delete all cached GPO entries from the database and their "
+        "associated downloaded files. Proceed?");
+    if (prompt == NULL) {
+        ERROR("talloc failed\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (!confirm(prompt)) {
+        ret = EOK;
+        goto done;
+    }
+
+    ret = sssctl_gpo_traverse(tmp_ctx, domain_prompt, tool_ctx->domains,
+                              sssctl_gpo_traverse_remove, NULL);
+done:
+    talloc_free(tmp_ctx);
+
+    return ret;
+}
+>>>>>>> 043de0435 (fix potential memory leak)
