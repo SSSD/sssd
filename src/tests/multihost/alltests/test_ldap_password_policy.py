@@ -45,8 +45,7 @@ def ldap_modify_ds(multihost, ldap_mode, dn_dn, element, value):
     element: Attribute of Dn which needs to change
     value: New Attribute value.
     """
-    ldap_uri = f'ldap://{multihost.master[0].ip}'
-    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    ldap_inst = LdapOperations.for_ds_host(multihost.master[0], ds_rootdn, ds_rootpw)
     modify_gid = [(ldap_mode, element, value)]
     ldap_inst.modify_ldap(dn_dn, modify_gid)
 
@@ -55,8 +54,7 @@ def ldap_modify_ds(multihost, ldap_mode, dn_dn, element, value):
 def create_users_groups(multihost, request):
     """ Create user and restore """
     client = multihost.client[0]
-    ldap_uri = f'ldap://{multihost.master[0].ip}'
-    ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+    ldap_inst = LdapOperations.for_ds_host(multihost.master[0], ds_rootdn, ds_rootpw)
     user_dn = 'uid=ppuser1,ou=People,dc=example,dc=test'
     user_info = {'cn': 'ppuser1'.encode('utf-8'),
                  'sn': 'ppuser1'.encode('utf-8'),

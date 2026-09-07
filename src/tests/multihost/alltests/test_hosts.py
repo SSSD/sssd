@@ -255,9 +255,8 @@ class TestHostMaps(object):
           2. Should succeed
         """
         ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
-        ds_rootdn = 'cn=Directory Manager'
-        ds_rootpw = 'Secret123'
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_info = {'cn': ['node4'.encode('utf-8'),
                             'node4.example.test'.encode('utf-8')],
                      'objectClass': [b'top', b'ipHost', b'device'],

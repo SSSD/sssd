@@ -7,12 +7,9 @@ except ImportError:
     import configparser as ConfigParser
 import tempfile
 import subprocess
-import socket
 import time
-import ldap
 from sssd.testlib.common.exceptions import DirSrvException
 from sssd.testlib.common.exceptions import LdapException
-from sssd.testlib.common.utils import LdapOperations
 
 DS_USER = 'dirsrv'
 DS_GROUP = 'dirsrv'
@@ -255,36 +252,76 @@ class DirSrv(object):
         else:
             self.multihost.log.info('DS instance started successfully')
 
-    def enable_anonymous_search(self, binduri):
+    def _local_ldap_uri(self):
+        """LDAP URI for operations executed on the DS host itself."""
+        return 'ldap://127.0.0.1:%s' % self.dsldap_port
+
+    def _wait_for_local_ldap(self, timeout=60):
+        """Wait until slapd accepts connections on localhost."""
+        check_cmd = [
+            'bash', '-c',
+            'ldapsearch -x -H %s -s base -b "" "(objectclass=*)" '
+            '>/dev/null 2>&1' % self._local_ldap_uri()]
+        for _ in range(timeout):
+            result = self.multihost.run_command(check_cmd, raiseonerr=False)
+            if result.returncode == 0:
+                return
+            time.sleep(1)
+        raise LdapException(
+            'LDAP server not reachable at %s' % self._local_ldap_uri())
+
+    def _ldapmodify(self, ldif_content):
+        """Apply an LDIF change via ldapmodify on the DS host."""
+        ldif_file = tempfile.NamedTemporaryFile(mode='w', suffix='.ldif',
+                                                delete=False)
+        remote_ldif = '/tmp/sssd_ds_%d.ldif' % os.getpid()
+        try:
+            ldif_file.write(ldif_content)
+            ldif_file.close()
+            self.multihost.transport.put_file(ldif_file.name, remote_ldif)
+            cmd = ['ldapmodify', '-x', '-D', self.dsrootdn,
+                   '-w', self.dsrootdn_pwd, '-H', self._local_ldap_uri(),
+                   '-f', remote_ldif]
+            self.multihost.run_command(cmd)
+        except subprocess.CalledProcessError as err:
+            raise LdapException('ldapmodify failed: %s' % err)
+        finally:
+            os.unlink(ldif_file.name)
+
+    def enable_anonymous_search(self, binduri=None):
         """Enable anonymous search access to basedn
         Args:
-            binduri (str): LDAP uri to bind with
+            binduri (str): Unused; kept for compatibility. Changes are applied
+                on the DS host via localhost.
         Returns:
             boold: True if ACI is added
         Exceptions:
             LdapException
         """
-        ldap_obj = LdapOperations(uri=binduri, binddn=self.dsrootdn,
-                                  bindpw=self.dsrootdn_pwd)
-        # Enable Anonymous access aci
-        allow_anonymous = "(targetattr!=\"userPassword || aci\")" \
-                          "(version 3.0; acl \"Enable anonymous access\";" \
-                          "allow (read, search, compare)" \
-                          "userdn=\"ldap:///anyone\";)"
-        add_aci = [(ldap.MOD_ADD, 'aci', [allow_anonymous.encode('utf-8')])]
-        (ret, return_value) = ldap_obj.modify_ldap(self.dsinstance_suffix,
-                                                   add_aci)
-        if not return_value:
+        self._wait_for_local_ldap()
+        allow_anonymous = (
+            '(targetattr!="userPassword || aci")'
+            '(version 3.0; acl "Enable anonymous access";'
+            'allow (read, search, compare)'
+            'userdn="ldap:///anyone";)'
+        )
+        ldif = """dn: %s
+changetype: modify
+add: aci
+aci: %s
+""" % (self.dsinstance_suffix, allow_anonymous)
+        try:
+            self._ldapmodify(ldif)
+        except LdapException:
             raise LdapException("Failed to enable anonymous access aci")
-        else:
-            print("Enabled Anonymous access aci to %s" %
-                  self.dsinstance_suffix)
+        print("Enabled Anonymous access aci to %s" % self.dsinstance_suffix)
 
-    def enable_ssl(self, binduri, tls_port):
+    def enable_ssl(self, binduri=None, tls_port=None):
         """sets TLS Port and enabled TLS on Directory Server.
 
         Args:
-            binduri (str): LDAP uri to bind with
+            binduri (str): Unused; kept for compatibility. Changes are applied
+                on the DS host via localhost.
             tls_port (str): TLS port to be setup
 
         Returns:
@@ -293,46 +330,34 @@ class DirSrv(object):
         Exceptions:
             LdapException
         """
-        ldap_obj = LdapOperations(uri=binduri, binddn=self.dsrootdn,
-                                  bindpw=self.dsrootdn_pwd)
-        # Enable TLS
-        mod_dn1 = 'cn=encryption,cn=config'
-        add_tls = [(ldap.MOD_ADD, 'nsTLS1', [b'on'])]
-        (ret, return_value) = ldap_obj.modify_ldap(mod_dn1, add_tls)
-        if not return_value:
-            raise LdapException('Failed to enable TLS, Error:%s' % (ret))
-        else:
-            print('Enabled nsTLS1=on')
-        mod_dn2 = 'cn=RSA,cn=encryption,cn=config'
-        mod_security = [(ldap.MOD_REPLACE, 'nsSSLPersonalitySSL',
-                         [b'Server-Cert-%s' %
-                          ((self.dsinstance_host.encode()))])]
-        (ret, return_value) = ldap_obj.modify_ldap(mod_dn2, mod_security)
-        if not return_value:
-            raise LdapException('Failed to set Server-Cert nick:%s' % (ret))
-        else:
-            print('Enabled Server-Cert nick')
+        self._wait_for_local_ldap()
+        cert_nick = 'Server-Cert-%s' % self.dsinstance_host
+        ldif = """dn: cn=encryption,cn=config
+changetype: modify
+add: nsTLS1
+nsTLS1: on
 
-        # Enable security
-        mod_dn3 = 'cn=config'
-        enable_security = [(ldap.MOD_REPLACE, 'nsslapd-security', [b'on'])]
-        (ret, return_value) = ldap_obj.modify_ldap(mod_dn3, enable_security)
-        if not return_value:
-            raise LdapException(
-                'Failed to enable nsslapd-security, Error:%s' % (ret))
-        else:
-            print('Enabled nsslapd-security')
+dn: cn=RSA,cn=encryption,cn=config
+changetype: modify
+replace: nsSSLPersonalitySSL
+nsSSLPersonalitySSL: %s
 
-        # set the appropriate TLS port
-        mod_dn4 = 'cn=config'
-        enable_ssl_port = [(ldap.MOD_REPLACE, 'nsslapd-securePort',
-                            str(tls_port).encode())]
-        (ret, return_value) = ldap_obj.modify_ldap(mod_dn4, enable_ssl_port)
-        if not return_value:
-            raise LdapException(
-                'Failed to set nsslapd-securePort, Error:%s' % (ret))
-        else:
-            print('Enabled nsslapd-securePort=%r' % tls_port)
+dn: cn=config
+changetype: modify
+replace: nsslapd-security
+nsslapd-security: on
+-
+replace: nsslapd-securePort
+nsslapd-securePort: %s
+""" % (cert_nick, tls_port)
+        try:
+            self._ldapmodify(ldif)
+        except LdapException as err:
+            raise LdapException('Failed to enable TLS: %s' % err)
+        print('Enabled nsTLS1=on')
+        print('Enabled Server-Cert nick')
+        print('Enabled nsslapd-security')
+        print('Enabled nsslapd-securePort=%r' % tls_port)
 
 
 class DirSrvWrap(object):
@@ -361,9 +386,12 @@ class DirSrvWrap(object):
         self.multihost = multihost_obj
         # Hostname for dscreate full_machine_name / cert nicks on the SUT.
         self.ds_instance_host = self.multihost.sys_hostname
-        # IP for controller-side LDAP and port probes (lab FQDNs may not
-        # resolve on the pytest controller).
-        self.ds_connect_host = self.multihost.ip or self.ds_instance_host
+        # Address other test hosts use in ldap_uri (client -> DS).
+        if (self.multihost.external_hostname and
+                self.multihost.external_hostname != self.ds_instance_host):
+            self.ds_ldap_host = self.multihost.external_hostname
+        else:
+            self.ds_ldap_host = self.multihost.ip or self.ds_instance_host
         self.client_host = client_obj
         self.ds_instance_suffix = None
         self.ds_rootdn_pwd = None
@@ -483,25 +511,25 @@ class DirSrvWrap(object):
             return sorted_available_ports[0]
 
     def _check_remote_port(self, port):
-        """check if the port on the remote host is free.
+        """check if the port on the remote host is in use.
+
+        The check runs on the DS host itself so it works when the pytest
+        controller cannot reach LDAP ports (for example on mrack).
 
         Args:
             port (int): check if port is available
 
         Returns:
-            bool: True if port is free else False.
+            bool: True if port is in use else False.
         """
-        sock_obj = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock_obj.settimeout(1)
-        try:
-            sock_obj.connect((self.ds_connect_host, port))
-        except socket.error as err:
-            print("fail to connect to port %s due to error %r" % (port,
-                                                                  err.errno))
-            return False
-        else:
-            sock_obj.close()
-            return True
+        check_cmd = [
+            'bash', '-c',
+            'ss -H -lnt "( sport = :%d )" | grep -q .' % int(port)]
+        result = self.multihost.run_command(check_cmd, raiseonerr=False)
+        if result.returncode != 0:
+            print("port %s is not in use on %s" % (port,
+                                                   self.ds_instance_host))
+        return result.returncode == 0
 
     def _validate_options(self):
         """verify if the instance directory already exists.
@@ -564,10 +592,8 @@ class DirSrvWrap(object):
             except subprocess.CalledProcessError:
                 raise DirSrvException('Failed to setup Directory server')
             self.dirsrv_info[self.ds_instance_name] = self.dirsrv_obj.__dict__
-            ldap_uri = 'ldap://%s:%r' % (self.ds_connect_host,
-                                         self.ds_ldap_port)
             try:
-                self.dirsrv_obj.enable_anonymous_search(ldap_uri)
+                self.dirsrv_obj.enable_anonymous_search()
             except LdapException:
                 raise DirSrvException("Failed to enable anonymous search")
             if self.ssl:
@@ -613,9 +639,7 @@ class DirSrvWrap(object):
                 self.multihost.log.info('Added %s port to ldap_port_t' %
                                         self.ds_tls_port)
         try:
-            self.dirsrv_obj.enable_ssl('ldap://%s:%r' % (self.ds_connect_host,
-                                                         self.ds_ldap_port),
-                                       self.ds_tls_port)
+            self.dirsrv_obj.enable_ssl(tls_port=self.ds_tls_port)
         except LdapException:
             return "Error", 1
 

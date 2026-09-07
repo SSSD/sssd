@@ -1214,10 +1214,34 @@ class LdapOperations(object):
         conn: ldap bind object (already  initialized)
     """
 
-    def __init__(self, uri, binddn, bindpw, port=None):
-        self.uri = uri if not port else '%s:%s' % (uri, port)
+    _LDAP_MOD_NAMES = {
+        ldap.MOD_ADD: 'add',
+        ldap.MOD_DELETE: 'delete',
+        ldap.MOD_REPLACE: 'replace',
+    }
+
+    @classmethod
+    def for_ds_host(cls, host, binddn, bindpw, port=None, use_ssl=False):
+        """Run LDAP operations on a DS host via SSH (localhost on the SUT)."""
+        if use_ssl:
+            port = port or 636
+            scheme = 'ldaps'
+        else:
+            port = port or 389
+            scheme = 'ldap'
+        uri = '%s://127.0.0.1:%s' % (scheme, port)
+        return cls(uri, binddn, bindpw, multihost=host)
+
+    def __init__(self, uri, binddn, bindpw, port=None, multihost=None):
         self.binddn = binddn
         self.bindpw = bindpw
+        self.multihost = multihost
+        if multihost is not None:
+            self.uri = uri if not port else '%s:%s' % (uri, port)
+            self.conn = None
+            self._wait_for_local_ldap()
+            return
+        self.uri = uri if not port else '%s:%s' % (uri, port)
         self.conn = ldap.initialize(self.uri)
         self.conn.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_NEVER)
         self.conn.set_option(ldap.OPT_X_TLS_NEWCTX, 0)
@@ -1225,6 +1249,95 @@ class LdapOperations(object):
         if isinstance(self.conn, tuple):
             raise LdapException("Failed to bind to ldap server, Error: %s"
                                 % self.conn[0])
+
+    def _is_remote(self):
+        return self.multihost is not None
+
+    def _ldap_cli_opts(self):
+        opts = ['-x', '-D', self.binddn, '-w', self.bindpw, '-H', self.uri]
+        if self.uri.startswith('ldaps://'):
+            opts.extend(['-o', 'tls_reqcert=never'])
+        return opts
+
+    def _wait_for_local_ldap(self, timeout=60):
+        check_cmd = [
+            'bash', '-c',
+            'ldapsearch %s -s base -b "" "(objectclass=*)" >/dev/null 2>&1' % (
+                ' '.join(shlex.quote(arg) for arg in self._ldap_cli_opts()))
+        ]
+        for _ in range(timeout):
+            result = self.multihost.run_command(check_cmd, raiseonerr=False)
+            if result.returncode == 0:
+                return
+            time.sleep(1)
+        raise LdapException('LDAP server not reachable at %s' % self.uri)
+
+    def _decode_attr_value(self, val):
+        if isinstance(val, bytes):
+            return val.decode('utf-8')
+        return str(val)
+
+    def _entry_to_add_ldif(self, ldap_dn, entry):
+        lines = ['dn: %s' % ldap_dn]
+        for attr, values in entry.items():
+            if isinstance(values, list):
+                for val in values:
+                    lines.append('%s: %s' % (attr, self._decode_attr_value(val)))
+            else:
+                lines.append('%s: %s' % (attr, self._decode_attr_value(values)))
+        lines.append('')
+        return '\n'.join(lines)
+
+    def _modlist_to_ldif(self, ldap_dn, modify_list):
+        lines = ['dn: %s' % ldap_dn, 'changetype: modify']
+        for op, attr, values in modify_list:
+            lines.append('%s: %s' % (self._LDAP_MOD_NAMES[op], attr))
+            if values is None:
+                continue
+            if isinstance(values, list):
+                for val in values:
+                    lines.append('%s: %s' % (attr, self._decode_attr_value(val)))
+            else:
+                lines.append('%s: %s' % (attr, self._decode_attr_value(values)))
+        lines.append('')
+        return '\n'.join(lines)
+
+    def _run_ldif(self, ldif_content, tool):
+        ldif_file = tempfile.NamedTemporaryFile(mode='w', suffix='.ldif',
+                                                delete=False)
+        remote_ldif = '/tmp/sssd_ldap_%d.ldif' % os.getpid()
+        try:
+            ldif_file.write(ldif_content)
+            ldif_file.close()
+            self.multihost.transport.put_file(ldif_file.name, remote_ldif)
+            cmd = [tool] + self._ldap_cli_opts() + ['-f', remote_ldif]
+            self.multihost.run_command(cmd)
+        except subprocess.CalledProcessError as err:
+            err_text = '%s %s' % (
+                getattr(err, 'stderr', '') or '',
+                getattr(err, 'stdout', '') or '')
+            raise LdapException('%s failed: %s' % (tool, err_text or err))
+        finally:
+            os.unlink(ldif_file.name)
+            self.multihost.run_command(['rm', '-f', remote_ldif],
+                                       raiseonerr=False)
+
+    def _handle_modify_cli_error(self, err):
+        err_text = str(err)
+        if 'No such attribute' in err_text:
+            return "Fail", False
+        if 'No such object' in err_text:
+            return self._parseException(ldap.NO_SUCH_OBJECT({'desc': err_text}))
+        if 'Object class violation' in err_text:
+            return self._parseException(
+                ldap.OBJECT_CLASS_VIOLATION({'desc': err_text}))
+        if 'Type or value exists' in err_text or 'Already exists' in err_text:
+            return self._parseException(
+                ldap.TYPE_OR_VALUE_EXISTS({'desc': err_text}))
+        if 'Unwilling To Perform' in err_text:
+            return self._parseException(
+                ldap.UNWILLING_TO_PERFORM({'desc': err_text}))
+        raise err
 
     def bind(self):
         """ Bind to ldap server
@@ -1247,6 +1360,15 @@ class LdapOperations(object):
             :param str dn: Entry dn to be added
         """
         print("Adding entry: %s" % (ldap_dn))
+        if self._is_remote():
+            try:
+                self._run_ldif(self._entry_to_add_ldif(ldap_dn, entry),
+                               'ldapadd')
+            except LdapException as err:
+                if 'Already exists' in str(err):
+                    raise ldap.ALREADY_EXISTS({'desc': str(err)})
+                raise
+            return "Success", True
         ldif = modlist.addModlist(entry)
         self.conn.add_s(ldap_dn, ldif)
         return "Success", True
@@ -1262,6 +1384,10 @@ class LdapOperations(object):
            :return tupele: "Success", return_value
            :Exception: ldap exception
         """
+        if self._is_remote():
+            cmd = ['ldapdelete'] + self._ldap_cli_opts() + [ldap_dn]
+            self.multihost.run_command(cmd)
+            return "Success", True
         ret = self.conn.delete_s(ldap_dn)
         return "Success", ret
 
@@ -1276,6 +1402,34 @@ class LdapOperations(object):
                          ldap.SCOPE_SUBTREE
             :return tuple: Success/Fail, bool(True,False)
         """
+        if self._is_remote():
+            scope_name = {
+                ldap.SCOPE_BASE: 'base',
+                ldap.SCOPE_ONELEVEL: 'one',
+                ldap.SCOPE_SUBTREE: 'sub',
+            }[scope]
+            attr_args = []
+            if attributes:
+                attr_args = list(attributes)
+            cmd = ['ldapsearch', '-LLL'] + self._ldap_cli_opts() + [
+                '-b', basedn, '-s', scope_name, criteria] + attr_args
+            result = self.multihost.run_command(cmd)
+            parser = ldif.LDIFRecordList(StringIO(result.stdout_text))
+            parser.parse()
+            result_set = []
+            for _, entry in parser.all_records:
+                encoded = {}
+                for attr, values in entry.items():
+                    if isinstance(values, list):
+                        encoded[attr] = [
+                            val.encode('utf-8') if isinstance(val, str) else val
+                            for val in values]
+                    elif isinstance(values, str):
+                        encoded[attr] = values.encode('utf-8')
+                    else:
+                        encoded[attr] = values
+                result_set.append(encoded)
+            return result_set
 
         self.conn.set_option(ldap.OPT_REFERRALS, 0)
         result = self.conn.search_s(basedn, ldap.SCOPE_SUBTREE,
@@ -1285,6 +1439,13 @@ class LdapOperations(object):
 
     def modify_ldap(self, ldap_dn, modify_list):
         """ Modify ldap dn """
+        if self._is_remote():
+            try:
+                self._run_ldif(self._modlist_to_ldif(ldap_dn, modify_list),
+                               'ldapmodify')
+            except LdapException as err:
+                return self._handle_modify_cli_error(err)
+            return 'Success', True
         try:
             self.conn.modify_s(ldap_dn, modify_list)
         except ldap.NO_SUCH_ATTRIBUTE:
