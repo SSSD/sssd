@@ -1117,7 +1117,10 @@ ipa_subdomains_certmap_send(TALLOC_CTX *mem_ctx,
     subreq = sdap_get_generic_send(state, ev, sd_ctx->sdap_id_ctx->opts, sh,
                                    search_base, LDAP_SCOPE_SUBTREE,
                                    CERTMAP_FILTER,
-                                   attrs, NULL, 0, 0, false);
+                                   attrs, NULL, 0,
+                                   dp_opt_get_int(sd_ctx->sdap_id_ctx->opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
