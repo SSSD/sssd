@@ -840,3 +840,42 @@ def test_ldap__resolver_provider_lookup_services_by_port(client: Client, ldap: L
         assert protocol in result.protocol, f"Service '{protocol}' was not found!"
     else:
         raise AssertionError("No service entry found!")
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=785908)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__search_base_limits_rfc2307bis_posixgroup_scope(client: Client, ldap: LDAP):
+    """
+    :title: ldap_search_base limits group scope for rfc2307bis and groupOfNames schema
+    :description:
+        When ldap_search_base is set, groups stored outside that base must not be resolved,
+        even when they are nested members of a group that is inside the base.
+    :setup:
+        1. Create groups inside and outside the configured ldap_search_base, nested across the boundary
+        2. Configure SSSD with rfc2307bis schema, groupOfNames object class and a limited ldap_search_base
+        3. Start SSSD
+    :steps:
+        1. Lookup groups that are inside the search base
+        2. Lookup groups that are outside the search base
+    :expectedresults:
+        1. Groups inside the search base are found
+        2. Groups outside the search base are not found
+    :customerscenario: True
+    :requirement: SSSD - Default debug level
+    """
+    outside_ou = ldap.ou("qagroup").add()
+    user = ldap.user("tempuser").add()
+
+    outside_group = ldap.group("outside_group", basedn=outside_ou, rfc2307bis=True).add(members=[user])
+    ldap.group("inside_group", rfc2307bis=True).add(members=[outside_group])
+
+    client.sssd.domain["ldap_schema"] = "rfc2307bis"
+    client.sssd.domain["ldap_group_object_class"] = "groupOfNames"
+    client.sssd.dom("test")["ldap_search_base"] = f"ou=groups,{ldap.ldap.naming_context}"
+    client.sssd.start()
+
+    assert client.tools.getent.group("inside_group") is not None, "inside_group was not found!"
+    assert (
+        client.tools.getent.group("outside_group") is None
+    ), "outside_group should not be visible outside search base!"
