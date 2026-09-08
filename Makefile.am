@@ -320,6 +320,8 @@ if HAVE_CMOCKA
         test_krb5_idp_plugin \
         test_sss_pam_data \
         test_pamsrv_json \
+        test_sss_bot \
+        test_sss_bot_cli \
         $(NULL)
 
 
@@ -582,6 +584,7 @@ SSSD_CACHE_REQ_OBJ = \
 	src/responder/common/cache_req/plugins/cache_req_group_by_filter.c \
 	src/responder/common/cache_req/plugins/cache_req_initgroups_by_name.c \
 	src/responder/common/cache_req/plugins/cache_req_initgroups_by_upn.c \
+	src/responder/common/cache_req/plugins/cache_req_initgroups_by_uid.c \
 	src/responder/common/cache_req/plugins/cache_req_object_by_sid.c \
 	src/responder/common/cache_req/plugins/cache_req_object_by_name.c \
 	src/responder/common/cache_req/plugins/cache_req_object_by_id.c \
@@ -616,6 +619,8 @@ SSSD_RESPONDER_OBJ = \
     src/responder/common/responder_utils.c \
     src/providers/data_provider_req.c \
     src/util/session_recording.c \
+    src/util/sss_bot.c \
+    src/util/sss_bot_parser.c \
     $(SSSD_RESPONDER_IFACE_OBJ) \
     $(SSSD_CACHE_REQ_OBJ) \
     $(NULL)
@@ -697,6 +702,8 @@ dist_noinst_HEADERS = \
     src/util/strtonum.h \
     src/util/client_envs.h \
     src/util/sss_client_envs.h \
+    src/util/sss_bot.h \
+    src/util/sss_bot_parser.h \
     src/util/sss_cli_cmd.h \
     src/util/sss_chain_id_tevent.h \
     src/util/sss_chain_id.h \
@@ -1379,6 +1386,8 @@ libsss_nss_idmap_la_SOURCES = \
     src/sss_client/nss_group.c \
     src/sss_client/nss_mc_initgr.c \
     src/sss_client/nss_mc_common.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
     src/util/strtonum.c \
     src/util/murmurhash3.c \
     src/util/io.c \
@@ -1388,6 +1397,7 @@ libsss_nss_idmap_la_LIBADD = \
     $(CLIENT_LIBS) \
     -lpthread \
     $(NULL)
+libsss_nss_idmap_la_CFLAGS = $(AM_CFLAGS)
 libsss_nss_idmap_la_LDFLAGS = \
     -Wl,--version-script,$(srcdir)/src/sss_client/idmap/sss_nss_idmap.exports \
     -version-info 6:1:6
@@ -2478,6 +2488,8 @@ TEST_MOCK_RESP_OBJ = \
      src/responder/common/responder_common.c \
      src/responder/common/responder_utils.c \
      src/util/session_recording.c \
+     src/util/sss_bot.c \
+     src/util/sss_bot_parser.c \
      $(SSSD_CACHE_REQ_OBJ) \
      $(SSSD_RESPONDER_IFACE_OBJ) \
      $(NULL)
@@ -2645,6 +2657,42 @@ test_pamsrv_json_LDADD = \
 if BUILD_SAMBA
 test_pamsrv_json_LDADD += $(NDR_KRB5PAC_LIBS)
 endif
+
+test_sss_bot_SOURCES = \
+    src/tests/cmocka/test_sss_bot.c \
+    src/util/sss_bot.c \
+    src/util/sss_bot_parser.c \
+    src/util/util.c \
+    src/util/util_ext.c \
+    $(NULL)
+test_sss_bot_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(TALLOC_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(DHASH_CFLAGS) \
+    $(NULL)
+test_sss_bot_LDADD = \
+    $(TALLOC_LIBS) \
+    $(CMOCKA_LIBS) \
+    $(DHASH_LIBS) \
+    $(POPT_LIBS) \
+    libsss_test_common.la \
+    libsss_debug.la \
+    $(NULL)
+
+test_sss_bot_cli_SOURCES = \
+    src/tests/cmocka/test_sss_bot_cli.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
+    $(NULL)
+test_sss_bot_cli_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(NULL)
+test_sss_bot_cli_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(NULL)
 
 test_sss_pam_data_SOURCES = \
     src/util/sss_pam_data.c \
@@ -4080,6 +4128,8 @@ if BUILD_KRB5_LOCALAUTH_PLUGIN
 test_sssd_krb5_localauth_plugin_SOURCES = \
     src/tests/cmocka/test_sssd_krb5_localauth_plugin.c \
     src/krb5_plugin/sssd_krb5_localauth_plugin.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
     $(NULL)
 test_sssd_krb5_localauth_plugin_CFLAGS = \
     $(AM_CFLAGS) \
@@ -4160,9 +4210,13 @@ libnss_sss_la_SOURCES = \
     src/sss_client/nss_mc_passwd.c \
     src/sss_client/nss_mc_group.c \
     src/sss_client/nss_mc_initgr.c \
-    src/sss_client/nss_mc.h
+    src/sss_client/nss_mc.h \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
+    $(NULL)
 libnss_sss_la_LIBADD = \
     $(CLIENT_LIBS)
+libnss_sss_la_CFLAGS = $(AM_CFLAGS)
 libnss_sss_la_LDFLAGS = \
     -module \
     -version-info 2:0:0 \
@@ -4178,6 +4232,8 @@ sss_la_SOURCES = \
     src/sss_client/nss_mc_passwd.c \
     src/sss_client/nss_mc_group.c \
     src/sss_client/nfs/sss_nfs_client.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c \
     $(NULL)
 sss_la_CFLAGS = $(AM_CFLAGS)
 sss_la_LIBADD = \
@@ -4996,7 +5052,9 @@ sssd_krb5_localauth_plugin_la_SOURCES = \
     src/sss_client/common.c \
     src/sss_client/nss_mc_common.c \
     src/sss_client/nss_mc_passwd.c \
-    src/sss_client/nss_passwd.c
+    src/sss_client/nss_passwd.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c
 sssd_krb5_localauth_plugin_la_CFLAGS = \
     $(AM_CFLAGS) \
     $(KRB5_CFLAGS)

@@ -46,6 +46,7 @@ cache_req_get_plugin(enum cache_req_type type)
 
         &cache_req_initgroups_by_name,
         &cache_req_initgroups_by_upn,
+        &cache_req_initgroups_by_uid,
 
 #ifdef BUILD_SUBID
         &cache_req_subid_ranges_by_name,
@@ -95,6 +96,10 @@ static errno_t cache_req_set_plugin(struct cache_req *cr,
     if (plugin == NULL) {
         DEBUG(SSSDBG_FATAL_FAILURE, "Bug: unset plugin!");
         return EINVAL;
+    }
+
+    if (cr->plugin == plugin) {
+        return EOK;
     }
 
     cr->reqname = plugin->name;
@@ -439,6 +444,29 @@ static void cache_req_domain_set_locate_flag(struct cache_req_domain *domains,
         if (cache_req_check_acct_domain_lookup_type(cr, crd_iter->domain)) {
             crd_iter->locate_domain = true;
         }
+    }
+}
+
+static errno_t
+cache_req_assume_bot(struct cache_req *cr)
+{
+    switch (cr->data->type) {
+    case CACHE_REQ_USER_BY_NAME:
+    case CACHE_REQ_USER_BY_UPN:
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                        "Bot acting on behalf of uid %"PRIu32", "
+                        "switching to user-by-id lookup\n",
+                        cr->data->bot->uid);
+        return cache_req_set_plugin(cr, CACHE_REQ_USER_BY_ID);
+    case CACHE_REQ_INITGROUPS:
+    case CACHE_REQ_INITGROUPS_BY_UPN:
+        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
+                        "Bot acting on behalf of uid %"PRIu32", "
+                        "switching to initgroups-by-uid lookup\n",
+                        cr->data->bot->uid);
+        return cache_req_set_plugin(cr, CACHE_REQ_INITGROUPS_BY_UID);
+    default:
+        return EOK;
     }
 }
 
@@ -841,6 +869,23 @@ static errno_t cache_req_search_domains_next(struct tevent_req *req)
         }
 
         state->selected_domain = domain;
+
+        if (cr->data->bot != NULL) {
+            /* If this is a bot account name, make sure we switch to lookup by
+             * uid if bot accounts are enabled for this domain and back if not.
+             */
+            if (!domain->bot_accounts_enabled) {
+                ret = cache_req_set_plugin(cr, cr->data->type);
+                if (ret != EOK) {
+                    return ret;
+                }
+            } else {
+                ret = cache_req_assume_bot(cr);
+                if (ret != EOK) {
+                    return ret;
+                }
+            }
+        }
 
         ret = cache_req_set_domain(cr, domain);
         if (ret != EOK) {

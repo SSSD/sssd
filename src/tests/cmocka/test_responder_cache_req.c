@@ -293,6 +293,85 @@ static void run_user_by_id(struct cache_req_test_ctx *test_ctx,
                   cache_refresh_percent, users[0].uid, exp_ret);
 }
 
+static void cache_req_initgr_by_uid_test_done(struct tevent_req *req)
+{
+    struct cache_req_test_ctx *ctx = NULL;
+
+    ctx = tevent_req_callback_data(req, struct cache_req_test_ctx);
+
+    ctx->tctx->error = cache_req_initgr_by_uid_recv(ctx, req, &ctx->result);
+    talloc_zfree(req);
+
+    ctx->tctx->done = true;
+}
+
+static void run_initgr_by_uid(struct cache_req_test_ctx *test_ctx,
+                              struct sss_domain_info *domain,
+                              int cache_refresh_percent,
+                              errno_t exp_ret)
+{
+    run_cache_req(test_ctx, cache_req_initgr_by_uid_send,
+                  cache_req_initgr_by_uid_test_done, domain,
+                  cache_refresh_percent, users[0].uid, exp_ret);
+}
+
+#define TEST_INITGR_PRIMARY_GID  5001
+#define TEST_INITGR_SECONDARY_GID 5002
+
+static void prepare_user_with_initgr(struct sss_domain_info *domain,
+                                     struct test_user *user,
+                                     uint64_t cache_timeout,
+                                     time_t transaction_time,
+                                     time_t initgr_timeout)
+{
+    struct sysdb_attrs *attrs;
+    char *fquser;
+    char *fqprimary;
+    char *fqsecondary;
+    errno_t ret;
+
+    prepare_user(domain, user, cache_timeout, transaction_time);
+
+    attrs = sysdb_new_attrs(NULL);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE,
+                                 time(NULL) + initgr_timeout);
+    assert_int_equal(ret, EOK);
+
+    fquser = sss_create_internal_fqname(attrs, user->short_name, domain->name);
+    assert_non_null(fquser);
+
+    ret = sysdb_set_user_attr(domain, fquser, attrs, SYSDB_MOD_REP);
+    assert_int_equal(ret, EOK);
+
+    fqprimary = sss_create_internal_fqname(attrs, "initgr-primary",
+                                           domain->name);
+    assert_non_null(fqprimary);
+
+    fqsecondary = sss_create_internal_fqname(attrs, "initgr-secondary",
+                                             domain->name);
+    assert_non_null(fqsecondary);
+
+    ret = sysdb_store_group(domain, fqprimary, TEST_INITGR_PRIMARY_GID,
+                            NULL, cache_timeout, transaction_time);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_store_group(domain, fqsecondary, TEST_INITGR_SECONDARY_GID,
+                            NULL, cache_timeout, transaction_time);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(domain, fqprimary, fquser,
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_add_group_member(domain, fqsecondary, fquser,
+                                 SYSDB_MEMBER_USER, false);
+    assert_int_equal(ret, EOK);
+
+    talloc_free(attrs);
+}
+
 static void
 run_user_by_name_with_requested_domains(struct cache_req_test_ctx *test_ctx,
                                         struct sss_domain_info *domain,
@@ -380,6 +459,38 @@ static void check_user(struct cache_req_test_ctx *test_ctx,
 
     assert_non_null(test_ctx->result->domain);
     assert_string_equal(exp_dom->name, test_ctx->result->domain->name);
+}
+
+static void check_initgr_by_uid(struct cache_req_test_ctx *test_ctx,
+                                struct test_user *user,
+                                struct sss_domain_info *exp_dom)
+{
+    uid_t ldbuid;
+    gid_t ldbgid;
+
+    assert_non_null(test_ctx->result);
+    assert_true(test_ctx->result->count >= 3);
+    assert_non_null(test_ctx->result->msgs);
+
+    assert_msg_has_shortname(test_ctx, test_ctx->result->msgs[0],
+                             user->short_name);
+
+    ldbuid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[0],
+                                       SYSDB_UIDNUM, 0);
+    assert_int_equal(ldbuid, user->uid);
+
+    assert_non_null(test_ctx->result->domain);
+    assert_string_equal(exp_dom->name, test_ctx->result->domain->name);
+
+    ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[1],
+                                       SYSDB_GIDNUM, 0);
+    assert_true(ldbgid == TEST_INITGR_PRIMARY_GID
+                || ldbgid == TEST_INITGR_SECONDARY_GID);
+
+    ldbgid = ldb_msg_find_attr_as_uint(test_ctx->result->msgs[2],
+                                       SYSDB_GIDNUM, 0);
+    assert_true(ldbgid == TEST_INITGR_PRIMARY_GID
+                || ldbgid == TEST_INITGR_SECONDARY_GID);
 }
 
 static void prepare_group(struct sss_domain_info *domain,
@@ -1730,6 +1841,166 @@ void test_user_by_id_missing_notfound(void **state)
     /* Test. */
     run_user_by_id(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
     assert_true(test_ctx->dp_called);
+}
+
+void test_initgr_by_uid_cache_valid(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user with valid initgroups timestamp. */
+    prepare_user_with_initgr(test_ctx->tctx->dom, &users[0],
+                             1000, time(NULL), 1000);
+
+    /* Test. */
+    run_initgr_by_uid(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
+    check_initgr_by_uid(test_ctx, &users[0], test_ctx->tctx->dom);
+}
+
+void test_initgr_by_uid_cache_expired(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user with expired initgroups timestamp. */
+    prepare_user_with_initgr(test_ctx->tctx->dom, &users[0],
+                             1000, time(NULL), -1000);
+
+    /* Mock values. */
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* Test. */
+    run_initgr_by_uid(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_initgr_by_uid(test_ctx, &users[0], test_ctx->tctx->dom);
+}
+
+void test_initgr_by_uid_ncache(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup uid in negative cache. */
+    ret = sss_ncache_set_uid(test_ctx->ncache, false, NULL, users[0].uid);
+    assert_int_equal(ret, EOK);
+
+    /* Test. */
+    run_initgr_by_uid(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
+    assert_false(test_ctx->dp_called);
+}
+
+void test_initgr_by_uid_missing_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    /* First DP call: user_by_id creates the user. */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* Second DP call: initgr_by_name refreshes initgroups. */
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    test_ctx->create_user1 = true;
+    test_ctx->create_user2 = false;
+
+    /* Test. */
+    run_initgr_by_uid(test_ctx, test_ctx->tctx->dom, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_user(test_ctx, &users[0], test_ctx->tctx->dom);
+}
+
+void test_initgr_by_uid_missing_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    will_return(__wrap_sss_dp_get_account_send, test_ctx);
+    mock_account_recv_simple();
+
+    /* Test. */
+    run_initgr_by_uid(test_ctx, test_ctx->tctx->dom, 0, ENOENT);
+    assert_true(test_ctx->dp_called);
+}
+
+void test_initgr_by_uid_multiple_domains_found(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+    struct sss_domain_info *domain = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Setup user. */
+    domain = find_domain_by_name(test_ctx->tctx->dom,
+                                 "responder_cache_req_test_d", true);
+    assert_non_null(domain);
+
+    prepare_user(domain, &users[0], 1000, time(NULL));
+
+    /* Mock values. */
+    mock_parse_inp(users[0].short_name, NULL, ERR_OK);
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_int_always(sss_dp_get_account_recv, 0);
+    will_return_int_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
+
+    /* Test. */
+    run_initgr_by_uid(test_ctx, NULL, 0, ERR_OK);
+    assert_true(test_ctx->dp_called);
+    check_user(test_ctx, &users[0], domain);
+}
+
+void test_initgr_by_uid_multiple_domains_notfound(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Mock values. */
+    will_return_always(__wrap_sss_dp_get_account_send, test_ctx);
+    will_return_int_always(sss_dp_get_account_recv, 0);
+    will_return_int_always(sss_dp_get_account_domain_recv, ERR_GET_ACCT_DOM_NOT_SUPPORTED);
+
+    /* Test. */
+    run_initgr_by_uid(test_ctx, NULL, 0, ENOENT);
+    assert_true(test_ctx->dp_called);
+}
+
+void test_initgr_by_uid_below_id_range(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Test. */
+    run_cache_req(test_ctx, cache_req_initgr_by_uid_send,
+                  cache_req_initgr_by_uid_test_done, test_ctx->tctx->dom,
+                  0, 10, ENOENT);
+    assert_false(test_ctx->dp_called);
+}
+
+void test_initgr_by_uid_above_id_range(void **state)
+{
+    struct cache_req_test_ctx *test_ctx = NULL;
+
+    test_ctx = talloc_get_type_abort(*state, struct cache_req_test_ctx);
+
+    /* Test. */
+    run_cache_req(test_ctx, cache_req_initgr_by_uid_send,
+                  cache_req_initgr_by_uid_test_done, test_ctx->tctx->dom,
+                  0, 100000, ENOENT);
+    assert_false(test_ctx->dp_called);
 }
 
 void test_group_by_name_multiple_domains_found(void **state)
@@ -4392,6 +4663,16 @@ int main(int argc, const char *argv[])
         new_multi_domain_test(user_by_id_multiple_domains_notfound),
         new_single_domain_id_limit_test(user_by_id_below_id_range),
         new_single_domain_id_limit_test(user_by_id_above_id_range),
+
+        new_single_domain_test(initgr_by_uid_cache_valid),
+        new_single_domain_test(initgr_by_uid_cache_expired),
+        new_single_domain_test(initgr_by_uid_ncache),
+        new_single_domain_test(initgr_by_uid_missing_found),
+        new_single_domain_test(initgr_by_uid_missing_notfound),
+        new_multi_domain_test(initgr_by_uid_multiple_domains_found),
+        new_multi_domain_test(initgr_by_uid_multiple_domains_notfound),
+        new_single_domain_id_limit_test(initgr_by_uid_below_id_range),
+        new_single_domain_id_limit_test(initgr_by_uid_above_id_range),
 
         new_single_domain_test(group_by_name_cache_valid),
         new_single_domain_test(group_by_name_cache_expired),

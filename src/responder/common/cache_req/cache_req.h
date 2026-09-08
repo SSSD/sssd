@@ -22,6 +22,7 @@
 #define _CACHE_REQ_H_
 
 #include "util/util.h"
+#include "util/sss_bot.h"
 #include "confdb/confdb.h"
 #include "responder/common/negcache.h"
 
@@ -38,6 +39,7 @@ enum cache_req_type {
 
     CACHE_REQ_INITGROUPS,
     CACHE_REQ_INITGROUPS_BY_UPN,
+    CACHE_REQ_INITGROUPS_BY_UID,
 
 #ifdef BUILD_SUBID
     CACHE_REQ_SUBID_RANGES_BY_NAME,
@@ -230,6 +232,11 @@ struct cache_req_result {
      * name such as "BUILTIN", or "LOCAL AUTHORITY".
      */
     const char *well_known_domain;
+
+    /**
+     * If not NULL, an ephemeral bot account was resolved.
+     */
+    struct sss_bot *bot;
 };
 
 /**
@@ -365,6 +372,18 @@ cache_req_initgr_by_name_send(TALLOC_CTX *mem_ctx,
                               const char *name);
 
 #define cache_req_initgr_by_name_recv(mem_ctx, req, _result) \
+    cache_req_single_domain_recv(mem_ctx, req, _result)
+
+struct tevent_req *
+cache_req_initgr_by_uid_send(TALLOC_CTX *mem_ctx,
+                             struct tevent_context *ev,
+                             struct resp_ctx *rctx,
+                             struct sss_nc_ctx *ncache,
+                             int cache_refresh_percent,
+                             const char *domain,
+                             uid_t uid);
+
+#define cache_req_initgr_by_uid_recv(mem_ctx, req, _result) \
     cache_req_single_domain_recv(mem_ctx, req, _result)
 
 struct tevent_req *
