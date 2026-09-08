@@ -3975,6 +3975,27 @@ START_TEST(test_sysdb_get_real_name)
 }
 END_TEST
 
+static bool test_message_has_value(struct ldb_message *msg,
+                                   const char *attr,
+                                   const char *value)
+{
+    struct ldb_message_element *el;
+    unsigned int i;
+
+    el = ldb_msg_find_element(msg, attr);
+    if (el == NULL) {
+        return false;
+    }
+
+    for (i = 0; i < el->num_values; i++) {
+        if (strcmp((const char *)el->values[i].data, value) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 START_TEST(test_group_rename)
 {
     struct sysdb_test_ctx *test_ctx;
@@ -4048,6 +4069,189 @@ START_TEST(test_group_rename)
     ck_assert_msg(res->count == 0, "Unexpectedly found the original user\n");
 
 done:
+    talloc_free(test_ctx);
+}
+END_TEST
+
+START_TEST(test_group_rename_preserves_memberships)
+{
+    const char *membership_attrs[] = {
+        SYSDB_NAME, SYSDB_MEMBER, SYSDB_MEMBEROF, NULL
+    };
+    const gid_t parent_gid = 38100;
+    const gid_t old_gid = 38101;
+    const gid_t child_gid = 38102;
+    const uid_t user_uid = 38103;
+    struct sysdb_test_ctx *test_ctx;
+    struct sysdb_attrs *old_attrs;
+    struct sysdb_attrs *new_attrs;
+    struct ldb_dn *parent_dn;
+    struct ldb_dn *old_dn;
+    struct ldb_dn *new_dn;
+    struct ldb_dn *child_dn;
+    struct ldb_message *msg;
+    struct ldb_result *res;
+    const char *parent;
+    const char *old_name;
+    const char *new_name;
+    const char *child;
+    const char *user;
+    const char *parent_dn_str;
+    const char *old_dn_str;
+    const char *new_dn_str;
+    const char *child_dn_str;
+    const char *entry_name;
+    bool found_old = false;
+    bool found_new = false;
+    unsigned int i;
+    errno_t ret;
+
+    ret = setup_sysdb_tests(&test_ctx);
+    ck_assert_msg(ret == EOK, "Could not set up the test");
+
+    parent = sss_create_internal_fqname(test_ctx, "rename-parent",
+                                        test_ctx->domain->name);
+    old_name = sss_create_internal_fqname(test_ctx, "rename-old",
+                                          test_ctx->domain->name);
+    new_name = sss_create_internal_fqname(test_ctx, "rename-new",
+                                          test_ctx->domain->name);
+    child = sss_create_internal_fqname(test_ctx, "rename-child",
+                                       test_ctx->domain->name);
+    user = sss_create_internal_fqname(test_ctx, "rename-user",
+                                      test_ctx->domain->name);
+    ck_assert_msg(parent != NULL && old_name != NULL && new_name != NULL
+                  && child != NULL && user != NULL,
+                  "sss_create_internal_fqname failed");
+
+    old_attrs = sysdb_new_attrs(test_ctx);
+    ck_assert_msg(old_attrs != NULL, "sysdb_new_attrs failed");
+    ret = sysdb_attrs_add_string(old_attrs, SYSDB_SID_STR,
+                                 "S-1-5-21-123-456-789-111");
+    ck_assert_msg(ret == EOK, "sysdb_attrs_add_string failed");
+
+    new_attrs = sysdb_new_attrs(test_ctx);
+    ck_assert_msg(new_attrs != NULL, "sysdb_new_attrs failed");
+    ret = sysdb_attrs_add_string(new_attrs, SYSDB_SID_STR,
+                                 "S-1-5-21-123-456-789-111");
+    ck_assert_msg(ret == EOK, "sysdb_attrs_add_string failed");
+
+    ret = sysdb_store_user(test_ctx->domain, user, NULL, user_uid, 0,
+                           "Rename User", "/home/rename-user", "/bin/sh",
+                           NULL, NULL, NULL, -1, 0);
+    ck_assert_msg(ret == EOK, "Could not add test user");
+
+    ret = sysdb_store_group(test_ctx->domain, parent, parent_gid, NULL, 0, 0);
+    ck_assert_msg(ret == EOK, "Could not add parent group");
+    ret = sysdb_store_group(test_ctx->domain, old_name, old_gid,
+                            old_attrs, 0, 0);
+    ck_assert_msg(ret == EOK, "Could not add original group");
+    ret = sysdb_store_group(test_ctx->domain, child, child_gid, NULL, 0, 0);
+    ck_assert_msg(ret == EOK, "Could not add child group");
+
+    ret = sysdb_add_group_member(test_ctx->domain, parent, old_name,
+                                 SYSDB_MEMBER_GROUP, false);
+    ck_assert_msg(ret == EOK, "Could not add renamed group to parent");
+    ret = sysdb_add_group_member(test_ctx->domain, old_name, child,
+                                 SYSDB_MEMBER_GROUP, false);
+    ck_assert_msg(ret == EOK, "Could not add child to renamed group");
+    ret = sysdb_add_group_member(test_ctx->domain, child, user,
+                                 SYSDB_MEMBER_USER, false);
+    ck_assert_msg(ret == EOK, "Could not add user to child group");
+
+    parent_dn = sysdb_group_dn(test_ctx, test_ctx->domain, parent);
+    old_dn = sysdb_group_dn(test_ctx, test_ctx->domain, old_name);
+    new_dn = sysdb_group_dn(test_ctx, test_ctx->domain, new_name);
+    child_dn = sysdb_group_dn(test_ctx, test_ctx->domain, child);
+    ck_assert_msg(parent_dn != NULL && old_dn != NULL && new_dn != NULL
+                  && child_dn != NULL, "sysdb_group_dn failed");
+    parent_dn_str = ldb_dn_get_linearized(parent_dn);
+    old_dn_str = ldb_dn_get_linearized(old_dn);
+    new_dn_str = ldb_dn_get_linearized(new_dn);
+    child_dn_str = ldb_dn_get_linearized(child_dn);
+    ck_assert_msg(parent_dn_str != NULL && old_dn_str != NULL
+                  && new_dn_str != NULL && child_dn_str != NULL,
+                  "ldb_dn_get_linearized failed");
+
+    ret = sysdb_store_group(test_ctx->domain, new_name, old_gid,
+                            new_attrs, 0, 0);
+    ck_assert_msg(ret == EOK, "Could not rename the group");
+
+    ret = sysdb_getgrnam(test_ctx, test_ctx->domain, old_name, &res);
+    ck_assert_msg(ret == EOK, "Could not look up the old group name");
+    ck_assert_int_eq(res->count, 0);
+
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain, new_name,
+                                     membership_attrs, &msg);
+    ck_assert_msg(ret == EOK, "Could not look up the renamed group");
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBER,
+                                         child_dn_str),
+                  "Renamed group lost its direct child");
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBEROF,
+                                         parent_dn_str),
+                  "Renamed group lost its parent");
+    talloc_zfree(msg);
+
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain, parent,
+                                     membership_attrs, &msg);
+    ck_assert_msg(ret == EOK, "Could not look up the parent group");
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBER,
+                                         new_dn_str),
+                  "Parent still refers to the old group DN");
+    ck_assert_msg(!test_message_has_value(msg, SYSDB_MEMBER,
+                                          old_dn_str),
+                  "Parent retained the old group DN");
+    talloc_zfree(msg);
+
+    ret = sysdb_search_group_by_name(test_ctx, test_ctx->domain, child,
+                                     membership_attrs, &msg);
+    ck_assert_msg(ret == EOK, "Could not look up the child group");
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBEROF,
+                                         new_dn_str),
+                  "Child did not receive the new group DN");
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBEROF,
+                                         parent_dn_str),
+                  "Child lost its inherited parent group");
+    ck_assert_msg(!test_message_has_value(msg, SYSDB_MEMBEROF,
+                                          old_dn_str),
+                  "Child retained the old group DN");
+    talloc_zfree(msg);
+
+    ret = sysdb_search_user_by_name(test_ctx, test_ctx->domain, user,
+                                    membership_attrs, &msg);
+    ck_assert_msg(ret == EOK, "Could not look up the test user");
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBEROF,
+                                         new_dn_str),
+                  "User did not receive the new group DN");
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBEROF,
+                                         child_dn_str),
+                  "User lost the child group");
+    ck_assert_msg(test_message_has_value(msg, SYSDB_MEMBEROF,
+                                         parent_dn_str),
+                  "User lost the inherited parent group");
+    ck_assert_msg(!test_message_has_value(msg, SYSDB_MEMBEROF,
+                                          old_dn_str),
+                  "User retained the old group DN");
+    talloc_zfree(msg);
+
+    ret = sysdb_initgroups(test_ctx, test_ctx->domain, user, &res);
+    ck_assert_msg(ret == EOK, "sysdb_initgroups failed");
+    ck_assert_int_eq(res->count, 4);
+    for (i = 0; i < res->count; i++) {
+        entry_name = ldb_msg_find_attr_as_string(res->msgs[i], SYSDB_NAME,
+                                                 NULL);
+        if (entry_name == NULL) {
+            continue;
+        }
+        if (strcmp(entry_name, old_name) == 0) {
+            found_old = true;
+        }
+        if (strcmp(entry_name, new_name) == 0) {
+            found_new = true;
+        }
+    }
+    ck_assert_msg(!found_old, "initgroups returned the old group name");
+    ck_assert_msg(found_new, "initgroups did not return the renamed group");
+
     talloc_free(test_ctx);
 }
 END_TEST
@@ -8038,6 +8242,7 @@ Suite *create_sysdb_suite(void)
 
     /* Test user and group renames */
     tcase_add_test(tc_sysdb, test_group_rename);
+    tcase_add_test(tc_sysdb, test_group_rename_preserves_memberships);
     tcase_add_test(tc_sysdb, test_user_rename);
 
     /* Test GetUserAttr with subdomain user */
