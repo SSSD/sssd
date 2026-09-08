@@ -12,6 +12,7 @@ pytest_plugins = (
     "pytest_ticket",
     "sssd_test_framework.fixtures",
     "sssd_test_framework.markers",
+    "tests.adforest_fixtures",
 )
 
 
