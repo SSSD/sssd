@@ -1007,7 +1007,7 @@ static struct tevent_req *sasl_bind_send(TALLOC_CTX *memctx,
     if (state->sh == NULL || state->sh->ldap == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Trying LDAP search while not connected.\n");
-        ret = ERR_NETWORK_IO;
+        ret = LDAP_SERVER_DOWN;
         goto fail;
     }
 
@@ -2445,7 +2445,7 @@ static int sdap_rebind_proc(LDAP *ldap, LDAP_CONST char *url, ber_tag_t request,
     if (ldap == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Trying LDAP rebind while not connected.\n");
-        return ERR_NETWORK_IO;
+        return LDAP_LOCAL_ERROR;
     }
 
     if (p->use_start_tls) {
