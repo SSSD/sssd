@@ -36,7 +36,7 @@ class TestServices(object):
         assert cmd.stdout_text.find('/etc/systemd/system') == -1
 
     @pytest.mark.tier1
-    def test_0002_1736796(self, multihost, localusers):
+    def test_0002_1736796(self, multihost, localusers, backupsssdconf):
         """
         :title: config: "default_domain_suffix" should not
          cause files domain entries to be qualified, this can break sudo access
