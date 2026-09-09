@@ -642,6 +642,98 @@ def test_sudo__ldap_sudo_search_base_not_set_emits_warning(client: Client, ldap:
     ), "Journal must contain alert when ldap_sudo_search_base is not set!"
 
 
+<<<<<<< HEAD
+=======
+@pytest.mark.importance("high")
+@pytest.mark.ticket(jira=["RHEL-192062"], gh=8897)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sudo__ldap_sudo_provider_disabled_not_emits_warning(client: Client, ldap: LDAP):
+    """
+    :title: Security warning is not emitted when sudo_provider is explicitly disabled
+    :description: When ldap_sudo_search_base is not set but the sudo provider is disabled,
+        SSSD should not emit security warnings.
+    :setup:
+        1. Add a user to the ldap
+        2. Disable sudo provider
+        3. Start SSSD
+        4. Resolve the user to trigger LDAP connection
+    :steps:
+        1. Resolve "user-1" to trigger LDAP connection
+        2. Check the domain log does not contain the security warning
+        3. Check the system journal does not contain the security warning
+    :expectedresults:
+        1. User is resolved successfully
+        2. Domain log not contains the security warning about the missing ldap_sudo_search_base
+        3. Journal not contains an ALERT-level message about the missing ldap_sudo_search_base
+    :customerscenario: True
+    """
+    ldap.user("user-1").add()
+    client.journald.clear()
+    client.sssd.domain["sudo_provider"] = "none"
+    client.sssd.start()
+    result = client.tools.id("user-1")
+    assert result is not None, "User is not found!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert (
+        "`ldap_sudo_search_base` is not set" not in log
+    ), "Domain log must not contain security warning when sudo provider is disabled"
+    assert (
+        "SSSD will search the entire directory tree" not in log
+    ), "Domain log must not contain directory tree warning when sudo provider is disabled"
+    assert not client.journald.is_match(
+        r"`ldap_sudo_search_base` is not set.*SSSD will search the entire directory tree",
+        unit="sssd",
+    ), "Journal must not contain alert when sudo_provider is disabled"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(gh=9030)
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sudo__search_base_set_by_provider_no_warning(client: Client, provider: GenericProvider):
+    """
+    :title: No spurious warning about ldap_sudo_search_base when it is set by the provider
+    :description: When ldap_sudo_search_base is already set (either automatically by the
+        IPA provider or explicitly in sssd.conf for LDAP), the security warning about the
+        missing search base must not appear in the domain log or journal. Sudo rules should
+        still be retrieved correctly.
+    :setup:
+        1. Create user "user-1"
+        2. Create sudorule to allow "user-1" run "/bin/ls" on all hosts
+        3. Enable SSSD sudo responder
+        4. Set ldap_sudo_search_base explicitly for LDAP provider (IPA sets it automatically)
+        5. Start SSSD
+    :steps:
+        1. List sudo rules for "user-1" to trigger sudo operations
+        2. Read the SSSD domain debug log and check the system journal
+    :expectedresults:
+        1. Sudo rules are retrieved successfully
+        2. Neither the domain log nor the journal contains the search base warning
+    :customerscenario: True
+    """
+    u = provider.user("user-1").add()
+    provider.sudorule("test").add(user=u, host="ALL", command="/bin/ls")
+
+    client.sssd.common.sudo()
+    if isinstance(provider, LDAP):
+        client.sssd.domain["ldap_sudo_search_base"] = provider.ldap.naming_context
+    client.sssd.start()
+
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert (
+        "`ldap_sudo_search_base` is not set" not in log
+    ), "Domain log must not contain search base warning when provider sets it!"
+
+    assert not client.journald.is_match(
+        r"`ldap_sudo_search_base` is not set",
+        unit="sssd",
+    ), "Journal must not contain search base alert when provider sets it!"
+
+
+>>>>>>> 972f78e1b (SDAP: Warn about ldap_sudo_search_base only if sudo target is enabled)
 @pytest.mark.importance("critical")
 @pytest.mark.ticket(bz=902436)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
