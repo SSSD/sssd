@@ -145,7 +145,8 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
         goto done;
     }
 
-    if (strncmp(uuid, (char *) buf, buflen) != 0) {
+    if ((strlen(uuid) != buflen) ||
+        (strncmp(uuid, (char *) buf, buflen) != 0)) {
         DEBUG(SSSDBG_OP_FAILURE,
               "UUID [%s] of user [%s] and input [%.*s] do not match.\n",
               uuid, pd->user, (int) buflen, buf);
