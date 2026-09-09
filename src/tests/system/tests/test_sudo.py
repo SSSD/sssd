@@ -658,6 +658,49 @@ def test_sudo__ldap_sudo_search_base_not_set_emits_warning(client: Client, ldap:
 
 
 @pytest.mark.importance("high")
+@pytest.mark.ticket(jira=["RHEL-192062"], gh=8897)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sudo__ldap_sudo_provider_disabled_not_emits_warning(client: Client, ldap: LDAP):
+    """
+    :title: Security warning is not emitted when sudo_provider is explicitly disabled
+    :description: When ldap_sudo_search_base is not set but the sudo provider is disabled,
+        SSSD should not emit security warnings.
+    :setup:
+        1. Add a user to the ldap
+        2. Disable sudo provider
+        3. Start SSSD
+        4. Resolve the user to trigger LDAP connection
+    :steps:
+        1. Resolve "user-1" to trigger LDAP connection
+        2. Check the domain log does not contain the security warning
+        3. Check the system journal does not contain the security warning
+    :expectedresults:
+        1. User is resolved successfully
+        2. Domain log not contains the security warning about the missing ldap_sudo_search_base
+        3. Journal not contains an ALERT-level message about the missing ldap_sudo_search_base
+    :customerscenario: True
+    """
+    ldap.user("user-1").add()
+    client.journald.clear()
+    client.sssd.domain["sudo_provider"] = "none"
+    client.sssd.start()
+    result = client.tools.id("user-1")
+    assert result is not None, "User is not found!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert (
+        "`ldap_sudo_search_base` is not set" not in log
+    ), "Domain log must not contain security warning when sudo provider is disabled"
+    assert (
+        "SSSD will search the entire directory tree" not in log
+    ), "Domain log must not contain directory tree warning when sudo provider is disabled"
+    assert not client.journald.is_match(
+        r"`ldap_sudo_search_base` is not set.*SSSD will search the entire directory tree",
+        unit="sssd",
+    ), "Journal must not contain alert when sudo_provider is disabled"
+
+
+@pytest.mark.importance("high")
 @pytest.mark.ticket(gh=9030)
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.topology(KnownTopology.LDAP)
