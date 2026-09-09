@@ -294,7 +294,8 @@ errno_t eval_access_token_buf(struct idp_auth_ctx *idp_auth_ctx,
         goto done;
     }
 
-    if (strncmp(uuid, (char *) user_reply, user_reply_len) != 0) {
+    if ((strlen(uuid) != user_reply_len) ||
+        (strncmp(uuid, (char *) user_reply, user_reply_len) != 0)) {
         DEBUG(SSSDBG_OP_FAILURE,
               "UUID [%s] of user [%s] and input [%.*s] do not match.\n",
               uuid, user, (int) user_reply_len, user_reply);
