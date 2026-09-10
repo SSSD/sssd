@@ -407,6 +407,7 @@ static uint8_t *sss_base64_enc_ber(TALLOC_CTX *mem_ctx,
                                    const struct berval attr_val);
 static bool attribute_has_values(const struct berval *setof_attr_val);
 static bool berval_has_zero_byte(const struct berval bv);
+static int berval_precision(const struct berval bv);
 
 int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_handle *sh, struct sdap_msg *sm,
@@ -460,7 +461,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     }
 
     DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS, "OriginalDN: [%.*s].\n",
-                      (int)bv.bv_len, bv.bv_val);
+                      berval_precision(bv), bv.bv_val);
     PROBE(SDAP_PARSE_ENTRY, "OriginalDN", bv.bv_val, bv.bv_len);
     ret = sysdb_attrs_add_mem(attrs, SYSDB_ORIG_DN, bv.bv_val, bv.bv_len);
     if (ret)
@@ -523,7 +524,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                     /* ok it's an entry of the right type */
                     DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS,
                                       "objectClass '%.*s' matched\n",
-                                      (int)setof_attr_val[i].bv_len,
+                                      berval_precision(setof_attr_val[i]),
                                       setof_attr_val[i].bv_val);
                     object_class_matched = true;
                     break;
@@ -531,7 +532,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
                 DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS,
                                   "objectClass '%.*s' did not match\n",
-                                  (int)setof_attr_val[i].bv_len,
+                                  berval_precision(setof_attr_val[i]),
                                   setof_attr_val[i].bv_val);
             }
 
@@ -708,6 +709,12 @@ static bool objectclass_matched_ber(struct sdap_attr_map *map,
 static bool attribute_has_values(const struct berval *setof_attr_val)
 {
     return setof_attr_val != NULL && setof_attr_val[0].bv_val != NULL;
+}
+
+/* The length of BV as a printf precision, which is an int.  */
+static int berval_precision(const struct berval bv)
+{
+    return bv.bv_len > INT_MAX ? INT_MAX : (int)bv.bv_len;
 }
 
 /* True if BV contains a zero byte, which an LDAPString never does.  */
