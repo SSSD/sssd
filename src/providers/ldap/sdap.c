@@ -406,6 +406,7 @@ static bool objectclass_matched_ber(struct sdap_attr_map *map,
 static uint8_t *sss_base64_enc_ber(TALLOC_CTX *mem_ctx,
                                    const struct berval attr_val);
 static bool attribute_has_values(const struct berval *setof_attr_val);
+static bool berval_has_zero_byte(const struct berval bv);
 
 int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_handle *sh, struct sdap_msg *sm,
@@ -452,6 +453,12 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         goto done;
     }
 
+    if (berval_has_zero_byte(bv)) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "DN contains a zero byte\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS, "OriginalDN: [%.*s].\n",
                       (int)bv.bv_len, bv.bv_val);
     PROBE(SDAP_PARSE_ENTRY, "OriginalDN", bv.bv_val, bv.bv_len);
@@ -482,6 +489,13 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
            has been consumed". */
         if (bv.bv_val == NULL)
             break;
+
+        if (berval_has_zero_byte(bv)) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Attribute description contains a zero byte\n");
+            ret = EINVAL;
+            goto done;
+        }
 
         /* The attribute description points into the decoded message and
            is not guaranteed to be terminated, while sdap_parse_range()
@@ -694,6 +708,12 @@ static bool objectclass_matched_ber(struct sdap_attr_map *map,
 static bool attribute_has_values(const struct berval *setof_attr_val)
 {
     return setof_attr_val != NULL && setof_attr_val[0].bv_val != NULL;
+}
+
+/* True if BV contains a zero byte, which an LDAPString never does.  */
+static bool berval_has_zero_byte(const struct berval bv)
+{
+    return memchr(bv.bv_val, '\0', bv.bv_len) != NULL;
 }
 
 /* utility function to apply sss_base64_encode to a struct berval */
