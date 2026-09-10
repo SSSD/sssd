@@ -649,21 +649,28 @@ done:
     return ret;
 }
 
+/* True if the first LEN bytes of OBJCL are the whole of the class NAME,
+   ignoring case.  */
+static bool class_name_equals(const char *name, const char *objcl, int len)
+{
+    return strncasecmp(name, objcl, len) == 0 && name[len] == '\0';
+}
+
 static bool objectclass_matched(struct sdap_attr_map *map,
                                 const char *objcl, int len)
 {
     if (len == 0) {
-        len = strlen(objcl) + 1;
+        len = strlen(objcl);
     }
 
-    if (strncasecmp(map[0].name, objcl, len) == 0) {
+    if (class_name_equals(map[0].name, objcl, len)) {
         return true;
     }
     /* first element is always object class, and for groups also the
      * second element (SDAP_OC_GROUP_ALT) in the array */
     if (strcmp(map[SDAP_OC_GROUP_ALT].sys_name, SYSDB_GROUP_CLASS) == 0
         && map[SDAP_OC_GROUP_ALT].name != NULL
-        && strncasecmp(map[SDAP_OC_GROUP_ALT].name, objcl, len) == 0) {
+        && class_name_equals(map[SDAP_OC_GROUP_ALT].name, objcl, len)) {
         return true;
     }
 
@@ -674,6 +681,10 @@ static bool objectclass_matched(struct sdap_attr_map *map,
 static bool objectclass_matched_ber(struct sdap_attr_map *map,
                                     const struct berval attr_val)
 {
+    if (attr_val.bv_len == 0) {
+        return false;
+    }
+
     return objectclass_matched(map, (char*)attr_val.bv_val, attr_val.bv_len);
 }
 
