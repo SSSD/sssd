@@ -401,6 +401,12 @@ int sdap_get_map(TALLOC_CTX *memctx,
 
 static bool objectclass_matched(struct sdap_attr_map *map,
                                 const char *objcl, int len);
+static bool objectclass_matched_ber(struct sdap_attr_map *map,
+                                    const struct berval attr_val);
+static uint8_t *sss_base64_enc_ber(TALLOC_CTX *mem_ctx,
+                                   const struct berval attr_val);
+static bool attribute_has_values(const struct berval *setof_attr_val);
+
 int sdap_parse_entry(TALLOC_CTX *memctx,
                      struct sdap_handle *sh, struct sdap_msg *sm,
                      struct sdap_attr_map *map, int attrs_num,
@@ -409,26 +415,21 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 {
     struct sysdb_attrs *attrs;
     BerElement *ber = NULL;
-    struct berval **vals;
+    struct berval bv, *bvals = NULL;
+    const struct berval *setof_attr_val;
+    const char *attr_name;
     struct ldb_val v;
-    char *str;
-    int lerrno;
+    int lerrno = 0;
     int i, ret, ai;
     int base_attr_idx = 0;
     const char *name = NULL;
-    bool store;
     bool base64;
+    bool object_class_matched = false;
     char *base_attr;
     uint32_t range_offset;
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
-    if (!tmp_ctx) return ENOMEM;
 
-    lerrno = 0;
-    ret = ldap_set_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-    if (ret != LDAP_OPT_SUCCESS) {
-        DEBUG(SSSDBG_MINOR_FAILURE, "ldap_set_option failed [%s], ignored.\n",
-              sss_ldap_err2string(ret));
-    }
+    if (!tmp_ctx) return ENOMEM;
 
     attrs = sysdb_new_attrs(tmp_ctx);
     if (!attrs) {
@@ -436,65 +437,104 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         goto done;
     }
 
-    str = ldap_get_dn(sh->ldap, sm->msg);
-    if (!str) {
-        ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_get_dn failed: %d(%s)\n",
+    lerrno = ldap_get_dn_ber(sh->ldap, sm->msg, &ber, &bv);
+    if (lerrno != LDAP_SUCCESS) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_get_dn_ber failed: %d(%s)\n",
               lerrno, sss_ldap_err2string(lerrno));
         ret = EIO;
         goto done;
     }
 
-    DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS, "OriginalDN: [%s].\n", str);
-    PROBE(SDAP_PARSE_ENTRY, "OriginalDN", str, strlen(str));
-    ret = sysdb_attrs_add_string(attrs, SYSDB_ORIG_DN, str);
-    ldap_memfree(str);
-    if (ret) goto done;
+    /* The RootDSE has the empty DN, so only a missing value is an error.  */
+    if (bv.bv_val == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_get_dn_ber returned no DN\n");
+        ret = EIO;
+        goto done;
+    }
 
-    if (map) {
-        vals = ldap_get_values_len(sh->ldap, sm->msg, "objectClass");
-        if (!vals) {
+    DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS, "OriginalDN: [%.*s].\n",
+                      (int)bv.bv_len, bv.bv_val);
+    PROBE(SDAP_PARSE_ENTRY, "OriginalDN", bv.bv_val, bv.bv_len);
+    ret = sysdb_attrs_add_mem(attrs, SYSDB_ORIG_DN, bv.bv_val, bv.bv_len);
+    if (ret)
+        goto done;
+
+    /* If there is no map, skip the objectClass matching logic. */
+    object_class_matched = !map;
+
+    for (;;) {
+        if (bvals) {
+            ber_memfree(bvals);
+            bvals = NULL;
+        }
+        lerrno = ldap_get_attribute_ber(sh->ldap, sm->msg, ber, &bv, &bvals);
+        if (lerrno != LDAP_SUCCESS) {
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Unknown entry type, no objectClasses found!\n");
-            ret = EINVAL;
+                  "ldap_get_attribute_ber failed: %d(%s)\n",
+                  lerrno, sss_ldap_err2string(lerrno));
+            ret = EIO;
             goto done;
         }
 
-        for (i = 0; vals[i]; i++) {
-            if (objectclass_matched(map, vals[i]->bv_val, vals[i]->bv_len)) {
-                /* ok it's an entry of the right type */
-                break;
+        setof_attr_val = bvals;
+
+        /* A NULL bv.bv_val w/ LDAP_SUCCESS indicates that "all data
+           has been consumed". */
+        if (bv.bv_val == NULL)
+            break;
+
+        /* The attribute description points into the decoded message and
+           is not guaranteed to be terminated, while sdap_parse_range()
+           and the comparisons against the map require a C string.  */
+        attr_name = talloc_strndup(tmp_ctx, bv.bv_val, bv.bv_len);
+        if (attr_name == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS, "processing attribute [%s]\n",
+                          attr_name);
+
+        if (!attribute_has_values(setof_attr_val)) {
+            DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS,
+                              "Attribute [%s] has no values, skipping.\n",
+                              attr_name);
+            continue;
+        }
+
+        if (!object_class_matched
+                && strcasecmp(attr_name, "objectClass") == 0) {
+            for (i = 0; setof_attr_val[i].bv_val; i++) {
+                if (objectclass_matched_ber(map, setof_attr_val[i])) {
+                    /* ok it's an entry of the right type */
+                    DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS,
+                                      "objectClass '%.*s' matched\n",
+                                      (int)setof_attr_val[i].bv_len,
+                                      setof_attr_val[i].bv_val);
+                    object_class_matched = true;
+                    break;
+                }
+
+                DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS,
+                                  "objectClass '%.*s' did not match\n",
+                                  (int)setof_attr_val[i].bv_len,
+                                  setof_attr_val[i].bv_val);
             }
-        }
-        if (!vals[i]) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "objectClass not matching: %s\n",
-                  map[0].name);
-            ldap_value_free_len(vals);
-            ret = EINVAL;
-            goto done;
-        }
-        ldap_value_free_len(vals);
-    }
 
-    str = ldap_first_attribute(sh->ldap, sm->msg, &ber);
-    if (!str) {
-        ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-        DEBUG(lerrno == LDAP_SUCCESS
-              ? SSSDBG_TRACE_LIBS
-              : SSSDBG_MINOR_FAILURE,
-              "Entry has no attributes [%d(%s)]!?\n",
-               lerrno, sss_ldap_err2string(lerrno));
-        if (map) {
-            ret = EINVAL;
-            goto done;
+            /* An entry may repeat an attribute description, so a later
+               objectClass attribute can still match and the entry is
+               only rejected once the whole message has been parsed.
+               The values are then handled like any other attribute, as
+               a map extended through ldap_user_extra_attrs may store
+               objectClass itself.  */
         }
-    }
-    while (str) {
-        base64 = false;
 
-        ret = sdap_parse_range(tmp_ctx, str, &base_attr, &range_offset,
+        ret = sdap_parse_range(tmp_ctx, attr_name, &base_attr, &range_offset,
                                disable_range_retrieval);
         switch(ret) {
+        case ECANCELED:
+            continue;
+
         case EAGAIN:
             /* This attribute contained range values and needs more to
              * be retrieved
@@ -503,131 +543,98 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
              * For now, we'll continue below and treat it as regular values.
              */
             /* FALLTHROUGH */
-        case ECANCELED:
-            /* FALLTHROUGH */
         case EOK:
             break;
         default:
             DEBUG(SSSDBG_CRIT_FAILURE,
-                  "Could not determine if attribute [%s] was ranged\n", str);
+                  "Could not determine if attribute [%s] was ranged\n",
+                  attr_name);
             goto done;
         }
 
-        if (ret == ECANCELED) {
-            store = false;
-        } else if (map) {
+        base64 = false;
+
+        name = base_attr;
+        if (map) {
             for (i = 1; i < attrs_num; i++) {
                 /* check if this attr is valid with the chosen schema */
-                if (!map[i].name) continue;
+                if (!map[i].name)
+                    continue;
+
                 /* check if it is an attr we are interested in */
-                if (strcasecmp(base_attr, map[i].name) == 0) break;
+                if (strcasecmp(base_attr, map[i].name) == 0) {
+                    name = map[i].sys_name;
+                    base_attr_idx = i;
+                    if (strcmp(name, SYSDB_SSH_PUBKEY) == 0) {
+                        base64 = true;
+                    }
+
+                    break;
+                }
             }
-            /* interesting attr */
-            if (i < attrs_num) {
-                store = true;
-                name = map[i].sys_name;
-                base_attr_idx = i;
-                if (strcmp(name, SYSDB_SSH_PUBKEY) == 0) {
-                    base64 = true;
-                }
-            } else {
-                store = false;
-            }
-        } else {
-            name = base_attr;
-            store = true;
-        }
 
-        if (store) {
-            vals = ldap_get_values_len(sh->ldap, sm->msg, str);
-            if (!vals) {
-                ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-                if (lerrno != LDAP_SUCCESS) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "ldap_get_values_len() failed: %d(%s)\n",
-                          lerrno, sss_ldap_err2string(lerrno));
-                    ret = EIO;
-                    goto done;
-                }
-
-                DEBUG(SSSDBG_TRACE_LIBS,
-                      "Attribute [%s] has no values, skipping.\n", str);
-
-            } else {
-                if (!vals[0]) {
-                    DEBUG(SSSDBG_CRIT_FAILURE,
-                          "Missing value after ldap_get_values() ??\n");
-                    ldap_value_free_len(vals);
-                    ret = EINVAL;
-                    goto done;
-                }
-                for (i = 0; vals[i]; i++) {
-                    if (vals[i]->bv_len == 0) {
-                        DEBUG(SSSDBG_TRACE_LIBS,
-                              "Value of attribute [%s] is empty. "
-                               "Skipping this value.\n", str);
-                        continue;
-                    }
-                    if (base64) {
-                        v.data = (uint8_t *) sss_base64_encode(attrs,
-                                 (uint8_t *) vals[i]->bv_val, vals[i]->bv_len);
-                        if (!v.data) {
-                            ldap_value_free_len(vals);
-                            ret = ENOMEM;
-                            goto done;
-                        }
-                        v.length = strlen((const char *)v.data);
-                    } else {
-                        v.data = (uint8_t *)vals[i]->bv_val;
-                        v.length = vals[i]->bv_len;
-                    }
-                    PROBE(SDAP_PARSE_ENTRY, str, v.data, v.length);
-
-                    if (map) {
-                        /* The same LDAP attr might be used for more sysdb
-                         * attrs in case there is a map. Find all that match
-                         * and copy the value
-                         */
-                        for (ai = base_attr_idx; ai < attrs_num; ai++) {
-                            /* check if this attr is valid with the chosen
-                             * schema */
-                            if (!map[ai].name) continue;
-
-                            /* check if it is an attr we are interested in */
-                            if (strcasecmp(base_attr, map[ai].name) == 0) {
-                                ret = sysdb_attrs_add_val(attrs,
-                                                          map[ai].sys_name,
-                                                          &v);
-                                if (ret) {
-                                    ldap_value_free_len(vals);
-                                    goto done;
-                                }
-                            }
-                        }
-                    } else {
-                        /* No map, just store the attribute */
-                        ret = sysdb_attrs_add_val(attrs, name, &v);
-                        if (ret) {
-                            ldap_value_free_len(vals);
-                            goto done;
-                        }
-                    }
-                }
-                ldap_value_free_len(vals);
+            if (i == attrs_num) {
+                DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS,
+                                  "Attribute [%s] not in map, skipping.\n",
+                                  attr_name);
+                continue;
             }
         }
 
-        ldap_memfree(str);
-        str = ldap_next_attribute(sh->ldap, sm->msg, ber);
+        for (i = 0; setof_attr_val[i].bv_val != NULL; i++ ) {
+            if (setof_attr_val[i].bv_len == 0) {
+                DEBUG_CONDITIONAL(SSSDBG_TRACE_LIBS,
+                                  "%s[%d] is zero-length, skipping.\n",
+                                  attr_name, i);
+                continue;
+            }
+
+            if (base64) {
+                v.data = sss_base64_enc_ber(attrs, setof_attr_val[i]);
+                if (!v.data) {
+                    ret = ENOMEM;
+                    goto done;
+                }
+                v.length = strlen((const char *)v.data);
+            } else {
+                v.data = (uint8_t *)setof_attr_val[i].bv_val;
+                v.length = setof_attr_val[i].bv_len;
+            }
+
+            PROBE(SDAP_PARSE_ENTRY, attr_name, v.data, v.length);
+
+            if (map) {
+                /* The same LDAP attr might be used for more sysdb
+                 * attrs in case there is a map. Find all that match
+                 * and copy the value
+                 */
+                for (ai = base_attr_idx; ai < attrs_num; ai++) {
+                    /* check if this attr is valid with the chosen
+                     * schema */
+                    if (!map[ai].name) continue;
+
+                    /* check if it is an attr we are interested in */
+                    if (strcasecmp(base_attr, map[ai].name) == 0) {
+                        ret = sysdb_attrs_add_val(attrs,
+                                                  map[ai].sys_name,
+                                                  &v);
+                        if (ret)
+                            goto done;
+                    }
+                }
+            } else {
+                /* No map, just store the attribute */
+                ret = sysdb_attrs_add_val(attrs, name, &v);
+                if (ret)
+                    goto done;
+            }
+        }
     }
-    ber_free(ber, 0);
-    ber = NULL;
 
-    ldap_get_option(sh->ldap, LDAP_OPT_RESULT_CODE, &lerrno);
-    if (lerrno) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "ldap_get_option() failed: %d(%s)\n",
-              lerrno, sss_ldap_err2string(lerrno));
-        ret = EIO;
+    if (!object_class_matched) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "objectClass not matching: %s\n",
+              map[0].name);
+        ret = EINVAL;
         goto done;
     }
 
@@ -636,6 +643,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     ret = EOK;
 
 done:
+    if (bvals) ber_memfree(bvals);
     if (ber) ber_free(ber, 0);
     talloc_free(tmp_ctx);
     return ret;
@@ -660,6 +668,30 @@ static bool objectclass_matched(struct sdap_attr_map *map,
     }
 
     return false;
+}
+
+/* utility function to apply objectclass_matched to a struct berval */
+static bool objectclass_matched_ber(struct sdap_attr_map *map,
+                                    const struct berval attr_val)
+{
+    return objectclass_matched(map, (char*)attr_val.bv_val, attr_val.bv_len);
+}
+
+/* True if SETOF_ATTR_VAL, as returned by ldap_get_attribute_ber(), holds
+   at least one value.  An attribute that carries no values leaves the
+   value array unset, so SETOF_ATTR_VAL is NULL rather than empty.  */
+static bool attribute_has_values(const struct berval *setof_attr_val)
+{
+    return setof_attr_val != NULL && setof_attr_val[0].bv_val != NULL;
+}
+
+/* utility function to apply sss_base64_encode to a struct berval */
+static uint8_t *sss_base64_enc_ber(TALLOC_CTX *mem_ctx,
+                                   const struct berval attr_val)
+{
+    return (uint8_t *)sss_base64_encode(mem_ctx,
+                                        (const unsigned char *)attr_val.bv_val,
+                                        attr_val.bv_len);
 }
 
 /* Parses an LDAPDerefRes into sdap_deref_attrs structure */
