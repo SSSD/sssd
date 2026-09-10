@@ -45,7 +45,8 @@ class TestADLoginAttributes:
     """Automated Test Cases for AD Login Attributes ported from bash"""
 
     @staticmethod
-    def test_0001_login_by_samaccountname(multihost, create_aduser_group):
+    def test_0001_login_by_samaccountname(multihost, create_aduser_group,
+                                              enable_sshd_password_auth):
         """test_0001_login_by_samaccountname
 
         :title: IDM-SSSD-TC: ad_provider: ad_login_attr: Default behaviour
@@ -105,7 +106,8 @@ class TestADLoginAttributes:
         assert ssh_result, "The ssh login failed!"
 
     @staticmethod
-    def test_0002_login_by_userprincipalname(multihost, create_aduser_group):
+    def test_0002_login_by_userprincipalname(multihost, create_aduser_group,
+                                                 enable_sshd_password_auth):
         """test_0002_login_by_userprincipalname
 
         :title: IDM-SSSD-TC: ad_provider: ad_login_attr: Verify user login
@@ -158,7 +160,8 @@ class TestADLoginAttributes:
 
     @staticmethod
     @pytest.mark.usefixtures("sssd_domain")
-    def test_0003_login_sssd_domain(multihost, create_aduser_group):
+    def test_0003_login_sssd_domain(multihost, create_aduser_group,
+                                        enable_sshd_password_auth):
         """test_0003_login_sssd_domain
 
         :title: IDM-SSSD-TC: ad_provider: ad_login_attr: Verify user login
@@ -206,7 +209,8 @@ class TestADLoginAttributes:
 
     @staticmethod
     @pytest.mark.usefixtures("sssd_domain")
-    def test_0004_login_sssd_domain_fqn(multihost, create_aduser_group):
+    def test_0004_login_sssd_domain_fqn(multihost, create_aduser_group,
+                                            enable_sshd_password_auth):
         """test_0004_login_sssd_domain_fqn
 
         :title: IDM-SSSD-TC: ad_provider: ad_login_attr: Verify login
@@ -269,7 +273,8 @@ class TestADLoginAttributes:
 
     @staticmethod
     def test_0005_login_sssd_domain_uppercase(
-            multihost, create_aduser_group):
+            multihost, create_aduser_group,
+            enable_sshd_password_auth):
         """test_0005_login_sssd_domain_uppercase
 
         :title: IDM-SSSD-TC: ad_provider: ad_login_attr: Verify login
