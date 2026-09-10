@@ -1117,7 +1117,10 @@ ipa_subdomains_certmap_send(TALLOC_CTX *mem_ctx,
     subreq = sdap_get_generic_send(state, ev, sd_ctx->sdap_id_ctx->opts, sh,
                                    search_base, LDAP_SCOPE_SUBTREE,
                                    CERTMAP_FILTER,
-                                   attrs, NULL, 0, 0, false);
+                                   attrs, NULL, 0,
+                                   dp_opt_get_int(sd_ctx->sdap_id_ctx->opts->basic,
+                                                  SDAP_SEARCH_TIMEOUT),
+                                   false);
     if (subreq == NULL) {
         ret = ENOMEM;
         goto immediately;
@@ -3003,7 +3006,8 @@ static void ipa_subdomains_refresh_ranges_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get IPA ranges "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
+        tevent_req_error(req, ret);
+        return;
     }
 
     subreq = ipa_subdomains_certmap_send(state, state->ev, state->sd_ctx,
@@ -3031,7 +3035,8 @@ static void ipa_subdomains_refresh_certmap_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to read certificate mapping rules "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
+        tevent_req_error(req, ret);
+        return;
     }
 
     subreq = ipa_subdomains_master_send(state, state->ev, state->sd_ctx,
@@ -3059,7 +3064,8 @@ static void ipa_subdomains_refresh_master_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get master domain "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
+        tevent_req_error(req, ret);
+        return;
     }
 
     subreq = ipa_subdomains_slave_send(state, state->ev, state->sd_ctx,
@@ -3087,7 +3093,8 @@ static void ipa_subdomains_refresh_slave_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get subdomains "
               "[%d]: %s\n", ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
+        tevent_req_error(req, ret);
+        return;
     }
 
     subreq = ipa_subdomains_view_name_send(state, state->ev, state->sd_ctx,
@@ -3117,7 +3124,8 @@ static void ipa_subdomains_refresh_view_name_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to get view name [%d]: %s\n",
               ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
+        tevent_req_error(req, ret);
+        return;
     }
 
     subreq = ipa_subdomains_view_template_send(state, state->ev, state->sd_ctx,
@@ -3147,7 +3155,8 @@ static void ipa_subdomains_refresh_view_template_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to get ID override templates [%d]: %s\n",
               ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
+        tevent_req_error(req, ret);
+        return;
     }
 
     subreq = ipa_subdomains_view_domain_resolution_order_send(
@@ -3181,7 +3190,8 @@ ipa_subdomains_refresh_view_domain_resolution_order_done(struct tevent_req *subr
         DEBUG(SSSDBG_CRIT_FAILURE,
               "Unable to get view domain_resolution order [%d]: %s\n",
               ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
+        tevent_req_error(req, ret);
+        return;
     }
 
     subreq = ipa_domain_resolution_order_send(state, state->ev, state->sd_ctx,
@@ -3213,7 +3223,8 @@ ipa_domain_refresh_resolution_order_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_OP_FAILURE,
               "Unable to get the domains order resolution [%d]: %s\n",
               ret, sss_strerror(ret));
-        /* Not good, but let's try to continue with other server side options */
+        tevent_req_error(req, ret);
+        return;
     }
 
     ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
