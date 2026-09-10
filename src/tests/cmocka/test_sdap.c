@@ -42,6 +42,13 @@ struct mock_ldap_entry {
 
 struct mock_ldap_entry *global_ldap_entry;
 
+/* When set, returned verbatim in place of the entry's DN or of the
+ * description of attribute mock_attr_override_idx, so a test can hand
+ * the parser bytes that a C string cannot carry */
+static const struct berval *mock_dn_override;
+static const struct berval *mock_attr_override;
+static int mock_attr_override_idx;
+
 static int mock_ldap_entry_iter(void)
 {
     return sss_mock_type(int);
@@ -125,8 +132,12 @@ int __wrap_ldap_get_dn_ber(LDAP *ld, LDAPMessage *entry,
                            BerElement **berout, BerValue *dn)
 {
     struct mock_ldap_entry *ldap_entry = mock_ldap_entry_get();
-    dn->bv_val = discard_const(ldap_entry->dn);
-    dn->bv_len = ldap_entry->dn ? strlen(ldap_entry->dn) : 0;
+    if (mock_dn_override != NULL) {
+        *dn = *mock_dn_override;
+    } else {
+        dn->bv_val = discard_const(ldap_entry->dn);
+        dn->bv_len = ldap_entry->dn ? strlen(ldap_entry->dn) : 0;
+    }
 
     *berout = (BerElement *)-1;
     will_return(mock_ldap_entry_iter, 0);
@@ -248,8 +259,12 @@ int __wrap_ldap_get_attribute_ber(LDAP *ld,
     size_t count, i;
 
     val = discard_const(ldap_entry->attrs[idx].name);
-    attr->bv_val = val;
-    attr->bv_len = val ? strlen(val) : 0;
+    if (mock_attr_override != NULL && idx == mock_attr_override_idx) {
+        *attr = *mock_attr_override;
+    } else {
+        attr->bv_val = val;
+        attr->bv_len = val ? strlen(val) : 0;
+    }
     will_return(mock_ldap_entry_iter, idx + 1);
     if (!val)
         return LDAP_SUCCESS;
@@ -1101,6 +1116,58 @@ void test_parse_oc_prefix(void **state)
     talloc_free(map);
 }
 
+void test_parse_zero_byte(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_user;
+    struct sdap_attr_map *map;
+    const struct berval dn_with_zero = {
+        .bv_val = discard_const("cn=testuser\0,dc=example,dc=com"),
+        .bv_len = 30
+    };
+    const struct berval desc_with_zero = {
+        .bv_val = discard_const("uid\0Number"),
+        .bv_len = 10
+    };
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    struct mock_ldap_attr test_rfc2307_user_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_user.dn = "cn=testuser,dc=example,dc=com";
+    test_rfc2307_user.attrs = test_rfc2307_user_attrs;
+    set_entry_parse(&test_rfc2307_user);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    /* A zero byte inside the DN */
+    mock_dn_override = &dn_with_zero;
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    mock_dn_override = NULL;
+    assert_int_equal(ret, EINVAL);
+
+    /* A zero byte inside the description of the second attribute */
+    mock_attr_override = &desc_with_zero;
+    mock_attr_override_idx = 1;
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    mock_attr_override = NULL;
+    assert_int_equal(ret, EINVAL);
+
+    talloc_free(map);
+}
+
 void test_parse_no_dn(void **state)
 {
     int ret;
@@ -1696,6 +1763,9 @@ int main(int argc, const char *argv[])
                                         parse_entry_test_setup,
                                         parse_entry_test_teardown),
         cmocka_unit_test_setup_teardown(test_parse_oc_prefix,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_zero_byte,
                                         parse_entry_test_setup,
                                         parse_entry_test_teardown),
         cmocka_unit_test_setup_teardown(test_parse_no_dn,
