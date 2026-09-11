@@ -1032,9 +1032,9 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
 static void sdap_access_filter_done(struct tevent_req *subreq)
 {
     int ret, tret;
-    size_t num_results;
+    size_t num_results = 0;
     bool found = false;
-    struct sysdb_attrs **results;
+    struct sysdb_attrs **results = NULL;
     struct tevent_req *req =
             tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_access_filter_req_ctx *state =
@@ -1051,6 +1051,7 @@ static void sdap_access_filter_done(struct tevent_req *subreq)
         if (tret == EOK) {
             return;
         }
+        goto done;
     } else if (ret != EOK) {
         if (ret == ERR_OFFLINE) {
             ret = sdap_access_decide_offline(state->cached_access);
