@@ -104,7 +104,6 @@ static const char *dp_sudo_get_name(uint32_t type)
 
 struct dp_sudo_handler_state {
     struct dp_sudo_data *data;
-    struct dp_reply_std reply;
     const char *request_name;
 };
 
@@ -168,14 +167,12 @@ done:
 
 static void dp_sudo_handler_done(struct tevent_req *subreq)
 {
-    struct dp_sudo_handler_state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct dp_sudo_handler_state);
 
-    ret = dp_req_recv(state, subreq, struct dp_reply_std, &state->reply);
+    ret = dp_req_recv_no_output(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -188,18 +185,14 @@ static void dp_sudo_handler_done(struct tevent_req *subreq)
 
 errno_t
 dp_sudo_handler_recv(TALLOC_CTX *mem_ctx,
-                     struct tevent_req *req,
-                     uint16_t *_dp_error,
-                     uint32_t *_error,
-                     const char **_err_msg)
+                     struct tevent_req *req)
 {
     struct dp_sudo_handler_state *state;
     state = tevent_req_data(req, struct dp_sudo_handler_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
-    dp_req_reply_std(state->request_name, &state->reply,
-                     _dp_error, _error, _err_msg);
+    DP_REQ_DEBUG(SSSDBG_TRACE_LIBS, state->request_name, "Returning EOK");
 
     return EOK;
 }

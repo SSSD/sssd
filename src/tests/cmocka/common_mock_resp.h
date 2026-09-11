@@ -47,8 +47,8 @@ mock_prctx(TALLOC_CTX *mem_ctx);
  * sss_dp_get_account_recv call by calling mock_account_recv.
  *
  * The mocked sss_sp_get_account_recv shall return the return values
- * given with parameters dp_err, dp_ret and msg and optionally also call
- * the acct_cb_t callback, if given with the pvt pointer as user data.
+ * and optionally also call the acct_cb_t callback, if given with
+ * the pvt pointer as user data.
  * The callback can for instance populate the cache, thus simulating
  * Data Provider lookup.
  *
@@ -58,13 +58,11 @@ mock_prctx(TALLOC_CTX *mem_ctx);
 typedef int (*acct_cb_t)(void *);
 typedef int (*resolver_cb_t)(void *);
 
-void mock_account_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
-                       acct_cb_t acct_cb, void *pvt);
+void mock_account_recv(acct_cb_t acct_cb, void *pvt);
 
 void mock_account_recv_simple(void);
 
-void mock_resolver_recv(uint16_t dp_err, uint32_t dp_ret, char *msg,
-                        resolver_cb_t acct_cb, void *pvt);
+void mock_resolver_recv(resolver_cb_t acct_cb, void *pvt);
 
 void mock_resolver_recv_simple(void);
 

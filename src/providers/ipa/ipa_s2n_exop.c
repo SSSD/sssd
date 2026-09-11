@@ -174,7 +174,7 @@ static struct tevent_req *ipa_s2n_exop_send(TALLOC_CTX *mem_ctx,
                                   bv, NULL, NULL, &msgid);
     if (ret == -1 || msgid == -1) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_extended_operation failed\n");
-        ret = ERR_NETWORK_IO;
+        ret = ERR_SERVER_FAILURE;
         goto fail;
     }
     DEBUG(SSSDBG_TRACE_INTERNAL, "ldap_extended_operation sent, msgid = %d\n",
@@ -228,7 +228,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_result failed (%d)\n",
                                  sdap_op_get_msgid(state->op));
-        ret = ERR_NETWORK_IO;
+        ret = ERR_SERVER_FAILURE;
         goto done;
     }
 
@@ -243,7 +243,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
         } else {
             DEBUG(SSSDBG_OP_FAILURE, "ldap_extended_operation failed, server " \
                                      "logs might contain more details.\n");
-            ret = ERR_NETWORK_IO;
+            ret = ERR_SERVER_FAILURE;
         }
         goto done;
     }
@@ -253,7 +253,7 @@ static void ipa_s2n_exop_done(struct sdap_op *op,
     if (ret != LDAP_SUCCESS) {
         DEBUG(SSSDBG_OP_FAILURE, "ldap_parse_extendend_result failed (%d)\n",
                                  ret);
-        ret = ERR_NETWORK_IO;
+        ret = ERR_SERVER_FAILURE;
         goto done;
     }
     if (retdata == NULL) {
@@ -1560,17 +1560,15 @@ fail:
 static void ipa_s2n_get_list_ipa_next(struct tevent_req *subreq)
 {
     int ret;
-    int dp_error;
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct ipa_s2n_get_list_state *state = tevent_req_data(req,
                                                struct ipa_s2n_get_list_state);
 
-    ret = ipa_id_get_account_info_recv(subreq, &dp_error);
+    ret = ipa_id_get_account_info_recv(subreq);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "ipa_id_get_account_info failed: %d %d\n", ret,
-                                 dp_error);
+        DEBUG(SSSDBG_OP_FAILURE, "ipa_id_get_account_info failed: %d\n", ret);
         goto done;
     }
 
@@ -1601,7 +1599,7 @@ static void ipa_s2n_get_list_get_override_done(struct tevent_req *subreq)
     struct ipa_s2n_get_list_state *state = tevent_req_data(req,
                                                struct ipa_s2n_get_list_state);
 
-    ret = ipa_get_trusted_override_recv(subreq, NULL, state, &state->override_attrs);
+    ret = ipa_get_trusted_override_recv(subreq, state, &state->override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);
@@ -1721,7 +1719,7 @@ struct tevent_req *ipa_s2n_get_acct_info_send(TALLOC_CTX *mem_ctx,
     } else {
         DEBUG(SSSDBG_CRIT_FAILURE, "Extdom not supported on the server, "
                               "cannot resolve objects from trusted domains.\n");
-        ret = EIO;
+        ret = ERR_SERVER_FAILURE;
         goto fail;
     }
 
@@ -3086,7 +3084,7 @@ static void ipa_s2n_get_user_get_override_done(struct tevent_req *subreq)
                                                 struct ipa_s2n_get_user_state);
     struct sysdb_attrs *override_attrs = NULL;
 
-    ret = ipa_get_trusted_override_recv(subreq, NULL, state, &override_attrs);
+    ret = ipa_get_trusted_override_recv(subreq, state, &override_attrs);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "IPA override lookup failed: %d\n", ret);

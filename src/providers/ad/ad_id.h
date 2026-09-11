@@ -31,7 +31,7 @@ ad_account_info_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t ad_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                       struct tevent_req *req,
-                                      struct dp_reply_std *data);
+                                      dp_no_output *_no_output);
 
 struct tevent_req *
 ad_account_info_send(TALLOC_CTX *mem_ctx,
@@ -39,9 +39,7 @@ ad_account_info_send(TALLOC_CTX *mem_ctx,
                      struct ad_id_ctx *id_ctx,
                      struct dp_id_data *data);
 
-errno_t ad_account_info_recv(struct tevent_req *req,
-                             int *_dp_error,
-                             const char **_err_msg);
+errno_t ad_account_info_recv(struct tevent_req *req);
 
 struct tevent_req *
 ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
@@ -51,8 +49,7 @@ ad_handle_acct_info_send(TALLOC_CTX *mem_ctx,
                          struct sdap_domain *sdom,
                          struct sdap_id_conn_ctx **conn);
 errno_t
-ad_handle_acct_info_recv(struct tevent_req *req,
-                         int *_dp_error, const char **_err);
+ad_handle_acct_info_recv(struct tevent_req *req);
 
 struct tevent_req *
 ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
@@ -62,6 +59,6 @@ ad_get_account_domain_send(TALLOC_CTX *mem_ctx,
 
 errno_t ad_get_account_domain_recv(TALLOC_CTX *mem_ctx,
                                    struct tevent_req *req,
-                                   struct dp_reply_std *data);
+                                   const char **_domain);
 
 #endif /* AD_ID_H_ */
