@@ -23,6 +23,7 @@ prepare:
         - expect
         - gcc
         - git
+        - libssh-devel
         - openldap-devel
         - podman
         - podman-compose
