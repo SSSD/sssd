@@ -3443,7 +3443,13 @@ static void sdap_get_initgr_pgid(struct tevent_req *subreq)
 
     ret = groups_get_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    /* dont error here on ENOENT, it causes the initgroups operation to fail
+     * if a user has no groups stored in the backend (common LDAP case) */
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Initgroups operation groups_get_recv() "
+                                 "returned ENOENT, continuing\n");
+        ret = EOK;
+    } else if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
