@@ -6,6 +6,7 @@ KCM responder tests.
 
 from __future__ import annotations
 
+import re
 import time
 
 import pytest
@@ -449,11 +450,14 @@ def test_kcm__kinit_user_after_login(client: Client, kdc: KDC):
 
 
 @pytest.mark.importance("high")
+@pytest.mark.ticket(bz=1643053)
 @pytest.mark.topology(KnownTopology.Client)
 def test_kcm__debug_log_enabled(client: Client, kdc: KDC):
     """
-    :title: Kcm debug is enabled after sssd-kcm restart, when
-     "debug_level" in kcm section is set to 9
+    :title: Restarting only sssd-kcm reloads debug_level without a full SSSD restart
+    :description:
+        A restart of the sssd-kcm responder alone must pick up a new debug_level
+        from the configuration, without restarting the whole SSSD service.
     :setup:
         1. Add Kerberos principal "user1" to KDC
         2. Add local user "user1"
@@ -465,17 +469,17 @@ def test_kcm__debug_log_enabled(client: Client, kdc: KDC):
         1. Try to produce some debug messages e.g. kdestroy
         2. Check that kcm debug messages were not generated
         3. Set "debug_level" in kcm config section to "9"
-        4. Restart kcm
+        4. Restart only sssd-kcm
         5. Try to produce some debug messages e.g. kdestroy
         6. Check that kcm debug messages were generated
     :expectedresults:
         1. No messages were generated
         2. Log file did not get bigger
         3. Successfully set
-        4. Successfully restarted
+        4. sssd-kcm restarts and reloads the new debug_level
         5. Some messages were generated
         6. Log file did get bigger
-    :customerscenario: False
+    :customerscenario: True
     """
 
     def kcm_log_length() -> int:
@@ -487,7 +491,7 @@ def test_kcm__debug_log_enabled(client: Client, kdc: KDC):
 
     user = "user1"
     password = "Secret123"
-    kcm_log_file = "/var/log/sssd/sssd_kcm.log"
+    kcm_log_file = client.sssd.logs.kcm
 
     kdc.principal(user).add(password=password)
     client.local.user(user).add(password=password)
@@ -524,15 +528,19 @@ def test_kcm__debug_log_enabled(client: Client, kdc: KDC):
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_kcm__ssh_login_creates_kerberos_ticket(client: Client, ldap: LDAP, kdc: KDC):
     """
-    :title: kcm: Verify ssh login is successful with kcm as default
+    :title: kcm: Verify ssh login stores the ticket in a KCM ccache named after the user UID
     :setup:
         1. Add user and principal
         2. Set kerberos as default auth provider
         3. Start SSSD
     :steps:
         1. Authenticate as "user1" over SSH using kcm
+        2. Run klist inside the SSH session
+        3. Check that the ccache name matches "KCM:<uid>" of the logged in user
     :expectedresults:
         1. Authenticated successfully
+        2. klist succeeds and shows "Ticket cache: KCM:"
+        3. The ccache name contains the user UID
     :customerscenario: False
     """
     ldap.user("user1").add()
@@ -547,6 +555,10 @@ def test_kcm__ssh_login_creates_kerberos_ticket(client: Client, ldap: LDAP, kdc:
         with client.auth.kerberos(ssh) as krb:
             res = krb.klist()
             assert res.rc == 0, "klist failed!"
+            assert "Ticket cache: KCM:" in res.stdout, "ccache is not stored in KCM!"
+
+            uid = ssh.run("id -u").stdout.strip()
+            assert f"KCM:{uid}" in res.stdout, "KCM ccache name does not match the user UID!"
 
 
 @pytest.mark.importance("high")
@@ -630,3 +642,350 @@ def test_kcm__configure_max_uid_ccaches_with_different_values(client: Client, kd
         with client.auth.kerberos(ssh) as krb:
             assert krb.kdestroy(all=True).rc == 0, "kdestroy all tickets failed!"
             assert krb.kinit("user65", password=password).rc == 0, "kinit failed!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__ccache_uid_assigned_to_caller_and_resets_on_kdestroy(client: Client, kdc: KDC):
+    """
+    :title: KCM ccache is keyed by the caller UID and the cache-id changes after kdestroy
+    :setup:
+        1. Add Kerberos principals "user1" and "user2"
+        2. Add local users "user1" and "user2"
+        3. Start SSSD with KCM
+    :steps:
+        1. Authenticate as "user1" over SSH
+        2. Kinit principals "user1" and "user2" from within the "user1" session
+        3. Check the primary ccache name is keyed by the caller ("user1") UID and note its cache-id
+        4. Run kdestroy -A and kinit "user1" and "user2" again
+        5. Check the new ccache is again keyed by the caller UID and its cache-id changed
+    :expectedresults:
+        1. Authentication succeeds
+        2. Both kinit calls succeed
+        3. The ccache name is "KCM:<user1_uid>:<cache_id>", keyed by the caller UID
+        4. All commands succeed
+        5. The ccache is again "KCM:<user1_uid>" and the cache-id differs from the earlier value
+    :customerscenario: False
+    """
+    username1, username2 = "user1", "user2"
+    password = "Secret123"
+    kdc.principal(username1).add(password=password)
+    kdc.principal(username2).add(password=password)
+    client.local.user(username1).add(password=password)
+    client.local.user(username2).add(password=password)
+    client.sssd.common.kcm(kdc)
+    client.sssd.start()
+
+    id1 = client.tools.id(username1)
+    assert id1 is not None and id1.user.id is not None, f"user '{username1}' not found!"
+    uid1 = id1.user.id
+
+    with client.ssh(username1, password) as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            # Two principals so the KCM collection holds a subsidiary cache with a cache-id.
+            assert krb.kinit(username1, password=password).rc == 0, "kinit failed!"
+            assert krb.kinit(username2, password=password).rc == 0, "kinit failed!"
+
+            first = krb.klist().stdout
+            assert f"KCM:{uid1}" in first, "ccache is not keyed by the caller UID!"
+            match = re.search(rf"KCM:{uid1}:(\S+)", first)
+            assert match is not None, "ccache name has no cache-id field!"
+            cache_id1 = match.group(1)
+
+            krb.kdestroy(all=True)
+            assert krb.kinit(username1, password=password).rc == 0, "kinit after kdestroy failed!"
+            assert krb.kinit(username2, password=password).rc == 0, "kinit after kdestroy failed!"
+
+            second = krb.klist().stdout
+            assert f"KCM:{uid1}" in second, "new ccache is not keyed by the caller UID!"
+            match = re.search(rf"KCM:{uid1}:(\S+)", second)
+            assert match is not None, "new ccache name has no cache-id field!"
+            cache_id2 = match.group(1)
+
+            assert cache_id1 != cache_id2, "cache-id did not change after kdestroy and re-kinit!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__root_kinit_uses_root_uid_in_ccache_name(client: Client, kdc: KDC):
+    """
+    :title: KCM ccache uses the root UID (0) when root performs kinit
+    :setup:
+        1. Add Kerberos principal "user1" and local user "user1"
+        2. Start SSSD with KCM
+    :steps:
+        1. As root, kinit as "user1" and run klist
+    :expectedresults:
+        1. kinit and klist succeed and the ccache name is "KCM:0"
+    :customerscenario: False
+    """
+    kdc.principal("user1").add(password="Secret123")
+    client.local.user("user1").add(password="Secret123")
+    client.sssd.common.kcm(kdc)
+    client.sssd.start()
+
+    result = client.host.conn.run("kinit user1 && klist", input="Secret123")
+    assert result.rc == 0, "kinit/klist as root failed!"
+    assert "KCM:0" in result.stdout, "root ccache is not keyed by UID 0!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.ticket(bz=1441764)
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__cross_user_ccache_access_denied(client: Client, kdc: KDC):
+    """
+    :title: KCM enforces per-UID credential cache isolation
+    :setup:
+        1. Add Kerberos principal "user1"
+        2. Add local users "user1" and "user2"
+        3. Start SSSD with KCM
+    :steps:
+        1. Authenticate as "user1" and obtain a TGT
+        2. As "user2", attempt to read "user1" KCM ccache
+        3. As root, attempt to read "user1" KCM ccache
+    :expectedresults:
+        1. Authentication and kinit succeed
+        2. Access is denied
+        3. Access is denied (isolation is enforced for root too)
+    :customerscenario: True
+    """
+    kdc.principal("user1").add(password="Secret123")
+    client.local.user("user1").add(password="Secret123")
+    client.local.user("user2").add(password="Secret123")
+    client.sssd.common.kcm(kdc)
+    client.sssd.start()
+
+    with client.ssh("user1", "Secret123") as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            assert krb.kinit("user1", password="Secret123").rc == 0, "kinit failed!"
+
+    uid = client.host.conn.run("id -u user1").stdout.strip()
+
+    as_user2 = client.host.conn.run(f"su - user2 -s /bin/bash -c 'KRB5CCNAME=KCM:{uid} klist'", raise_on_error=False)
+    assert as_user2.rc != 0, "user2 was able to read user1 KCM ccache!"
+
+    as_root = client.host.conn.run(f"KRB5CCNAME=KCM:{uid} klist", raise_on_error=False)
+    assert as_root.rc != 0, "root was able to read user1 KCM ccache!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__sssd_fails_to_start_when_kcm_in_services(client: Client, kdc: KDC):
+    """
+    :title: SSSD refuses to start when "kcm" is listed in the services directive
+    :setup:
+        1. Configure SSSD with KCM
+        2. Add "kcm" to the [sssd] services list
+    :steps:
+        1. Start SSSD (without config-check, which would reject the config earlier)
+    :expectedresults:
+        1. SSSD fails to start (non-zero return code)
+    :customerscenario: False
+    """
+    client.sssd.common.kcm(kdc)
+    client.sssd.sssd["services"] = "nss, pam, kcm"
+
+    # check_config is disabled so the framework does not raise on the invalid
+    # services line before we can observe that the daemon itself fails to start.
+    result = client.sssd.start(raise_on_error=False, check_config=False)
+    assert result.rc != 0, "SSSD started even though 'kcm' was listed in services!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__socket_path_config_ignored_default_socket_used(client: Client, kdc: KDC):
+    """
+    :title: KCM [kcm] socket_path option is ignored; responder uses the default Heimdal socket
+    :setup:
+        1. Add principal "user1" and local user "user1"
+        2. Create the custom socket directory and set socket_path in [kcm]
+        3. Start SSSD with KCM
+    :steps:
+        1. Check the sssd-kcm.socket listen path
+        2. Authenticate as "user1"
+    :expectedresults:
+        1. The listen path is the default Heimdal socket, not the configured path
+        2. Authentication succeeds
+    :customerscenario: False
+    """
+    kdc.principal("user1").add(password="Secret123")
+    client.local.user("user1").add(password="Secret123")
+    client.sssd.common.kcm(kdc)
+
+    client.host.conn.run("mkdir -p /var/run/kcm")
+    client.sssd.kcm["socket_path"] = "/var/run/kcm/kcm.sock"
+    client.sssd.start()
+    client.svc.restart("sssd-kcm.socket")
+
+    status = client.svc.status("sssd-kcm.socket")
+    assert "/var/run/kcm/kcm.sock" not in status.stdout, "responder listened on the configured socket_path!"
+    assert ".heim_org.h5l.kcm-socket" in status.stdout, "responder is not on the default Heimdal socket!"
+
+    with client.ssh("user1", "Secret123") as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            assert krb.kinit("user1", password="Secret123").rc == 0, "kinit failed!"
+
+
+@pytest.mark.importance("critical")
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__credentials_persist_across_sssd_restart(client: Client, kdc: KDC):
+    """
+    :title: KCM credential cache is not wiped when SSSD is restarted
+    :setup:
+        1. Add principal "user1" and local user "user1"
+        2. Use the persistent (secdb) ccache storage
+        3. Start SSSD with KCM
+    :steps:
+        1. Kinit as "user1" inside an SSH session
+        2. Restart SSSD
+        3. Run klist inside the same SSH session
+    :expectedresults:
+        1. kinit succeeds and a KCM ccache exists
+        2. SSSD restarts
+        3. klist still shows the same TGT with unchanged validity times
+    :customerscenario: False
+    """
+    kdc.principal("user1").add(password="Secret123")
+    client.local.user("user1").add(password="Secret123")
+    client.sssd.common.kcm(kdc)
+    # secdb is the default backend, but set it explicitly: client.sssd.restart()
+    # stops sssd-kcm, which would wipe an in-memory cache.
+    client.sssd.kcm["ccache_storage"] = "secdb"
+    client.sssd.start()
+
+    with client.ssh("user1", "Secret123") as ssh:
+        with client.auth.kerberos(ssh) as krb:
+            assert krb.kinit("user1", password="Secret123").rc == 0, "kinit failed!"
+            assert krb.has_tgt("user1", kdc.realm), "No TGT after kinit!"
+            before = krb.list_tgt_times(kdc.realm)
+
+            client.sssd.restart()
+
+            after_klist = krb.klist()
+            assert after_klist.rc == 0, "klist failed after restart!"
+            assert "KCM:" in after_klist.stdout, "KCM ccache was wiped by the SSSD restart!"
+            assert krb.has_tgt("user1", kdc.realm), "TGT missing after restart!"
+            assert (
+                krb.list_tgt_times(kdc.realm) == before
+            ), "TGT validity times changed across the restart; the ccache was not preserved!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__responder_idle_timeout_shuts_down_responder(client: Client, kdc: KDC):
+    """
+    :title: KCM responder exits after responder_idle_timeout expires with no activity
+    :setup:
+        1. Add principal "user1" and local user "user1"
+        2. Set responder_idle_timeout = 60 in [kcm] (60s is the enforced minimum)
+        3. Start SSSD with KCM
+    :steps:
+        1. Trigger KCM start via kinit
+        2. Wait for longer than the idle timeout (the internal timer ticks every timeout/2)
+        3. Check that the sssd_kcm process has exited
+    :expectedresults:
+        1. kinit succeeds
+        2. Timeout elapses with no KCM activity
+        3. sssd_kcm is not running
+    :customerscenario: False
+    """
+    kdc.principal("user1").add(password="Secret123")
+    client.local.user("user1").add(password="Secret123")
+    client.sssd.common.kcm(kdc)
+    # SSSD clamps responder_idle_timeout to a 60s minimum (responder_common.c),
+    # so anything lower is silently raised to 60. Use the minimum and wait past it.
+    client.sssd.kcm["responder_idle_timeout"] = "60"
+    client.sssd.start()
+
+    client.host.conn.exec(["kinit", "user1"], input="Secret123")
+    time.sleep(90)
+
+    result = client.host.conn.run("pidof sssd_kcm", raise_on_error=False)
+    assert result.rc != 0 or not result.stdout.strip(), "sssd_kcm did not shut down after idle timeout!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=1545424)
+@pytest.mark.topology(KnownTopology.Client)
+def test_kcm__activity_resets_idle_timeout(client: Client, kdc: KDC):
+    """
+    :title: KCM activity resets last_request_time, preventing premature shutdown
+    :setup:
+        1. Add principal "user1" and local user "user1"
+        2. Set responder_idle_timeout = 60 in [kcm] (60s is the enforced minimum)
+        3. Start SSSD with KCM
+    :steps:
+        1. Start sssd-kcm and kinit immediately (first activity)
+        2. Wait 45 s (less than the 60s timeout) then kinit again to reset the idle timer
+        3. Wait another 50 s
+        4. Check that sssd_kcm is still running
+    :expectedresults:
+        1. kinit succeeds and sssd-kcm is running
+        2. kinit succeeds and the idle timer is reset
+        3. Total elapsed > 60 s but idle since last request < 60 s
+        4. sssd_kcm is still running (without the reset it would have exited at ~60 s)
+    :customerscenario: True
+    """
+    kdc.principal("user1").add(password="Secret123")
+    client.local.user("user1").add(password="Secret123")
+    client.sssd.common.kcm(kdc)
+    # responder_idle_timeout has an enforced 60s minimum, so the reset must be
+    # demonstrated across that window: the kinit at t=45s keeps sssd-kcm alive
+    # past the t=90s idle tick that would otherwise shut it down.
+    client.sssd.kcm["responder_idle_timeout"] = "60"
+    client.sssd.start()
+
+    # First activity right after start; no need to wait before the initial kinit.
+    client.host.conn.exec(["kinit", "user1"], input="Secret123")
+    time.sleep(45)
+    client.host.conn.exec(["kinit", "user1"], input="Secret123")
+    time.sleep(50)
+
+    result = client.host.conn.run("pidof sssd_kcm", raise_on_error=False)
+    assert result.rc == 0 and result.stdout.strip(), "sssd_kcm shut down despite recent activity!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=1712875)
+@pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.skip(reason="Needs a 2-client system-test topology; tracked as IDM-7741 follow-up")
+def test_kcm__gssapi_ssh_credential_delegation(client: Client, kdc: KDC):
+    """
+    :title: KCM ccache is properly delegated via SSH GSSAPI to a second host
+    :setup:
+        1. Two client hosts with host keytabs, GSSAPI enabled
+        2. LDAP user with KDC principal
+        3. Start SSSD
+    :steps:
+        1. Obtain KCM TGT on host1
+        2. SSH from host1 to host2 via GSSAPI
+        3. Run klist on host2
+    :expectedresults:
+        1. TGT obtained
+        2. SSH succeeds without password
+        3. klist shows delegated ticket with same expiry
+    :customerscenario: True
+    """
+
+
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=1741306)
+@pytest.mark.topology(KnownTopology.Client)
+@pytest.mark.skip(reason="Needs a 2-client system-test topology; tracked as IDM-7741 follow-up")
+def test_kcm__sso_passwordless_login_via_keytab(client: Client, kdc: KDC):
+    """
+    :title: KCM enables SSO passwordless SSH when valid TGT and host keytab are present
+    :setup:
+        1. Two client hosts with host keytabs
+        2. LDAP user with KDC principal
+        3. Start SSSD with GSSAPI
+    :steps:
+        1. Obtain KCM TGT on host1
+        2. SSH from host1 to host2 without password
+        3. SSH from host1 to itself without password
+    :expectedresults:
+        1. TGT obtained
+        2. Passwordless SSH to host2 succeeds
+        3. Passwordless SSH to host1 succeeds
+    :customerscenario: True
+    """
