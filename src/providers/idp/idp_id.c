@@ -303,10 +303,12 @@ static void idp_type_get_done(struct tevent_req *subreq)
     DEBUG(SSSDBG_TRACE_ALL, "[%zd][%.*s]\n", buflen, (int) buflen, buf);
     switch (state->lookup_type) {
     case IDP_LOOKUP_USER:
-        ret = eval_user_buf(state->idp_id_ctx, NULL, state->filter_value, state->noexist_delete, buf, buflen);
+        ret = eval_user_buf(state->idp_id_ctx, state->filter_value,
+                            state->noexist_delete, buf, buflen);
         break;
     case IDP_LOOKUP_GROUP:
-        ret = eval_group_buf(state->idp_id_ctx, NULL, state->filter_value, state->noexist_delete, buf, buflen);
+        ret = eval_group_buf(state->idp_id_ctx, state->filter_value,
+                             state->noexist_delete, buf, buflen);
         if (ret == EOK && !state->no_members) {
             DEBUG(SSSDBG_TRACE_ALL, "Looking up group members.\n");
 
@@ -321,12 +323,12 @@ static void idp_type_get_done(struct tevent_req *subreq)
         }
         break;
     case IDP_LOOKUP_GROUP_MEMBERS:
-        ret = eval_user_buf(state->idp_id_ctx, state->filter_value, state->filter_value,
-                            false, buf, buflen);
+        ret = eval_group_members_buf(state->idp_id_ctx, state->filter_value,
+                                     buf, buflen);
         break;
     case IDP_LOOKUP_USER_GROUPS:
-        ret = eval_group_buf(state->idp_id_ctx, state->filter_value, state->filter_value,
-                             false, buf, buflen);
+        ret = eval_user_groups_buf(state->idp_id_ctx, state->filter_value,
+                                   buf, buflen);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unsupported lookup type [%d].\n",

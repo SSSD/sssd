@@ -33,19 +33,31 @@
  * the cache if all required information is available.
  */
 errno_t eval_user_buf(struct idp_id_ctx *idp_id_ctx,
-                      const char *group_name,
                       const char *del_name,
                       bool noexist_delete,
                       uint8_t *buf, ssize_t buflen);
+
+/** @brief Evaluate JSON encoded group member data, store the returned users
+ * and replace the cached membership of the group.
+ */
+errno_t eval_group_members_buf(struct idp_id_ctx *idp_id_ctx,
+                               const char *group_name,
+                               const uint8_t *buf, ssize_t buflen);
 
 /** @brief Evaluate JSON encoded group data and store a POSIX group object in
  * the cache if all required information is available.
  */
 errno_t eval_group_buf(struct idp_id_ctx *idp_id_ctx,
-                       const char *user_name,
                        const char *del_name,
                        bool noexist_delete,
                        uint8_t *buf, ssize_t buflen);
+
+/** @brief Evaluate JSON encoded initgroups data, store the returned groups
+ * and reconcile the cached group memberships of the user.
+ */
+errno_t eval_user_groups_buf(struct idp_id_ctx *idp_id_ctx,
+                             const char *user_name,
+                             const uint8_t *buf, ssize_t buflen);
 
 /** Internal data used to identify ongoing OAUTH 2.0 Device Authorization
  * requests.
