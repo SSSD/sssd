@@ -752,7 +752,7 @@ static void ipa_id_get_account_info_orig_done(struct tevent_req *subreq)
 
     ret = sdap_handle_acct_req_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_handle_acct request failed: %d\n", ret);
         goto fail;
     }

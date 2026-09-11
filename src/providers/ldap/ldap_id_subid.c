@@ -215,7 +215,7 @@ static void subid_ranges_resolve_owner_done(struct tevent_req *subreq)
     ret = users_get_recv(subreq);
     talloc_zfree(subreq);
 
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         tevent_req_error(req, ret);
         return;
     }

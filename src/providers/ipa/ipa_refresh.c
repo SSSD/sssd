@@ -141,7 +141,7 @@ static void ipa_refresh_done(struct tevent_req *subreq)
 
     ret = ipa_account_info_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s, "
               "errno: %d]\n", be_req2str(state->account_req->entry_type),
               ret);

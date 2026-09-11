@@ -160,7 +160,7 @@ static void ad_refresh_done(struct tevent_req *subreq)
 
     ret = ad_account_info_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to refresh %s, "
               "[errno: %d]: %s\n", be_req2str(state->account_req->entry_type),
               ret, sss_strerror(ret));
