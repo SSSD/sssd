@@ -204,6 +204,27 @@ int sss_nss_getorigbyusername(const char *fq_name, struct sss_nss_kv **kv_list,
                               enum sss_id_type *type);
 
 /**
+ * @brief Find original data and group memberships by fully qualified user name
+ *
+ * Like sss_nss_getorigbyusername() but the returned kv_list also contains
+ * entries with key "groupMembership" (SSS_NSS_ATTR_NAME_GROUP_MEMBERSHIP)
+ * whose values are fully qualified names of the groups the user belongs to.
+ * The key may appear multiple times (once per group).
+ *
+ * @param[in] fq_name  Fully qualified name of a user
+ * @param[out] kv_list A NULL terminated list of key-value pairs where the key
+ *                     is the attribute name in the cache of SSSD,
+ *                     must be freed by the caller with sss_nss_free_kv()
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - see #sss_nss_getorigbyname
+ */
+int sss_nss_getorigbyusername_with_groups(const char *fq_name,
+                                          struct sss_nss_kv **kv_list,
+                                          enum sss_id_type *type);
+
+/**
  * @brief Find original data by fully qualified group name
  *
  * @param[in] fq_name  Fully qualified name of a group
@@ -278,8 +299,9 @@ void sss_nss_free_kv(struct sss_nss_kv *kv_list);
  *  This flag cannot be used together with SSS_NSS_EX_FLAG_NO_CACHE */
 #define SSS_NSS_EX_FLAG_INVALIDATE_CACHE (1 << 1)
 
-#ifdef IPA_389DS_PLUGIN_HELPER_CALLS
+#define SSS_NSS_ATTR_NAME_GROUP_MEMBERSHIP "groupMembership"
 
+#ifdef IPA_389DS_PLUGIN_HELPER_CALLS
 /**
  * @brief Return user information based on the user name
  *
@@ -574,6 +596,30 @@ int sss_nss_getorigbyname_timeout(const char *fq_name, unsigned int timeout,
 int sss_nss_getorigbyusername_timeout(const char *fq_name, unsigned int timeout,
                                       struct sss_nss_kv **kv_list,
                                       enum sss_id_type *type);
+
+/**
+ * @brief Find original data and group memberships by fully qualified user name
+ *        with timeout
+ *
+ * Like sss_nss_getorigbyusername_timeout() but the returned kv_list also
+ * contains entries with key "groupMembership" (SSS_NSS_ATTR_NAME_GROUP_MEMBERSHIP)
+ * whose values are fully qualified names of the groups the user belongs to.
+ * The key may appear multiple times (once per group).
+ *
+ * @param[in] fq_name  Fully qualified name of a user
+ * @param[in] timeout  timeout in milliseconds
+ * @param[out] kv_list A NULL terminated list of key-value pairs where the key
+ *                     is the attribute name in the cache of SSSD,
+ *                     must be freed by the caller with sss_nss_free_kv()
+ * @param[out] type    Type of the object related to the given name
+ *
+ * @return
+ *  - see #sss_nss_getorigbyname_timeout
+ */
+int sss_nss_getorigbyusername_with_groups_timeout(const char *fq_name,
+                                                  unsigned int timeout,
+                                                  struct sss_nss_kv **kv_list,
+                                                  enum sss_id_type *type);
 
 /**
  * @brief Find original data by fully qualified group name with timeout

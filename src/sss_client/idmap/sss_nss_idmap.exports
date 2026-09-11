@@ -75,3 +75,10 @@ SSS_NSS_IDMAP_0.7.0 {
         sss_nss_getsidbygroupname;
         sss_nss_getsidbygroupname_timeout;
 } SSS_NSS_IDMAP_0.6.0;
+
+SSS_NSS_IDMAP_0.8.0 {
+    # public functions
+    global:
+        sss_nss_getorigbyusername_with_groups;
+        sss_nss_getorigbyusername_with_groups_timeout;
+} SSS_NSS_IDMAP_0.7.0;

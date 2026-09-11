@@ -19,6 +19,7 @@
 */
 
 #include "util/crypto/sss_crypto.h"
+#include "db/sysdb.h"
 #include "responder/nss/nss_protocol.h"
 
 static errno_t
@@ -323,6 +324,97 @@ static errno_t process_attr_list(TALLOC_CTX *mem_ctx, struct ldb_message *msg,
     return EOK;
 }
 
+static errno_t
+fill_orig_initgr_names(TALLOC_CTX *mem_ctx,
+                       struct sss_nss_ctx *nss_ctx,
+                       struct cache_req_result *result,
+                       struct sized_string **_keys,
+                       struct sized_string **_vals,
+                       size_t *array_size,
+                       size_t *sum,
+                       size_t *found)
+{
+    struct ldb_result *initgr_res = NULL;
+    struct sss_domain_info *domain;
+    struct sss_domain_info *grp_dom;
+    struct sized_string *keys;
+    struct sized_string *vals;
+    const char *grp_name;
+    const char *username;
+    char *fq_name;
+    size_t i;
+    errno_t ret;
+
+    domain = result->domain;
+    username = ldb_msg_find_attr_as_string(result->msgs[0], SYSDB_NAME, NULL);
+    if (username == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Missing user name, skipping initgroups.\n");
+        return EOK;
+    }
+
+    ret = sysdb_initgroups_with_views(mem_ctx, domain, username, &initgr_res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "sysdb_initgroups_with_views() failed [%d]: %s, "
+              "skipping group memberships.\n", ret, sss_strerror(ret));
+        return EOK;
+    }
+
+    if (initgr_res->count <= 1) {
+        talloc_free(initgr_res);
+        return EOK;
+    }
+
+    *array_size += initgr_res->count - 1;
+    keys = talloc_realloc(mem_ctx, *_keys, struct sized_string, *array_size);
+    if (keys == NULL) {
+        talloc_free(initgr_res);
+        return ENOMEM;
+    }
+    *_keys = keys;
+
+    vals = talloc_realloc(mem_ctx, *_vals, struct sized_string, *array_size);
+    if (vals == NULL) {
+        talloc_free(initgr_res);
+        return ENOMEM;
+    }
+    *_vals = vals;
+
+    /* First message is the user, skip it. */
+    for (i = 1; i < initgr_res->count; i++) {
+        if (!sss_nss_protocol_resolve_initgr_group(nss_ctx, domain,
+                                                   initgr_res->msgs[i],
+                                                   &grp_dom, NULL, &grp_name)) {
+            continue;
+        }
+
+        if (grp_name == NULL) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Group object [%s] has no name, skipping.\n",
+                  ldb_dn_get_linearized(initgr_res->msgs[i]->dn));
+            continue;
+        }
+
+        ret = sss_output_fqname(mem_ctx, grp_dom, grp_name,
+                                nss_ctx->rctx->override_space, &fq_name);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "sss_output_fqname() failed for group [%s], skipping.\n",
+                  grp_name);
+            continue;
+        }
+
+        to_sized_string(&keys[*found], SSS_NSS_ATTR_NAME_GROUP_MEMBERSHIP);
+        *sum += keys[*found].len;
+        to_sized_string(&vals[*found], fq_name);
+        *sum += vals[*found].len;
+        (*found)++;
+    }
+
+    talloc_free(initgr_res);
+    return EOK;
+}
+
 errno_t
 sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
                            struct sss_nss_cmd_ctx *cmd_ctx,
@@ -359,7 +451,7 @@ sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
 
     ret = sss_nss_get_id_type(cmd_ctx, result, &id_type);
     if (ret != EOK) {
-        return ret;
+        goto done;
     }
 
     if (nss_ctx->full_attribute_list != NULL) {
@@ -387,6 +479,17 @@ sss_nss_protocol_fill_orig(struct sss_nss_ctx *nss_ctx,
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "process_attr_list failed.\n");
             goto done;
+        }
+    }
+
+    if (cmd_ctx->include_initgroups
+            && (id_type == SSS_ID_TYPE_UID || id_type == SSS_ID_TYPE_BOTH)) {
+        ret = fill_orig_initgr_names(tmp_ctx, nss_ctx, result,
+                                     &keys, &vals, &array_size,
+                                     &sum, &found);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Failed to add initgroups names, continuing without.\n");
         }
     }
 
