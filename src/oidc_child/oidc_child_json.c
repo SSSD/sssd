@@ -777,6 +777,7 @@ char *get_json_string_array_from_json_string(TALLOC_CTX *mem_ctx,
 
 char *get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
                                        struct rest_ctx *rest_ctx,
+                                       const char *base_url,
                                        const char *bearer_token,
                                        const char **id_list)
 {
@@ -796,9 +797,8 @@ char *get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
     }
 
     for (c = 0; id_list[c] != NULL; c++) {
-        uri = talloc_asprintf(rest_ctx,
-                              "https://graph.microsoft.com/v1.0/directoryObjects/%s",
-                              id_list[c]);
+        uri = talloc_asprintf(rest_ctx, "%s/directoryObjects/%s",
+                              base_url, id_list[c]);
         if (uri == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to generate uri for id [%s].\n",
                                      id_list[c]);
