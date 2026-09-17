@@ -1180,6 +1180,14 @@ static errno_t confdb_init_domain(struct sss_domain_info *domain,
         goto done;
     }
 
+    ret = get_entry_as_bool(res->msgs[0], &domain->bot_accounts_enabled,
+                            CONFDB_DOMAIN_BOT_ACCOUNTS_ENABLED, 0);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Invalid value for %s\n", CONFDB_DOMAIN_BOT_ACCOUNTS_ENABLED);
+        goto done;
+    }
+
     ret = get_entry_as_uint32(res->msgs[0],
                               &domain->cache_credentials_min_ff_length,
                               CONFDB_DOMAIN_CACHE_CREDS_MIN_FF_LENGTH,

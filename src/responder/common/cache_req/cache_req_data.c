@@ -22,6 +22,7 @@
 
 #include "db/sysdb.h"
 #include "responder/common/cache_req/cache_req_private.h"
+#include "util/sss_bot.h"
 
 static const char **
 cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
@@ -68,7 +69,7 @@ cache_req_data_create_attrs(TALLOC_CTX *mem_ctx,
 static struct cache_req_data *
 cache_req_data_create(TALLOC_CTX *mem_ctx,
                       enum cache_req_type type,
-                      const struct cache_req_data *input)
+                      struct cache_req_data *input)
 {
     struct cache_req_data *data;
     errno_t ret;
@@ -77,6 +78,28 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     if (data == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_zero() failed\n");
         return NULL;
+    }
+
+    /* Parse a potential bot name and remember uid here, to avoid parsing it
+     * again for each domain. */
+    ret = sss_bot_parse(data, input->name.input, &data->bot);
+    if (ret != EOK && ret != EINVAL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to parse bot name [%d]: %s\n", ret,
+              sss_strerror(ret));
+        goto done;
+    }
+
+    if (ret == EOK) {
+        switch (type) {
+        case CACHE_REQ_USER_BY_NAME:
+        case CACHE_REQ_USER_BY_UPN:
+        case CACHE_REQ_INITGROUPS:
+        case CACHE_REQ_INITGROUPS_BY_UPN:
+            input->id = data->bot->uid;
+            break;
+        default:
+            talloc_zfree(data->bot);
+        }
     }
 
     data->type = type;
@@ -148,6 +171,7 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
     case CACHE_REQ_USER_BY_ID:
     case CACHE_REQ_GROUP_BY_ID:
     case CACHE_REQ_OBJECT_BY_ID:
+    case CACHE_REQ_INITGROUPS_BY_UID:
         data->id = input->id;
         break;
     case CACHE_REQ_OBJECT_BY_SID:
@@ -259,6 +283,10 @@ cache_req_data_create(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid cache request type!\n");
         ret = ERR_INTERNAL;
         goto done;
+    }
+
+    if (data->bot != NULL) {
+        data->id = data->bot->uid;
     }
 
     if (input->attrs != NULL) {

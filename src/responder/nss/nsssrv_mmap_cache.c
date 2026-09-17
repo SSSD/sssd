@@ -783,6 +783,7 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
                                 const struct sized_string *name,
                                 const struct sized_string *pw,
                                 uid_t uid, gid_t gid,
+                                uint32_t flags,
                                 const struct sized_string *gecos,
                                 const struct sized_string *homedir,
                                 const struct sized_string *shell)
@@ -836,6 +837,7 @@ errno_t sss_mmap_cache_pw_store(struct sss_mc_ctx **_mcc,
     data->name = MC_PTR_DIFF(data->strs, data);
     data->uid = uid;
     data->gid = gid;
+    data->flags = flags;
     data->strs_len = data_len;
     memcpy(&data->strs[pos], name->str, name->len);
     pos += name->len;
