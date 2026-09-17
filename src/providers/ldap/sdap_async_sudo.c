@@ -197,6 +197,13 @@ static char *sdap_sudo_build_host_filter(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /* sudoHost contains CIDR notation - will be filtered more by sudo */
+    filter = talloc_asprintf_append_buffer(filter, "(%s=*/*)",
+                                           map[SDAP_AT_SUDO_HOST].name);
+    if (filter == NULL) {
+        goto done;
+    }
+
     /* sudoHost contains netgroup - will be filtered more by sudo */
     if (netgroups) {
         filter = talloc_asprintf_append_buffer(filter, SDAP_SUDO_FILTER_NETGROUP,
