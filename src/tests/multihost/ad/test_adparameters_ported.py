@@ -1623,7 +1623,8 @@ class TestADParamsPorted:
     @staticmethod
     @pytest.mark.tier1_2
     def test_0020_ad_parameters_ssh_change_password(
-            multihost, adjoin, create_aduser_group
+            multihost, adjoin, create_aduser_group,
+            enable_sshd_password_auth
     ):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: Change user password
@@ -1692,7 +1693,8 @@ class TestADParamsPorted:
     @staticmethod
     @pytest.mark.tier1_2
     def test_0021_ad_parameters_ssh_change_password_logon(
-            multihost, adjoin, create_aduser_group
+            multihost, adjoin, create_aduser_group,
+            enable_sshd_password_auth
     ):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: User must change
@@ -1766,7 +1768,8 @@ class TestADParamsPorted:
     @staticmethod
     @pytest.mark.tier1_2
     def test_0022_ad_parameters_account_disabled(
-            multihost, adjoin, create_aduser_group):
+            multihost, adjoin, create_aduser_group,
+            enable_sshd_password_auth):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: User account disabled
         :id: e577001f-11f7-43a6-abc9-75bd5c98dd4c
@@ -1846,7 +1849,8 @@ class TestADParamsPorted:
     @staticmethod
     @pytest.mark.tier1_2
     def test_0023_ad_parameters_account_expired(
-            multihost, adjoin, create_aduser_group):
+            multihost, adjoin, create_aduser_group,
+            enable_sshd_password_auth):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: User account is
          expired bz1081046
@@ -3277,7 +3281,8 @@ class TestADParamsPorted:
     @staticmethod
     @pytest.mark.tier1_2
     def test_0041_ad_parameters_sss_ssh_knownhostsproxy(
-            multihost, adjoin, create_aduser_group):
+            multihost, adjoin, create_aduser_group,
+            enable_sshd_password_auth):
         """
         :title: IDM-SSSD-TC: ad_provider: ad_parameters: segfault when
          HostID back end target is not configured bz1071823
