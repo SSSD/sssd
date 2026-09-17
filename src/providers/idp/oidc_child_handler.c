@@ -229,7 +229,9 @@ errno_t set_oidc_common_args(const char **extra_args, size_t *c,
                              const char *client_id,
                              const char *client_secret,
                              const char *token_endpoint,
-                             const char *scope)
+                             const char *scope,
+                             bool use_gssapi,
+                             const char *keytab)
 {
     int ret;
 
@@ -253,7 +255,25 @@ errno_t set_oidc_common_args(const char **extra_args, size_t *c,
     }
     (*c)++;
 
-    if (client_secret != NULL) {
+    if (use_gssapi) {
+        extra_args[*c] = talloc_strdup(extra_args, "--client-use-gssapi");
+        if (extra_args[*c] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        (*c)++;
+
+        if (keytab != NULL) {
+            extra_args[*c] = talloc_asprintf(extra_args, "--keytab=%s", keytab);
+            if (extra_args[*c] == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+                ret = ENOMEM;
+                goto done;
+            }
+            (*c)++;
+        }
+    } else if (client_secret != NULL) {
         extra_args[*c] = talloc_strdup(extra_args,
                                        "--client-secret-stdin");
         if (extra_args[*c] == NULL) {

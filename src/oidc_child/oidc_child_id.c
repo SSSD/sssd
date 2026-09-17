@@ -474,6 +474,129 @@ done:
     return ret;
 }
 
+/* The following function will lookup users and groups based on Ahdapa's
+ * REST API at /api/identity/{users,groups}.  The JSON schema is compatible
+ * with keycloak_lookup() – username/name field presence drives type detection
+ * – but the URL prefix and query parameters differ. */
+errno_t ahdapa_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
+                       char *base_url,
+                       char *input, enum search_str_type input_type,
+                       bool libcurl_debug, const char *ca_db,
+                       const char *client_id, const char *client_secret,
+                       const char *token_endpoint, const char *scope,
+                       const char *bearer_token, struct rest_ctx *rest_ctx,
+                       char **out)
+{
+    errno_t ret;
+    char *uri;
+    char *input_enc;
+    const char *obj_id;
+    struct name_and_type_identifier ahdapa_map = {
+                            .user_identifier_attr = "username",
+                            .group_identifier_attr = "name",
+                            .user_name_attr = "username",
+                            .group_name_attr = "name" };
+
+    if (base_url == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing base URL in IdP type [ahdapa].\n");
+        return EINVAL;
+    }
+
+    input_enc = url_encode_string(rest_ctx, input);
+    if (input_enc == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to encode input [%s].\n", input);
+        return EINVAL;
+    }
+
+    switch (oidc_cmd) {
+    case GET_USER:
+    case GET_USER_GROUPS:
+        uri = talloc_asprintf(rest_ctx,
+                              "%s/api/identity/users?username=%s&exact=true",
+                              base_url, input_enc);
+        break;
+    case GET_GROUP:
+    case GET_GROUP_MEMBERS:
+        uri = talloc_asprintf(rest_ctx,
+                              "%s/api/identity/groups?search=%s&exact=true",
+                              base_url, input_enc);
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
+        return EINVAL;
+    }
+
+    if (uri == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate lookup URI.\n");
+        return ENOMEM;
+    }
+
+    clean_http_data(rest_ctx);
+    ret = do_http_request(rest_ctx, uri, NULL, bearer_token);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Search request failed.\n");
+        goto done;
+    }
+
+    if (oidc_cmd == GET_USER || oidc_cmd == GET_GROUP) {
+        ret = EOK;
+        goto done;
+    }
+
+    /* Phase 2: membership / member lookup */
+    obj_id = get_str_attr_from_json_array_string(rest_ctx,
+                                                 get_http_data(rest_ctx),
+                                                 "id");
+    if (obj_id == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to read mandatory object id.\n");
+        ret = EINVAL;
+        goto done;
+    }
+
+    switch (oidc_cmd) {
+    case GET_USER_GROUPS:
+        uri = talloc_asprintf(rest_ctx,
+                              "%s/api/identity/users/%s/groups",
+                              base_url, obj_id);
+        break;
+    case GET_GROUP_MEMBERS:
+        uri = talloc_asprintf(rest_ctx,
+                              "%s/api/identity/groups/%s/members",
+                              base_url, obj_id);
+        break;
+    default:
+        DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
+        ret = EINVAL;
+        goto done;
+    }
+
+    if (uri == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate Phase 2 URI.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    clean_http_data(rest_ctx);
+    ret = do_http_request_json_data(rest_ctx, uri, NULL, bearer_token);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Member(of) search request failed.\n");
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    if (ret == EOK && out != NULL) {
+        ret = add_posix_to_json_string_array(mem_ctx, &ahdapa_map,
+                                             0, get_http_data(rest_ctx), out);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to add POSIX data.\n");
+        }
+    }
+
+    return ret;
+}
+
 errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     char *idp_type,
                     char *input, enum search_str_type input_type,
@@ -481,7 +604,8 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                     const char *client_id, const char *client_secret,
                     const char *pkcs12_client_creds,
                     enum client_auth_method client_auth_method,
-                    const char *token_endpoint, const char *scope, char **out)
+                    const char *token_endpoint, const char *scope,
+                    bool use_gssapi, char **out)
 {
     errno_t ret;
     struct rest_ctx *rest_ctx;
@@ -493,15 +617,20 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
         return EINVAL;
     }
 
-    if (client_id == NULL || client_secret == NULL || token_endpoint == NULL
-            || input == NULL) {
+    if (client_id == NULL || token_endpoint == NULL || input == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Missing required argument.\n");
+        return EINVAL;
+    }
+
+    if (!use_gssapi && client_secret == NULL
+            && client_auth_method == CAM_SECRET) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing client_secret (required without GSSAPI).\n");
         return EINVAL;
     }
 
     rest_ctx = get_rest_ctx(mem_ctx, libcurl_debug, ca_db,
                             pkcs12_client_creds, client_auth_method,
-                            client_secret);
+                            client_secret, use_gssapi);
     if (rest_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get REST context.\n");
         return ENOMEM;
@@ -535,6 +664,11 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                               libcurl_debug, ca_db, client_id, client_secret,
                               token_endpoint, scope, bearer_token, rest_ctx,
                               out);
+    } else if (idp_type != NULL && strncasecmp(idp_type, "ahdapa:", 7) == 0) {
+        ret = ahdapa_lookup(mem_ctx, oidc_cmd, base_url, input, input_type,
+                             libcurl_debug, ca_db, client_id, client_secret,
+                             token_endpoint, scope, bearer_token, rest_ctx,
+                             out);
     } else if (idp_type == NULL
                || strcasecmp(idp_type, "entra_id") == 0
                || strncasecmp(idp_type, "entra_id:", 9) == 0) {

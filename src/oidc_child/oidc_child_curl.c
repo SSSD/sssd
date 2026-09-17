@@ -29,6 +29,7 @@
 
 struct rest_ctx {
     bool libcurl_debug;
+    bool use_gssapi;
     const char *ca_db;
     const char *pkcs12_client_creds;
     enum client_auth_method client_auth_method;
@@ -63,7 +64,7 @@ struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
                               const char *ca_db,
                               const char *pkcs12_client_creds,
                               enum client_auth_method client_auth_method,
-                              const char *key_passwd)
+                              const char *key_passwd, bool use_gssapi)
 {
     struct rest_ctx *rest_ctx;
 
@@ -74,6 +75,7 @@ struct rest_ctx *get_rest_ctx(TALLOC_CTX *mem_ctx, bool libcurl_debug,
     }
 
     rest_ctx->libcurl_debug = libcurl_debug;
+    rest_ctx->use_gssapi = use_gssapi;
     if (ca_db != NULL) {
         rest_ctx->ca_db = talloc_strdup(rest_ctx, ca_db);
         if (rest_ctx->ca_db == NULL) {
@@ -363,7 +365,20 @@ static errno_t set_http_opts(CURL *curl_ctx, struct rest_ctx *rest_ctx,
         }
     }
 
-    if (token != NULL) {
+    if (rest_ctx->use_gssapi) {
+        res = curl_easy_setopt(curl_ctx, CURLOPT_HTTPAUTH, CURLAUTH_GSSNEGOTIATE);
+        if (res != CURLE_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set GSSAPI/Negotiate auth.\n");
+            ret = EIO;
+            goto done;
+        }
+        res = curl_easy_setopt(curl_ctx, CURLOPT_USERPWD, ":");
+        if (res != CURLE_OK) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to set empty credentials for GSSAPI.\n");
+            ret = EIO;
+            goto done;
+        }
+    } else if (token != NULL) {
         res = curl_easy_setopt(curl_ctx, CURLOPT_HTTPAUTH, CURLAUTH_BEARER);
         if (res != CURLE_OK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to set HTTP auth.\n");
