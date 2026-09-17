@@ -1104,9 +1104,13 @@ def test_ipa__subids_configured(client: Client, ipa: IPA, config: str):
             f"uid=admin,cn=users,cn=accounts,{ipa.naming_context}",
             "Secret123",
             subids=True,
+            check_config=False,
         )
-    client.sssd.common.subid()
-    client.sssd.start()
+        client.sssd.common.subid()
+        client.sssd.start(check_config=False)
+    else:
+        client.sssd.common.subid()
+        client.sssd.start()
 
     subuid = client.tools.getsubid("user1")
     assert subuid is not None, "Found no subuids for User1!"
