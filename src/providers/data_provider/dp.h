@@ -204,7 +204,7 @@ default_account_domain_send(TALLOC_CTX *mem_ctx,
                             struct dp_req_params *params);
 errno_t default_account_domain_recv(TALLOC_CTX *mem_ctx,
                                     struct tevent_req *req,
-                                    struct dp_reply_std *data);
+                                    dp_no_output *_no_output);
 
 struct sbus_connection *
 dp_sbus_conn(struct data_provider *provider);

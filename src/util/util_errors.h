@@ -182,6 +182,7 @@ enum sssd_errors {
     ERR_CA_DB_NOT_FOUND,
 
     ERR_SERVER_FAILURE,
+    ERR_NO_MORE_SERVERS,
 
     ERR_LAST            /* ALWAYS LAST */
 };

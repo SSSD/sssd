@@ -2907,10 +2907,9 @@ static void sdap_get_initgr_user_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
-    int dp_error = DP_ERR_FATAL;
     int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
@@ -3442,9 +3441,15 @@ static void sdap_get_initgr_pgid(struct tevent_req *subreq)
             tevent_req_callback_data(subreq, struct tevent_req);
     errno_t ret;
 
-    ret = groups_get_recv(subreq, NULL, NULL);
+    ret = groups_get_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    /* dont error here on ENOENT, it causes the initgroups operation to fail
+     * if a user has no groups stored in the backend (common LDAP case) */
+    if (ret == ENOENT) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Initgroups operation groups_get_recv() "
+                                 "returned ENOENT, continuing\n");
+        ret = EOK;
+    } else if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
     }
