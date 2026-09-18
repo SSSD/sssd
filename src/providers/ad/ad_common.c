@@ -166,6 +166,7 @@ ad_create_sdap_options(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+    id_opts->dp = dp;
 
     ret = dp_get_options(id_opts, cdb, conf_path,
                          ad_def_ldap_opts,
