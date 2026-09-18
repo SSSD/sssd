@@ -474,7 +474,6 @@ dist_noinst_SCRIPTS = \
     contrib/ci/configure.sh \
     contrib/ci/deps.sh \
     contrib/ci/distro.sh \
-    contrib/ci/get-matrix.py \
     contrib/ci/rpm-spec-builddeps \
     contrib/ci/valgrind-condense \
     contrib/gdb/sssd_gdb_plugin.py \
