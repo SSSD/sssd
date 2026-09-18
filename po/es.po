@@ -18,14 +18,14 @@
 # Pavel Brezina <pbrezina@redhat.com>, 2025, 2026.
 # "Fco. Javier F. Serrador" <fserrador@gmail.com>, 2025, 2026.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025, 2026.
+# Rafael Fontenelle <rafaelff@gnome.org>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-04-23 16:39+0000\n"
-"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
-"memory@weblate.org>\n"
+"PO-Revision-Date: 2026-06-18 20:10+0000\n"
+"Last-Translator: \"Fco. Javier F. Serrador\" <fserrador@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
 "Language: es\n"
@@ -33,7 +33,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.6.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -182,7 +182,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:55
 msgid "Tune passkey verification behavior"
-msgstr "Ajustar la verificación del certificado"
+msgstr "Ajustar el comportamiento de verificación de la clave de acceso"
 
 #: src/config/SSSDConfig/sssdoptions.py:58
 msgid "Enumeration cache timeout length (seconds)"
@@ -417,7 +417,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:113
 msgid "Allow passkey device authentication."
-msgstr "Permitir la autentificación del dispositivo con clave de acceso."
+msgstr "Permitir la autenticación del dispositivo con clave de acceso."
 
 #: src/config/SSSDConfig/sssdoptions.py:114
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
