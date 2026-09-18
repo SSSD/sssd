@@ -4959,6 +4959,8 @@ endif
 
 memberof_la_SOURCES = \
     src/ldb_modules/memberof.c \
+    src/ldb_modules/memberof_transaction.c \
+    src/ldb_modules/memberof_transaction.h \
     src/util/util.c \
     src/util/util_ext.c \
     $(NULL)

@@ -2850,6 +2850,17 @@ static errno_t sysdb_store_group_attrs(struct sss_domain_info *domain,
                                        uint64_t cache_timeout,
                                        time_t now);
 
+static bool sysdb_group_identity_matches(struct ldb_message *cached_group,
+                                         struct sysdb_attrs *attrs);
+
+static errno_t sysdb_rename_group(struct sss_domain_info *domain,
+                                  struct ldb_message *cached_group,
+                                  const char *name,
+                                  gid_t gid,
+                                  struct sysdb_attrs *attrs,
+                                  uint64_t cache_timeout,
+                                  time_t now);
+
 int sysdb_store_group(struct sss_domain_info *domain,
                       const char *name,
                       gid_t gid,
@@ -2964,6 +2975,115 @@ done:
     return ret;
 }
 
+static bool sysdb_group_identity_matches(struct ldb_message *cached_group,
+                                         struct sysdb_attrs *attrs)
+{
+    static const char *stable_attrs[] = { SYSDB_SID_STR, SYSDB_UUID, NULL };
+    const char *cached_value;
+    const char *incoming_value;
+    bool compared = false;
+    int i;
+    errno_t ret;
+
+    for (i = 0; stable_attrs[i] != NULL; i++) {
+        cached_value = ldb_msg_find_attr_as_string(cached_group,
+                                                   stable_attrs[i], NULL);
+        ret = sysdb_attrs_get_string(attrs, stable_attrs[i],
+                                     &incoming_value);
+        if (cached_value == NULL || ret != EOK) {
+            continue;
+        }
+
+        compared = true;
+        if (strcmp(cached_value, incoming_value) != 0) {
+            return false;
+        }
+    }
+
+    if (compared) {
+        return true;
+    }
+
+    cached_value = ldb_msg_find_attr_as_string(cached_group, SYSDB_ORIG_DN,
+                                                NULL);
+    ret = sysdb_attrs_get_string(attrs, SYSDB_ORIG_DN, &incoming_value);
+    return cached_value != NULL && ret == EOK
+        && strcmp(cached_value, incoming_value) == 0;
+}
+
+static errno_t sysdb_rename_group(struct sss_domain_info *domain,
+                                  struct ldb_message *cached_group,
+                                  const char *name,
+                                  gid_t gid,
+                                  struct sysdb_attrs *attrs,
+                                  uint64_t cache_timeout,
+                                  time_t now)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message_element *name_el;
+    struct sysdb_attrs *name_attrs;
+    struct ldb_dn *new_dn;
+    errno_t ret;
+    errno_t tret;
+    int lret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = sysdb_attrs_get_el_ext(attrs, SYSDB_NAME, false, &name_el);
+    if (ret == ENOENT) {
+        ret = sysdb_attrs_add_string(attrs, SYSDB_NAME, name);
+    }
+    if (ret != EOK) {
+        goto done;
+    }
+
+    new_dn = sysdb_group_dn(tmp_ctx, domain, name);
+    if (new_dn == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+
+    lret = ldb_rename(domain->sysdb->ldb, cached_group->dn, new_dn);
+    ret = sysdb_error_to_errno(lret);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "Could not rename cached group: %d\n", ret);
+        goto done;
+    }
+
+    /* The open transaction can expose the new RDN before the stored name
+     * attribute changes, making the generic no-op check suppress this write. */
+    name_attrs = sysdb_new_attrs(tmp_ctx);
+    if (name_attrs == NULL) {
+        ret = ENOMEM;
+        goto done;
+    }
+    ret = sysdb_attrs_add_string(name_attrs, SYSDB_NAME, name);
+    if (ret != EOK) {
+        goto done;
+    }
+    ret = sysdb_set_cache_entry_attr(domain->sysdb->ldb, new_dn,
+                                     name_attrs, SYSDB_MOD_REP);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Could not update the renamed group name: %d\n", ret);
+        goto done;
+    }
+
+    tret = sysdb_delete_ts_entry(domain->sysdb, cached_group->dn);
+    if (tret != EOK) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not remove the old group timestamp entry: %d\n", tret);
+    }
+
+    ret = sysdb_store_group_attrs(domain, name, gid, attrs,
+                                  cache_timeout, now);
+done:
+    talloc_zfree(tmp_ctx);
+    return ret;
+}
 
 static errno_t sysdb_store_new_group(struct sss_domain_info *domain,
                                      const char *name,
@@ -2972,6 +3092,11 @@ static errno_t sysdb_store_new_group(struct sss_domain_info *domain,
                                      uint64_t cache_timeout,
                                      time_t now)
 {
+    static const char *identity_attrs[] = {
+        SYSDB_SID_STR, SYSDB_UUID, SYSDB_ORIG_DN, NULL
+    };
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_message *cached_group;
     errno_t ret;
 
     /* group doesn't exist, turn into adding a group */
@@ -2981,6 +3106,26 @@ static errno_t sysdb_store_new_group(struct sss_domain_info *domain,
          * same GID, remove it and try to add the basic group again
          */
         DEBUG(SSSDBG_TRACE_LIBS, "sysdb_add_group failed: [EEXIST].\n");
+        if (gid != 0) {
+            tmp_ctx = talloc_new(NULL);
+            if (tmp_ctx == NULL) {
+                return ENOMEM;
+            }
+
+            ret = sysdb_search_group_by_gid(tmp_ctx, domain, gid,
+                                            identity_attrs, &cached_group);
+            if (ret == EOK
+                    && sysdb_group_identity_matches(cached_group, attrs)) {
+                DEBUG(SSSDBG_TRACE_LIBS,
+                      "Renaming a cached group with a verified identity.\n");
+                ret = sysdb_rename_group(domain, cached_group, name, gid,
+                                         attrs, cache_timeout, now);
+                talloc_zfree(tmp_ctx);
+                return ret;
+            }
+
+            talloc_zfree(tmp_ctx);
+        }
         ret = sysdb_delete_group(domain, NULL, gid);
         if (ret == ENOENT) {
             /* Not found by GID, return the original EEXIST,
