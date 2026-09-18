@@ -260,8 +260,8 @@ errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     }
 
     if (out != NULL) {
-        *out = get_json_string_array_by_id_list(mem_ctx, rest_ctx, bearer_token,
-                                                id_list);
+        *out = get_json_string_array_by_id_list(mem_ctx, rest_ctx, base_url,
+                                                bearer_token, id_list);
         if (*out == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to get objects by ID.\n");
             ret = EIO;

@@ -186,6 +186,7 @@ char *get_json_string_array_from_json_string(TALLOC_CTX *mem_ctx,
 
 char *get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
                                        struct rest_ctx *rest_ctx,
+                                       const char *base_url,
                                        const char *bearer_token,
                                        const char **id_list);
 
