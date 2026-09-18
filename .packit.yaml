@@ -32,27 +32,39 @@ jobs:
     trigger: commit
     packages:
       - upstream
-    targets:
+    targets: &copr_targets
       - fedora-all
       - centos-stream-10
+    sync_test_job_statuses_with_builds: False
 
   # Produce COPR build on each pull request
   - job: copr_build
     trigger: pull_request
     packages:
       - upstream
-    targets:
-      - fedora-all
-      - centos-stream-10
+    targets: *copr_targets
+    sync_test_job_statuses_with_builds: False
 
-  # Run TMT tests after COPR builds complete
+  # Run TMT tests after COPR builds complete, always on a Fedora-latest
+  # Testing Farm guest regardless of which target the build was for.
+  - job: tests
+    trigger: commit
+    packages:
+      - upstream
+    targets: *copr_targets
+    skip_install: True
+    tf_extra_params: &tests_tf_extra_params
+      environments:
+        - os:
+            compose: Fedora-latest
+
   - job: tests
     trigger: pull_request
     packages:
       - upstream
-    targets:
-      - fedora-all
-      - centos-stream-10
+    skip_install: True
+    targets: *copr_targets
+    tf_extra_params: *tests_tf_extra_params
 
   # Create Fedora pull request on release
   - job: propose_downstream

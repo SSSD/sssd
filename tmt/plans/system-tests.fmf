@@ -1,0 +1,144 @@
+summary: SSSD System Tests
+description: Run SSSD system tests on sssd-ci-containers.
+tag: system
+
+provision:
+  how: virtual
+  hardware:
+    memory: ">= 16 GB"
+
+prepare:
+  - name: Install and load kernel module for passkey testing
+    how: shell
+    script: |
+      set -ex -o pipefail
+
+      dnf install -y kernel-modules-extra-$(uname -r)
+      modprobe vhci_hcd
+
+  - name: Install system tests dependencies
+    how: shell
+    script: |
+      set -ex -o pipefail
+
+      # Build dependencies for python-ldap and the test framework.
+      dnf install -y \
+        ansifilter \
+        cyrus-sasl-devel \
+        gcc \
+        git \
+        libssh-devel \
+        openldap-devel \
+        openssl-devel \
+        python3-devel \
+        python3-pip \
+        yq
+
+      # Install the python test dependencies into a virtual environment.
+      # It must live outside $TMT_TREE to avoid clean up between steps.
+      python3 -m venv /tmp/venv
+      source /tmp/venv/bin/activate
+      pip3 install -r "$TMT_TREE/src/tests/system/requirements.txt"
+
+  - name: Setup containers and install ci-* commands
+    how: shell
+    url: https://github.com/pbrezina/sssd-ci-containers.git
+    ref: tmt
+    script: $TMT_PREPARE_SHELL_URL_REPOSITORY/tmt/setup.sh
+
+  - name: Install SSSD from the COPR build
+    how: shell
+    script: ci-install-copr --where "client ipa"
+
+  - name: Restart SSSD on the IPA server
+    how: shell
+    script: ci-exec --where ipa --user root -- systemctl restart sssd
+
+  - name: Select tests from the pull request diff and store it in SELECT_TESTS
+    how: shell
+    script: ci-select-tests --repo SSSD/sssd
+
+  # - name: Patch the SSH configuration on the client
+  #   how: shell
+  #   script: |
+  #   ci-exec --where client --user root <<'EOF'
+  #     #!/bin/bash
+  #     test -x /usr/bin/sss_ssh_knownhosts && \
+  #       sed -e 's/GlobalKnownHostsFile/#GlobalKnownHostsFile/' \
+  #         -e 's|ProxyCommand /usr/bin/sss_ssh_knownhostsproxy -p %p %h|KnownHostsCommand /usr/bin/sss_ssh_knownhosts %H|' \
+  #         -i /etc/ssh/ssh_config.d/04-ipa.conf
+  #   EOF
+
+  # - name: Wait for samba domain connectivity
+  #   how: shell
+  #   script: |
+  #   set -e -o pipefail
+  #   echo "Wait for samba domain connectivity..."
+  #   for i in $(seq 1 90); do
+  #     if ci-exec --where client --user root -- \
+  #        timeout 10s getent passwd Administrator@samba.test >/dev/null 2>&1; then
+  #     echo "Domain connectivity ready (${i}s)"
+  #     break
+  #     fi
+  #     if [ "$i" -eq 90 ]; then
+  #     echo "User resolution not ready after 90 attempts, proceeding with tests anyway"
+  #     fi
+  #     sleep 1
+  #   done
+
+discover:
+  how: shell
+  tests:
+    - name: /system
+      summary: Run the SSSD system test suite
+      order: 20
+      duration: 6h
+      test: |
+        set -e -o pipefail
+
+        # Print containers images
+        echo "Using these sssd-ci-container images:"
+        podman images
+
+        # Print sssd and ipa version
+        echo ""
+        echo "Package versions on client container:"
+        ci-exec --where client -- 'rpm -qa | grep -E "ipa|sssd" | sort'
+
+        echo ""
+        echo "Package versions on ipa container:"
+        ci-exec --where ipa -- 'rpm -qa | grep -E "ipa|sssd" | sort'
+
+        cd "$TMT_TREE/src/tests/system"
+        source /tmp/venv/bin/activate
+
+        # Print the selected tests
+        echo ""
+        echo "Filtering tests:"
+        if [ -n "${SELECT_TESTS:-}" ]; then
+          echo "$SELECT_TESTS" | sed 's/ or /\n/g' | sort | sed 's/^/  - /'
+        else
+          echo "  - <all>"
+        fi
+        echo ""
+
+        # Remove AD from mhc.yaml
+        yq -i 'del(.domains[0].hosts[] | select(.role == "ad"))' "$TMT_TREE/src/tests/system/mhc.yaml"
+
+        # Run the test. Artifacts go into $TMT_TEST_DATA, which tmt links to
+        # this test case in the results (unlike $TMT_PLAN_DATA, which is
+        # shared across the whole plan and not tied to any individual test).
+        pytest \
+          --durations=0 \
+          --color=yes \
+          --show-capture=no \
+          --mh-config=./mhc.yaml \
+          --mh-artifacts-dir="$TMT_TEST_DATA/artifacts" \
+          -k "${SELECT_TESTS:-}" \
+          -vvv . |& tee "$TMT_TEST_DATA/pytest-colored.log" || rc=$?
+
+        ansifilter "$TMT_TEST_DATA/pytest-colored.log" -o "$TMT_TEST_DATA/pytest.log"
+        exit "${rc:-0}"
+
+execute:
+  how: tmt
