@@ -129,10 +129,6 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
 {
     const char *user_identifier = NULL;
     static const char *default_attrs[] = { "sub", "id", NULL };
-    const char *configured_attrs[2] = { NULL, NULL };
-    const char **attr_lists[2];
-    size_t n_lists = 0;
-    size_t list_i;
     size_t c;
 
     if (userinfo == NULL) {
@@ -140,26 +136,14 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
         return NULL;
     }
 
-    /* Prefer the configured attribute when set, then fall back to the
-     * provider defaults. Fallback matters for hybrid Entra deployments that
-     * also contain cloud-only users without onPremisesImmutableId. */
     if (user_identifier_attr != NULL && *user_identifier_attr != '\0') {
-        configured_attrs[0] = user_identifier_attr;
-        attr_lists[n_lists++] = configured_attrs;
-    }
-    attr_lists[n_lists++] = default_attrs;
-
-    for (list_i = 0; list_i < n_lists && user_identifier == NULL; list_i++) {
-        for (c = 0; attr_lists[list_i][c] != NULL; c++) {
-            /* Skip default attrs already tried as the configured attr. */
-            if (list_i > 0 && user_identifier_attr != NULL
-                    && strcmp(attr_lists[list_i][c],
-                              user_identifier_attr) == 0) {
-                continue;
-            }
-
+        user_identifier = identifier_from_attr(mem_ctx, userinfo,
+                                               user_identifier_attr,
+                                               user_info_type);
+    } else {
+        for (c = 0; default_attrs[c] != NULL; c++) {
             user_identifier = identifier_from_attr(mem_ctx, userinfo,
-                                                   attr_lists[list_i][c],
+                                                   default_attrs[c],
                                                    user_info_type);
             if (user_identifier != NULL) {
                 break;
@@ -177,4 +161,3 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
 
     return user_identifier;
 }
-

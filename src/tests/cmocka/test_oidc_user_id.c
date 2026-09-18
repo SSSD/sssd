@@ -87,6 +87,62 @@ static void test_configured_plain_attr(void **state)
     talloc_free(mem_ctx);
 }
 
+static void test_default_prefers_sub(void **state)
+{
+    TALLOC_CTX *mem_ctx;
+    json_t *userinfo;
+    const char *id;
+
+    mem_ctx = talloc_new(NULL);
+    assert_non_null(mem_ctx);
+
+    userinfo = json_pack("{s:s, s:s}",
+                         "id", "cloud-id",
+                         "sub", "subject-value");
+    assert_non_null(userinfo);
+
+    id = get_user_identifier(mem_ctx, userinfo, NULL, "userinfo");
+    assert_non_null(id);
+    assert_string_equal(id, "subject-value");
+
+    id = get_user_identifier(mem_ctx, userinfo, "", "userinfo");
+    assert_non_null(id);
+    assert_string_equal(id, "subject-value");
+
+    json_decref(userinfo);
+    talloc_free(mem_ctx);
+}
+
+static void test_configured_plain_attr_unavailable_returns_null(void **state)
+{
+    TALLOC_CTX *mem_ctx;
+    json_t *userinfo;
+    const char *id;
+    const char *responses[] = {
+        "{\"id\":\"should-not-be-used\"}",
+        "{\"sub\":null,\"id\":\"should-not-be-used\"}",
+        "{\"sub\":false,\"id\":\"should-not-be-used\"}",
+        "{\"sub\":[],\"id\":\"should-not-be-used\"}",
+        "{\"sub\":{},\"id\":\"should-not-be-used\"}"
+    };
+    size_t c;
+
+    mem_ctx = talloc_new(NULL);
+    assert_non_null(mem_ctx);
+
+    for (c = 0; c < N_ELEMENTS(responses); c++) {
+        userinfo = json_loads(responses[c], 0, NULL);
+        assert_non_null(userinfo);
+
+        id = get_user_identifier(mem_ctx, userinfo, "sub", "userinfo");
+        assert_null(id);
+
+        json_decref(userinfo);
+    }
+
+    talloc_free(mem_ctx);
+}
+
 static void test_onprem_immutable_id_decode(void **state)
 {
     TALLOC_CTX *mem_ctx;
@@ -145,51 +201,7 @@ static void test_onprem_immutable_id_second_vector(void **state)
     talloc_free(mem_ctx);
 }
 
-static void test_onprem_missing_falls_back_to_id(void **state)
-{
-    TALLOC_CTX *mem_ctx;
-    json_t *userinfo;
-    const char *id;
-
-    mem_ctx = talloc_new(NULL);
-    assert_non_null(mem_ctx);
-
-    userinfo = json_pack("{s:s}", "id", "entra-cloud-only-id");
-    assert_non_null(userinfo);
-
-    id = get_user_identifier(mem_ctx, userinfo,
-                             "onPremisesImmutableId", "userinfo");
-    assert_non_null(id);
-    assert_string_equal(id, "entra-cloud-only-id");
-
-    json_decref(userinfo);
-    talloc_free(mem_ctx);
-}
-
-static void test_onprem_null_falls_back_to_id(void **state)
-{
-    TALLOC_CTX *mem_ctx;
-    json_t *userinfo;
-    const char *id;
-
-    mem_ctx = talloc_new(NULL);
-    assert_non_null(mem_ctx);
-
-    userinfo = json_pack("{s:n, s:s}",
-                         "onPremisesImmutableId",
-                         "id", "fallback-id");
-    assert_non_null(userinfo);
-
-    id = get_user_identifier(mem_ctx, userinfo,
-                             "onPremisesImmutableId", "userinfo");
-    assert_non_null(id);
-    assert_string_equal(id, "fallback-id");
-
-    json_decref(userinfo);
-    talloc_free(mem_ctx);
-}
-
-static void test_onprem_invalid_b64_falls_back(void **state)
+static void test_onprem_missing_returns_null(void **state)
 {
     TALLOC_CTX *mem_ctx;
     json_t *userinfo;
@@ -199,20 +211,65 @@ static void test_onprem_invalid_b64_falls_back(void **state)
     assert_non_null(mem_ctx);
 
     userinfo = json_pack("{s:s, s:s}",
-                         "onPremisesImmutableId", "not-valid-base64!!!",
-                         "id", "fallback-after-bad-b64");
+                         "id", "entra-cloud-only-id",
+                         "sub", "should-not-be-used");
     assert_non_null(userinfo);
 
     id = get_user_identifier(mem_ctx, userinfo,
                              "onPremisesImmutableId", "userinfo");
-    assert_non_null(id);
-    assert_string_equal(id, "fallback-after-bad-b64");
+    assert_null(id);
 
     json_decref(userinfo);
     talloc_free(mem_ctx);
 }
 
-static void test_onprem_wrong_length_falls_back(void **state)
+static void test_onprem_null_returns_null(void **state)
+{
+    TALLOC_CTX *mem_ctx;
+    json_t *userinfo;
+    const char *id;
+
+    mem_ctx = talloc_new(NULL);
+    assert_non_null(mem_ctx);
+
+    userinfo = json_pack("{s:n, s:s, s:s}",
+                         "onPremisesImmutableId",
+                         "id", "should-not-be-used",
+                         "sub", "should-not-be-used");
+    assert_non_null(userinfo);
+
+    id = get_user_identifier(mem_ctx, userinfo,
+                             "onPremisesImmutableId", "userinfo");
+    assert_null(id);
+
+    json_decref(userinfo);
+    talloc_free(mem_ctx);
+}
+
+static void test_onprem_invalid_b64_returns_null(void **state)
+{
+    TALLOC_CTX *mem_ctx;
+    json_t *userinfo;
+    const char *id;
+
+    mem_ctx = talloc_new(NULL);
+    assert_non_null(mem_ctx);
+
+    userinfo = json_pack("{s:s, s:s, s:s}",
+                         "onPremisesImmutableId", "not-valid-base64!!!",
+                         "id", "should-not-be-used",
+                         "sub", "should-not-be-used");
+    assert_non_null(userinfo);
+
+    id = get_user_identifier(mem_ctx, userinfo,
+                             "onPremisesImmutableId", "userinfo");
+    assert_null(id);
+
+    json_decref(userinfo);
+    talloc_free(mem_ctx);
+}
+
+static void test_onprem_wrong_length_returns_null(void **state)
 {
     TALLOC_CTX *mem_ctx;
     json_t *userinfo;
@@ -226,17 +283,47 @@ static void test_onprem_wrong_length_falls_back(void **state)
     b64 = sss_base64_encode(mem_ctx, short_blob, sizeof(short_blob));
     assert_non_null(b64);
 
-    userinfo = json_pack("{s:s, s:s}",
+    userinfo = json_pack("{s:s, s:s, s:s}",
                          "onPremisesImmutableId", b64,
-                         "id", "fallback-wrong-len");
+                         "id", "should-not-be-used",
+                         "sub", "should-not-be-used");
     assert_non_null(userinfo);
 
     id = get_user_identifier(mem_ctx, userinfo,
                              "onPremisesImmutableId", "userinfo");
-    assert_non_null(id);
-    assert_string_equal(id, "fallback-wrong-len");
+    assert_null(id);
 
     json_decref(userinfo);
+    talloc_free(mem_ctx);
+}
+
+static void test_onprem_empty_or_wrong_type_returns_null(void **state)
+{
+    TALLOC_CTX *mem_ctx;
+    json_t *userinfo;
+    const char *id;
+    const char *responses[] = {
+        "{\"onPremisesImmutableId\":\"\","
+        "\"sub\":\"should-not-be-used\",\"id\":\"should-not-be-used\"}",
+        "{\"onPremisesImmutableId\":123,"
+        "\"sub\":\"should-not-be-used\",\"id\":\"should-not-be-used\"}"
+    };
+    size_t c;
+
+    mem_ctx = talloc_new(NULL);
+    assert_non_null(mem_ctx);
+
+    for (c = 0; c < N_ELEMENTS(responses); c++) {
+        userinfo = json_loads(responses[c], 0, NULL);
+        assert_non_null(userinfo);
+
+        id = get_user_identifier(mem_ctx, userinfo,
+                                 "onPremisesImmutableId", "userinfo");
+        assert_null(id);
+
+        json_decref(userinfo);
+    }
+
     talloc_free(mem_ctx);
 }
 
@@ -271,13 +358,16 @@ int main(int argc, const char *argv[])
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_default_uses_id),
+        cmocka_unit_test(test_default_prefers_sub),
         cmocka_unit_test(test_configured_plain_attr),
+        cmocka_unit_test(test_configured_plain_attr_unavailable_returns_null),
         cmocka_unit_test(test_onprem_immutable_id_decode),
         cmocka_unit_test(test_onprem_immutable_id_second_vector),
-        cmocka_unit_test(test_onprem_missing_falls_back_to_id),
-        cmocka_unit_test(test_onprem_null_falls_back_to_id),
-        cmocka_unit_test(test_onprem_invalid_b64_falls_back),
-        cmocka_unit_test(test_onprem_wrong_length_falls_back),
+        cmocka_unit_test(test_onprem_missing_returns_null),
+        cmocka_unit_test(test_onprem_null_returns_null),
+        cmocka_unit_test(test_onprem_invalid_b64_returns_null),
+        cmocka_unit_test(test_onprem_wrong_length_returns_null),
+        cmocka_unit_test(test_onprem_empty_or_wrong_type_returns_null),
         cmocka_unit_test(test_missing_all_returns_null),
     };
 

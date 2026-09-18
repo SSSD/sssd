@@ -214,9 +214,11 @@
                         <para>
                             If the configured attribute is missing or cannot be
                             decoded (for example cloud-only Entra users without
-                            <quote>onPremisesImmutableId</quote>), SSSD falls
-                            back to the provider default attributes
-                            (<quote>sub</quote>/<quote>id</quote>).
+                            <quote>onPremisesImmutableId</quote>), authentication
+                            fails. SSSD does not fall back to the provider
+                            default attributes
+                            (<quote>sub</quote>/<quote>id</quote>) when an
+                            identifier attribute is explicitly configured.
                         </para>
                         <para>
                             Note: Microsoft Graph does not return
