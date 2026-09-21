@@ -393,8 +393,8 @@ class TestBugzillaAutomation(object):
         result = True
         for user in user_list:
             ad_user = '%s@%s' % (user, ad_realm)
-            res = client.auth_from_client(ad_user, 'Secret123')
-            result = result and (res == 3)
+            # Use su instead of SSH: STIG disables PasswordAuthentication
+            result = result and client.su_success(ad_user, 'Secret123')
 
         for user in user_list:
             group = '%s_group' % (user)
