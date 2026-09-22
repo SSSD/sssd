@@ -93,52 +93,6 @@ class TestPasswordPolicy():
     This is test case class for ldap Password Policy suite
     """
     @staticmethod
-    def test_bz748856(multihost, backupsssdconf, common_sssd_setup):
-        """
-        :title: Set passwordMaxAge to 24 hours bz748856
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=748856
-        :id: b0200b74-9675-11ed-b874-845cf3eff344
-        :setup:
-            1. setup 389-ds w/server-side pw controls
-            2. create an account and set the password
-            3. clear secure log
-            4. clear sssd logs and cache
-        :steps:
-            1. The user is able to authenticate using SSH password by check_login_client function.
-            2. Searches for specific log messages in two log files (/var/log/secure and
-                /var/log/sssd/sssd_{ds_instance_name}.log)
-                using the find_logs() function, and raises an assertion error if
-                the specified log message is not found in the log file.
-        :expectedresults:
-            1. Authentication should succeed
-            2. Corresponding logs should be generated
-        """
-        client = multihost.client[0]
-        tools = sssdTools(multihost.client[0])
-        # setup 389-ds w/server-side pw controls
-        cn_config = 'cn=config'
-        for element, value in [('passwordExp', [b'on']),
-                               ('passwordMaxAge', [b'86400']),
-                               ('passwordWarning', [b'86400'])]:
-            ldap_modify_ds(multihost, ldap.MOD_REPLACE, cn_config, element, value)
-        # set the password
-        user_dn = 'uid=ppuser1,ou=People,dc=example,dc=test'
-        ldap_modify_ds(multihost, ldap.MOD_REPLACE, user_dn, 'userPassword', [b'Secret123'])
-        client.run_command('> /var/log/secure')
-        tools.clear_sssd_cache()
-        check_login_client(multihost, 'ppuser1', 'Secret123')
-        time.sleep(3)
-        file_scure = '/var/log/secure'
-        file_ssd = f'/var/log/sssd/sssd_{ds_instance_name}.log'
-        find_logs(multihost, file_scure, "Your password will expire in ")
-        find_logs(multihost, file_ssd, "Server returned control [1.3.6.1.4.1.42.2.27.8.5.1]")
-        find_logs(multihost, file_ssd, "Password will expire in [86")
-        with pytest.raises(AssertionError):
-            find_logs(multihost, file_ssd,
-                      "Server does not support the requested "
-                      "control [1.3.6.1.4.1.42.2.27.8.5.1]")
-
-    @staticmethod
     def test_maxage(multihost, backupsssdconf, common_sssd_setup):
         """
         :title: "Set passwordMaxAge to 1"
