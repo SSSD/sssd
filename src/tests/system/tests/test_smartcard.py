@@ -611,12 +611,14 @@ def test_smartcard__certificate_owner_resolved_with_full_name_format(client: Cli
     ), f"Certificate owner was not resolved with full_name_format applied! stderr={result.stderr}"
 
 
+@pytest.mark.skip("Temporarily disabled due to changes in OpenSSL4")
 @pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.Client)
 @pytest.mark.parametrize("cert_selection", [1, 2])
 def test_smartcard__certificate_owner_resolved_with_two_tokens_and_missing_name(client: Client, cert_selection: int):
     """
     :title: allow_missing_name resolves the certificate owner when two tokens are present
+    :description: OpenSSL4 is in Fedora <= 44, most backports this test needs to be enabled.
     :setup:
         1. Create a local user
         2. Reset the certificate CA trust store to a clean state
