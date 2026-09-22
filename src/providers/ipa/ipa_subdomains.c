@@ -2895,17 +2895,14 @@ static void ipa_domain_refresh_kdcinfo_done(struct tevent_req *subreq);
 static void ipa_subdomains_refresh_error_or_retry(struct tevent_req *req,
                                                   errno_t ret)
 {
-    int dp_error;
     struct ipa_subdomains_refresh_state *state;
 
     state = tevent_req_data(req, struct ipa_subdomains_refresh_state);
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (dp_error == DP_ERR_OK && ret != EOK) {
+    ret = sdap_id_op_done(state->sdap_op, ret);
+    if (ret == EAGAIN) {
         /* retry */
         ret = ipa_subdomains_refresh_retry(req);
-    } else if (dp_error == DP_ERR_OFFLINE) {
-        ret = ERR_OFFLINE;
     }
 
     /* EAGAIN is the expected return value of ipa_subdomains_refresh_retry()
