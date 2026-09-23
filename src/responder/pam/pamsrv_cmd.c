@@ -1002,8 +1002,10 @@ errno_t pam_get_auth_types(struct pam_data *pd,
     }
 
     DEBUG(SSSDBG_TRACE_ALL, "Authentication types for user [%s] and service "
-                            "[%s]:%s%s%s%s%s\n", pd->user, pd->service,
-                            types.password_auth ? " password": "",
+                            "[%s]:%s%s%s%s%s\n",
+                            pd->user ? pd->user : "-",
+                            pd->service ? pd->service : "-",
+                            types.password_auth ? " password" : "",
                             types.otp_auth ? " two-factor" : "",
                             types.passkey_auth ? " passkey" : "",
                             types.oauth2_auth ? " oauth2" : "",
@@ -1897,6 +1899,13 @@ get_domain_request_type(struct pam_auth_req *preq,
 
     /* By default, only POSIX domains are to be contacted */
     req_dom_type = CACHE_REQ_POSIX_DOM;
+
+    /* SSS_PAM_ITEM_SERVICE is optional in the client protocol, so the service
+     * may be unset. Without a service name it can never match a configured
+     * application service, so fall back to the POSIX default. */
+    if (preq->pd->service == NULL) {
+        return req_dom_type;
+    }
 
     for (int i = 0; pctx->app_services[i]; i++) {
         if (strcmp(pctx->app_services[i], preq->pd->service) == 0) {
