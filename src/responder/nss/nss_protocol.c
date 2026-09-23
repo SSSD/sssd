@@ -101,11 +101,14 @@ done:
     sss_nss_protocol_done(cli_ctx, ret);
 }
 
-errno_t
-sss_nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname)
+static errno_t
+sss_nss_get_input_body(struct cli_ctx *cli_ctx,
+                       size_t min_len,
+                       bool require_terminator,
+                       uint8_t **_body,
+                       size_t *_blen)
 {
     struct cli_protocol *pctx;
-    const char *rawname;
     uint8_t *body;
     size_t blen;
 
@@ -113,16 +116,37 @@ sss_nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname)
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
-    /* If the body is empty fail. */
-    if (blen == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
+    if (require_terminator && min_len < 1) {
+        min_len = 1;
+    }
+
+    if (blen < min_len) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Body too short!\n");
         return EINVAL;
     }
 
-    /* If not terminated fail. */
-    if (body[blen - 1] != '\0') {
+    if (require_terminator && body[blen - 1] != '\0') {
         DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated!\n");
         return EINVAL;
+    }
+
+    *_body = body;
+    *_blen = blen;
+
+    return EOK;
+}
+
+errno_t
+sss_nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname)
+{
+    const char *rawname;
+    uint8_t *body;
+    size_t blen;
+    errno_t ret;
+
+    ret = sss_nss_get_input_body(cli_ctx, 1, true, &body, &blen);
+    if (ret != EOK) {
+        return ret;
     }
 
     /* If the body isn't valid UTF-8, fail */
@@ -146,20 +170,19 @@ errno_t
 sss_nss_protocol_parse_name_ex(struct cli_ctx *cli_ctx, const char **_rawname,
                            uint32_t *_flags)
 {
-    struct cli_protocol *pctx;
     const char *rawname;
     uint8_t *body;
     size_t blen;
     uint8_t *p;
     uint32_t flags;
+    errno_t ret;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
-
-    sss_packet_get_body(pctx->creq->in, &body, &blen);
-
-    if (blen < 1 + sizeof(uint32_t)) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Body too short!\n");
-        return EINVAL;
+    /* The trailing uint32_t flags follow the NUL-terminated name, so the
+     * terminator is not the last byte; check its position ourselves below. */
+    ret = sss_nss_get_input_body(cli_ctx, 1 + sizeof(uint32_t), false,
+                                 &body, &blen);
+    if (ret != EOK) {
+        return ret;
     }
 
     /* If first argument not terminated fail. */
@@ -264,7 +287,6 @@ sss_nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
                             const char **_name,
                             const char **_protocol)
 {
-    struct cli_protocol *pctx;
     const char *protocol;
     const char *name;
     size_t protocol_len;
@@ -272,21 +294,11 @@ sss_nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
     uint8_t *body;
     size_t blen;
     int i;
+    errno_t ret;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
-
-    sss_packet_get_body(pctx->creq->in, &body, &blen);
-
-    /* If the body is empty fail. */
-    if (blen == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
-        return EINVAL;
-    }
-
-    /* If not terminated fail. */
-    if (body[blen - 1] != '\0') {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated\n");
-        return EINVAL;
+    ret = sss_nss_get_input_body(cli_ctx, 1, true, &body, &blen);
+    if (ret != EOK) {
+        return ret;
     }
 
     /* Calculate service name length. */
@@ -327,28 +339,17 @@ sss_nss_protocol_parse_svc_port(struct cli_ctx *cli_ctx,
                             uint16_t *_port,
                             const char **_protocol)
 {
-    struct cli_protocol *pctx;
     const char *protocol;
     size_t protocol_len;
     uint16_t port;
     uint8_t *body;
     size_t blen;
     int i;
+    errno_t ret;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
-
-    sss_packet_get_body(pctx->creq->in, &body, &blen);
-
-    /* If the body is empty fail. */
-    if (blen == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
-        return EINVAL;
-    }
-
-    /* If not terminated fail. */
-    if (body[blen - 1] != '\0') {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated\n");
-        return EINVAL;
+    ret = sss_nss_get_input_body(cli_ctx, 1, true, &body, &blen);
+    if (ret != EOK) {
+        return ret;
     }
 
     SAFEALIGN_COPY_UINT16(&port, body, NULL);
@@ -379,7 +380,6 @@ errno_t
 sss_nss_protocol_parse_cert(struct cli_ctx *cli_ctx,
                         const char **_derb64)
 {
-    struct cli_protocol *pctx;
     const char *derb64;
     size_t pem_size;
     char *pem_cert;
@@ -387,20 +387,9 @@ sss_nss_protocol_parse_cert(struct cli_ctx *cli_ctx,
     size_t blen;
     errno_t ret;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
-
-    sss_packet_get_body(pctx->creq->in, &body, &blen);
-
-    /* If the body is empty fail. */
-    if (blen == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
-        return EINVAL;
-    }
-
-    /* If not terminated fail. */
-    if (body[blen - 1] != '\0') {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated\n");
-        return EINVAL;
+    ret = sss_nss_get_input_body(cli_ctx, 1, true, &body, &blen);
+    if (ret != EOK) {
+        return ret;
     }
 
     derb64 = (const char *)body;
@@ -427,7 +416,6 @@ errno_t
 sss_nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
                        const char **_sid)
 {
-    struct cli_protocol *pctx;
     struct sss_nss_ctx *nss_ctx;
     const char *sid;
     uint8_t *bin_sid;
@@ -435,22 +423,13 @@ sss_nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
     uint8_t *body;
     size_t blen;
     enum idmap_error_code err;
+    errno_t ret;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sss_nss_ctx);
 
-    sss_packet_get_body(pctx->creq->in, &body, &blen);
-
-    /* If the body is empty fail. */
-    if (blen == 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
-        return EINVAL;
-    }
-
-    /* If not terminated fail. */
-    if (body[blen - 1] != '\0') {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated\n");
-        return EINVAL;
+    ret = sss_nss_get_input_body(cli_ctx, 1, true, &body, &blen);
+    if (ret != EOK) {
+        return ret;
     }
 
     sid = (const char *)body;
@@ -479,7 +458,6 @@ sss_nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
                         uint32_t *_addrlen,
                         uint8_t **_addr)
 {
-    struct cli_protocol *pctx;
     uint8_t *body;
     size_t blen;
     uint32_t af;
@@ -487,13 +465,12 @@ sss_nss_protocol_parse_addr(struct cli_ctx *cli_ctx,
     socklen_t addrlen;
     char buf[INET6_ADDRSTRLEN];
     const char *addrstr = NULL;
+    errno_t ret;
 
-    pctx = talloc_get_type(cli_ctx->protocol_ctx, struct cli_protocol);
-
-    sss_packet_get_body(pctx->creq->in, &body, &blen);
-
-    if (blen < sizeof(uint32_t) * 2) {
-        return EINVAL;
+    ret = sss_nss_get_input_body(cli_ctx, sizeof(uint32_t) * 2, false,
+                                 &body, &blen);
+    if (ret != EOK) {
+        return ret;
     }
 
     SAFEALIGN_COPY_UINT32(&af, body, NULL);
