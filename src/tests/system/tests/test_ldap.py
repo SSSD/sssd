@@ -842,6 +842,101 @@ def test_ldap__resolver_provider_lookup_services_by_port(client: Client, ldap: L
         raise AssertionError("No service entry found!")
 
 
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_service_when_port_is_out_range(client: Client, ldap: LDAP):
+    """
+    :title: Lookup a service when a port is out of range and the invalid port should not be returned using getent
+    :setup:
+        1. Create a service with port 1234567 (out of valid range)
+        2. Start SSSD
+    :steps:
+        1. Look up the service by name
+        2. Check SSSD domain log for port-range error
+    :expectedresults:
+        1. getent returns no result for the service
+        2. Log contains "Failed to identify service port" and "Numerical result out of range"
+    :customerscenario: False
+    """
+    ldap.services("svc_badport").add(port=1234567, protocol="udp", aliases=[])
+    client.sssd.start()
+
+    result = client.tools.getent.services("svc_badport", service="sss")
+    assert result is None, "Service with out-of-range port should not be returned!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert "Failed to identify service port" in log, "Expected port-out-of-range error in log!"
+    assert "Numerical result out of range" in log, "Expected 'Numerical result out of range' message in log!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_services_with_filtered_search_base(client: Client, ldap: LDAP):
+    """
+    :title: ldap_service_search_base with a protocol filter limits the returned services
+    :setup:
+        1. Create a TCP service
+        2. Create a UDP service
+        3. Configure ldap_service_search_base with a filter restricting to UDP protocol
+        4. Start SSSD
+    :steps:
+        1. Look up the UDP service
+        2. Look up the TCP service
+    :expectedresults:
+        1. UDP service is found
+        2. TCP service is not found (excluded by the filter)
+    :customerscenario: False
+    """
+    base = ldap.ldap.naming_context
+    ldap.services("svc_tcp").add(port=1234, protocol="tcp", aliases=[])
+    ldap.services("svc_udp").add(port=1234, protocol="udp", aliases=[])
+
+    client.sssd.dom("test")["ldap_service_search_base"] = f"ou=Services,{base}?one?(ipServiceProtocol=udp)"
+    client.sssd.start()
+
+    result = client.tools.getent.services("svc_udp", service="sss")
+    assert result is not None, "UDP service should be found with the protocol filter!"
+    assert result.name == "svc_udp"
+
+    result = client.tools.getent.services("svc_tcp", service="sss")
+    assert result is None, "TCP service should not be found with udp-only protocol filter!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_services_with_case_sensitivity_set_to_false(client: Client, ldap: LDAP):
+    """
+    :title: Service lookups succeed with mixed-case names and aliases when case_sensitive is false
+    :setup:
+        1. Create a service named "Svc1" with a mixed-case alias "SVC1_Alias1"
+        2. Configure SSSD with case_sensitive = false
+        3. Start SSSD
+    :steps:
+        1. Look up service using lowercase name "svc1"
+        2. Look up service using uppercase alias "svc1_alias1"
+        3. Look up service by port with mixed-case protocol "TCP"
+    :expectedresults:
+        1. Service is found regardless of case
+        2. Alias lookup succeeds regardless of case
+        3. Port/protocol lookup succeeds regardless of case
+    :customerscenario: False
+    """
+    ldap.services("Svc1").add(port=1234, protocol="tcp", aliases=["SVC1_Alias1"])
+
+    client.sssd.dom("test")["case_sensitive"] = "false"
+    client.sssd.start()
+
+    result = client.tools.getent.services("svc1", service="sss")
+    assert result is not None, "Service lookup should succeed with lowercase name when case_sensitive=false!"
+    assert result.port == 1234
+
+    result = client.tools.getent.services("svc1_alias1", service="sss")
+    assert result is not None, "Service alias lookup should succeed case-insensitively!"
+
+    result = client.tools.getent.services("1234/TCP", service="sss")
+    assert result is not None, "Service port/protocol lookup should succeed with uppercase protocol!"
+
+
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize("timeout, expect_expire", [(15, True), (0, True), (-100, True)])
 @pytest.mark.importance("medium")
