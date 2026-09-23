@@ -511,28 +511,38 @@ static int pam_parse_in_data(struct pam_data *pd,
     size_t last;
     int ret;
 
+    /* A valid v1 request holds five NUL-terminated strings (user, service,
+     * tty, ruser, rhost) followed by two auth tokens. Each string needs at
+     * least its terminator and each auth token needs a type+length header,
+     * so anything smaller is malformed.
+     */
+    if (blen < (5 + 2*2*sizeof(uint32_t))) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Received data is invalid.\n");
+        return EINVAL;
+    }
+
     last = blen - 1;
     end = 0;
 
     /* user name */
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->logon_name = (char *) &body[start];
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->service = (char *) &body[start];
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->tty = (char *) &body[start];
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->ruser = (char *) &body[start];
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->rhost = (char *) &body[start];
 
     ret = extract_authtok_v1(pd->authtok, body, blen, &end);
