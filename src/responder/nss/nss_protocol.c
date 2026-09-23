@@ -293,7 +293,7 @@ sss_nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
     size_t name_len;
     uint8_t *body;
     size_t blen;
-    int i;
+    size_t i;
     errno_t ret;
 
     ret = sss_nss_get_input_body(cli_ctx, 1, true, &body, &blen);
@@ -301,17 +301,25 @@ sss_nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
         return ret;
     }
 
-    /* Calculate service name length. */
+    /* Calculate service name length. The trailing NULL guaranteed by
+     * sss_nss_get_input_body() bounds this scan. */
     for (i = 0, name_len = 0; body[i] != '\0'; i++) {
         name_len++;
     }
 
-    /* Calculate protocol name length, use index from previous cycle. */
-    for (protocol_len = 0; body[i + 1] != '\0'; i++) {
+    if (name_len == 0) {
+        return EINVAL;
+    }
+
+    /* Calculate protocol name length. The protocol field follows the service
+     * name's NULL terminator; bound the scan by blen so a request without a
+     * second terminator cannot read past the packet body. */
+    for (i = name_len + 1, protocol_len = 0; i < blen && body[i] != '\0'; i++) {
         protocol_len++;
     }
 
-    if (name_len == 0) {
+    if (i >= blen) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated\n");
         return EINVAL;
     }
 
@@ -347,7 +355,14 @@ sss_nss_protocol_parse_svc_port(struct cli_ctx *cli_ctx,
     int i;
     errno_t ret;
 
-    ret = sss_nss_get_input_body(cli_ctx, 1, true, &body, &blen);
+    /* The request body is an 8-byte fixed header followed by a NUL-terminated
+     * protocol string: bytes 0-1 hold the 16-bit port (network byte order),
+     * bytes 2-3 and 4-7 are zero padding (a uint16 then a uint32), and the
+     * protocol string starts at byte 8. Require the whole header plus at least
+     * the protocol's terminating NUL. */
+    ret = sss_nss_get_input_body(cli_ctx,
+                                 2 * sizeof(uint16_t) + sizeof(uint32_t) + 1,
+                                 true, &body, &blen);
     if (ret != EOK) {
         return ret;
     }
