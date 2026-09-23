@@ -290,7 +290,7 @@
                         <para>
                             <emphasis>demand</emphasis> to use FAST. The
                             authentication fails if the server does not
-                            require fast.
+                            support FAST.
                         </para>
                         <para>
                             Default: not set, i.e. FAST is not used.
