@@ -113,6 +113,12 @@ sss_nss_protocol_parse_name(struct cli_ctx *cli_ctx, const char **_rawname)
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
+    /* If the body is empty fail. */
+    if (blen == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
+        return EINVAL;
+    }
+
     /* If not terminated fail. */
     if (body[blen - 1] != '\0') {
         DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated!\n");
@@ -271,6 +277,12 @@ sss_nss_protocol_parse_svc_name(struct cli_ctx *cli_ctx,
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
+    /* If the body is empty fail. */
+    if (blen == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
+        return EINVAL;
+    }
+
     /* If not terminated fail. */
     if (body[blen - 1] != '\0') {
         DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated\n");
@@ -327,6 +339,12 @@ sss_nss_protocol_parse_svc_port(struct cli_ctx *cli_ctx,
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
+    /* If the body is empty fail. */
+    if (blen == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
+        return EINVAL;
+    }
+
     /* If not terminated fail. */
     if (body[blen - 1] != '\0') {
         DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated\n");
@@ -373,6 +391,12 @@ sss_nss_protocol_parse_cert(struct cli_ctx *cli_ctx,
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
+    /* If the body is empty fail. */
+    if (blen == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
+        return EINVAL;
+    }
+
     /* If not terminated fail. */
     if (body[blen - 1] != '\0') {
         DEBUG(SSSDBG_CRIT_FAILURE, "Body is not null terminated\n");
@@ -416,6 +440,12 @@ sss_nss_protocol_parse_sid(struct cli_ctx *cli_ctx,
     nss_ctx = talloc_get_type(cli_ctx->rctx->pvt_ctx, struct sss_nss_ctx);
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
+
+    /* If the body is empty fail. */
+    if (blen == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Empty body!\n");
+        return EINVAL;
+    }
 
     /* If not terminated fail. */
     if (body[blen - 1] != '\0') {
