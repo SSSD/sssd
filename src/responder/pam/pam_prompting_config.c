@@ -262,7 +262,7 @@ static errno_t pam_set_prompting_options(struct confdb_ctx *cdb,
 
 
     dummy = talloc_asprintf(tmp_ctx, "%s/%s", section_path,
-                                              service_name);
+                            service_name ? service_name : "-");
     for (c = 0; c < num_sections; c++) {
         if (strcmp(sections[c], section_path) == 0) {
             global = true;
