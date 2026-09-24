@@ -775,16 +775,28 @@ char *get_json_string_array_from_json_string(TALLOC_CTX *mem_ctx,
     return out;
 }
 
+/* Microsoft graph resolves at most GRAPH_GET_BY_IDS_MAX object ids
+ * per getByIds request.
+ * https://learn.microsoft.com/en-us/graph/api/directoryobject-getbyids
+ */
+#define GRAPH_GET_BY_IDS_MAX 1000
+
 char *get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
                                        struct rest_ctx *rest_ctx,
+                                       const char *base_url,
                                        const char *bearer_token,
                                        const char **id_list)
 {
     errno_t ret;
-    char *uri;
+    char *uri = NULL;
+    char *body;
     size_t c;
+    size_t n;
     json_t *array;
-    json_t *item;
+    json_t *ids;
+    json_t *request;
+    json_t *reply = NULL;
+    json_t *value;
     json_error_t json_error;
     char *out = NULL;
     char *tmp;
@@ -795,38 +807,79 @@ char *get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    for (c = 0; id_list[c] != NULL; c++) {
-        uri = talloc_asprintf(rest_ctx,
-                              "https://graph.microsoft.com/v1.0/directoryObjects/%s",
-                              id_list[c]);
-        if (uri == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to generate uri for id [%s].\n",
-                                     id_list[c]);
+    uri = talloc_asprintf(rest_ctx, "%s/directoryObjects/getByIds", base_url);
+    if (uri == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate lookup URI.\n");
+        goto done;
+    }
+
+    c = 0;
+    while (id_list[c] != NULL) {
+        ids = json_array();
+        if (ids == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_array() failed.\n");
+            goto done;
+        }
+
+        for (n = 0; n < GRAPH_GET_BY_IDS_MAX && id_list[c] != NULL; n++, c++) {
+            if (json_array_append_new(ids, json_string(id_list[c])) != 0) {
+                DEBUG(SSSDBG_OP_FAILURE,
+                      "Failed to add id [%s] to the request.\n", id_list[c]);
+                json_decref(ids);
+                goto done;
+            }
+        }
+
+        request = json_pack("{s:o}", "ids", ids);
+        if (request == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_pack() failed.\n");
+            json_decref(ids);
+            goto done;
+        }
+
+        tmp = json_dumps(request, 0);
+        json_decref(request);
+        if (tmp == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_dumps() failed.\n");
+            goto done;
+        }
+
+        body = talloc_strdup(rest_ctx, tmp);
+        free(tmp);
+        if (body == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup() failed.\n");
             goto done;
         }
 
         clean_http_data(rest_ctx);
-        ret = do_http_request(rest_ctx, uri, NULL, bearer_token);
-        talloc_free(uri);
+        ret = do_http_request_json_data(rest_ctx, uri, body, bearer_token);
+        talloc_free(body);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Object search request failed.\n");
             goto done;
         }
 
-        item = json_loads(get_http_data(rest_ctx), 0, &json_error);
-        if (item == NULL) {
+        reply = json_loads(get_http_data(rest_ctx), 0, &json_error);
+        if (reply == NULL) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "Failed to parse json data on line [%d]: [%s].\n",
                   json_error.line, json_error.text);
             goto done;
         }
 
-        ret = json_array_append(array, item);
-        json_decref(item);
-        if (ret != 0) {
-            DEBUG(SSSDBG_OP_FAILURE, "json_array_append() failed.\n");
+        value = json_object_get(reply, "value");
+        if (!json_is_array(value)) {
+            DEBUG(SSSDBG_OP_FAILURE, "Missing 'value' array in reply.\n");
             goto done;
         }
+
+        if (json_array_extend(array, value) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "json_array_extend() failed.\n");
+            goto done;
+        }
+
+        json_decref(reply);
+        reply = NULL;
     }
 
     tmp = json_dumps(array,0);
@@ -843,6 +896,8 @@ char *get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
     }
 
 done:
+    json_decref(reply);
+    talloc_free(uri);
     json_decref(array);
 
     return out;
