@@ -66,7 +66,6 @@ if __name__ == "__main__":
     centos = sorted(get_centos_matrix())
 
     matrix = {
-        'intgcheck': [*fedora, *centos],
         'multihost': [*fedora, *centos],
     }
 

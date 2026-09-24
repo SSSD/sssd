@@ -12,10 +12,12 @@ It accepts options to choose from two test sets: "essential", "moderate"
 (-e/-m), with the essential set selected by default.
 
 Essential tests include building everything and running the built-in test
-suite under Valgrind, completing in under 5 minutes.
+suite under Valgrind, completing in under 5 minutes. The same Valgrind check
+is also run by the GitHub Actions `make-distcheck` job
+(`.github/workflows/build.yml`).
 
-Moderate tests include essential tests, plus a distcheck target build. They
-complete in about 15 minutes.
+Moderate tests currently match the essential set. Distcheck lives in the
+GitHub Actions `make-distcheck` job rather than this script.
 
 Use `contrib/ci/clean` to remove test results from the source tree.
 
