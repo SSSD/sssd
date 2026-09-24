@@ -313,6 +313,10 @@ SSS_NSS_GETSIDBYGROUPNAME = 0x011D, /**< Takes a zero terminated fully qualified
                                      name and returns the zero terminated
                                      string representation of the SID of the
                                      group with the given name. */
+SSS_NSS_GETORIGBYUSERNAME_WITH_GROUPS = 0x011E, /**< Like GETORIGBYUSERNAME but
+                                     also includes groupMembership key-value
+                                     pairs with fully qualified group names
+                                     in the response. */
 
 
 /* subid */
