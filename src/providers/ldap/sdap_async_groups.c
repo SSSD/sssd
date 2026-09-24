@@ -2139,6 +2139,111 @@ int sdap_get_groups_recv(struct tevent_req *req,
     return EOK;
 }
 
+struct sdap_save_users_state {
+    struct tevent_context *ev;
+    struct sdap_options *opts;
+    struct sss_domain_info *dom;
+    struct sysdb_ctx *sysdb;
+    struct sysdb_attrs **users;
+    struct sysdb_attrs **users_step;
+    time_t now;
+    int num_users;
+};
+
+/* saving 100 users to SysDB takes approx 90ms */
+#define STEP_SIZE 100
+
+struct tevent_req *
+sdap_save_users_send(TALLOC_CTX *memctx,
+		     struct tevent_context *ev,
+                     struct sdap_options *opts,
+                     struct sss_domain_info *dom,
+                     struct sysdb_ctx *sysdb,
+                     struct sysdb_attrs **users,
+		     struct sysdb_attrs **users_step,
+                     int num_users,
+		     time_t now)
+{
+    struct tevent_req *req;
+    struct sdap_save_users_state *state;
+/*    errno_t ret;
+    int    chunk = num_users > STEP_SIZE ? STEP_SIZE : num_users; */
+
+    req = tevent_req_create(memctx, &state,
+                            struct sdap_save_users_state);
+    if (req == NULL) {
+        return NULL;
+    }
+
+//    DEBUG(SSSDBG_TRACE_INTERNAL, "Saving %d users (%d left)\n", chunk, num_users);
+    state->ev = ev;
+    state->opts = opts;
+    state->dom = dom;
+    state->sysdb = sysdb;
+    state->users = users;
+    state->users_step = users_step;
+//    state->num_users = num_users - chunk;
+    state->num_users = num_users;
+    state->now = now;
+
+/*    ret = sdap_save_users(state,
+                          state->sysdb,
+                          state->dom,
+                          state->opts,
+                          state->users_step,
+                          chunk,
+                          NULL,NULL);
+
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot save group members to sysdb [%d]: %s\n",
+              ret, sss_strerror(ret));
+        tevent_req_error(req, ret);
+    } */
+
+    return tevent_req_post(req, ev);
+}
+
+static void sdap_users_save_done(struct tevent_req *subreq)
+{
+    struct sdap_save_users_state *state;
+    struct tevent_req *subreq_step;
+    time_t now = time(NULL);
+
+    state = tevent_req_data(subreq, struct sdap_save_users_state);
+
+    if (state->num_users > 0 && now - state->now < 3) {
+       int    chunk = state->num_users > STEP_SIZE ? STEP_SIZE : state->num_users;
+
+       DEBUG(SSSDBG_TRACE_INTERNAL, "Saving %d users (%d left)\n", chunk, state->num_users);
+       sdap_save_users(state,
+                       state->sysdb,
+                       state->dom,
+                       state->opts,
+                       state->users_step,
+                       chunk,
+                       NULL,NULL);
+	    
+       subreq_step = sdap_save_users_send(state->ev, state->ev, state->opts,
+		       state->dom, state->sysdb, state->users,
+                     &state->users_step[STEP_SIZE], state->num_users - chunk, state->now);
+       talloc_zfree(subreq);
+       if (subreq_step == NULL){
+          tevent_req_error(subreq_step, ENOMEM);
+          return;
+       }
+       tevent_req_set_callback(subreq_step,
+                               sdap_users_save_done,
+                               subreq_step);
+       return;
+    }
+    if (now - state->now >= 3)
+        DEBUG(SSSDBG_TRACE_INTERNAL, "SysDB too slow, giving up saving group members!\n");
+    /* Everything stored */
+    talloc_zfree(state->users);
+    talloc_zfree(subreq);
+}
+
 static void sdap_nested_ext_done(struct tevent_req *subreq);
 
 static void sdap_nested_done(struct tevent_req *subreq)
@@ -2153,7 +2258,7 @@ static void sdap_nested_done(struct tevent_req *subreq)
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
     struct sdap_get_groups_state *state = tevent_req_data(req,
-                                            struct sdap_get_groups_state);
+                                          struct sdap_get_groups_state);
 
     ret = sdap_nested_group_recv(state, subreq, &user_count, &users,
                                  &group_count, &groups,
@@ -2199,6 +2304,25 @@ static void sdap_nested_done(struct tevent_req *subreq)
         goto fail;
     }
     in_transaction = false;
+
+    /* Store users in SysDB - Fire & Forget approach
+     * - is not necessary as the code works happily w/o this
+     *   (users would be stored as ghost members which is sufficient)
+     * - but since we received all attrs already, we just store them
+     * - advantage: Users stored can be used to speed up future nss
+     *         lookups (i.e. "getent passwd <user>") */
+    users = talloc_steal(state->ev, users);
+    subreq = sdap_save_users_send(state->ev, state->ev, state->opts, state->dom,
+		               state->sysdb,
+                               users, users,
+                               user_count, time(NULL));
+    if (subreq == NULL) {
+        ret = ENOMEM;
+        goto fail;
+    }
+    tevent_req_set_callback(subreq,
+                            sdap_users_save_done,
+                            subreq);
 
     if (hash_count(state->missing_external) == 0) {
         /* No external members. Processing complete */

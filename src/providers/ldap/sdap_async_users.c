@@ -168,7 +168,6 @@ static int sdap_user_set_mpg(struct sysdb_attrs *user_attrs,
     return EOK;
 }
 
-/* FIXME: support storing additional attributes */
 int sdap_save_user(TALLOC_CTX *memctx,
                    struct sdap_options *opts,
                    struct sss_domain_info *dom,
