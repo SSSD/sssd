@@ -338,7 +338,13 @@ static void be_check_online_done(struct tevent_req *req)
 
     ret = dp_req_recv_ptr(be_ctx, req, struct dp_reply_std, &reply);
     talloc_zfree(req);
-    if (ret != EOK) {
+    if (ret == ERR_OFFLINE) {
+        if (be_ctx->last_dp_state != DP_ERR_OFFLINE) {
+            be_ctx->last_dp_state = DP_ERR_OFFLINE;
+            sss_log(SSS_LOG_INFO, "Backend is offline\n");
+        }
+        DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline\n");
+    } else if (ret != EOK) {
         reply = NULL;
         goto done;
     }

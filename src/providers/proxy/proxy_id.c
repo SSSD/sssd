@@ -1939,7 +1939,6 @@ proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
     state->reply = proxy_account_info(state, id_ctx, data, params->be_ctx,
                                       params->be_ctx->domain);
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
     tevent_req_done(req);
     tevent_req_post(req, params->ev);
 
