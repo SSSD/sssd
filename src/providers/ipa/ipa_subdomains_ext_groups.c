@@ -1080,7 +1080,10 @@ static void ipa_add_trusted_memberships_get_group_done(struct tevent_req *subreq
 
     ret = groups_get_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        /* Dont error on ENOENT, behavior prior to refactoring was ignoring ENOENT */
+        ret = EOK;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to read group [%s] from LDAP [%d](%s)\n",
               state->groups[state->iter], ret, strerror(ret));
 
