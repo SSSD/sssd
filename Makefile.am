@@ -320,6 +320,7 @@ if HAVE_CMOCKA
         test_krb5_idp_plugin \
         test_sss_pam_data \
         test_pamsrv_json \
+        test_oidc_user_id \
         $(NULL)
 
 
@@ -2642,6 +2643,29 @@ if BUILD_SAMBA
 test_pamsrv_json_LDADD += $(NDR_KRB5PAC_LIBS)
 endif
 
+test_oidc_user_id_SOURCES = \
+    src/oidc_child/oidc_child_user_id.c \
+    src/util/string_utils.c \
+    src/tests/cmocka/test_oidc_user_id.c \
+    $(NULL)
+test_oidc_user_id_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(JANSSON_CFLAGS) \
+    $(CRYPTO_CFLAGS) \
+    $(NULL)
+test_oidc_user_id_LDADD = \
+    libsss_debug.la \
+    libsss_crypt.la \
+    libsss_test_common.la \
+    $(CMOCKA_LIBS) \
+    $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
+    $(JANSSON_LIBS) \
+    $(CRYPTO_LIBS) \
+    $(NULL)
+
 test_sss_pam_data_SOURCES = \
     src/util/sss_pam_data.c \
     src/tests/cmocka/test_sss_pam_data.c \
@@ -4918,6 +4942,7 @@ oidc_child_SOURCES = \
     src/oidc_child/oidc_child.c \
     src/oidc_child/oidc_child_curl.c \
     src/oidc_child/oidc_child_json.c \
+    src/oidc_child/oidc_child_user_id.c \
     src/oidc_child/oidc_child_id.c \
     src/oidc_child/libcrypto/oidc_child_get_jwk.c \
     src/util/child_bootstrap.c \
@@ -4925,6 +4950,8 @@ oidc_child_SOURCES = \
     src/util/memory.c \
     src/util/memory_erase.c \
     src/util/strtonum.c \
+    src/util/string_utils.c \
+    src/util/util_ext.c \
     src/util/sss_chain_id.c \
     src/util/sss_prctl.c \
     src/util/cert/libcrypto/cert.c \
@@ -4940,6 +4967,7 @@ oidc_child_CFLAGS = \
     $(NULL)
 oidc_child_LDADD = \
     libsss_debug.la \
+    libsss_crypt.la \
     $(TALLOC_LIBS) \
     $(POPT_LIBS) \
     $(JANSSON_LIBS) \
