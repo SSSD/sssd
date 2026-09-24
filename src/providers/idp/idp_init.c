@@ -393,6 +393,10 @@ errno_t sssm_idp_auth_init(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* Optional: attribute used as the authenticated user identifier. */
+    auth_ctx->auth_user_identifier_attr = dp_opt_get_cstring(init_ctx->opts,
+                                             IDP_AUTH_USER_IDENTIFIER_ATTR);
+
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
                   idp_pam_auth_handler_send, idp_pam_auth_handler_recv, auth_ctx,
                   struct idp_auth_ctx, struct pam_data, struct pam_data *);
