@@ -40,6 +40,14 @@ jobs:
         source ../contrib/fedora/bashrc_sssd
         make CFLAGS+="$SSS_WARNINGS -Werror" -j$PROCESSORS check
 
+    # Previously run by the intgcheck job via contrib/ci/run --moderate.
+    - name: make check-valgrind
+      shell: bash
+      working-directory: x86_64
+      run: |
+        source ../contrib/fedora/bashrc_sssd
+        ../contrib/ci/check-valgrind -j$PROCESSORS
+
     - name: make distcheck
       shell: bash
       working-directory: x86_64
@@ -57,6 +65,7 @@ jobs:
           x86_64/config.log
           x86_64/config.h
           x86_64/test-suite.log
+          x86_64/*.valgrind.log
         if-no-files-found: ignore
 
   freebsd:

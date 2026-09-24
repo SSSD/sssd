@@ -469,6 +469,7 @@ dist_noinst_SCRIPTS = \
     src/config/SSSDConfigTest.py3.sh \
     contrib/fedora/bashrc_sssd \
     contrib/fedora/make_srpm.sh \
+    contrib/ci/check-valgrind \
     contrib/ci/clean \
     contrib/ci/configure.sh \
     contrib/ci/deps.sh \

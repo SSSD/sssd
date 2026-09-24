@@ -45,12 +45,6 @@ declare DEPS_ONLY=false
 declare BASE_DIR=`pwd`
 declare MODERATE=false
 
-# Additional valgrind flags
-declare VALGRIND_FLAGS=""
-if [ -e "$CI_DIR/sssd.$DISTRO_ID.supp" ]; then
-    VALGRIND_FLAGS+=" --suppressions=\"$CI_DIR/sssd.$DISTRO_ID.supp\""
-fi
-
 # Output program usage information.
 function usage()
 {
@@ -129,10 +123,6 @@ function stage()
 # Run debug build checks.
 function build_debug()
 {
-    # Extended glob pattern matching tests to run under Valgrind.
-    # NOTE: The particular pattern below is inverted
-    declare valgrind_test_pattern="!(*.py|*/whitespace_test|"
-    declare -r valgrind_test_pattern+="*/double_semicolon_test)"
     export CFLAGS="$DEBUG_CFLAGS"
     declare test_dir
     declare status
@@ -143,21 +133,7 @@ function build_debug()
                                 --with-test-dir="$test_dir"
 
     status=0
-    CK_FORK=no \
-    DEBUGINFOD_URLS="" \
-        stage make-check-valgrind \
-                make -j $CPU_NUM check \
-                     LOG_COMPILER=libtool \
-                     LOG_FLAGS="--mode=execute \
-                                valgrind-condense 99 \
-                                \"$valgrind_test_pattern\" -- \
-                                --trace-children=yes \
-                                --trace-children-skip='*/bin/*,*/sbin/*,./dummy-child' \
-                                --leak-check=full \
-                                --gen-suppressions=all \
-                                --suppressions=\"$CI_DIR/sssd.supp\" \
-                                $VALGRIND_FLAGS \
-                                --verbose" ||
+    stage make-check-valgrind "$CI_DIR/check-valgrind" -j $CPU_NUM ||
             status=$?
     mv "$test_dir" ci-test-dir
     ((status == 0))
