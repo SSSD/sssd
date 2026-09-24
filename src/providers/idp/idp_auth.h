@@ -42,6 +42,7 @@ struct idp_auth_ctx {
     const char *device_auth_endpoint;
     const char *userinfo_endpoint;
     const char *scope;
+    const char *auth_user_identifier_attr;
 
     hash_table_t *token_refresh_table;
 };
