@@ -1912,11 +1912,11 @@ done:
 static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
 {
     int ret, tret, dp_error;
-    size_t num_results;
+    size_t num_results = 0;
     bool locked = false;
     const char *pwdAccountLockedTime;
     const char *pwdAccountLockedDurationTime;
-    struct sysdb_attrs **results;
+    struct sysdb_attrs **results = NULL;
     struct tevent_req *req;
     struct sdap_access_ppolicy_req_ctx *state;
 
@@ -1954,6 +1954,7 @@ static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_CONF_SETTINGS,
               "User [%s] was not found with the specified filter. "
               "Denying access.\n", state->username);
+        locked = true;
     } else if (results == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "num_results > 0, but results is NULL\n");
         ret = ERR_INTERNAL;
