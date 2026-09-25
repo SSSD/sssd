@@ -28,6 +28,8 @@ domains:
 
   - hostname: master.ipa.test
     role: ipa
+    conn:
+      timeout: 900
     config:
       client:
         ipa_domain: ipa.test
