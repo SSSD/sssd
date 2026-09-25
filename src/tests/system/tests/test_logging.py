@@ -14,6 +14,7 @@ See: https://github.com/SSSD/sssd/blob/77fc6ff1d83f1d8e20f519df7194a95d0abf7491/
 
 from __future__ import annotations
 
+import re
 import time
 
 import pytest
@@ -328,3 +329,45 @@ def test_logging__offline_errors_are_written_to_logs_and_syslog(client: Client, 
         time.sleep(2)
     else:
         pytest.fail("Offline error message is not in syslog!")
+
+
+@pytest.mark.integration
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=[1115508, 1460724])
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_logging__sssd_processes_send_logs_to_journald_with_distinct_identifiers(
+    client: Client, provider: GenericProvider
+):
+    """
+    :title: SSSD processes send debug logs to journald under their own distinct SYSLOG_IDENTIFIER
+    :setup:
+        1. Create user "user1" in the provider
+        2. Set ``DEBUG_LOGGER=--logger=journald`` in ``/etc/sysconfig/sssd``
+        3. Set ``debug_level = 9`` on the domain to guarantee log output
+        4. Start SSSD
+    :steps:
+        1. Look up "user1" via getent to trigger NSS and backend activity
+        2. Query journald for sssd_nss, sssd_be and sssd_pam syslog identifiers
+        3. Verify each returned JSON entry carries the correct SYSLOG_IDENTIFIER field
+    :expectedresults:
+        1. User lookup succeeds
+        2. Journal contains entries from all identifiers
+        3. Every JSON entry for identifier X has ``"SYSLOG_IDENTIFIER": "X"``
+    :customerscenario: False
+    """
+    provider.user("user1").add(password="Secret123")
+    client.fs.backup("/etc/sysconfig/sssd")
+    client.fs.write("/etc/sysconfig/sssd", "DEBUG_LOGGER=--logger=journald")
+    client.sssd.domain["debug_level"] = "9"
+    client.sssd.start()
+
+    assert client.tools.getent.passwd("user1"), "User lookup failed!"
+
+    for identifier in ("sssd_nss", "sssd_be", "sssd_pam"):
+        result = client.journald.journalctl(identifier=identifier, output="json")
+        assert (
+            result.rc == 0 and result.stdout.strip()
+        ), f"No journald entries found with SYSLOG_IDENTIFIER={identifier}!"
+        pattern = re.compile(r'"SYSLOG_IDENTIFIER"\s*:\s*"' + re.escape(identifier) + r'"')
+        assert pattern.search(result.stdout), f"SYSLOG_IDENTIFIER={identifier!r} not found in JSON journal output!"
