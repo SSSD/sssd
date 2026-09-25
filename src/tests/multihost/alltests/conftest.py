@@ -172,10 +172,12 @@ def localusers(session_multihost, request):
     for key, value in users.items():
         useradd = 'useradd -u %s %s' % (value, key)
         session_multihost.client[0].run_command(useradd, raiseonerr=False)
-        passwd = 'passwd --stdin %s' % (key)
-        session_multihost.client[0].run_command(passwd,
-                                                stdin_text='Secret123',
-                                                raiseonerr=False)
+        #passwd = 'passwd --stdin %s' % (key)
+        #session_multihost.client[0].run_command(passwd,
+        #                                        stdin_text='Secret123',
+        #                                        raiseonerr=False)
+        set_passwd = f'echo "{key}:Secret123" | chpasswd'
+        session_multihost.client[0].run_command(set_passwd, raiseonerr=False)
 
     def delusers():
         """ Delete local users """
