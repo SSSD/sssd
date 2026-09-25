@@ -942,3 +942,33 @@ def test_ldap__connection_expire_timeout_default_value_is_logged(client: Client,
     assert (
         "Option ldap_connection_expire_timeout has value 900" in log
     ), "Default ldap_connection_expire_timeout value (900) not found in domain log!"
+
+
+@pytest.mark.ticket(bz=748856)
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.parametrize("method", ["su", "ssh"])
+def test_ldap__display_password_expiration_warning(client: Client, ldap: LDAP, method: str):
+    """
+    :title: Display password expiration warning
+    :setup:
+        1. Set "passwordExp" to "on"
+        2. Set "passwordMaxAge" to "86400"
+        3. Set "passwordWarning" to "86400"
+        4. Add a user to LDAP
+        5. Start SSSD
+    :steps:
+        1. Authenticate as the user1 with password "Secret123"
+        2. Check that user was informed about password expiration.
+    :expectedresults:
+        1. Authentication should succeed.
+        2. Corresponding password expiration warning should be generated
+    :customerscenario: False
+    """
+    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "86400", "passwordWarning": "86400"})
+    ldap.user("user1").add(password="Secret123")
+    client.sssd.start()
+
+    rc, _, stdout, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
+    assert rc == 0, "User 'user1' login failed!"
+    assert "Your password will expire in " in stdout, "Password expiration warning not generated!"
