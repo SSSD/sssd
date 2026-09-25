@@ -1730,14 +1730,13 @@ static int get_initgr_groups_process(TALLOC_CTX *memctx,
 
 /* =Proxy_Id-Functions====================================================*/
 
-static struct dp_reply_std
+static errno_t
 proxy_account_info(TALLOC_CTX *mem_ctx,
                    struct proxy_id_ctx *ctx,
                    struct dp_id_data *data,
                    struct be_ctx *be_ctx,
                    struct sss_domain_info *domain)
 {
-    struct dp_reply_std reply;
     struct sysdb_ctx *sysdb;
     uid_t uid;
     gid_t gid;
@@ -1748,9 +1747,8 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
 
     /* Proxy provider does not support security ID lookups. */
     if (data->filter_type == BE_FILTER_SECID) {
-        dp_reply_std_set(&reply, DP_ERR_FATAL, ENOSYS,
-                         "Security lookups are not supported");
-        return reply;
+        DEBUG(SSSDBG_OP_FAILURE, "Security lookups are not supported\n");
+        return ERR_INVALID_FILTER;
     }
 
     switch (data->entry_type & BE_REQ_TYPE_MASK) {
@@ -1767,16 +1765,14 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         case BE_FILTER_IDNUM:
             uid = (uid_t) strtouint32(data->filter_value, &endptr, 10);
             if (errno || *endptr || (data->filter_value == endptr)) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
-                                 "Invalid attr type");
-                return reply;
+                DEBUG(SSSDBG_OP_FAILURE, "Malformed id: [%s]\n",
+                                         data->filter_value);
+                return ERR_INVALID_FILTER;
             }
             ret = get_pw_uid(ctx, domain, uid);
             break;
         default:
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
-                             "Invalid filter type");
-            return reply;
+            return ERR_INVALID_FILTER;
         }
         break;
 
@@ -1791,44 +1787,39 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         case BE_FILTER_IDNUM:
             gid = (gid_t) strtouint32(data->filter_value, &endptr, 10);
             if (errno || *endptr || (data->filter_value == endptr)) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
-                                 "Invalid attr type");
-                return reply;
+                DEBUG(SSSDBG_OP_FAILURE, "Malformed id: [%s]\n",
+                                         data->filter_value);
+                return ERR_INVALID_FILTER;
             }
             ret = get_gr_gid(mem_ctx, ctx, sysdb, domain, gid, 0);
             break;
         default:
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
-                             "Invalid filter type");
-            return reply;
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
+            return ERR_INVALID_FILTER;
         }
         break;
 
     case BE_REQ_INITGROUPS: /* init groups for user */
         if (data->filter_type != BE_FILTER_NAME) {
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
-                             "Invalid filter type");
-            return reply;
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
+            return ERR_INVALID_FILTER;
         }
         if (ctx->ops.initgroups_dyn == NULL) {
-            dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
-                             "Initgroups call not supported");
-            return reply;
+            DEBUG(SSSDBG_OP_FAILURE, "Initgroups call not supported\n");
+            return ERR_INTERNAL;
         }
         ret = get_initgr(mem_ctx, ctx, sysdb, domain, data->filter_value);
         break;
 
     case BE_REQ_NETGROUP:
         if (data->filter_type != BE_FILTER_NAME) {
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
-                             "Invalid filter type");
-            return reply;
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
+            return ERR_INVALID_FILTER;
         }
         if (ctx->ops.setnetgrent == NULL || ctx->ops.getnetgrent_r == NULL ||
             ctx->ops.endnetgrent == NULL) {
-            dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
-                             "Netgroups are not supported");
-            return reply;
+            DEBUG(SSSDBG_OP_FAILURE, "Netgroups call not supported\n");
+            return ERR_INTERNAL;
         }
 
         ret = get_netgroup(ctx, domain, data->filter_value);
@@ -1838,9 +1829,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         switch (data->filter_type) {
         case BE_FILTER_NAME:
             if (ctx->ops.getservbyname_r == NULL) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
-                                 "Services are not supported");
-                return reply;
+                return ERR_INTERNAL;
             }
             ret = get_serv_byname(ctx, domain,
                                   data->filter_value,
@@ -1848,9 +1837,8 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             break;
         case BE_FILTER_IDNUM:
             if (ctx->ops.getservbyport_r == NULL) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
-                                 "Services are not supported");
-                return reply;
+                DEBUG(SSSDBG_OP_FAILURE, "Services are not supported\n");
+                return ERR_INTERNAL;
             }
             ret = get_serv_byport(ctx, domain,
                                   data->filter_value,
@@ -1860,16 +1848,13 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             if (!ctx->ops.setservent
                     || !ctx->ops.getservent_r
                     || !ctx->ops.endservent) {
-                dp_reply_std_set(&reply, DP_ERR_FATAL, ENODEV,
-                                 "Services are not supported");
-                return reply;
+                return ERR_INTERNAL;
             }
             ret = enum_services(ctx, sysdb, domain);
             break;
         default:
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
-                             "Invalid filter type");
-            return reply;
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
+            return ERR_INVALID_FILTER;
         }
         break;
 
@@ -1878,9 +1863,7 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unexpected filter type for lookup by cert: %d\n",
                   data->filter_type);
-            dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
-                             "Unexpected filter type for lookup by cert");
-            return reply;
+            return ERR_INVALID_FILTER;
         }
 
         if (ctx->sss_certmap_ctx == NULL) {
@@ -1896,9 +1879,8 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
         break;
 
     default: /*fail*/
-        dp_reply_std_set(&reply, DP_ERR_FATAL, EINVAL,
-                         "Invalid filter type");
-        return reply;
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid filter type\n");
+        return ERR_INVALID_FILTER;
     }
 
     if (ret) {
@@ -1908,16 +1890,14 @@ proxy_account_info(TALLOC_CTX *mem_ctx,
             be_mark_offline(be_ctx);
         }
 
-        dp_reply_std_set(&reply, DP_ERR_FATAL, ret, NULL);
-        return reply;
+        return ret;
     }
 
-    dp_reply_std_set(&reply, DP_ERR_OK, EOK, NULL);
-    return reply;
+    return EOK;
 }
 
 struct proxy_account_info_handler_state {
-    struct dp_reply_std reply;
+    int dummy;
 };
 
 struct tevent_req *
@@ -1928,6 +1908,7 @@ proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
 {
     struct proxy_account_info_handler_state *state;
     struct tevent_req *req;
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct proxy_account_info_handler_state);
@@ -1936,11 +1917,14 @@ proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    state->reply = proxy_account_info(state, id_ctx, data, params->be_ctx,
+    ret = proxy_account_info(state, id_ctx, data, params->be_ctx,
                                       params->be_ctx->domain);
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, params->ev);
 
     return req;
@@ -1948,15 +1932,9 @@ proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t proxy_account_info_handler_recv(TALLOC_CTX *mem_ctx,
                                        struct tevent_req *req,
-                                       struct dp_reply_std *data)
+                                       dp_no_output *_no_output)
 {
-    struct proxy_account_info_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct proxy_account_info_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *data = state->reply;
 
     return EOK;
 }
