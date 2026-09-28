@@ -59,7 +59,8 @@ cache_req_create_result(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *domain,
                         struct ldb_result *ldb_result,
                         const char *lookup_name,
-                        const char *well_known_domain)
+                        const char *well_known_domain,
+                        struct sss_bot *bot)
 {
     struct cache_req_result *result;
 
@@ -89,6 +90,14 @@ cache_req_create_result(TALLOC_CTX *mem_ctx,
         }
     }
 
+    if (bot != NULL && domain->bot_accounts_enabled) {
+        result->bot = sss_bot_copy(result, bot);
+        if (result->bot == NULL) {
+            talloc_free(result);
+            return NULL;
+        }
+    }
+
     return result;
 }
 
@@ -108,7 +117,8 @@ cache_req_create_and_add_result(TALLOC_CTX *mem_ctx,
                     "Found %u entries in domain %s\n",
                     ldb_result->count, domain->name);
 
-    item = cache_req_create_result(mem_ctx, domain, ldb_result, name, NULL);
+    item = cache_req_create_result(mem_ctx, domain, ldb_result, name, NULL,
+                                   cr->data->bot);
     if (item == NULL) {
         return ENOMEM;
     }
@@ -208,7 +218,7 @@ cache_req_create_result_from_msg(TALLOC_CTX *mem_ctx,
     }
 
     result = cache_req_create_result(mem_ctx, domain, ldb_result,
-                                     lookup_name, well_known_domain);
+                                     lookup_name, well_known_domain, NULL);
     if (result == NULL) {
         talloc_free(ldb_result);
         return NULL;
@@ -258,6 +268,14 @@ cache_req_copy_limited_result(TALLOC_CTX *mem_ctx,
     out->lookup_name = result->lookup_name;
     out->count = ldb_result->count;
     out->msgs = ldb_result->msgs;
+
+    if (result->bot != NULL) {
+        out->bot = sss_bot_copy(out, result->bot);
+        if (out->bot == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
 
     ret = EOK;
 

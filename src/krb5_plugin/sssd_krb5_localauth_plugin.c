@@ -26,6 +26,10 @@
 #include <errno.h>
 
 #include <krb5/localauth_plugin.h>
+#include "util/sss_bot.h"
+
+enum nss_status _nss_sss_getpwuid_r(uid_t uid, struct passwd *result,
+                                    char *buffer, size_t buflen, int *errnop);
 
 enum nss_status _nss_sss_getpwnam_r(const char *name, struct passwd *result,
                                     char *buffer, size_t buflen, int *errnop);
@@ -47,6 +51,7 @@ static krb5_error_code sss_userok(krb5_context context,
     uid_t princ_uid;
     int ret;
     struct passwd *result = NULL;
+    struct sss_bot *bot = NULL;
 
     kerr = krb5_unparse_name(context, aname, &princ_str);
     if (kerr != 0) {
@@ -77,6 +82,41 @@ static krb5_error_code sss_userok(krb5_context context,
         goto done;
     }
 
+    /* For BOT principals, verify that:
+     *
+     * 1. The login name matches the BOT short name (without @REALM).
+     * 2. The UID encoded in the BOT principal matches the resolved user.
+     *
+     * This prevents a BOT ticket from being used to log in as the
+     * underlying real user and catches UID mismatches.
+     *
+     * Regular (non-BOT) principals are not affected and continue to use
+     * the UID-based comparison below, which allows user aliases.
+     */
+    ret = sss_bot_cli_parse(princ_str, &bot);
+    if (ret == EOK) {
+        if (pwd.pw_uid != bot->uid) {
+            ret = EPERM;
+            goto done;
+        }
+
+        if (pwd.pw_name == NULL || strcasecmp(bot->name, pwd.pw_name) != 0) {
+            ret = EPERM;
+            goto done;
+        }
+
+        if (lname == NULL || strcasecmp(bot->name, lname) != 0) {
+            ret = EPERM;
+            goto done;
+        }
+
+        /* BOT account is allowed to log in. */
+        ret = 0;
+        goto done;
+    } else if (ret != EINVAL) {
+        goto done;
+    }
+
     princ_uid = pwd.pw_uid;
 
     ret = getpwnam_r(lname, &pwd, buffer, buflen, &result);
@@ -97,6 +137,7 @@ static krb5_error_code sss_userok(krb5_context context,
     ret = 0;
 
 done:
+    sss_bot_cli_free(bot);
     krb5_free_unparsed_name(context, princ_str);
     free(buffer);
 
@@ -112,6 +153,7 @@ static krb5_error_code sss_an2ln(krb5_context context,
                                  const char *type, const char *residual,
                                  krb5_const_principal aname, char **lname_out)
 {
+    struct sss_bot *bot = NULL;
     krb5_error_code kerr;
     char *princ_str;
     struct passwd pwd = { 0 };
@@ -134,8 +176,20 @@ static krb5_error_code sss_an2ln(krb5_context context,
         goto done;
     }
 
-    nss_status = _nss_sss_getpwnam_r(princ_str, &pwd, buffer, buflen,
-                                     &nss_errno);
+    /* For BOT principals, parse the UID from the principal name and
+     * look up the original user by UID. For regular principals, look
+     * up by name as before. */
+    ret = sss_bot_cli_parse(princ_str, &bot);
+    if (ret == EOK) {
+        nss_status = _nss_sss_getpwuid_r(bot->uid, &pwd, buffer, buflen,
+                                         &nss_errno);
+    } else if (ret != EINVAL) {
+        goto done;
+    } else {
+        nss_status = _nss_sss_getpwnam_r(princ_str, &pwd, buffer, buflen,
+                                         &nss_errno);
+    }
+
     if (nss_status != NSS_STATUS_SUCCESS) {
         if (nss_status == NSS_STATUS_NOTFOUND) {
             ret = KRB5_LNAME_NOTRANS;
@@ -161,6 +215,7 @@ static krb5_error_code sss_an2ln(krb5_context context,
     ret = 0;
 
 done:
+    sss_bot_cli_free(bot);
     krb5_free_unparsed_name(context, princ_str);
     free(buffer);
 

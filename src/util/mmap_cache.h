@@ -76,7 +76,7 @@ typedef uint32_t rel_ptr_t;
 
 
 #define SSS_MC_MAJOR_VNO    1
-#define SSS_MC_MINOR_VNO    1
+#define SSS_MC_MINOR_VNO    2
 
 #define SSS_MC_HEADER_UNINIT    0   /* after ftruncate or before reset */
 #define SSS_MC_HEADER_ALIVE     1   /* current and in use */
@@ -114,10 +114,14 @@ struct sss_mc_rec {
     char data[0];
 };
 
+/* sss_mc_pwd_data flags */
+#define SSS_MC_PWD_BOT_ENABLED (1 << 0) /* domain allows bot accounts */
+
 struct sss_mc_pwd_data {
     rel_ptr_t name;         /* ptr to name string, rel. to struct base addr */
     uint32_t uid;
     uint32_t gid;
+    uint32_t flags;
     uint32_t strs_len;      /* length of strs */
     char strs[0];           /* concatenation of all passwd strings, each
                              * string is zero terminated ordered as follows:

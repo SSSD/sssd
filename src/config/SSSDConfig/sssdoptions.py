@@ -174,6 +174,7 @@ class SSSDOptions(object):
         'cache_credentials': _('Cache credentials for offline login'),
         'use_fully_qualified_names': _('Display users/groups in fully-qualified form'),
         'ignore_group_members': _('Don\'t include group members in group lookups'),
+        'bot_accounts_enabled': _('Enable bot accounts for this domain'),
         'entry_cache_timeout': _('Entry cache timeout length (seconds)'),
         'lookup_family_order': _('Restrict or prefer a specific address family when performing DNS lookups'),
         'account_cache_expiration': _('How long to keep cached entries after last successful login (days)'),
