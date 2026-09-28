@@ -138,6 +138,26 @@ obtain_oauth2_data(TALLOC_CTX *mem_ctx, struct pam_data *pd,
         ret = ENOMEM;
         goto done;
     }
+    offset += str_len + 1;
+
+    /* DARC: optional fourth string describing the confirmation code. */
+    if (offset < len) {
+        str_len = strnlen((const char *)oauth2 + offset, len - offset);
+        if (str_len >= (len - offset)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "confirmation string is not null-terminated within buffer bounds.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        if (str_len > 0) {
+            _auth_data->oauth2->confirmation =
+                talloc_strndup(mem_ctx, (const char *)oauth2 + offset, str_len);
+            if (_auth_data->oauth2->confirmation == NULL) {
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+    }
 
     _auth_data->oauth2->uri = talloc_steal(mem_ctx, uri);
     _auth_data->oauth2->code = talloc_steal(mem_ctx, code);
@@ -775,6 +795,38 @@ json_format_mechanisms(struct auth_data *auth_data, json_t **_list_mech)
             goto done;
         }
 
+        if (auth_data->oauth2->confirmation != NULL) {
+            char charset[32] = { 0 };
+            char delivery[32] = { 0 };
+            int length = 0;
+            json_t *json_confirmation;
+
+            if (sscanf(auth_data->oauth2->confirmation, "%31[^:]:%d:%31s",
+                       charset, &length, delivery) < 2 || length <= 0) {
+                DEBUG(SSSDBG_OP_FAILURE, "Malformed confirmation description.\n");
+                json_decref(json_oauth2);
+                ret = EINVAL;
+                goto done;
+            }
+
+            /* The UI asks for the code the verification page shows after
+             * the user approved, and returns it as "confirmationCode". */
+            json_confirmation = json_pack("{s:i,s:s,s:s,s:s}",
+                                          "length", length,
+                                          "charset", charset,
+                                          "delivery", delivery[0] != '\0'
+                                                        ? delivery : "page",
+                                          "prompt", _("Confirmation code"));
+            if (json_confirmation == NULL
+                    || json_object_set_new(json_oauth2, "confirmation",
+                                           json_confirmation) == -1) {
+                DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
+                json_decref(json_oauth2);
+                ret = ENOMEM;
+                goto done;
+            }
+        }
+
         ret = json_object_set_new(root, "eidp", json_oauth2);
         if (ret == -1) {
             DEBUG(SSSDBG_OP_FAILURE, "json_array_append failed.\n");
@@ -1112,6 +1164,14 @@ json_unpack_oauth2_code(TALLOC_CTX *mem_ctx, char *json_auth_msg,
 
     json_object_foreach(json_mechs, key, json_mech){
         if (strcmp(key, "eidp") == 0) {
+            /* DARC: the typed confirmation code is the answer; without it
+             * the UI echoes the device code (version 1). */
+            jobj = json_object_get(json_mech, "confirmationCode");
+            if (json_is_string(jobj)) {
+                oauth2_code = json_string_value(jobj);
+                ret = EOK;
+                goto done;
+            }
             json_object_foreach(json_mech, key, jobj){
                 if (strcmp(key, "code") == 0) {
                     oauth2_code = json_string_value(jobj);
