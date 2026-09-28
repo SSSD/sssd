@@ -811,6 +811,8 @@ int main(int argc, const char *argv[])
                     ret = ENOMEM;
                     goto done;
                 }
+                /* With PKCS#12 credentials the "secret" is its password. */
+                rest_ctx_set_key_passwd(dc_ctx->rest_ctx, opts.client_secret);
             }
         }
     }
@@ -854,6 +856,7 @@ int main(int argc, const char *argv[])
                 ret = ENOMEM;
                 goto done;
             }
+            rest_ctx_set_key_passwd(dc_ctx->rest_ctx, opts.client_secret);
         }
 
         ret = refresh_token(main_ctx, dc_ctx, opts.client_id, opts.client_secret, token);

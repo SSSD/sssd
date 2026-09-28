@@ -141,6 +141,14 @@ const char *rest_ctx_get_key_passwd(const struct rest_ctx *rest_ctx)
     return (const char *) rest_ctx->key_passwd;
 }
 
+void rest_ctx_set_key_passwd(struct rest_ctx *rest_ctx, const char *key_passwd)
+{
+    /* Only the reference, see get_rest_ctx(). */
+    if (rest_ctx->pkcs12_client_creds != NULL) {
+        rest_ctx->key_passwd = key_passwd;
+    }
+}
+
 char *url_encode_string(struct rest_ctx *rest_ctx, const char *inp)
 {
     char *tmp;

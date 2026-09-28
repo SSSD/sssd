@@ -147,6 +147,10 @@ const char *rest_ctx_get_pkcs12_client_creds(const struct rest_ctx *rest_ctx);
 
 const char *rest_ctx_get_key_passwd(const struct rest_ctx *rest_ctx);
 
+/* The PKCS#12 password when it is read from stdin after the context was
+ * created (--get-access-token, --refresh-access-token). */
+void rest_ctx_set_key_passwd(struct rest_ctx *rest_ctx, const char *key_passwd);
+
 /* oidc_child_json.c */
 errno_t parse_openid_configuration(struct devicecode_ctx *dc_ctx);
 
