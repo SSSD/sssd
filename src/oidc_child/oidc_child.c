@@ -360,6 +360,11 @@ struct cli_opts {
     bool return_tokens;
     char *pkcs12_client_creds;
     enum client_auth_method client_auth_method;
+    /* DARC (Device Authorization with Return Confirmation) */
+    char *login_hint;
+    char *authorization_details;
+    char *confirmation_input;
+    bool auth_context;
 };
 
 static void free_cli_opts_members(struct cli_opts *opts)
@@ -380,6 +385,9 @@ static void free_cli_opts_members(struct cli_opts *opts)
     free(opts->search_str);
     free(opts->idp_type);
     free(opts->pkcs12_client_creds);
+    free(opts->login_hint);
+    free(opts->authorization_details);
+    free(opts->confirmation_input);
 }
 
 static bool has_creds_client_secret(struct cli_opts *opts)
@@ -513,6 +521,19 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
                 _("Path to PEM file with CA certificates"), NULL},
         {"return-tokens", 0, POPT_ARG_NONE, NULL, 'r',
                 _("Return access and refresh token, if available"), NULL},
+        {"login-hint", 0, POPT_ARG_STRING, &opts->login_hint, 0,
+                _("User the device authorization is for (only this account "
+                  "may approve it)"), NULL},
+        {"authorization-details", 0, POPT_ARG_STRING,
+                &opts->authorization_details, 0,
+                _("RFC 9396 authorization details (JSON array) for the device "
+                  "authorization request"), NULL},
+        {"confirmation-input", 0, POPT_ARG_STRING, &opts->confirmation_input, 0,
+                _("Return confirmation the terminal can accept "
+                  "[numeric, alphanumeric, none]"), NULL},
+        {"auth-context", 0, POPT_ARG_NONE, NULL, 'a',
+                _("Print the authentication context (acr, amr, auth_time) of "
+                  "the ID token before the user identifier"), NULL},
         {"libcurl-debug", 0, POPT_ARG_NONE, NULL, 'c',
                 _("Enable libcurl debug output"), NULL},
         POPT_TABLEEND
@@ -536,6 +557,9 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
             break;
         case 'r':
             opts->return_tokens = true;
+            break;
+        case 'a':
+            opts->auth_context = true;
             break;
         default:
             fprintf(stderr, "\nInvalid option %s: %s\n\n",
@@ -566,6 +590,15 @@ static int parse_cli(int argc, const char *argv[], struct cli_opts *opts)
 
     if (opts->client_id == NULL) {
         fprintf(stderr, "\n--client-id must be given.\n\n");
+        goto done;
+    }
+
+    if (opts->confirmation_input != NULL
+            && strcmp(opts->confirmation_input, "numeric") != 0
+            && strcmp(opts->confirmation_input, "alphanumeric") != 0
+            && strcmp(opts->confirmation_input, "none") != 0) {
+        fprintf(stderr, "\n--confirmation-input must be numeric, "
+                        "alphanumeric or none.\n\n");
         goto done;
     }
 
@@ -782,6 +815,10 @@ int main(int argc, const char *argv[])
         goto done;
     }
 
+    dc_ctx->login_hint = opts.login_hint;
+    dc_ctx->authorization_details = opts.authorization_details;
+    dc_ctx->confirmation_input = opts.confirmation_input;
+
     if (opts.oidc_cmd == GET_DEVICE_CODE) {
         ret = get_devicecode(dc_ctx, opts.client_id, opts.client_secret);
         if (ret != EOK) {
@@ -868,7 +905,22 @@ int main(int argc, const char *argv[])
         talloc_free(token);
     }
 
-    if (opts.oidc_cmd == GET_DEVICE_CODE) {
+    if (opts.oidc_cmd == GET_DEVICE_CODE && dc_ctx->confirmation_required) {
+        /* DARC: the IdP requires the return confirmation. The second line
+         * is the PA-152 version 2 challenge, which tells the client plugin
+         * to ask the user for the code shown after approval. */
+        char *challenge = get_oauth2_v2_challenge(main_ctx, dc_ctx);
+        if (challenge == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to build the v2 challenge.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+        fprintf(stdout,
+                "{\"device_code\":\"%s\",\"expires_in\":%d,\"interval\":%d}\n",
+                dc_ctx->device_code, dc_ctx->expires_in, dc_ctx->interval);
+        fprintf(stdout, "%s\n", challenge);
+        fflush(stdout);
+    } else if (opts.oidc_cmd == GET_DEVICE_CODE) {
         /* Currently this reply is used by ipa-otpd as RADIUS Proxy-State and
          * Reply-Message.
          */
@@ -980,6 +1032,15 @@ int main(int argc, const char *argv[])
             json_dumpf(tmp, stdout, JSON_COMPACT);
             json_decref(tmp);
             fprintf(stdout, "\n");
+        }
+
+        if (opts.auth_context) {
+            char *auth_context = get_auth_context(main_ctx, dc_ctx);
+            if (auth_context == NULL) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to get authentication context.\n");
+                goto done;
+            }
+            fprintf(stdout, "%s\n", auth_context);
         }
 
         fprintf(stdout, "%s", user_identifier);

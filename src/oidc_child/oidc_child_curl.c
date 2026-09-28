@@ -666,6 +666,20 @@ errno_t get_token(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
+    /* DARC: the code the user typed at the terminal. Sent from the first
+     * poll on; the IdP answers authorization_pending without using an
+     * attempt until the user has approved. */
+    if (dc_ctx->confirmation_code != NULL) {
+        post_data = append_to_post_data(post_data, "confirmation_code",
+                                        dc_ctx->confirmation_code);
+        if (post_data == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add confirmation_code to POST data.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
     curl_ctx = curl_easy_init();
     if (curl_ctx == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to initialize curl.\n");
@@ -803,6 +817,33 @@ errno_t get_devicecode(struct devicecode_ctx *dc_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "Failed to add scope to POST data.\n");
         ret = ENOMEM;
         goto done;
+    }
+
+    /* DARC: what the terminal can accept, who the user is expected to be,
+     * and what the caller asserts about the request (RFC 9396). */
+    if (dc_ctx->confirmation_input != NULL) {
+        post_data = append_to_post_data(post_data, "confirmation_input",
+                                        dc_ctx->confirmation_input);
+        if (post_data == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    if (dc_ctx->login_hint != NULL) {
+        post_data = append_to_post_data(post_data, "login_hint",
+                                        dc_ctx->login_hint);
+        if (post_data == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+    if (dc_ctx->authorization_details != NULL) {
+        post_data = append_to_post_data(post_data, "authorization_details",
+                                        dc_ctx->authorization_details);
+        if (post_data == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     post_data = append_to_creds_to_post_data(post_data, dc_ctx->rest_ctx,
