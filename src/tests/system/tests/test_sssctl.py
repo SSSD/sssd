@@ -1102,6 +1102,95 @@ def test_sssctl__debug_level_negative(client: Client, provider: GenericProvider)
 
 
 @pytest.mark.tools
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.Client)
+def test_sssctl__debug_level_fails_when_sssd_is_stopped(client: Client):
+    """
+    :title: sssctl debug-level returns non-zero exit code when SSSD is not running
+    :setup:
+        1. Configure and start SSSD for local authentication
+        2. Stop SSSD (confdb remains so the failure is the sbus connect path)
+    :steps:
+        1. Run sssctl debug-level
+    :expectedresults:
+        1. Command fails with "SSSD is not running." on stderr
+    :customerscenario: False
+    """
+    # Start first so confdb exists; otherwise we miss the sbus "not running" path.
+    client.sssd.common.local()
+    client.sssd.start()
+    client.sssd.stop()
+
+    result = client.sssctl.debug_level()
+    assert result.rc != 0, "sssctl debug-level should fail when SSSD is not running!"
+    assert "SSSD is not running" in result.stderr, f"Expected 'SSSD is not running' on stderr, got: {result.stderr!r}"
+
+
+@pytest.mark.tools
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=983587)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sssctl__debug_level_pac_responder(client: Client):
+    """
+    :title: sssctl debug-level reads and sets debug level for PAC responder
+    :description:
+        Regression for bz983587: sss_debuglevel did not work for the PAC responder log.
+        Verify that sssctl debug-level correctly shows and sets the debug level for the
+        pac component when the pac service is enabled. Without pac started,
+        --pac reports "Unreachable service" (covered by test_sssctl__debug_level_negative).
+    :setup:
+        1. Enable the pac responder in SSSD services
+        2. Set debug_level to 0 for sssd, nss, pam, pac, and domain
+        3. Start SSSD
+    :steps:
+        1. Set all components debug level to 0x00F0 using sssctl debug-level
+        2. Get debug level for pac specifically (--pac)
+        3. Set only pac component to 0x0270 using sssctl debug-level --pac
+        4. Get debug level for all components
+        5. Verify pac shows 0x0270 and nss/pam still show 0x00f0
+    :expectedresults:
+        1. Command succeeds
+        2. pac shows 0x00f0 (reachable, not "Unreachable service")
+        3. Command succeeds
+        4. Output lists components including pac
+        5. pac shows 0x0270; nss, pam still show 0x00f0
+    :customerscenario: True
+    """
+    # pac must be running to appear in debug-level output / accept --pac.
+    client.sssd.sssd["services"] = "nss, pam, pac"
+    client.sssd.domain["debug_level"] = "0"
+    client.sssd.sssd["debug_level"] = "0"
+    client.sssd.nss["debug_level"] = "0"
+    client.sssd.pam["debug_level"] = "0"
+    client.sssd.section("pac")["debug_level"] = "0"
+    client.sssd.start()
+
+    client.sssctl.debug_level(level="0x00F0")
+
+    pac_get = client.sssctl.debug_level(pac=True)
+    assert pac_get.rc == 0, f"sssctl debug-level --pac failed: {pac_get.stdout}{pac_get.stderr}"
+    assert "Unreachable service" not in pac_get.stdout, f"pac should be reachable when enabled:\n{pac_get.stdout}"
+    assert re.search(
+        r"^pac\s+0x00f0", pac_get.stdout, re.MULTILINE
+    ), f"pac component not found at 0x00f0 in output:\n{pac_get.stdout}"
+
+    pac_set = client.sssctl.debug_level(level="0x0270", pac=True)
+    assert pac_set.rc == 0, f"sssctl debug-level --pac 0x0270 failed: {pac_set.stdout}{pac_set.stderr}"
+
+    result = client.sssctl.debug_level()
+    pac_match = re.search(r"^pac\s+(0x[0-9a-f]+)", result.stdout, re.MULTILINE)
+    assert pac_match is not None, f"pac component not found in output:\n{result.stdout}"
+    assert pac_match.group(1) == "0x0270", f"pac debug level is {pac_match.group(1)}, expected 0x0270!"
+
+    for component in ["nss", "pam"]:
+        match = re.search(f"^{component}\\s+(0x[0-9a-f]+)", result.stdout, re.MULTILINE)
+        assert match is not None, f"{component} not found in output:\n{result.stdout}"
+        assert (
+            match.group(1) == "0x00f0"
+        ), f"{component} level is {match.group(1)}, expected 0x00f0 (should not have changed)!"
+
+
+@pytest.mark.tools
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_sssctl__cache_expire_missing_entry(client: Client):
     """
