@@ -870,3 +870,73 @@ def test_ldap__display_password_expiration_warning(client: Client, ldap: LDAP):
         rc, _, stdout, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
         assert rc == 0, "User 'user1' login failed!"
         assert "Your password will expire in " in stdout, "Password expiration warning not generated!"
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.importance("low")
+def test_ldap__password_expiration_warning_does_not_overwrite_errors(client: Client, provider: LDAP):
+    """
+    :title: SSSD warns that a password is about to expire
+    :setup:
+        1. Create user with expired password
+        3. Set 'ldap_access_order = pwd_expire_policy_warn' and restart SSSD
+        4. Create SSH key for the user and write it to 'authorizred_keys'
+    :steps:
+        1. SSH into the local host with the SSH key of the user
+        2. Change 'ldap_access_order' to 'pwd_expire_policy_warn, expire'
+        3. SSH into the local host with the SSH key of the user
+    :expectedresults:
+        1. SSH is successful and shows 'Your password has expired.' on standard error
+        2. Config change is successful
+        3. SSH fails because the 'expire' policy rejects the locked user
+    :customerscenario: False
+    """
+
+    user = provider.user("user1").add(
+        shadowMin=0, shadowMax=99999, shadowWarning=7, shadowLastChange=0, shadowExpire=1, password="Secret123"
+    )
+
+    client.sssd.domain["auto_private_groups"] = "True"
+    client.sssd.domain["access_provider"] = "ldap"
+    client.sssd.domain["ldap_pwd_policy"] = "shadow"
+    client.sssd.domain["ldap_account_expire_policy"] = "shadow"
+    client.sssd.domain["ldap_access_order"] = "pwd_expire_policy_warn"
+    client.sssd.restart()
+
+    pwd = client.tools.getent.passwd(user.name)
+    assert pwd is not None, "User not found!"
+    assert pwd.name is not None, "User name is missing!"
+    assert pwd.home is not None, "home directory is missing!"
+
+    client.host.conn.run(f"su - {user.name}", raise_on_error=False)
+    key = client.tools.sshkey.generate(pwd.name, pwd.home)[0]
+    client.fs.write(f"{pwd.home}/.ssh/authorized_keys", key)
+    # remove password from keyfile to make non-interactive login work
+    client.host.conn.run(f"ssh-keygen -p -P ' ' -N '' -f {pwd.home}/.ssh/id_rsa")
+
+    client.sssd.restart(clean=True)
+
+    result = client.host.conn.run(
+        f"sudo -u {user.name} ssh -o StrictHostKeychecking=no "
+        "-o PubkeyAuthentication=yes -o GSSAPIAuthentication=no "
+        "-o KbdInteractiveAuthentication=no -o PasswordAuthentication=no "
+        f"-l {user.name} localhost whoami",
+        raise_on_error=False,
+    )
+    assert result.rc == 0, "SSH with pubkey failed!"
+    assert result.stdout == f"{user.name}", "Missing user name output!"
+    assert "Your password has expired." in result.stderr, "Missing 'Your password has expired.' in error output!"
+
+    client.sssd.domain["ldap_access_order"] = "pwd_expire_policy_warn, expire"
+    client.sssd.restart(clean=True)
+
+    result = client.host.conn.run(
+        f"sudo -u {user.name} ssh -o StrictHostKeychecking=no "
+        "-o PubkeyAuthentication=yes -o GSSAPIAuthentication=no "
+        "-o KbdInteractiveAuthentication=no -o PasswordAuthentication=no "
+        f"-l {user.name} localhost whoami",
+        raise_on_error=False,
+    )
+    assert result.rc != 0, "SSH was successful but should have failed!"
+    assert result.stdout == "", "Output is not empty!"
+    assert "Your password has expired." in result.stderr, "Missing 'Your password has expired.' in error output!"
