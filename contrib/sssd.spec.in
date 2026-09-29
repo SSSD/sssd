@@ -828,6 +828,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libdir}/security/pam_sss.so
 %{_libdir}/security/pam_sss_gss.so
 %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
+%{_libdir}/krb5/plugins/authdata/sssd_krb5_authdata_bot.so
 %{_libdir}/krb5/plugins/authdata/sssd_pac_plugin.so
 %dir %{_libdir}/cifs-utils
 %{_libdir}/cifs-utils/cifs_idmap_sss.so

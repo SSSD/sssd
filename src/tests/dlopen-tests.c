@@ -68,6 +68,7 @@ struct so {
 #ifdef BUILD_PASSKEY
     { "sssd_krb5_passkey_plugin.so", { LIBPFX"sssd_krb5_passkey_plugin.so", NULL } },
 #endif
+    { "sssd_krb5_authdata_bot.so", { LIBPFX"sssd_krb5_authdata_bot.so", NULL } },
 #ifdef HAVE_PAC_RESPONDER
     { "sssd_pac_plugin.so", { LIBPFX"sssd_pac_plugin.so", NULL } },
 #endif

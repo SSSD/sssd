@@ -43,9 +43,7 @@ endif
 if BUILD_KRB5_LOCALAUTH_PLUGIN
 krb5localauth_plugindir = @appmodpath@
 endif
-if BUILD_PAC_RESPONDER
 krb5authdata_plugindir = @krb5authdatapluginpath@
-endif
 if BUILD_CIFS_IDMAP_PLUGIN
 cifsplugindir = @cifspluginpath@
 endif
@@ -434,8 +432,11 @@ krb5localauth_plugin_LTLIBRARIES = \
     sssd_krb5_localauth_plugin.la
 endif
 
-if BUILD_PAC_RESPONDER
 krb5authdata_plugin_LTLIBRARIES = \
+    sssd_krb5_authdata_bot.la
+
+if BUILD_PAC_RESPONDER
+krb5authdata_plugin_LTLIBRARIES += \
     sssd_pac_plugin.la
 endif
 
@@ -5073,6 +5074,21 @@ sssd_krb5_localauth_plugin_la_LDFLAGS = \
     -avoid-version \
     -module
 endif
+
+sssd_krb5_authdata_bot_la_SOURCES = \
+    src/krb5_plugin/sssd_krb5_authdata_bot.c \
+    src/sss_client/common.c \
+    src/util/sss_bot_cli.c \
+    src/util/sss_bot_parser.c
+sssd_krb5_authdata_bot_la_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(KRB5_CFLAGS)
+sssd_krb5_authdata_bot_la_LIBADD = \
+    $(CLIENT_LIBS) \
+    $(KRB5_LIBS)
+sssd_krb5_authdata_bot_la_LDFLAGS = \
+    -avoid-version \
+    -module
 
 krb5_plugindir = @appmodpath@
 dist_krb5snippets_DATA = contrib/enable_sssd_conf_dir
