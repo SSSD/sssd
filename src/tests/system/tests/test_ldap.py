@@ -1108,3 +1108,42 @@ def test_ldap__search_base_limits_rfc2307bis_posixgroup_scope(client: Client, ld
     assert (
         client.tools.getent.group("outside_group") is None
     ), "outside_group should not be visible outside search base!"
+
+
+@pytest.mark.ticket(bz=954323)
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__display_grace_logins_when_password_has_expired(client: Client, ldap: LDAP):
+    """
+    :title: Display number of remaining grace logins when password is expired
+    :description: Warns user of remaining grace logins upon logging in with an expired password.
+    :setup:
+        1. Set "passwordExp" to "on"
+        2. Set "passwordMaxAge" to "1"
+        3. Set "passwordGraceLimit" to "2"
+        3. Add a user to LDAP
+        4. Wait until the password is expired
+        6. Start SSSD
+    :steps:
+        1. Authenticate as the user1 via 'su' with password "Secret123"
+        2. Verify stdout for the message indicating remaining grace logins
+        3. Repeat steps 1-2 with 'ssh' method
+    :expectedresults:
+        1. Authentication should succeed
+        2. Corresponding log should be generated
+        3. Results above are expected in every iteration
+    :customerscenario: False
+    """
+    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "2"})
+    ldap.user("user1").add(password="Secret123")
+    client.sssd.start()
+    time.sleep(2)
+
+    grace_logins = 2
+    for method in ["su", "ssh"]:
+        rc, _, stdout, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
+        grace_logins -= 1
+        assert rc == 0, f"User 'user1' login failed!: rc == {rc}; method: {method}, grace logins left: {grace_logins}"
+        assert (
+            f"You have {grace_logins} grace login(s) remaining" in stdout
+        ), "Expected grace logins message in stdout, but none was found."
