@@ -391,11 +391,11 @@ def test_authentication__user_lookup_over_ldaps(client: Client, provider: Generi
         - **IPA**: STARTTLS on port 389 (``ldap_id_use_start_tls = True``).  Port 389
           must remain open because STARTTLS negotiation starts there.
 
-        The domain CA certificate is installed and SSSD is configured via
-        ``client.sssd.common.use_ldaps()``.
+        The domain CA certificate is pre-installed by the topology controller.
+        SSSD is configured for encrypted LDAP via ``client.sssd.common.ssl_tls()``.
     :setup:
         1. Create a user on the provider
-        2. Configure SSSD for encrypted LDAP using use_ldaps()
+        2. Configure SSSD for encrypted LDAP using ssl_tls()
         3. For AD/Samba: block outbound TCP port 389 to force LDAPS on port 636
     :steps:
         1. Start SSSD
@@ -409,7 +409,7 @@ def test_authentication__user_lookup_over_ldaps(client: Client, provider: Generi
     """
     user = provider.user("ldaps-user").add()
 
-    client.sssd.common.use_ldaps(provider)
+    client.sssd.common.ssl_tls(provider)
     if provider.name == "ad":
         client.firewall.outbound.drop_port(389)
     client.sssd.start()
@@ -437,11 +437,11 @@ def test_authentication__user_authentication_over_ldaps(client: Client, provider
         - **IPA**: STARTTLS on port 389.  Port 389 must remain open because
           STARTTLS negotiation starts there.
 
-        The domain CA certificate is installed and SSSD is configured via
-        ``client.sssd.common.use_ldaps()``.
+        The domain CA certificate is pre-installed by the topology controller.
+        SSSD is configured for encrypted LDAP via ``client.sssd.common.ssl_tls()``.
     :setup:
         1. Create a user on the provider with a known password
-        2. Configure SSSD for encrypted LDAP using use_ldaps()
+        2. Configure SSSD for encrypted LDAP using ssl_tls()
         3. For AD/Samba: block outbound TCP port 389 to force LDAPS on port 636
     :steps:
         1. Start SSSD
@@ -453,7 +453,7 @@ def test_authentication__user_authentication_over_ldaps(client: Client, provider
     """
     user = provider.user("ldaps-authuser").add(password="Secret123")
 
-    client.sssd.common.use_ldaps(provider)
+    client.sssd.common.ssl_tls(provider)
     if provider.name == "ad":
         client.firewall.outbound.drop_port(389)
     client.sssd.start()
