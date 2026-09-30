@@ -2083,14 +2083,10 @@ done:
 static krb5_error_code validate_tgt(struct krb5_req *kr)
 {
     krb5_error_code kerr;
-    krb5_error_code kt_err;
     char *principal = NULL;
     krb5_keytab keytab;
-    krb5_kt_cursor cursor;
-    krb5_keytab_entry entry;
     krb5_verify_init_creds_opt opt;
     krb5_principal validation_princ = NULL;
-    bool realm_entry_found = false;
     krb5_ccache validation_ccache = NULL;
     krb5_authdata **pac_authdata = NULL;
 
@@ -2098,69 +2094,15 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     kerr = krb5_kt_resolve(kr->ctx, kr->keytab, &keytab);
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "error resolving keytab [%s], " \
-                                    "not verifying TGT.\n", kr->keytab);
+                                   "not verifying TGT.\n", kr->keytab);
         return kerr;
     }
 
-    memset(&cursor, 0, sizeof(cursor));
-    kerr = krb5_kt_start_seq_get(kr->ctx, keytab, &cursor);
+    kerr = get_validation_principal(kr->ctx, keytab, kr->keytab,
+                                    kr->creds->client, &validation_princ);
     if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab [%s], " \
-                                    "not verifying TGT.\n", kr->keytab);
-        krb5_kt_close(kr->ctx, keytab);
-        return kerr;
-    }
-
-    /* We look for the first entry from our realm or take the last one */
-    memset(&entry, 0, sizeof(entry));
-    while ((kt_err = krb5_kt_next_entry(kr->ctx, keytab, &entry, &cursor)) == 0) {
-        if (validation_princ != NULL) {
-            krb5_free_principal(kr->ctx, validation_princ);
-            validation_princ = NULL;
-        }
-        kerr = krb5_copy_principal(kr->ctx, entry.principal,
-                                   &validation_princ);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
-            krb5_kt_end_seq_get(kr->ctx, keytab, &cursor);
-            goto done;
-        }
-
-        kerr = sss_krb5_free_keytab_entry_contents(kr->ctx, &entry);
-        if (kerr != 0) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to free keytab entry.\n");
-        }
-        memset(&entry, 0, sizeof(entry));
-
-        if (krb5_realm_compare(kr->ctx, validation_princ, kr->creds->client)) {
-            DEBUG(SSSDBG_TRACE_INTERNAL,
-                  "Found keytab entry with the realm of the credential.\n");
-            realm_entry_found = true;
-            break;
-        }
-    }
-
-    if (!realm_entry_found) {
-        DEBUG(SSSDBG_TRACE_INTERNAL,
-                "Keytab entry with the realm of the credential not found "
-                 "in keytab. Using the last entry.\n");
-    }
-
-    /* Close the keytab here. Even though we're using cursors, the file
-     * handle is stored in the krb5_keytab structure, and it gets
-     * overwritten when the verify_init_creds() call below creates its own
-     * cursor, creating a leak. */
-    kerr = krb5_kt_end_seq_get(kr->ctx, keytab, &cursor);
-    if (kerr != 0) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_end_seq_get failed, " \
-                                    "not verifying TGT.\n");
-        goto done;
-    }
-
-    /* check if we got any errors from krb5_kt_next_entry */
-    if (kt_err != 0 && kt_err != KRB5_KT_END) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab [%s], " \
-                                    "not verifying TGT.\n", kr->keytab);
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to get a principal to validate the TGT.\n");
         goto done;
     }
 
@@ -2169,7 +2111,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
     kerr = krb5_unparse_name(kr->ctx, validation_princ, &principal);
     if (kerr != 0) {
         DEBUG(SSSDBG_CRIT_FAILURE, "internal error parsing principal name, "
-                                    "not verifying TGT.\n");
+                                   "not verifying TGT.\n");
         KRB5_CHILD_DEBUG(SSSDBG_CRIT_FAILURE, kerr);
         goto done;
     }
@@ -2182,10 +2124,10 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
 
     if (kerr == 0) {
         DEBUG(SSSDBG_TRACE_FUNC, "TGT verified using key for [%s].\n",
-                                  principal);
+                                 principal);
     } else {
-        DEBUG(SSSDBG_CRIT_FAILURE ,"TGT failed verification using key " \
-                                    "for [%s].\n", principal);
+        DEBUG(SSSDBG_CRIT_FAILURE ,"TGT failed verification using key "
+                                   "for [%s].\n", principal);
         goto done;
     }
 
@@ -2201,9 +2143,9 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
                       "PAC check failed for principal [%s].\n", kr->name);
                 goto done;
             }
-            DEBUG(SSSDBG_OP_FAILURE, "sss_extract_and_send_pac failed, group " \
-                                      "membership for user with principal [%s] " \
-                                      "might not be correct.\n", kr->name);
+            DEBUG(SSSDBG_OP_FAILURE, "sss_extract_and_send_pac failed, group "
+                                     "membership for user with principal [%s] "
+                                     "might not be correct.\n", kr->name);
             kerr = 0;
             goto done;
         }
@@ -2233,9 +2175,9 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
                       "failed to properly validate PAC, ignored, "
                       "authentication for [%s] can proceed.\n", kr->name);
             }
-            DEBUG(SSSDBG_OP_FAILURE, "sss_send_pac failed, group " \
-                                      "membership for user with principal [%s] " \
-                                      "might not be correct.\n", kr->name);
+            DEBUG(SSSDBG_OP_FAILURE, "sss_send_pac failed, group "
+                                     "membership for user with principal [%s] "
+                                     "might not be correct.\n", kr->name);
             kerr = 0;
         }
     }
