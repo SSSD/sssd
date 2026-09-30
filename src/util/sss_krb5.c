@@ -1156,3 +1156,144 @@ bool sss_krb5_creds_compare(krb5_context kctx, krb5_creds *a, krb5_creds *b)
 
     return true;
 }
+
+krb5_error_code get_validation_principal(krb5_context ctx,
+                                         krb5_keytab keytab,
+                                         const char *keytab_name,
+                                         krb5_principal client_princ,
+                                         krb5_principal *_validation_princ)
+{
+    krb5_error_code kerr;
+    krb5_error_code kt_err;
+    krb5_kt_cursor cursor;
+    krb5_keytab_entry entry;
+    krb5_principal validation_princ = NULL;
+    krb5_principal fallback_princ = NULL;
+    bool ends_with_dollar = false;
+    bool realm_entry_found = false;
+    const char *name;
+    size_t len;
+
+    memset(&cursor, 0, sizeof(cursor));
+    kerr = krb5_kt_start_seq_get(ctx, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab [%s], "
+                                   "not verifying TGT.\n", keytab_name);
+        goto done;
+    }
+
+    /* We look for the first entry from our realm or take the last one */
+    memset(&entry, 0, sizeof(entry));
+    while ((kt_err = krb5_kt_next_entry(ctx, keytab, &entry, &cursor)) == 0) {
+        /* Skip if a single component principal ends with '$', this is typically
+         * the AD host principal which is often not treated as service
+         * principal. */
+        ends_with_dollar = false;
+        if (krb5_princ_size(ctx, entry.principal) == 1) {
+            len = krb5_princ_name(ctx, entry.principal)->length;
+            name = krb5_princ_name(ctx, entry.principal)->data;
+            /* Make no assumption if the name is nul terminated or not */
+            if (len > 0 && name[len-1] == '$') {
+                ends_with_dollar = true;
+            }
+            if (len > 1 && name[len-1] == '\0' && name[len-2] == '$') {
+                ends_with_dollar = true;
+            }
+        }
+        if (ends_with_dollar) {
+            /* Save the first host principal in case it is the only entry. */
+            if (fallback_princ == NULL) {
+                kerr = krb5_copy_principal(ctx, entry.principal,
+                                           &fallback_princ);
+                if (kerr != 0) {
+                    DEBUG(SSSDBG_CRIT_FAILURE,
+                          "krb5_copy_principal for fallback failed, ignored.\n");
+                    fallback_princ = NULL;
+                }
+            }
+            kerr = sss_krb5_free_keytab_entry_contents(ctx, &entry);
+            if (kerr != 0) {
+                DEBUG(SSSDBG_MINOR_FAILURE, "Failed to free keytab entry.\n");
+            }
+            memset(&entry, 0, sizeof(entry));
+            continue;
+        }
+
+        if (validation_princ != NULL) {
+            krb5_free_principal(ctx, validation_princ);
+            validation_princ = NULL;
+        }
+        kerr = krb5_copy_principal(ctx, entry.principal,
+                                   &validation_princ);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
+            krb5_kt_end_seq_get(ctx, keytab, &cursor);
+            goto done;
+        }
+
+        kerr = sss_krb5_free_keytab_entry_contents(ctx, &entry);
+        if (kerr != 0) {
+            DEBUG(SSSDBG_MINOR_FAILURE, "Failed to free keytab entry.\n");
+        }
+        memset(&entry, 0, sizeof(entry));
+
+        if (krb5_realm_compare(ctx, validation_princ, client_princ)) {
+            DEBUG(SSSDBG_TRACE_INTERNAL,
+                  "Found keytab entry with the realm of the credential.\n");
+            realm_entry_found = true;
+            break;
+        }
+    }
+
+    /* Release the cursor */
+    kerr = krb5_kt_end_seq_get(ctx, keytab, &cursor);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_kt_end_seq_get failed, "
+                                   "not verifying TGT.\n");
+        goto done;
+    }
+
+    /* check if we got any errors from krb5_kt_next_entry */
+    if (kt_err != 0 && kt_err != KRB5_KT_END) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "error reading keytab [%s], "
+                                   "not verifying TGT.\n", keytab_name);
+        kerr = kt_err;
+        goto done;
+    }
+
+    if (validation_princ == NULL && fallback_princ != NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Using principal with $ because it seems to be the only entry.\n");
+        validation_princ = fallback_princ;
+    }
+
+    if (validation_princ == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "No suitable validation principal found in keytab [%s].\n",
+              keytab_name);
+        kerr = KRB5_KT_NOTFOUND;
+        goto done;
+    }
+
+    if (!realm_entry_found) {
+        DEBUG(SSSDBG_TRACE_INTERNAL,
+              "Keytab entry with the realm of the credential not found "
+              "in keytab. Using the last entry.\n");
+    }
+
+
+    kerr = krb5_copy_principal(ctx, validation_princ, _validation_princ);
+    if (kerr != 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "krb5_copy_principal failed.\n");
+        goto done;
+    }
+
+    kerr = 0;
+
+done:
+    if (validation_princ != NULL) {
+        krb5_free_principal(ctx, validation_princ);
+    }
+
+    return kerr;
+}
