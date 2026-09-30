@@ -26,6 +26,12 @@
                 keytab entry as the last entry or the only entry in the keytab file.
             </para>
             <para>
+                Entries where the principal name ends with a '$', i.e. AD's host
+                accounts, are filtered because often AD does not issue service
+                tickets for those principals. Only if is is the only entry it is
+                tried.
+            </para>
+            <para>
                 Default: false (IPA and AD provider: true)
             </para>
             <para>
