@@ -1620,6 +1620,7 @@ sdap_handle_acct_req_done(struct tevent_req *subreq)
 errno_t
 sdap_handle_acct_req_recv(struct tevent_req *req)
 {
+#ifdef HAVE_SYSTEMTAP
     struct sdap_handle_acct_req_state *state;
 
     state = tevent_req_data(req, struct sdap_handle_acct_req_state);
@@ -1628,6 +1629,7 @@ sdap_handle_acct_req_recv(struct tevent_req *req)
           state->ar->entry_type & BE_REQ_TYPE_MASK,
           state->ar->filter_type, state->ar->filter_value,
           PROBE_SAFE_STR(state->ar->extra_value));
+#endif
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
     return EOK;
