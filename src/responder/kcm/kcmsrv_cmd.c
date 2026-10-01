@@ -34,6 +34,10 @@
 /* The return code is 32bits */
 #define KCM_RETCODE_SIZE 4
 
+/* A valid request body carries at least the protocol header:
+ * major (uint8) + minor (uint8) + opcode (uint16). */
+#define KCM_MSG_HEADER_SIZE (2 * sizeof(uint8_t) + sizeof(uint16_t))
+
 /* KCM operation, its raw input and raw output and result */
 struct kcm_op_io {
     struct kcm_op *op;
@@ -433,6 +437,11 @@ static errno_t kcm_recv_data(TALLOC_CTX *mem_ctx,
         }
 
         msglen = kcm_input_get_payload_len(&reqbuf->v_len);
+        if (msglen < KCM_MSG_HEADER_SIZE) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Request body is too short, aborting\n");
+            return EBADMSG;
+        }
+
         if (msglen > KCM_PACKET_MAX_SIZE) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                 "Request exceeds the KCM protocol limit, aborting\n");
