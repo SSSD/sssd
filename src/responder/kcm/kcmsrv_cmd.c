@@ -59,34 +59,35 @@ static errno_t kcm_iovec_op(int fd, struct kcm_iovec *kiov, bool do_read)
     ssize_t len;
     struct iovec iov[1];
 
-    iov[0].iov_base = kiov->kiov_base + kiov->nprocessed;
-    iov[0].iov_len = kiov->kiov_len - kiov->nprocessed;
-    if (iov[0].iov_len == 0) {
-        /* This iovec is full (read) or depleted (write), proceed to the next one */
-        return EOK;
-    }
+    while (kiov->nprocessed < kiov->kiov_len) {
+        iov[0].iov_base = kiov->kiov_base + kiov->nprocessed;
+        iov[0].iov_len = kiov->kiov_len - kiov->nprocessed;
 
-    if (do_read) {
-        len = readv(fd, iov, 1);
-    } else {
-        len = writev(fd, iov, 1);
-    }
-
-    if (len == -1) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
-            return EAGAIN;
+        if (do_read) {
+            len = readv(fd, iov, 1);
         } else {
-            return errno;
+            len = writev(fd, iov, 1);
         }
+
+        if (len == -1) {
+            if (errno == EINTR) {
+                /* Op was interupted but data may still be available. */
+                continue;
+            } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return EAGAIN;
+            } else {
+                return errno;
+            }
+        }
+
+        if (len == 0) {
+            /* Peer closed the connection (read side); nothing more to do. */
+            return ENODATA;
+        }
+
+        kiov->nprocessed += len;
     }
 
-    if (len == 0) {
-        /* Read event on fd that doesn't yield data? error */
-        return ENODATA;
-    }
-
-    /* Decrease the amount of available free space in the iovec */
-    kiov->nprocessed += len;
     return EOK;
 }
 
@@ -629,6 +630,21 @@ static void kcm_fd_handler(struct tevent_context *ev,
 
 int kcm_connection_setup(struct cli_ctx *cctx)
 {
+    errno_t ret;
+
+    /* KCM reads the length header and then the message body, and writes
+     * the reply length, retcode and payload, all within a single tevent
+     * callback. A tevent event only guarantees the first I/O will make
+     * progress without blocking; the later ones must be non-blocking, or
+     * a client that withholds the body (or does not drain the reply)
+     * would block the entire responder event loop. */
+    ret = sss_fd_nonblocking(cctx->cfd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set the KCM client fd non-blocking\n");
+        return ret;
+    }
+
     cctx->cfd_handler = kcm_fd_handler;
     return EOK;
 }
