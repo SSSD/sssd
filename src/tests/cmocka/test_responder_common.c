@@ -244,9 +244,22 @@ struct sss_nc_ctx {
     struct parse_inp_test_ctx *pctx;
 };
 
+/* This wrapper expects TWO calls:
+ *
+ * 1. From sss_dp_get_domains_process() with rctx->ncache (real ncache, ignored)
+ * 2. From schedule_get_domains_task() with dummy_ncache_ptr (expected_ncache_ptr set)
+ *
+ * We only proceed with test completion on the second call.
+ */
+static struct sss_nc_ctx *expected_ncache_ptr;
+
 errno_t __wrap_sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
                                                      struct sss_nc_ctx *dummy_ncache_ptr)
 {
+    if (dummy_ncache_ptr != expected_ncache_ptr) {
+        return EOK;
+    }
+
     test_ev_done(dummy_ncache_ptr->pctx->tctx, EOK);
     return EOK;
 }
@@ -261,6 +274,7 @@ void test_schedule_get_domains_task(void **state)
     dummy_ncache_ptr = talloc(parse_inp_ctx, struct sss_nc_ctx);
     assert_non_null(dummy_ncache_ptr);
     dummy_ncache_ptr->pctx = parse_inp_ctx;
+    expected_ncache_ptr = dummy_ncache_ptr;
 
     ret = schedule_get_domains_task(dummy_ncache_ptr,
                                     parse_inp_ctx->rctx->ev,
@@ -270,6 +284,8 @@ void test_schedule_get_domains_task(void **state)
 
     ret = test_ev_loop(parse_inp_ctx->tctx);
     assert_int_equal(ret, EOK);
+
+    expected_ncache_ptr = NULL;
     talloc_free(dummy_ncache_ptr);
 }
 
