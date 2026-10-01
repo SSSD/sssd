@@ -91,8 +91,7 @@ static void get_subdomains_done(struct tevent_req *subreq)
 }
 
 static errno_t
-get_subdomains_recv(TALLOC_CTX *mem_ctx,
-                    struct tevent_req *req)
+get_subdomains_recv(struct tevent_req *req)
 {
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
@@ -210,7 +209,7 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
     struct sss_dp_get_domains_state *state = tevent_req_data(req,
                                                 struct sss_dp_get_domains_state);
 
-    ret = get_subdomains_recv(subreq, subreq);
+    ret = get_subdomains_recv(subreq);
     talloc_zfree(subreq);
     /* Ignore the error code as behavior of handling non-EOK error from getDomains()
      * call is inconsistent. This matches previous behavior which always returned EOK anyway */
