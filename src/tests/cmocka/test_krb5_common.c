@@ -31,8 +31,10 @@
 
 #include "tests/cmocka/common_mock.h"
 #include "tests/common.h"
+#include "tests/cmocka/common_mock_krb5.h"
 
 #include "src/providers/krb5/krb5_common.h"
+#include "util/sss_krb5.h"
 
 #define TEST_REALM "MY.REALM"
 #define TEST_FAST_PRINC "fast_princ@" TEST_REALM
@@ -74,6 +76,100 @@ static int test_teardown(void **state)
     struct test_ctx *test_ctx = talloc_get_type(*state, struct test_ctx);
 
     assert_true(check_leaks_pop(test_ctx));
+    talloc_free(test_ctx);
+    assert_true(leak_check_teardown());
+    return 0;
+}
+
+#define NKEYS 5
+#define KEYTAB_NAME "MEMORY:my_mem.keytab"
+struct test_gvp_ctx {
+    krb5_context kctx;
+    krb5_keytab keytab;
+    krb5_keytab_entry keys[NKEYS];
+    krb5_principal princs[NKEYS];
+};
+
+static int test_gvp_setup(void **state)
+{
+    struct test_gvp_ctx *test_ctx;
+    krb5_error_code kerr;
+    krb5_enctype *enctypes;
+
+    assert_true(leak_check_setup());
+
+    test_ctx = talloc_zero(global_talloc_context, struct test_gvp_ctx);
+    assert_non_null(test_ctx);
+
+    kerr = krb5_init_context(&test_ctx->kctx);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_parse_name(test_ctx->kctx, "CLIENT$@" TEST_DOM_NAME,
+                           &test_ctx->princs[0]);
+    assert_int_equal(kerr, 0);
+    kerr = krb5_parse_name(test_ctx->kctx, "host/client@" TEST_DOM_NAME,
+                           &test_ctx->princs[1]);
+    assert_int_equal(kerr, 0);
+    kerr = krb5_parse_name(test_ctx->kctx, "host/client.fqdn@" TEST_DOM_NAME,
+                           &test_ctx->princs[2]);
+    assert_int_equal(kerr, 0);
+    kerr = krb5_parse_name(test_ctx->kctx, "client.fqdn@OTHER." TEST_DOM_NAME,
+                           &test_ctx->princs[3]);
+    assert_int_equal(kerr, 0);
+    kerr = krb5_parse_name(test_ctx->kctx, "CLIENT$@OTHER." TEST_DOM_NAME,
+                           &test_ctx->princs[4]);
+    assert_int_equal(kerr, 0);
+
+    kerr = krb5_get_permitted_enctypes(test_ctx->kctx, &enctypes);
+    assert_int_equal(kerr, 0);
+
+    memset(&test_ctx->keys, NKEYS, NKEYS * sizeof(krb5_keytab_entry));
+
+    /* To test get_validation_principal() only the princpals of the keys are
+     * important. */
+    mock_krb5_keytab_entry(&test_ctx->keys[0], test_ctx->princs[0], 12345, 1,
+                           enctypes[0], "abc");
+    mock_krb5_keytab_entry(&test_ctx->keys[1], test_ctx->princs[1], 12345, 1,
+                           enctypes[0], "abc");
+    mock_krb5_keytab_entry(&test_ctx->keys[2], test_ctx->princs[2], 12345, 1,
+                           enctypes[0], "abc");
+    mock_krb5_keytab_entry(&test_ctx->keys[3], test_ctx->princs[3], 12345, 1,
+                           enctypes[0], "abc");
+    mock_krb5_keytab_entry(&test_ctx->keys[4], test_ctx->princs[4], 12345, 1,
+                           enctypes[0], "abc");
+
+    krb5_free_enctypes(test_ctx->kctx, enctypes);
+
+    /* MEMORY keytabs are remove from memory when the keytab is closed. To
+     * make sure the keytab is available during the whole test it is opened in
+     * setup and closed in teardown.
+     * Another property of a MEMORY keytab is that the keys are read in the
+     * reverse order they are written. */
+    kerr = krb5_kt_resolve(test_ctx->kctx, KEYTAB_NAME, &test_ctx->keytab);
+    assert_int_equal(kerr, 0);
+
+    check_leaks_push(test_ctx);
+    *state = test_ctx;
+
+    return 0;
+}
+
+static int test_gvp_teardown(void **state)
+{
+    struct test_gvp_ctx *test_ctx = talloc_get_type(*state, struct test_gvp_ctx);
+    krb5_error_code kerr;
+
+    assert_true(check_leaks_pop(test_ctx));
+
+    kerr = krb5_kt_close(test_ctx->kctx, test_ctx->keytab);
+    assert_int_equal(kerr, 0);
+
+    krb5_free_principal(test_ctx->kctx, test_ctx->princs[0]);
+    krb5_free_principal(test_ctx->kctx, test_ctx->princs[1]);
+    krb5_free_principal(test_ctx->kctx, test_ctx->princs[2]);
+    krb5_free_principal(test_ctx->kctx, test_ctx->princs[3]);
+    krb5_free_principal(test_ctx->kctx, test_ctx->princs[4]);
+    krb5_free_context(test_ctx->kctx);
     talloc_free(test_ctx);
     assert_true(leak_check_teardown());
     return 0;
@@ -230,6 +326,179 @@ void test_sss_krb5_check_options(void **state)
     talloc_free(opts);
 }
 
+void test_get_validation_principal(void **state)
+{
+    struct test_gvp_ctx *test_ctx = talloc_get_type(*state, struct test_gvp_ctx);
+    krb5_error_code kerr;
+    krb5_principal principal;
+
+    kerr = mock_keytab(test_ctx->kctx, KEYTAB_NAME, test_ctx->keys, NKEYS);
+    assert_int_equal(kerr, 0);
+
+    kerr = get_validation_principal(test_ctx->kctx, test_ctx->keytab, KEYTAB_NAME,
+                                    test_ctx->princs[0], &principal);
+    assert_int_equal(kerr, 0);
+    assert_true(krb5_principal_compare(test_ctx->kctx, principal, test_ctx->princs[2]) == TRUE);
+
+    krb5_free_principal(test_ctx->kctx, principal);
+}
+
+void test_get_validation_principal_rev(void **state)
+{
+    struct test_gvp_ctx *test_ctx = talloc_get_type(*state, struct test_gvp_ctx);
+    krb5_error_code kerr;
+    krb5_principal principal;
+
+    krb5_keytab_entry keys[NKEYS];
+
+    memcpy(&keys[0],&test_ctx->keys[4], sizeof(krb5_keytab_entry));
+    memcpy(&keys[1],&test_ctx->keys[3], sizeof(krb5_keytab_entry));
+    memcpy(&keys[2],&test_ctx->keys[2], sizeof(krb5_keytab_entry));
+    memcpy(&keys[3],&test_ctx->keys[1], sizeof(krb5_keytab_entry));
+    memcpy(&keys[4],&test_ctx->keys[0], sizeof(krb5_keytab_entry));
+
+
+    kerr = mock_keytab(test_ctx->kctx, KEYTAB_NAME, keys, NKEYS);
+    assert_int_equal(kerr, 0);
+
+    kerr = get_validation_principal(test_ctx->kctx, test_ctx->keytab, KEYTAB_NAME,
+                                    test_ctx->princs[0], &principal);
+    assert_int_equal(kerr, 0);
+    assert_true(krb5_principal_compare(test_ctx->kctx, principal, test_ctx->princs[1]) == TRUE);
+
+    krb5_free_principal(test_ctx->kctx, principal);
+}
+
+void test_get_validation_principal_host_only(void **state)
+{
+    struct test_gvp_ctx *test_ctx = talloc_get_type(*state, struct test_gvp_ctx);
+    krb5_error_code kerr;
+    krb5_principal principal;
+
+    krb5_keytab_entry keys[1];
+
+    memcpy(&keys[0],&test_ctx->keys[0], sizeof(krb5_keytab_entry));
+
+    kerr = mock_keytab(test_ctx->kctx, KEYTAB_NAME, keys, 1);
+    assert_int_equal(kerr, 0);
+
+    kerr = get_validation_principal(test_ctx->kctx, test_ctx->keytab, KEYTAB_NAME,
+                                    test_ctx->princs[0], &principal);
+    assert_int_equal(kerr, 0);
+    assert_true(krb5_principal_compare(test_ctx->kctx, principal, test_ctx->princs[0]) == TRUE);
+
+    krb5_free_principal(test_ctx->kctx, principal);
+}
+
+void test_get_validation_principal_remote_only(void **state)
+{
+    struct test_gvp_ctx *test_ctx = talloc_get_type(*state, struct test_gvp_ctx);
+    krb5_error_code kerr;
+    krb5_principal principal;
+
+    krb5_keytab_entry keys[1];
+
+    memcpy(&keys[0],&test_ctx->keys[3], sizeof(krb5_keytab_entry));
+
+    kerr = mock_keytab(test_ctx->kctx, KEYTAB_NAME, keys, 1);
+    assert_int_equal(kerr, 0);
+
+    kerr = get_validation_principal(test_ctx->kctx, test_ctx->keytab, KEYTAB_NAME,
+                                    test_ctx->princs[0], &principal);
+    assert_int_equal(kerr, 0);
+    assert_true(krb5_principal_compare(test_ctx->kctx, principal, test_ctx->princs[3]) == TRUE);
+
+    krb5_free_principal(test_ctx->kctx, principal);
+}
+
+void test_get_validation_principal_remote_host(void **state)
+{
+    struct test_gvp_ctx *test_ctx = talloc_get_type(*state, struct test_gvp_ctx);
+    krb5_error_code kerr;
+    krb5_principal principal;
+
+    krb5_keytab_entry keys[2];
+
+    memcpy(&keys[0],&test_ctx->keys[0], sizeof(krb5_keytab_entry));
+    memcpy(&keys[1],&test_ctx->keys[3], sizeof(krb5_keytab_entry));
+
+    kerr = mock_keytab(test_ctx->kctx, KEYTAB_NAME, keys, 2);
+    assert_int_equal(kerr, 0);
+
+    kerr = get_validation_principal(test_ctx->kctx, test_ctx->keytab, KEYTAB_NAME,
+                                    test_ctx->princs[0], &principal);
+    assert_int_equal(kerr, 0);
+    assert_true(krb5_principal_compare(test_ctx->kctx, principal, test_ctx->princs[3]) == TRUE);
+
+    krb5_free_principal(test_ctx->kctx, principal);
+}
+
+void test_get_validation_principal_host_remote(void **state)
+{
+    struct test_gvp_ctx *test_ctx = talloc_get_type(*state, struct test_gvp_ctx);
+    krb5_error_code kerr;
+    krb5_principal principal;
+
+    krb5_keytab_entry keys[2];
+
+    memcpy(&keys[0],&test_ctx->keys[3], sizeof(krb5_keytab_entry));
+    memcpy(&keys[1],&test_ctx->keys[0], sizeof(krb5_keytab_entry));
+
+    kerr = mock_keytab(test_ctx->kctx, KEYTAB_NAME, keys, 2);
+    assert_int_equal(kerr, 0);
+
+    kerr = get_validation_principal(test_ctx->kctx, test_ctx->keytab, KEYTAB_NAME,
+                                    test_ctx->princs[0], &principal);
+    assert_int_equal(kerr, 0);
+    assert_true(krb5_principal_compare(test_ctx->kctx, principal, test_ctx->princs[3]) == TRUE);
+
+    krb5_free_principal(test_ctx->kctx, principal);
+}
+
+void test_get_validation_principal_host_remote_host(void **state)
+{
+    struct test_gvp_ctx *test_ctx = talloc_get_type(*state, struct test_gvp_ctx);
+    krb5_error_code kerr;
+    krb5_principal principal;
+
+    krb5_keytab_entry keys[2];
+
+    memcpy(&keys[0],&test_ctx->keys[4], sizeof(krb5_keytab_entry));
+    memcpy(&keys[1],&test_ctx->keys[0], sizeof(krb5_keytab_entry));
+
+    kerr = mock_keytab(test_ctx->kctx, KEYTAB_NAME, keys, 2);
+    assert_int_equal(kerr, 0);
+
+    kerr = get_validation_principal(test_ctx->kctx, test_ctx->keytab, KEYTAB_NAME,
+                                    test_ctx->princs[0], &principal);
+    assert_int_equal(kerr, 0);
+    assert_true(krb5_principal_compare(test_ctx->kctx, principal, test_ctx->princs[0]) == TRUE);
+
+    krb5_free_principal(test_ctx->kctx, principal);
+}
+
+void test_get_validation_principal_remote_host_host(void **state)
+{
+    struct test_gvp_ctx *test_ctx = talloc_get_type(*state, struct test_gvp_ctx);
+    krb5_error_code kerr;
+    krb5_principal principal;
+
+    krb5_keytab_entry keys[2];
+
+    memcpy(&keys[0],&test_ctx->keys[0], sizeof(krb5_keytab_entry));
+    memcpy(&keys[1],&test_ctx->keys[4], sizeof(krb5_keytab_entry));
+
+    kerr = mock_keytab(test_ctx->kctx, KEYTAB_NAME, keys, 2);
+    assert_int_equal(kerr, 0);
+
+    kerr = get_validation_principal(test_ctx->kctx, test_ctx->keytab, KEYTAB_NAME,
+                                    test_ctx->princs[0], &principal);
+    assert_int_equal(kerr, 0);
+    assert_true(krb5_principal_compare(test_ctx->kctx, principal, test_ctx->princs[0]) == TRUE);
+
+    krb5_free_principal(test_ctx->kctx, principal);
+}
+
 int main(int argc, const char *argv[])
 {
     int rv;
@@ -249,6 +518,22 @@ int main(int argc, const char *argv[])
                                         test_setup, test_teardown),
         cmocka_unit_test_setup_teardown(test_sss_krb5_check_options,
                                         test_setup, test_teardown),
+        cmocka_unit_test_setup_teardown(test_get_validation_principal,
+                                        test_gvp_setup, test_gvp_teardown),
+        cmocka_unit_test_setup_teardown(test_get_validation_principal_rev,
+                                        test_gvp_setup, test_gvp_teardown),
+        cmocka_unit_test_setup_teardown(test_get_validation_principal_host_only,
+                                        test_gvp_setup, test_gvp_teardown),
+        cmocka_unit_test_setup_teardown(test_get_validation_principal_remote_only,
+                                        test_gvp_setup, test_gvp_teardown),
+        cmocka_unit_test_setup_teardown(test_get_validation_principal_remote_host,
+                                        test_gvp_setup, test_gvp_teardown),
+        cmocka_unit_test_setup_teardown(test_get_validation_principal_host_remote,
+                                        test_gvp_setup, test_gvp_teardown),
+        cmocka_unit_test_setup_teardown(test_get_validation_principal_host_remote_host,
+                                        test_gvp_setup, test_gvp_teardown),
+        cmocka_unit_test_setup_teardown(test_get_validation_principal_remote_host_host,
+                                        test_gvp_setup, test_gvp_teardown),
     };
 
     /* Set debug level to invalid value so we can decide if -d 0 was used. */
