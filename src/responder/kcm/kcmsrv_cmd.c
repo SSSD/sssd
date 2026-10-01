@@ -423,32 +423,34 @@ static errno_t kcm_recv_data(TALLOC_CTX *mem_ctx,
     uint32_t msglen;
     errno_t ret;
 
-    ret = kcm_read_iovec(fd, &reqbuf->v_len);
-    if (ret != EOK) {
-        /* Not all errors are fatal, hence we don't print DEBUG messages
-         * here, but in the caller
-         */
-        return ret;
-    }
+    if (reqbuf->v_msg.kiov_base == NULL) {
+        ret = kcm_read_iovec(fd, &reqbuf->v_len);
+        if (ret != EOK) {
+            /* Not all errors are fatal, hence we don't print DEBUG messages
+            * here, but in the caller
+            */
+            return ret;
+        }
 
-    msglen = kcm_input_get_payload_len(&reqbuf->v_len);
-    if (msglen > KCM_PACKET_MAX_SIZE) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Request exceeds the KCM protocol limit, aborting\n");
-        return E2BIG;
-    }
+        msglen = kcm_input_get_payload_len(&reqbuf->v_len);
+        if (msglen > KCM_PACKET_MAX_SIZE) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Request exceeds the KCM protocol limit, aborting\n");
+            return E2BIG;
+        }
 
-    msg = talloc_array(mem_ctx, uint8_t, msglen);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to allocate memory for the message\n");
-        return ENOMEM;
-    }
-    talloc_set_destructor((void *) msg, sss_erase_talloc_mem_securely);
+        msg = talloc_array(mem_ctx, uint8_t, msglen);
+        if (msg == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to allocate memory for the message\n");
+            return ENOMEM;
+        }
+        talloc_set_destructor((void *) msg, sss_erase_talloc_mem_securely);
 
-    /* Set the buffer and its expected len to receive the data */
-    reqbuf->v_msg.kiov_base = msg;
-    reqbuf->v_msg.kiov_len = msglen;
+        /* Set the buffer and its expected len to receive the data */
+        reqbuf->v_msg.kiov_base = msg;
+        reqbuf->v_msg.kiov_len = msglen;
+    }
 
     ret = kcm_read_iovec(fd, &reqbuf->v_msg);
     if (ret != EOK) {
