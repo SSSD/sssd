@@ -226,3 +226,77 @@ if (-not $c) { Write-Error "CA not found"; exit 1 }
 
     log = client.fs.read(client.sssd.logs.domain())
     assert f"ldaps://{ad.server}" in log, f"Logs should show LDAPS connection to {ad.server}"
+
+
+SMARTCARD_PIN = "123456"
+
+
+def enroll_ad_smartcard(client: Client, ad: AD, username: str) -> None:
+    """
+    Request a certificate from the AD CA for *username* and enroll it onto the
+    client's virtual smart card.
+
+    :meth:`AD.ca.request` maps the certificate to the user in AD and returns the
+    certificate together with its private key, regardless of whether the
+    enrollment agent or the basic path is used.
+
+    :param client: Client role object.
+    :type client: Client
+    :param ad: AD role object whose CA issues the certificate.
+    :type ad: AD
+    :param username: AD user the certificate is issued for.
+    :type username: str
+    """
+    cert_path, key_path, _ = ad.ca.request("User", f"CN={username}")
+    cert_content = ad.host.conn.run(f'Get-Content "{cert_path}" -Raw').stdout
+    key_content = ad.host.conn.run(f'Get-Content "{key_path}" -Raw').stdout
+    client.fs.write(f"/opt/test_ca/{username}.crt", cert_content)
+    client.fs.write(f"/opt/test_ca/{username}.key", key_content)
+
+    client.fs.write("/etc/sssd/pki/sssd_auth_ca_db.pem", ad.ca.get_ca_cert())
+
+    client.smartcard.initialize_card()
+    client.smartcard.add_key(f"/opt/test_ca/{username}.key")
+    client.smartcard.add_cert(f"/opt/test_ca/{username}.crt")
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.builtwith(client="virtualsmartcard")
+def test_ad__user_authenticates_with_smartcard_certificate(client: Client, ad: AD):
+    """
+    :title: AD user authenticates using a certificate on a virtual smart card
+    :setup:
+        1. Add AD user
+        2. Request a certificate from the AD CA and enroll it on the virtual smart card
+        3. Configure SSSD for smart card authentication with a certmap rule and start SSSD
+    :steps:
+        1. Authenticate as the AD user using the smart card PIN
+    :expectedresults:
+        1. Authentication is successful
+    :customerscenario: True
+    """
+    if not ad.ca.is_available:
+        pytest.skip("AD Certificate Services is not available")
+
+    username = "certuser1"
+    ad.user(username).add()
+
+    enroll_ad_smartcard(client, ad, username)
+
+    base_dn = ",".join(f"DC={part}" for part in ad.domain.split("."))
+    domain_name = client.sssd.default_domain
+
+    client.authselect.select("sssd", ["with-smartcard"])
+    client.sssd.domain["ldap_user_certificate"] = "userCertificate;binary"
+    client.sssd.domain["local_auth_policy"] = "only"
+    client.sssd.pam["pam_cert_auth"] = "True"
+
+    certmap = client.sssd.section(f"certmap/{domain_name}/{username}")
+    certmap["matchrule"] = f"<ISSUER>.*{base_dn}.*"
+    certmap["maprule"] = f"(sAMAccountName={username})"
+
+    client.svc.restart("virt_cacard.service")
+    client.sssd.start()
+
+    assert client.auth.su.smartcard(username, SMARTCARD_PIN), "Smart card authentication failed!"
