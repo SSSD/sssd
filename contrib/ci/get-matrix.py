@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
     matrix = {
         'intgcheck': [*fedora, *centos],
-        'multihost': [*fedora, *centos],
+        'system': [*fedora, *centos],
     }
 
     print(json.dumps(matrix, indent=2))

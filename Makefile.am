@@ -470,7 +470,6 @@ dist_noinst_SCRIPTS = \
     src/config/SSSDConfigTest.py3.sh \
     contrib/fedora/bashrc_sssd \
     contrib/fedora/make_srpm.sh \
-    contrib/ci/clean \
     contrib/ci/configure.sh \
     contrib/ci/deps.sh \
     contrib/ci/distro.sh \
@@ -478,7 +477,6 @@ dist_noinst_SCRIPTS = \
     contrib/ci/misc.sh \
     contrib/ci/rpm-spec-builddeps \
     contrib/ci/run \
-    contrib/ci/run-multihost \
     contrib/ci/valgrind-condense \
     contrib/gdb/sssd_gdb_plugin.py \
     contrib/git/pre-push \

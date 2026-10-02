@@ -17,8 +17,6 @@ suite under Valgrind, completing in under 5 minutes.
 Moderate tests include essential tests, plus a distcheck target build. They
 complete in about 15 minutes.
 
-Use `contrib/ci/clean` to remove test results from the source tree.
-
 
 Setup
 -----
