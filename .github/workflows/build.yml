@@ -31,14 +31,23 @@ jobs:
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror" -j$PROCESSORS
+        # -g3 includes macro definitions in debug info, for better
+        # backtraces/suppressions in the make check-valgrind step below.
+        make CFLAGS+="$SSS_WARNINGS -Werror -g3" -j$PROCESSORS
 
     - name: make check
       shell: bash
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        make CFLAGS+="$SSS_WARNINGS -Werror" -j$PROCESSORS check
+        make CFLAGS+="$SSS_WARNINGS -Werror -g3" -j$PROCESSORS check
+
+    - name: make check-valgrind
+      shell: bash
+      working-directory: x86_64
+      run: |
+        source ../contrib/fedora/bashrc_sssd
+        ../contrib/ci/check-valgrind -j$PROCESSORS
 
     - name: make distcheck
       shell: bash
@@ -47,7 +56,8 @@ jobs:
         source ../contrib/fedora/bashrc_sssd
 
         # parallel distcheck is full of race conditions
-        make -j1 distcheck
+        # -g3 matches the debug info level used by the make/make check steps above.
+        make -j1 distcheck DISTCHECK_CONFIGURE_FLAGS="CFLAGS=-g3"
 
     - uses: actions/upload-artifact@v7
       if: always()
@@ -57,4 +67,5 @@ jobs:
           x86_64/config.log
           x86_64/config.h
           x86_64/test-suite.log
+          x86_64/**/*.valgrind.log
         if-no-files-found: ignore
