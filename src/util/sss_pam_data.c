@@ -212,6 +212,22 @@ int pam_add_response(struct pam_data *pd, enum response_type type,
     return EOK;
 }
 
+int pam_add_response_no_send(struct pam_data *pd, enum response_type type,
+                             int len, const uint8_t *data)
+{
+    int ret;
+
+    ret = pam_add_response(pd, type, len, data);
+    if (ret != EOK) {
+        return ret;
+    }
+
+    /* pam_add_response() adds the new response at the start of the list */
+    pd->resp_list->do_not_send_to_client = true;
+
+    return EOK;
+}
+
 errno_t
 pam_get_response_data(TALLOC_CTX *mem_ctx, struct pam_data *pd, int32_t type,
                       uint8_t **_buf, int32_t *_len)
