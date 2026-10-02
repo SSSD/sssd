@@ -956,15 +956,32 @@ static void evaluate_pam_resp_list(struct pam_data *pd,
     }
 }
 
-static void evalute_sending_cert_info(struct pam_data *pd)
+static void evalute_sending_cert_info(struct pam_data *pd, bool sc_allow)
 {
     struct pam_resp_auth_type types = {0};
     bool found_cert_info = false;
+    errno_t ret;
 
     evaluate_pam_resp_list(pd, &types, &found_cert_info);
 
-    if (found_cert_info && !types.cert_auth) {
+    if (!found_cert_info || types.cert_auth) {
+        return;
+    }
+
+    if (!sc_allow) {
         do_not_send_cert_info(pd);
+        return;
+    }
+
+    /* Only local Smartcard authentication is possible. The backend does not
+     * add SSS_CERT_AUTH_PROMPTING in this case, add it so that Smartcard
+     * authentication is offered in the JSON message as well. pam_sss
+     * ignores it, so there is no need to send it to the client. */
+    ret = pam_add_response_no_send(pd, SSS_CERT_AUTH_PROMPTING, 0, NULL);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add SSS_CERT_AUTH_PROMPTING, local Smartcard "
+              "authentication might not be offered in the JSON message.\n");
     }
 }
 
@@ -1116,10 +1133,9 @@ static errno_t pam_eval_local_auth_policy(TALLOC_CTX *mem_ctx,
      * Smartcard authentication is possible. If Smartcard authentication
      * is possible on the server side we have to keep it because the
      * 'enable' option should only add local methods but not reject remote
-     * ones. */
-    if (!sc_allow) {
-        evalute_sending_cert_info(pd);
-    }
+     * ones. If local Smartcard authentication is allowed it is announced
+     * like Smartcard authentication on the server side. */
+    evalute_sending_cert_info(pd, sc_allow);
 
     *_sc_allow = sc_allow;
     *_passkey_allow = passkey_allow;
