@@ -38,6 +38,11 @@ sss_failover_vtable_op_pick_server(TALLOC_CTX *mem_ctx,
 
     /* Total count of elements. */
     count = talloc_array_length(fctx->candidates->servers) - 1;
+    if (count == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Candidates servers count can not be zero\n");
+        return NULL;
+    }
 
     start = sss_rand() % count;
     for (size_t i = 0; i < count; i++) {
@@ -51,7 +56,13 @@ sss_failover_vtable_op_pick_server(TALLOC_CTX *mem_ctx,
         }
 
         if (sss_failover_server_maybe_working(server)) {
-            return talloc_reference(mem_ctx, server);
+            server = talloc_reference(mem_ctx, server);
+            if (server == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+                return NULL;
+            }
+
+            return server;
         }
     }
 
@@ -67,39 +78,9 @@ enum sss_failover_vtable_op {
     SSS_FAILOVER_VTABLE_OP_CONNECT,
 };
 
-/**
- * @brief Issue vtable operation against specific server.
- *
- * The operation should check the @server state and shortcut if possible (for
- * example if the server is already connected and working). @addr_changed is
- * true if the server hostname resolved to different address then what is stored
- * (it was previously unresolved, or the DNS record has changed). The operation
- * should take this information into consideration (e.g. reconnect to the server
- * with new address).
- *
- * The server state can be unknown, reachable or working. The server address
- * is guaranteed to be resolved.
- */
-typedef struct tevent_req *
-(*sss_failover_vtable_op_send_t)(TALLOC_CTX *mem_ctx,
-                                 struct sss_failover_ctx *fctx,
-                                 struct sss_failover_server *server,
-                                 bool addr_changed);
-
-/**
- * @brief Receive operation result and point to its private data.
- *
- * The private data is then stored on the server structure by caller.
- */
-typedef errno_t
-(*sss_failover_vtable_op_recv_t)(TALLOC_CTX *mem_ctx,
-                                 struct tevent_req *,
-                                 void **_op_private_data);
-
 struct sss_failover_vtable_op_args {
     union {
         struct {
-            bool reuse_connection;
             bool authenticate_connection;
             bool read_rootdse;
             enum sss_failover_transaction_tls force_tls;
@@ -145,8 +126,7 @@ static void
 sss_failover_vtable_op_server_resolved(struct tevent_req *subreq);
 
 static struct tevent_req *
-sss_failover_vtable_op_subreq_send(struct sss_failover_vtable_op_state *state,
-                                   bool addr_changed);
+sss_failover_vtable_op_subreq_send(struct sss_failover_vtable_op_state *state);
 
 static errno_t
 sss_failover_vtable_op_subreq_recv(TALLOC_CTX *mem_ctx,
@@ -184,8 +164,18 @@ sss_failover_vtable_op_send(TALLOC_CTX *mem_ctx,
 
     switch (state->operation) {
     case SSS_FAILOVER_VTABLE_OP_KINIT:
+        if (fctx->vtable->kinit.send == NULL || fctx->vtable->kinit.recv == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Operation kinit is not supported\n");
+            ret = ENOTSUP;
+            goto done;
+        }
+        break;
     case SSS_FAILOVER_VTABLE_OP_CONNECT:
-        /* Correct operation. */
+        if (fctx->vtable->connect.send == NULL || fctx->vtable->connect.recv == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Operation connect is not supported\n");
+            ret = ENOTSUP;
+            goto done;
+        }
         break;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Invalid operation: [%d]\n", state->operation);
@@ -237,10 +227,13 @@ sss_failover_vtable_op_server_next(struct tevent_req *req)
 
     if (state->current_server == NULL) {
         /* Select first server to try.*/
-        if (state->fctx->active_server != NULL
-            && sss_failover_server_maybe_working(state->fctx->active_server)) {
+        if (sss_failover_active_server_maybe_working(state->fctx)) {
             /* Try active server first. */
-            state->current_server = state->fctx->active_server;
+            state->current_server = sss_failover_active_server_get_ref(state, state->fctx);
+            if (state->current_server == NULL) {
+                DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+                return ENOMEM;
+            }
             DEBUG(SSSDBG_TRACE_FUNC, "Trying current active server: %s\n",
                   state->current_server->name);
         } else {
@@ -269,6 +262,7 @@ sss_failover_vtable_op_server_next(struct tevent_req *req)
                                                      state->fctx);
         }
 
+        talloc_unlink(state, state->current_server);
         state->current_server = sss_failover_vtable_op_pick_server(state, state->fctx);
         if (state->current_server == NULL) {
             /* No candidates are available. Wait for new ones. */
@@ -278,8 +272,6 @@ sss_failover_vtable_op_server_next(struct tevent_req *req)
         DEBUG(SSSDBG_TRACE_FUNC, "Trying next candidate server: %s\n",
                 state->current_server->name);
     }
-
-    /* TODO shortcut if already connected */
 
     /* First resolve the hostname. */
     DEBUG(SSSDBG_TRACE_FUNC, "Resolving hostname of %s\n",
@@ -360,13 +352,12 @@ sss_failover_vtable_op_server_resolved(struct tevent_req *subreq)
 {
     struct sss_failover_vtable_op_state *state;
     struct tevent_req *req;
-    bool addr_changed;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sss_failover_vtable_op_state);
 
-    ret = sss_failover_server_resolve_recv(subreq, &addr_changed);
+    ret = sss_failover_server_resolve_recv(subreq, NULL);
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -380,7 +371,7 @@ sss_failover_vtable_op_server_resolved(struct tevent_req *subreq)
     /* Trigger the operation. */
     DEBUG(SSSDBG_TRACE_FUNC, "Name resolved, starting vtable operation\n");
 
-    subreq = sss_failover_vtable_op_subreq_send(state, addr_changed);
+    subreq = sss_failover_vtable_op_subreq_send(state);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
         ret = ENOMEM;
@@ -397,18 +388,16 @@ done:
 }
 
 static struct tevent_req *
-sss_failover_vtable_op_subreq_send(struct sss_failover_vtable_op_state *state,
-                                   bool addr_changed)
+sss_failover_vtable_op_subreq_send(struct sss_failover_vtable_op_state *state)
 {
     switch (state->operation) {
     case SSS_FAILOVER_VTABLE_OP_KINIT:
         return state->fctx->vtable->kinit.send(
-            state, state->ev, state->fctx, state->current_server, addr_changed,
+            state, state->ev, state->fctx, state->current_server,
             state->fctx->vtable->kinit.data);
     case SSS_FAILOVER_VTABLE_OP_CONNECT:
         return state->fctx->vtable->connect.send(
-            state, state->ev, state->fctx, state->current_server, addr_changed,
-            state->args->input.connect.reuse_connection,
+            state, state->ev, state->fctx, state->current_server,
             state->args->input.connect.authenticate_connection,
             state->args->input.connect.read_rootdse,
             state->args->input.connect.force_tls,
@@ -459,11 +448,6 @@ static void sss_failover_vtable_op_done(struct tevent_req *subreq)
     case EOK:
         /* The operation was successful. */
         sss_failover_server_mark_working(state->current_server);
-
-        /* Remember this server. */
-        talloc_unlink(state->fctx, state->fctx->active_server);
-        state->fctx->active_server = talloc_reference(state->fctx,
-                                                      state->current_server);
         break;
     case ENOMEM:
         /* There is no reason to retry if we our out of memory. */
@@ -494,12 +478,20 @@ sss_failover_vtable_op_recv(TALLOC_CTX *mem_ctx,
                             struct sss_failover_vtable_op_args **_args)
 {
     struct sss_failover_vtable_op_state *state = NULL;
+    struct sss_failover_server *server;
+
     state = tevent_req_data(req, struct sss_failover_vtable_op_state);
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     if (_server != NULL) {
-        *_server = talloc_reference(mem_ctx, state->current_server);
+        server = talloc_reference(mem_ctx, state->current_server);
+        if (server == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+            return ENOMEM;
+        }
+
+        *_server = server;
     }
 
     if (_args != NULL) {
@@ -551,7 +543,6 @@ struct tevent_req *
 sss_failover_vtable_op_connect_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     struct sss_failover_ctx *fctx,
-                                    bool reuse_connection,
                                     bool authenticate_connection,
                                     bool read_rootdse,
                                     enum sss_failover_transaction_tls force_tls,
@@ -564,7 +555,6 @@ sss_failover_vtable_op_connect_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
-    args->input.connect.reuse_connection = reuse_connection;
     args->input.connect.authenticate_connection = authenticate_connection;
     args->input.connect.read_rootdse = read_rootdse;
     args->input.connect.force_tls = force_tls;

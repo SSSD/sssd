@@ -466,6 +466,43 @@ static void test_sss_failover_server_state_management(void **state)
     talloc_free(srv);
 }
 
+/* Test: sss_failover_server_is_working returns true only for WORKING state */
+static void test_sss_failover_server_is_working(void **state)
+{
+    TALLOC_CTX *test_ctx = (TALLOC_CTX*)*state;
+    struct sss_failover_server *srv;
+
+    srv = sss_failover_server_new(test_ctx, "server.ipa.test",
+                                  "ldap://server.ipa.test", 389, 10, 100);
+    assert_non_null(srv);
+
+    /* Initial state UNKNOWN: not working */
+    assert_int_equal(srv->state, SSS_FAILOVER_SERVER_STATE_UNKNOWN);
+    assert_false(sss_failover_server_is_working(srv));
+
+    /* REACHABLE: not working */
+    sss_failover_server_mark_reachable(srv);
+    assert_false(sss_failover_server_is_working(srv));
+
+    /* WORKING: working */
+    sss_failover_server_mark_working(srv);
+    assert_true(sss_failover_server_is_working(srv));
+
+    /* OFFLINE: not working */
+    sss_failover_server_mark_offline(srv);
+    assert_false(sss_failover_server_is_working(srv));
+
+    /* UNKNOWN again: not working */
+    sss_failover_server_mark_unknown(srv);
+    assert_false(sss_failover_server_is_working(srv));
+
+    /* RESOLVER_ERROR: not working */
+    sss_failover_server_mark_resolver_error(srv);
+    assert_false(sss_failover_server_is_working(srv));
+
+    talloc_free(srv);
+}
+
 /* Test: Compare two equal servers */
 static void test_sss_failover_server_equal__same(void **state)
 {
@@ -557,6 +594,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_failover_server_clone__null_server,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_failover_server_state_management,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_failover_server_is_working,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_failover_server_equal__same,
                                         setup, teardown),

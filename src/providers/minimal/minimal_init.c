@@ -350,6 +350,14 @@ sssm_minimal_init_failover(TALLOC_CTX *mem_ctx,
                                     sss_failover_ldap_connect_recv,
                                     opts);
 
+    sss_failover_vtable_set_conn_op_start(fctx,
+                                          sss_failover_ldap_connect_op_start,
+                                          NULL);
+
+    sss_failover_vtable_set_conn_op_done(fctx,
+                                         sss_failover_ldap_connect_op_done,
+                                         NULL);
+
     ret = EOK;
 
 done:
