@@ -235,7 +235,6 @@ m4_include([src/external/sasl.m4])
 m4_include([src/external/libnfsidmap.m4])
 m4_include([src/external/cwrap.m4])
 m4_include([src/external/libresolv.m4])
-m4_include([src/external/intgcheck.m4])
 m4_include([src/external/systemtap.m4])
 m4_include([src/external/service.m4])
 m4_include([src/external/test_ca.m4])
@@ -530,8 +529,6 @@ AS_IF([test x$VALGRIND_ENABLED = xyes], [
 # Check if the user wants SSSD to be compiled with systemtap probes
 AM_CHECK_SYSTEMTAP
 
-SSS_ENABLE_INTGCHECK_REQS
-
 AM_CONDITIONAL([HAVE_DEVSHM], [test -d /dev/shm])
 
 # Check if we should install polkit rules
@@ -552,7 +549,7 @@ AC_CONFIG_FILES([Makefile contrib/sssd.spec src/examples/rwtab src/doxy.config
                  src/examples/logrotate
                  src/sysv/sssd src/sysv/gentoo/sssd src/sysv/gentoo/sssd-kcm
                  po/Makefile.in src/man/Makefile src/tests/cwrap/Makefile
-                 src/tests/intg/Makefile src/tests/test_CA/Makefile
+                 src/tests/test_CA/Makefile
                  src/tests/test_CA/intermediate_CA/Makefile
                  src/tests/test_ECC_CA/Makefile
                  src/lib/ipa_hbac/ipa_hbac.pc src/lib/ipa_hbac/ipa_hbac.doxy
