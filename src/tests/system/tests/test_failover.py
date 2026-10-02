@@ -6,9 +6,12 @@ SSSD Failover tests.
 
 from __future__ import annotations
 
+import time
+
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericProvider
+from sssd_test_framework.roles.kdc import KDC
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
@@ -271,29 +274,35 @@ def test_failover__backup_uri_list_falls_back_to_next_uri(client: Client, ldap: 
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_failover__empty_primary_uri_falls_back_to_service_discovery(client: Client, ldap: LDAP):
     """
-    :title: Empty primary URI list defaults to service discovery
+    :title: Empty primary and backup URI lists default to service discovery
     :setup:
         1. Create user "user-1"
-        2. Set ldap_uri to an empty value
-        3. Start SSSD
+        2. Set ldap_uri and ldap_backup_uri to empty values
+        3. Set dns_discovery_domain to the LDAP domain
+        4. Start SSSD
     :steps:
         1. Find "No primary servers defined, using service discovery" in domain logs
         2. Lookup user-1
+        3. Login as user-1
     :expectedresults:
         1. String is found
         2. User is found via the server located by service discovery
+        3. User can login
     :customerscenario: False
     """
-    ldap.user("user-1").add()
+    ldap.user("user-1").add(password="Secret123")
     client.sssd.domain["ldap_uri"] = ""
+    client.sssd.domain["ldap_backup_uri"] = ""
+    client.sssd.domain["dns_discovery_domain"] = ldap.domain
     client.sssd.start(check_config=False)
 
     log = client.fs.read(client.sssd.logs.domain())
     assert (
         "No primary servers defined, using service discovery" in log
-    ), "Empty primary URI list did not fall back to service discovery!"
+    ), "Empty URI lists did not fall back to service discovery!"
 
     assert client.tools.id("user-1") is not None, "User is not found!"
+    assert client.auth.ssh.password("user-1", "Secret123"), "User login failed!"
 
 
 @pytest.mark.importance("medium")
@@ -577,3 +586,157 @@ def test_failover__chpass_backup_uri_is_used_when_chpass_uri_is_unavailable(clie
     assert client.auth.passwd.password("user-1", old_password, new_password), "Password change failed!"
     assert not client.auth.ssh.password("user-1", old_password), "Login with old password worked!"
     assert client.auth.ssh.password("user-1", new_password), "Login with new password failed!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_failover__krb5_server_list_falls_back_to_next_port(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: Kerberos authentication fails over to the next port in the krb5_server list
+    :setup:
+        1. Add user "puser1" to LDAP and the KDC
+        2. Configure SSSD with LDAP identity and Kerberos authentication
+        3. Set krb5_server to the KDC on a closed port followed by the KDC on port 88
+        4. Start SSSD
+    :steps:
+        1. Login as puser1
+    :expectedresults:
+        1. User can login, the closed port did not stop the failover
+    :customerscenario: False
+    """
+    provider.user("puser1").add(uid=50001, gid=50001, password="Secret123")
+    kdc.principal("puser1").add(password="Secret123")
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["krb5_realm"] = kdc.realm
+    client.sssd.domain["krb5_server"] = f"{kdc.host.hostname}:12345,{kdc.host.hostname}:88"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("puser1", "Secret123"), "User login failed!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_failover__krb5_kpasswd_list_falls_back_to_next_port(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: Password change fails over to the next port in the krb5_kpasswd list
+    :setup:
+        1. Add user "puser1" to LDAP and the KDC
+        2. Configure SSSD with LDAP identity, Kerberos authentication and Kerberos chpass
+        3. Set krb5_kpasswd to the KDC on a closed port followed by the KDC on port 464
+        4. Start SSSD
+    :steps:
+        1. Change the password of puser1
+        2. Login with the new password
+    :expectedresults:
+        1. Password change is successful, the closed port did not stop the failover
+        2. User can login
+    :customerscenario: False
+    """
+    old_password = "Secret123"
+    new_password = "New_Secret123"
+
+    provider.user("puser1").add(uid=50001, gid=50001, password=old_password)
+    kdc.principal("puser1").add(password=old_password)
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["krb5_realm"] = kdc.realm
+    client.sssd.domain["krb5_server"] = kdc.host.hostname
+    client.sssd.domain["krb5_kpasswd"] = f"{kdc.host.hostname}:12345,{kdc.host.hostname}:464"
+    client.sssd.domain["chpass_provider"] = "krb5"
+    client.sssd.start()
+
+    assert client.tools.id("puser1") is not None, "User is not found!"
+    assert client.auth.ssh.passwd.password("puser1", old_password, new_password), "Password change failed!"
+    assert client.auth.ssh.password("puser1", new_password), "Login with new password failed!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_failover__krb5_backup_kpasswd_is_used_when_kpasswd_is_unavailable(
+    client: Client, provider: GenericProvider, kdc: KDC
+):
+    """
+    :title: Password change uses krb5_backup_kpasswd when krb5_kpasswd is unavailable
+    :setup:
+        1. Add user "puser1" to LDAP and the KDC
+        2. Configure SSSD with LDAP identity, Kerberos authentication and Kerberos chpass
+        3. Set krb5_kpasswd to the KDC on a closed port
+        4. Set krb5_backup_kpasswd to the KDC on port 464
+        5. Start SSSD
+    :steps:
+        1. Change the password of puser1
+        2. Login with the new password
+    :expectedresults:
+        1. Password change is successful using the backup kpasswd server
+        2. User can login
+    :customerscenario: False
+    """
+    old_password = "Secret123"
+    new_password = "New_Secret123"
+
+    provider.user("puser1").add(uid=50001, gid=50001, password=old_password)
+    kdc.principal("puser1").add(password=old_password)
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["krb5_realm"] = kdc.realm
+    client.sssd.domain["krb5_server"] = kdc.host.hostname
+    client.sssd.domain["krb5_kpasswd"] = f"{kdc.host.hostname}:12345"
+    client.sssd.domain["krb5_backup_kpasswd"] = f"{kdc.host.hostname}:464"
+    client.sssd.domain["chpass_provider"] = "krb5"
+    client.sssd.start()
+
+    assert client.tools.id("puser1") is not None, "User is not found!"
+    assert client.auth.ssh.passwd.password("puser1", old_password, new_password), "Password change failed!"
+    assert client.auth.ssh.password("puser1", new_password), "Login with new password failed!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1122873)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_failover__server_is_resolved_from_etc_hosts_when_dns_is_unavailable(client: Client, ldap: LDAP):
+    """
+    :title: Failover resolves the server from /etc/hosts after service discovery stops working
+    :setup:
+        1. Create user "user-1"
+        2. Set ldap_uri to "_srv_" followed by the LDAP server
+        3. Start SSSD
+        4. Empty /etc/resolv.conf and reduce /etc/hosts to loopback only, so nothing resolves
+        5. Restart SSSD
+    :steps:
+        1. Lookup user-1 while no name resolution is possible
+        2. Add the LDAP server to /etc/hosts and lookup user-1 again
+    :expectedresults:
+        1. User is not found
+        2. User is found, SSSD resolved the server from /etc/hosts without being restarted
+    :customerscenario: True
+    """
+    ldap.user("user-1").add()
+
+    result = client.host.conn.run(f"getent ahostsv4 {ldap.host.hostname}", raise_on_error=False)
+    assert result.rc == 0, f"Unable to resolve {ldap.host.hostname}!"
+    assert result.stdout, f"No IPv4 address returned for {ldap.host.hostname}!"
+    ip = result.stdout.split()[0]
+
+    client.sssd.domain["ldap_uri"] = f"_srv_, ldap://{ldap.host.hostname}"
+    client.sssd.start()
+
+    loopback = "127.0.0.1 localhost\n::1 localhost\n"
+    client.fs.write("/etc/resolv.conf", "")
+    client.fs.write("/etc/hosts", loopback)
+    client.sssd.restart(clean=True)
+
+    result = client.host.conn.run("getent passwd user-1", raise_on_error=False)
+    assert result.rc != 0, "User is found even though no name resolution is possible!"
+
+    client.fs.write("/etc/hosts", f"{loopback}{ip} {ldap.host.hostname}\n")
+
+    # SSSD retries the server periodically, it is not restarted here on purpose - the point of
+    # bz1122873 is that failover picks up the /etc/hosts entry on its own.
+    for _ in range(12):
+        time.sleep(10)
+        result = client.host.conn.run("getent passwd user-1", raise_on_error=False)
+        if result.rc == 0:
+            break
+
+    assert result.rc == 0, "User is not found, SSSD did not fail over to the server from /etc/hosts!"
