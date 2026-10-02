@@ -67,9 +67,17 @@ pam_dp_send_req_done(struct tevent_req *subreq)
     ret = sbus_call_dp_dp_pamHandler_recv(preq, subreq, &pam_response);
     talloc_zfree(subreq);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "PAM handler failed [%d]: %s\n",
+        DEBUG(SSSDBG_OP_FAILURE, "PAM handler failed [%d]: %s\n",
               ret, sss_strerror(ret));
-        preq->pd->pam_status = PAM_SYSTEM_ERR;
+        if (ret == ERR_ACCESS_DENIED) {
+            preq->pd->pam_status = PAM_PERM_DENIED;
+        } else if (ret == ERR_PASSWORD_EXPIRED) {
+            preq->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
+        } else if (ret == ETIMEDOUT || ret == ERR_NETWORK_IO) {
+            preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        } else {
+            preq->pd->pam_status = PAM_SYSTEM_ERR;
+        }
         goto done;
     }
 

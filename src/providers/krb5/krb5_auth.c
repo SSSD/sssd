@@ -1333,8 +1333,11 @@ krb5_pam_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (pd->pam_status != PAM_SUCCESS) {
+        tevent_req_error(req, EINVAL);
+    } else {
+        tevent_req_done(req);
+    }
     tevent_req_post(req, params->ev);
 
     return req;
@@ -1378,8 +1381,11 @@ static void krb5_pam_handler_auth_done(struct tevent_req *subreq)
     }
 
 done:
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static void krb5_pam_handler_auth_retry_done(struct tevent_req *subreq)
@@ -1406,8 +1412,11 @@ static void krb5_pam_handler_auth_retry_done(struct tevent_req *subreq)
         state->pd->pam_status = PAM_AUTH_ERR;
     }
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 static void krb5_pam_handler_access_done(struct tevent_req *subreq)
@@ -1431,8 +1440,11 @@ static void krb5_pam_handler_access_done(struct tevent_req *subreq)
           access_allowed ? "allowed" : "denied", state->pd->user);
     state->pd->pam_status = access_allowed ? PAM_SUCCESS : PAM_PERM_DENIED;
 
-    /* TODO For backward compatibility we always return EOK to DP now. */
-    tevent_req_done(req);
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
 }
 
 errno_t
