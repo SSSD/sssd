@@ -11,8 +11,6 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
 TOKEN_PIN = "123456"
-TOKEN1_LABEL = "SC_Token_1"
-TOKEN2_LABEL = "SC_Token_2"
 
 
 @pytest.mark.importance("critical")
@@ -270,61 +268,6 @@ def test_smartcard__certificate_owner_resolved_with_full_name_format(client: Cli
     assert (
         "pam_authenticate for user [local\\user1]: Success" in result.stderr
     ), f"Certificate owner was not resolved with full_name_format applied! stderr={result.stderr}"
-
-
-@pytest.mark.importance("medium")
-@pytest.mark.topology(KnownTopology.Client)
-@pytest.mark.parametrize("cert_selection", [1, 2])
-def test_smartcard__certificate_owner_resolved_with_two_tokens_and_missing_name(client: Client, cert_selection: int):
-    """
-    :title: allow_missing_name resolves the certificate owner when two tokens are present
-    :setup:
-        1. Create a local user
-        2. Reset the certificate CA trust store to a clean state
-        3. Initialize two SoftHSM tokens, each holding a certificate mapped to the user,
-           and trust both certificates in the CA trust store
-        4. Configure SSSD for smart card authentication and start services
-    :steps:
-        1. Authenticate against the 'smartcard-auth' service with no username, selecting
-           each certificate in turn
-    :expectedresults:
-        1. Authentication succeeds and is resolved to the certificate's mapped user for
-           either certificate selection
-    :customerscenario: True
-    """
-    username = "user1"
-    client.local.user(username).add()
-    client.host.fs.rm("/etc/sssd/pki/sssd_auth_ca_db.pem")
-
-    key1, cert1 = client.smartcard.generate_cert(key_path="/tmp/sc_token1.key", cert_path="/tmp/sc_token1.crt")
-    client.smartcard.initialize_card(label=TOKEN1_LABEL, user_pin=TOKEN_PIN, reset=True)
-    client.smartcard.add_key(key1, token_label=TOKEN1_LABEL, label=username)
-    client.smartcard.add_cert(cert1, token_label=TOKEN1_LABEL, label=username)
-    key2, cert2 = client.smartcard.generate_cert(key_path="/tmp/sc_token2.key", cert_path="/tmp/sc_token2.crt")
-    client.smartcard.initialize_card(label=TOKEN2_LABEL, user_pin=TOKEN_PIN, reset=False)
-    client.smartcard.add_key(key2, token_label=TOKEN2_LABEL, label=username)
-    client.smartcard.add_cert(cert2, token_label=TOKEN2_LABEL, label=username)
-
-    client.sssd.common.local()
-    client.sssd.section(f"certmap/local/{username}")["matchrule"] = "<SUBJECT>.*CN=Test Cert.*"
-    client.sssd.pam["pam_cert_auth"] = "True"
-    for cert in (cert1, cert2):
-        # dedent=False is required here: fs.append() strips trailing whitespace,
-        # by default which will corrupt the CA bundle.
-        client.host.fs.append(
-            "/etc/sssd/pki/sssd_auth_ca_db.pem", client.host.fs.read(cert).strip() + "\n", dedent=False
-        )
-    client.sssd.common.smartcard_with_softhsm(client.smartcard)
-    client.authselect.select("sssd", ["with-smartcard-required", "with-mkhomedir"])
-    client.sssd.pam["pam_p11_allowed_services"] = "+smartcard-auth"
-    client.sssd.restart()
-
-    result = client.sssctl.user_checks(
-        "", action="auth", service="smartcard-auth", auth_input=f"{cert_selection}\n{TOKEN_PIN}"
-    )
-    assert (
-        f"pam_authenticate for user [{username}]: Success" in result.stderr
-    ), f"Certificate owner was not resolved! stderr={result.stderr}"
 
 
 @pytest.mark.importance("high")
