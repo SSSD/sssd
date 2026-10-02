@@ -26,9 +26,6 @@ declare -a DEPS_LIST=(
     valgrind
 )
 
-# "Integration tests dependencies satisfied" flag
-declare DEPS_INTGCHECK_SATISFIED=true
-
 if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     declare _DEPS_LIST_SPEC
     DEPS_LIST+=(
@@ -178,7 +175,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libcap-dev
     )
 
-    DEPS_INTGCHECK_SATISFIED=true
 fi
 
 declare -a -r DEPS_LIST

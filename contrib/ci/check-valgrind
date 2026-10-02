@@ -1,0 +1,53 @@
+#!/bin/bash
+#
+# Run `make check` under Valgrind memcheck.
+#
+# Must be invoked from a configured build directory. Extra arguments are
+# forwarded to make (for example: -j$(nproc)).
+#
+# Copyright (C) 2026 Red Hat
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+set -o nounset -o pipefail -o errexit
+declare -r CI_DIR=`dirname "\`readlink -f \"\$0\"\`"`
+export PATH=$CI_DIR:$PATH
+
+. "$CI_DIR/distro.sh"
+
+# Additional valgrind flags
+declare VALGRIND_FLAGS=""
+if [ -e "$CI_DIR/sssd.$DISTRO_ID.supp" ]; then
+    VALGRIND_FLAGS+=" --suppressions=\"$CI_DIR/sssd.$DISTRO_ID.supp\""
+fi
+
+# Extended glob pattern matching tests to run under Valgrind.
+# NOTE: The particular pattern below is inverted
+declare valgrind_test_pattern="!(*.py|*/whitespace_test|"
+declare -r valgrind_test_pattern+="*/double_semicolon_test)"
+
+CK_FORK=no \
+DEBUGINFOD_URLS="" \
+    make "$@" check \
+         LOG_COMPILER=libtool \
+         LOG_FLAGS="--mode=execute \
+                    valgrind-condense 99 \
+                    \"$valgrind_test_pattern\" -- \
+                    --trace-children=yes \
+                    --trace-children-skip='*/bin/*,*/sbin/*,./dummy-child' \
+                    --leak-check=full \
+                    --gen-suppressions=all \
+                    --suppressions=\"$CI_DIR/sssd.supp\" \
+                    $VALGRIND_FLAGS \
+                    --verbose"
