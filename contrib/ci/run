@@ -157,7 +157,7 @@ function run_build()
 #
 declare args_expr
 args_expr=`getopt --name \`basename "\$0"\` \
-                  --options hp:dnrf \
+                  --options hp:dn \
                   --longoptions help,prefix:,no-deps,deps-only \
                   -- "$@"`
 eval set -- "$args_expr"
