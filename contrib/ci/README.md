@@ -8,17 +8,9 @@ Supported host distros are Fedora 20 and later, RHEL 6.5 and later, and Debian
 Testing.
 
 The tests are executed by running `contrib/ci/run` from the source tree root.
-It accepts options to choose from two test sets: "essential", "moderate"
-(-e/-m), with the essential set selected by default.
-
-Essential tests include building everything and running the built-in test
-suite under Valgrind, completing in under 5 minutes.
-
-Moderate tests include essential tests, plus a distcheck target build. They
-complete in about 15 minutes.
-
-Use `contrib/ci/clean` to remove test results from the source tree.
-
+It builds SSSD and runs the built-in test suite under Valgrind, completing in
+under 5 minutes. The same Valgrind check, plus `make distcheck`, is also run
+by the GitHub Actions `make-distcheck` job (`.github/workflows/build.yml`).
 
 Setup
 -----
