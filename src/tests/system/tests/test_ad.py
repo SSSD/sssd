@@ -226,3 +226,95 @@ if (-not $c) { Write-Error "CA not found"; exit 1 }
 
     log = client.fs.read(client.sssd.logs.domain())
     assert f"ldaps://{ad.server}" in log, f"Logs should show LDAPS connection to {ad.server}"
+
+
+SMARTCARD_PIN = "123456"
+
+
+def enroll_ad_smartcard(client: Client, ad: AD, username: str) -> None:
+    """
+    Request a certificate from the AD CA for *username* and enroll it onto the
+    client's virtual smart card.
+
+    :meth:`AD.ca.request` maps the certificate to the user in AD (via
+    ``altSecurityIdentities``) and returns the certificate together with either a
+    key file (enrollment agent path) or a PFX bundle (basic fallback).  In the
+    fallback case the certificate is additionally stored on the user's
+    ``userCertificate`` attribute.
+
+    :param client: Client role object.
+    :type client: Client
+    :param ad: AD role object whose CA issues the certificate.
+    :type ad: AD
+    :param username: AD user the certificate is issued for.
+    :type username: str
+    """
+    cert_path, key_or_pfx, _ = ad.ca.request("User", f"CN={username}")
+    cert_content = ad.host.conn.run(f'Get-Content "{cert_path}" -Raw').stdout
+    client.fs.write(f"/opt/test_ca/{username}.crt", cert_content)
+
+    if key_or_pfx.endswith(".key"):
+        key_content = ad.host.conn.run(f'Get-Content "{key_or_pfx}" -Raw').stdout
+        client.fs.write(f"/opt/test_ca/{username}.key", key_content)
+    else:
+        pfx_b64 = ad.host.conn.run(
+            f'[System.Convert]::ToBase64String([System.IO.File]::ReadAllBytes("{key_or_pfx}"))'
+        ).stdout.strip()
+        client.fs.write(f"/opt/test_ca/{username}.pfx.b64", pfx_b64)
+        client.host.conn.run(f"base64 -d /opt/test_ca/{username}.pfx.b64 > /opt/test_ca/{username}.pfx")
+        client.host.conn.run(
+            f"openssl pkcs12 -in /opt/test_ca/{username}.pfx -nocerts -nodes "
+            f"-password pass:Secret123 -out /opt/test_ca/{username}.key"
+        )
+        ad.host.conn.run(
+            f'$c = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2("{cert_path}"); '
+            f"Set-ADUser -Identity {username} -Replace @{{userCertificate=$c.RawData}}"
+        )
+
+    client.fs.write("/etc/sssd/pki/sssd_auth_ca_db.pem", ad.ca.get_ca_cert())
+
+    client.smartcard.initialize_card()
+    client.smartcard.add_key(f"/opt/test_ca/{username}.key")
+    client.smartcard.add_cert(f"/opt/test_ca/{username}.crt")
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.builtwith(client="virtualsmartcard")
+def test_ad__user_authenticates_with_smartcard_certificate(client: Client, ad: AD):
+    """
+    :title: AD user authenticates using a certificate on a virtual smart card
+    :setup:
+        1. Add AD user
+        2. Request a certificate from the AD CA and enroll it on the virtual smart card
+        3. Configure SSSD for smart card authentication with a certmap rule and start SSSD
+    :steps:
+        1. Authenticate as the AD user using the smart card PIN
+    :expectedresults:
+        1. Authentication is successful
+    :customerscenario: True
+    """
+    if not ad.ca.is_available:
+        pytest.skip("AD Certificate Services is not available")
+
+    username = "certuser1"
+    ad.user(username).add()
+
+    enroll_ad_smartcard(client, ad, username)
+
+    base_dn = ",".join(f"DC={part}" for part in ad.domain.split("."))
+    domain_name = client.sssd.default_domain
+
+    client.authselect.select("sssd", ["with-smartcard"])
+    client.sssd.domain["ldap_user_certificate"] = "userCertificate;binary"
+    client.sssd.domain["local_auth_policy"] = "only"
+    client.sssd.pam["pam_cert_auth"] = "True"
+
+    certmap = client.sssd.section(f"certmap/{domain_name}/{username}")
+    certmap["matchrule"] = f"<ISSUER>.*{base_dn}.*"
+    certmap["maprule"] = f"(sAMAccountName={username})"
+
+    client.svc.restart("virt_cacard.service")
+    client.sssd.start()
+
+    assert client.auth.su.smartcard(username, SMARTCARD_PIN), "Smart card authentication failed!"
