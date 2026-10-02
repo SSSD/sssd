@@ -476,7 +476,6 @@ int main(int argc, const char *argv[])
 
     umask(DFL_RSP_UMASK);
 
-#ifndef INTGCHECK_BUILD
     /* This is to clear dangerous variables like 'LDB_MODULES_PATH'
      * from environment of privileged responder.
      * In case of socket activation, 'LISTEN_PID' and 'LISTEN_FDS'
@@ -497,7 +496,6 @@ int main(int argc, const char *argv[])
         setenv("LISTEN_FDS", env_listen_fds, 1);
         talloc_free(env_listen_fds);
     }
-#endif  /* 'intgcheck' relies on 'LDB_MODULES_PATH' to setup a test env */
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {
