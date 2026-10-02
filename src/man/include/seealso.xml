@@ -72,16 +72,16 @@
             </citerefentry>,
             <citerefentry>
                 <refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum>
-            </citerefentry>.
+            </citerefentry>,
             <citerefentry>
                 <refentrytitle>sss_rpcidmapd</refentrytitle>
                 <manvolnum>5</manvolnum>
-            </citerefentry>
+            </citerefentry>,
             <phrase condition="with_stap">
                 <citerefentry>
                     <refentrytitle>sssd-systemtap</refentrytitle>
                     <manvolnum>5</manvolnum>
                 </citerefentry>
-            </phrase>
+            </phrase>.
         </para>
     </refsect1>
