@@ -184,11 +184,12 @@ char *get_json_string_array_from_json_string(TALLOC_CTX *mem_ctx,
                                              const char *json_str,
                                              const char *attr_name);
 
-char *get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
-                                       struct rest_ctx *rest_ctx,
-                                       const char *base_url,
-                                       const char *bearer_token,
-                                       const char **id_list);
+errno_t get_json_string_array_by_id_list(TALLOC_CTX *mem_ctx,
+                                         struct rest_ctx *rest_ctx,
+                                         const char *base_url,
+                                         const char *bearer_token,
+                                         const char **id_list,
+                                         char **_out);
 
 errno_t add_posix_to_json_string_array(TALLOC_CTX *mem_ctx,
                                        struct name_and_type_identifier *map,
