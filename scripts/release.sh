@@ -180,13 +180,16 @@ GROUP_END
 fi
 
 GROUP_START "Create GitHub release"
+release_flags=(--draft)
+is_prerelease "$version" && release_flags+=(--prerelease)
+
 gh release create "$version" \
     --repo "$github_repo" \
     --title "sssd-$version" \
     --notes "[**See full release notes here.**](https://sssd.io/release-notes/sssd-$version.html)" \
     --generate-notes \
     --verify-tag \
-    --draft \
+    "${release_flags[@]}" \
     "sssd-${version}.tar.gz" \
     "sssd-${version}.tar.gz.asc" \
     "sssd-${version}.tar.gz.sha256sum"
