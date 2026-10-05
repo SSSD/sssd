@@ -558,10 +558,10 @@ static errno_t kcm_creds_check_times(TALLOC_CTX *mem_ctx,
     int ret;
 
     memset(&tgtt, 0, sizeof(tgtt));
-    tgtt.authtime = creds->times.authtime;
-    tgtt.starttime = creds->times.starttime;
-    tgtt.endtime = creds->times.endtime;
-    tgtt.renew_till = creds->times.renew_till;
+    tgtt.authtime = (uint32_t)creds->times.authtime;
+    tgtt.starttime = (uint32_t)creds->times.starttime;
+    tgtt.endtime = (uint32_t)creds->times.endtime;
+    tgtt.renew_till = (uint32_t)creds->times.renew_till;
 
     now = time(NULL);
     /* Attempt renewal only after half of the ticket lifetime has exceeded */
