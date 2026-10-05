@@ -3448,7 +3448,6 @@ static void sdap_get_initgr_pgid(struct tevent_req *subreq)
     if (ret == ENOENT) {
         DEBUG(SSSDBG_TRACE_FUNC, "Initgroups operation groups_get_recv() "
                                  "returned ENOENT, continuing\n");
-        ret = EOK;
     } else if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
