@@ -15,7 +15,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
-"POT-Creation-Date: 2026-01-14 14:57+0000\n"
+"POT-Creation-Date: 2026-10-02 15:57+0000\n"
 "PO-Revision-Date: 2026-10-06 11:03+0000\n"
 "Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
 "memory@weblate.org>\n"
@@ -28,48 +28,48 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
 "X-Generator: Weblate 2026.10\n"
 
-#: src/config/SSSDConfig/sssdoptions.py:20
-#: src/config/SSSDConfig/sssdoptions.py:21
+#: src/config/SSSDConfig/sssdoptions.py:16
+#: src/config/SSSDConfig/sssdoptions.py:17
 msgid "Set the verbosity of the debug logging"
 msgstr "Ange detaljnivån för felsökningsloggning"
 
-#: src/config/SSSDConfig/sssdoptions.py:22
+#: src/config/SSSDConfig/sssdoptions.py:18
 msgid "Include timestamps in debug logs"
 msgstr "Inkludera tidsstämplar i felsökningsloggar"
 
-#: src/config/SSSDConfig/sssdoptions.py:23
+#: src/config/SSSDConfig/sssdoptions.py:19
 msgid "Include microseconds in timestamps in debug logs"
 msgstr "Inkludera mikrosekunder i tidsstämplar i felsökningsloggar"
 
-#: src/config/SSSDConfig/sssdoptions.py:24
+#: src/config/SSSDConfig/sssdoptions.py:20
 msgid "Enable/disable debug backtrace"
 msgstr "Aktivera eller inaktivera felsökningsstackspårning"
 
-#: src/config/SSSDConfig/sssdoptions.py:25
+#: src/config/SSSDConfig/sssdoptions.py:21
 msgid "Watchdog timeout before restarting service"
 msgstr "Vakthundens tidsgräns innan tjänsten startas om"
 
-#: src/config/SSSDConfig/sssdoptions.py:26
+#: src/config/SSSDConfig/sssdoptions.py:22
 msgid "Command to start service"
 msgstr "Kommando för att starta tjänst"
 
-#: src/config/SSSDConfig/sssdoptions.py:27
+#: src/config/SSSDConfig/sssdoptions.py:23
 msgid "The number of file descriptors that may be opened by this responder"
 msgstr "Antalet fildeskriptorer som får öppnas av denna svarare"
 
-#: src/config/SSSDConfig/sssdoptions.py:28
+#: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Idle time before automatic disconnection of a client"
 msgstr "Inaktiv tid innan en klient kopplas från automatiskt"
 
-#: src/config/SSSDConfig/sssdoptions.py:29
+#: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Idle time before automatic shutdown of the responder"
 msgstr "Inaktiv tid innan svararen stängs av automatiskt"
 
-#: src/config/SSSDConfig/sssdoptions.py:30
+#: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Always query all the caches before querying the Data Providers"
 msgstr "Fråga alltid alla cachar innan dataleverantörerna frågas"
 
-#: src/config/SSSDConfig/sssdoptions.py:31
+#: src/config/SSSDConfig/sssdoptions.py:27
 msgid ""
 "When SSSD switches to offline mode the amount of time before it tries to go "
 "back online will increase based upon the time spent disconnected. This value "
@@ -80,62 +80,62 @@ msgstr ""
 "ansluta igen beroende på hur länge det varit frånkopplat. Värdet anges i "
 "sekunder och beräknas så här: offline_timeout + random_offset."
 
-#: src/config/SSSDConfig/sssdoptions.py:36
+#: src/config/SSSDConfig/sssdoptions.py:32
 msgid "SSSD Services to start"
 msgstr "SSSD-tjänster att starta"
 
-#: src/config/SSSDConfig/sssdoptions.py:37
+#: src/config/SSSDConfig/sssdoptions.py:33
 msgid "SSSD Domains to start"
 msgstr "SSSD-domäner att starta"
 
-#: src/config/SSSDConfig/sssdoptions.py:38
+#: src/config/SSSDConfig/sssdoptions.py:34
 msgid "Regex to parse username and domain"
 msgstr "Reguljäruttryck för att tolka användarnamn och domän"
 
-#: src/config/SSSDConfig/sssdoptions.py:39
+#: src/config/SSSDConfig/sssdoptions.py:35
 msgid "Printf-compatible format for displaying fully-qualified names"
 msgstr "Printf-kompatibelt format för att visa fullständigt kvalificerade namn"
 
-#: src/config/SSSDConfig/sssdoptions.py:40
+#: src/config/SSSDConfig/sssdoptions.py:36
 msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
 "Katalog i filsystemet där SSSD ska lagra Kerberos omspelningscachefiler."
 
-#: src/config/SSSDConfig/sssdoptions.py:41
+#: src/config/SSSDConfig/sssdoptions.py:37
 msgid "Domain to add to names without a domain component."
 msgstr "Domän att lägga till i namn utan domändel."
 
-#: src/config/SSSDConfig/sssdoptions.py:42
+#: src/config/SSSDConfig/sssdoptions.py:38
 msgid "The user to drop privileges to"
 msgstr "Användare att sänka behörigheten till"
 
-#: src/config/SSSDConfig/sssdoptions.py:43
+#: src/config/SSSDConfig/sssdoptions.py:39
 msgid "Tune certificate verification"
 msgstr "Finjustera certifikatverifieringen"
 
-#: src/config/SSSDConfig/sssdoptions.py:44
+#: src/config/SSSDConfig/sssdoptions.py:40
 msgid "All spaces in group or user names will be replaced with this character"
 msgstr ""
 "Alla mellanrum i grupp- eller användarnamn kommer att ersättas med detta "
 "tecken"
 
-#: src/config/SSSDConfig/sssdoptions.py:45
+#: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Tune sssd to honor or ignore netlink state changes"
 msgstr ""
 "Finjustera SSSD för att beakta eller ignorera ändringar av netlink-"
 "tillståndet"
 
-#: src/config/SSSDConfig/sssdoptions.py:46
+#: src/config/SSSDConfig/sssdoptions.py:42
 msgid "Enable or disable the implicit files domain"
 msgstr "Aktivera eller inaktivera den implicita fildomänen"
 
-#: src/config/SSSDConfig/sssdoptions.py:47
+#: src/config/SSSDConfig/sssdoptions.py:43
 msgid "A specific order of the domains to be looked up"
 msgstr "En specifik ordning för uppslagning av domänerna"
 
-#: src/config/SSSDConfig/sssdoptions.py:48
+#: src/config/SSSDConfig/sssdoptions.py:44
 msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
@@ -143,7 +143,7 @@ msgstr ""
 "Styr om SSSD ska övervaka tillståndet för resolv.conf för att avgöra när "
 "dess interna DNS-uppslagare behöver uppdateras."
 
-#: src/config/SSSDConfig/sssdoptions.py:50
+#: src/config/SSSDConfig/sssdoptions.py:46
 msgid ""
 "SSSD monitors the state of resolv.conf to identify when it needs to update "
 "its internal DNS resolver. By default, we will attempt to use inotify for "
@@ -154,71 +154,71 @@ msgstr ""
 "behöver uppdateras. Som standard försöker SSSD använda inotify för detta och "
 "kontrollerar annars resolv.conf var femte sekund."
 
-#: src/config/SSSDConfig/sssdoptions.py:53
+#: src/config/SSSDConfig/sssdoptions.py:49
 msgid "Run PAC responder automatically for AD and IPA provider"
 msgstr "Kör PAC-svararen automatiskt för AD- och IPA-leverantörer"
 
-#: src/config/SSSDConfig/sssdoptions.py:54
+#: src/config/SSSDConfig/sssdoptions.py:50
 msgid "Enable or disable core dumps for all SSSD processes."
 msgstr "Aktivera eller avaktivera kärndumpar för alla SSSD-processer."
 
-#: src/config/SSSDConfig/sssdoptions.py:55
+#: src/config/SSSDConfig/sssdoptions.py:51
 msgid "Tune passkey verification behavior"
 msgstr "Finjustera beteendet för lösennyckelverifiering"
 
-#: src/config/SSSDConfig/sssdoptions.py:58
+#: src/config/SSSDConfig/sssdoptions.py:54
 msgid "Enumeration cache timeout length (seconds)"
 msgstr "Tidsgräns för uppräkningscachen (sekunder)"
 
-#: src/config/SSSDConfig/sssdoptions.py:59
+#: src/config/SSSDConfig/sssdoptions.py:55
 msgid "Entry cache background update timeout length (seconds)"
 msgstr "Tidsgräns för bakgrundsuppdatering av postcachen (sekunder)"
 
-#: src/config/SSSDConfig/sssdoptions.py:60
-#: src/config/SSSDConfig/sssdoptions.py:125
+#: src/config/SSSDConfig/sssdoptions.py:56
+#: src/config/SSSDConfig/sssdoptions.py:124
 msgid "Negative cache timeout length (seconds)"
 msgstr "Tidsgräns för den negativa cachen (sekunder)"
 
-#: src/config/SSSDConfig/sssdoptions.py:61
+#: src/config/SSSDConfig/sssdoptions.py:57
 msgid "Users that SSSD should explicitly ignore"
 msgstr "Användare som SSSD uttryckligen ska ignorera"
 
-#: src/config/SSSDConfig/sssdoptions.py:62
+#: src/config/SSSDConfig/sssdoptions.py:58
 msgid "Groups that SSSD should explicitly ignore"
 msgstr "Grupper som SSSD uttryckligen ska ignorera"
 
-#: src/config/SSSDConfig/sssdoptions.py:63
+#: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Should filtered users appear in groups"
 msgstr "Ska filtrerade användare förekomma i grupper"
 
-#: src/config/SSSDConfig/sssdoptions.py:64
+#: src/config/SSSDConfig/sssdoptions.py:60
 msgid "The value of the password field the NSS provider should return"
 msgstr "Värdet för lösenordsfältet som NSS-leverantören ska returnera"
 
-#: src/config/SSSDConfig/sssdoptions.py:65
+#: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Override homedir value from the identity provider with this value"
 msgstr "Åsidosätt hemkatalogvärdet från identitetsleverantören med detta värde"
 
-#: src/config/SSSDConfig/sssdoptions.py:66
+#: src/config/SSSDConfig/sssdoptions.py:62
 msgid ""
 "Substitute empty homedir value from the identity provider with this value"
 msgstr ""
 "Ersätt ett tomt hemkatalogvärde från identitetsleverantören med detta värde"
 
-#: src/config/SSSDConfig/sssdoptions.py:67
+#: src/config/SSSDConfig/sssdoptions.py:63
 msgid "Override shell value from the identity provider with this value"
 msgstr "Åsidosätt skalvärdet från identitetsleverantören med detta värde"
 
-#: src/config/SSSDConfig/sssdoptions.py:68
+#: src/config/SSSDConfig/sssdoptions.py:64
 msgid "The list of shells users are allowed to log in with"
 msgstr "Listan över skal som användare får logga in med"
 
-#: src/config/SSSDConfig/sssdoptions.py:69
+#: src/config/SSSDConfig/sssdoptions.py:65
 msgid ""
 "The list of shells that will be vetoed, and replaced with the fallback shell"
 msgstr "Listan över skal som nekas och ersätts med reservskalet"
 
-#: src/config/SSSDConfig/sssdoptions.py:70
+#: src/config/SSSDConfig/sssdoptions.py:66
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
@@ -226,15 +226,15 @@ msgstr ""
 "Använd detta reservskal om ett tillåtet skal i en central katalog inte är "
 "tillgängligt"
 
-#: src/config/SSSDConfig/sssdoptions.py:71
+#: src/config/SSSDConfig/sssdoptions.py:67
 msgid "Shell to use if the provider does not list one"
 msgstr "Skal att använda om leverantören inte listar något"
 
-#: src/config/SSSDConfig/sssdoptions.py:72
+#: src/config/SSSDConfig/sssdoptions.py:68
 msgid "How long will be in-memory cache records valid"
 msgstr "Hur länge cacheposter i minnet ska vara giltiga"
 
-#: src/config/SSSDConfig/sssdoptions.py:74
+#: src/config/SSSDConfig/sssdoptions.py:70
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for passwd requests"
@@ -242,7 +242,7 @@ msgstr ""
 "Storlek i megabyte för datatabellen som allokeras i den snabba minnescachen "
 "för passwd-begäranden"
 
-#: src/config/SSSDConfig/sssdoptions.py:76
+#: src/config/SSSDConfig/sssdoptions.py:72
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
@@ -250,7 +250,7 @@ msgstr ""
 "Storlek i megabyte för datatabellen som allokeras i den snabba minnescachen "
 "för gruppbegäranden"
 
-#: src/config/SSSDConfig/sssdoptions.py:78
+#: src/config/SSSDConfig/sssdoptions.py:74
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
@@ -258,7 +258,7 @@ msgstr ""
 "Storlek i megabyte för datatabellen som allokeras i den snabba minnescachen "
 "för initgroups-begäranden"
 
-#: src/config/SSSDConfig/sssdoptions.py:79
+#: src/config/SSSDConfig/sssdoptions.py:75
 msgid ""
 "The value of this option will be used in the expansion of the "
 "override_homedir option if the template contains the format string %H."
@@ -266,14 +266,14 @@ msgstr ""
 "Värdet för det här alternativet används vid expansion av alternativet "
 "override_homedir om mallen innehåller formatsträngen %H."
 
-#: src/config/SSSDConfig/sssdoptions.py:81
+#: src/config/SSSDConfig/sssdoptions.py:77
 msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr ""
 "Anger hur många sekunder listan över underdomäner betraktas som giltig."
 
-#: src/config/SSSDConfig/sssdoptions.py:83
+#: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
 "The entry cache can be set to automatically update entries in the background "
 "if they are requested beyond a percentage of the entry_cache_timeout value "
@@ -282,16 +282,16 @@ msgstr ""
 "Postcachen kan ställas in att automatiskt uppdatera poster i bakgrunden om "
 "de begärs efter en viss procentandel av domänens entry_cache_timeout-värde."
 
-#: src/config/SSSDConfig/sssdoptions.py:88
+#: src/config/SSSDConfig/sssdoptions.py:84
 msgid "How long to allow cached logins between online logins (days)"
 msgstr ""
 "Hur länge cachade inloggningar tillåts mellan inloggningar online (dagar)"
 
-#: src/config/SSSDConfig/sssdoptions.py:89
+#: src/config/SSSDConfig/sssdoptions.py:85
 msgid "How many failed logins attempts are allowed when offline"
 msgstr "Antal tillåtna misslyckade inloggningsförsök i frånkopplat läge"
 
-#: src/config/SSSDConfig/sssdoptions.py:91
+#: src/config/SSSDConfig/sssdoptions.py:87
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
@@ -299,85 +299,85 @@ msgstr ""
 "Hur länge (minuter) inloggning nekas efter att offline_failed_login_attempts "
 "har uppnåtts"
 
-#: src/config/SSSDConfig/sssdoptions.py:92
+#: src/config/SSSDConfig/sssdoptions.py:88
 msgid "What kind of messages are displayed to the user during authentication"
 msgstr "Vilken typ av meddelanden som visas för användaren under autentisering"
 
-#: src/config/SSSDConfig/sssdoptions.py:93
+#: src/config/SSSDConfig/sssdoptions.py:89
 msgid "Filter PAM responses sent to the pam_sss"
 msgstr "Filtrera PAM-svar som skickas till pam_sss"
 
-#: src/config/SSSDConfig/sssdoptions.py:94
+#: src/config/SSSDConfig/sssdoptions.py:90
 msgid "How many seconds to keep identity information cached for PAM requests"
 msgstr "Hur länge identitetsinformation cachas för PAM-begäranden (sekunder)"
 
-#: src/config/SSSDConfig/sssdoptions.py:95
+#: src/config/SSSDConfig/sssdoptions.py:91
 msgid "How many days before password expiration a warning should be displayed"
 msgstr "Hur många dagar före lösenordets utgång en varning ska visas"
 
-#: src/config/SSSDConfig/sssdoptions.py:96
+#: src/config/SSSDConfig/sssdoptions.py:92
 msgid "List of trusted uids or user's name"
 msgstr "Lista över betrodda UID:er eller användarnamn"
 
-#: src/config/SSSDConfig/sssdoptions.py:97
+#: src/config/SSSDConfig/sssdoptions.py:93
 msgid "List of domains accessible even for untrusted users."
 msgstr "Lista över domäner som är tillgängliga även för obetrodda användare."
 
-#: src/config/SSSDConfig/sssdoptions.py:98
+#: src/config/SSSDConfig/sssdoptions.py:94
 msgid "Message printed when user account is expired."
 msgstr "Meddelande som skrivs när ett användarkonto har gått ut."
 
-#: src/config/SSSDConfig/sssdoptions.py:99
+#: src/config/SSSDConfig/sssdoptions.py:95
 msgid "Message printed when user account is locked."
 msgstr "Meddelande som skrivs när ett användarkonto är låst."
 
-#: src/config/SSSDConfig/sssdoptions.py:100
+#: src/config/SSSDConfig/sssdoptions.py:96
 msgid "Allow certificate based/Smartcard authentication."
 msgstr "Tillåt certifikatbaserad/smartkortsautentisering."
 
-#: src/config/SSSDConfig/sssdoptions.py:101
+#: src/config/SSSDConfig/sssdoptions.py:97
 msgid "Path to certificate database with PKCS#11 modules."
 msgstr "Sökväg till certifikatdatabasen med PKCS#11-moduler."
 
-#: src/config/SSSDConfig/sssdoptions.py:102
+#: src/config/SSSDConfig/sssdoptions.py:98
 msgid "Tune certificate verification for PAM authentication."
 msgstr "Finjustera certifikatverifieringen för PAM-autentisering."
 
-#: src/config/SSSDConfig/sssdoptions.py:103
+#: src/config/SSSDConfig/sssdoptions.py:99
 msgid "How many seconds will pam_sss wait for p11_child to finish"
 msgstr "Hur länge pam_sss ska vänta på att p11_child avslutas"
 
-#: src/config/SSSDConfig/sssdoptions.py:104
+#: src/config/SSSDConfig/sssdoptions.py:100
 msgid "Which PAM services are permitted to contact application domains"
 msgstr "Vilka PAM-tjänster som får kontakta applikationsdomäner"
 
-#: src/config/SSSDConfig/sssdoptions.py:105
+#: src/config/SSSDConfig/sssdoptions.py:101
 msgid "Allowed services for using smartcards"
 msgstr "Tillåtna tjänster för användning av smartkort"
 
-#: src/config/SSSDConfig/sssdoptions.py:106
+#: src/config/SSSDConfig/sssdoptions.py:102
 msgid "Additional timeout to wait for a card if requested"
 msgstr "Ytterligare tid att vänta på ett kort om det begärs"
 
-#: src/config/SSSDConfig/sssdoptions.py:107
+#: src/config/SSSDConfig/sssdoptions.py:103
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard authentication"
 msgstr ""
 "PKCS#11 URI för att begränsa urvalet av enheter för smartkortsautentisering"
 
-#: src/config/SSSDConfig/sssdoptions.py:108
+#: src/config/SSSDConfig/sssdoptions.py:104
 msgid "When shall the PAM responder force an initgroups request"
 msgstr "När PAM-svararen ska framtvinga en initgroups-begäran"
 
-#: src/config/SSSDConfig/sssdoptions.py:109
+#: src/config/SSSDConfig/sssdoptions.py:105
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
 msgstr "Lista över PAM-tjänster som får autentisera med GSSAPI."
 
-#: src/config/SSSDConfig/sssdoptions.py:110
+#: src/config/SSSDConfig/sssdoptions.py:106
 msgid "Whether to match authenticated UPN with target user"
 msgstr "Om autentiserad UPN ska matchas med målanvändaren"
 
-#: src/config/SSSDConfig/sssdoptions.py:111
+#: src/config/SSSDConfig/sssdoptions.py:107
 msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
@@ -385,32 +385,42 @@ msgstr ""
 "Lista över par <PAM service>:<authentication indicator> som måste "
 "upprätthållas för PAM-åtkomst med GSSAPI-autentisering"
 
-#: src/config/SSSDConfig/sssdoptions.py:113
+#: src/config/SSSDConfig/sssdoptions.py:109
+#, fuzzy
+msgid ""
+"List of triples <type>:<value>:<authentication indicator> that assigns "
+"additional information from the Kerberos ticket to an authentication "
+"indicator."
+msgstr ""
+"Lista över par <PAM service>:<authentication indicator> som måste "
+"upprätthållas för PAM-åtkomst med GSSAPI-autentisering"
+
+#: src/config/SSSDConfig/sssdoptions.py:112
 msgid "Allow passkey device authentication."
 msgstr "Tillåt autentisering med lösennyckelenheter."
 
-#: src/config/SSSDConfig/sssdoptions.py:114
+#: src/config/SSSDConfig/sssdoptions.py:113
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
 msgstr "Hur länge pam_sss ska vänta på att passkey_child avslutas"
 
-#: src/config/SSSDConfig/sssdoptions.py:115
+#: src/config/SSSDConfig/sssdoptions.py:114
 msgid "Enable debugging in the libfido2 library"
 msgstr "Aktivera felsökning i libfido2-biblioteket"
 
-#: src/config/SSSDConfig/sssdoptions.py:116
+#: src/config/SSSDConfig/sssdoptions.py:115
 msgid "Enable JSON protocol for authentication methods selection."
 msgstr "Aktivera JSON-protokoll för val av autentiseringsmetoder."
 
-#: src/config/SSSDConfig/sssdoptions.py:119
+#: src/config/SSSDConfig/sssdoptions.py:118
 msgid "Whether to evaluate the time-based attributes in sudo rules"
 msgstr "Om tidsbaserade attribut i sudo-regler ska utvärderas"
 
-#: src/config/SSSDConfig/sssdoptions.py:120
+#: src/config/SSSDConfig/sssdoptions.py:119
 msgid "If true, SSSD will switch back to lower-wins ordering logic"
 msgstr ""
 "Om sant växlar SSSD tillbaka till ordningslogiken där lägre värde vinner"
 
-#: src/config/SSSDConfig/sssdoptions.py:121
+#: src/config/SSSDConfig/sssdoptions.py:120
 msgid ""
 "Maximum number of rules that can be refreshed at once. If this is exceeded, "
 "full refresh is performed."
@@ -418,11 +428,11 @@ msgstr ""
 "Maximalt antal regler som kan uppdateras samtidigt. Om antalet överskrids "
 "utförs en fullständig uppdatering."
 
-#: src/config/SSSDConfig/sssdoptions.py:128
+#: src/config/SSSDConfig/sssdoptions.py:127
 msgid "Whether to hash host names and addresses in the known_hosts file"
 msgstr "Om värdnamn och adresser i known_hosts-filen ska hashas"
 
-#: src/config/SSSDConfig/sssdoptions.py:129
+#: src/config/SSSDConfig/sssdoptions.py:128
 msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
@@ -430,15 +440,15 @@ msgstr ""
 "Hur länge en värd ska behållas i known_hosts-filen efter att dess "
 "värdnycklar har begärts"
 
-#: src/config/SSSDConfig/sssdoptions.py:131
+#: src/config/SSSDConfig/sssdoptions.py:130
 msgid "Path to storage of trusted CA certificates"
 msgstr "Sökväg till lagring av betrodda CA-certifikat"
 
-#: src/config/SSSDConfig/sssdoptions.py:132
+#: src/config/SSSDConfig/sssdoptions.py:131
 msgid "Allow to generate ssh-keys from certificates"
 msgstr "Tillåt generering av SSH-nycklar från certifikat"
 
-#: src/config/SSSDConfig/sssdoptions.py:133
+#: src/config/SSSDConfig/sssdoptions.py:132
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
@@ -446,23 +456,23 @@ msgstr ""
 "Använd följande matchningsregler för att filtrera certifikaten för "
 "generering av SSH-nycklar"
 
-#: src/config/SSSDConfig/sssdoptions.py:137
+#: src/config/SSSDConfig/sssdoptions.py:136
 msgid "List of UIDs or user names allowed to access the PAC responder"
 msgstr "Lista över UID:er eller användarnamn som får åtkomst till PAC-svararen"
 
-#: src/config/SSSDConfig/sssdoptions.py:138
+#: src/config/SSSDConfig/sssdoptions.py:137
 msgid "How long the PAC data is considered valid"
 msgstr "Hur länge PAC-data betraktas som giltiga"
 
-#: src/config/SSSDConfig/sssdoptions.py:139
+#: src/config/SSSDConfig/sssdoptions.py:138
 msgid "Validate the PAC"
 msgstr "Validera PAC:en"
 
-#: src/config/SSSDConfig/sssdoptions.py:142
+#: src/config/SSSDConfig/sssdoptions.py:141
 msgid "List of user attributes the InfoPipe is allowed to publish"
 msgstr "Lista över användarattribut som InfoPipe får publicera"
 
-#: src/config/SSSDConfig/sssdoptions.py:145
+#: src/config/SSSDConfig/sssdoptions.py:144
 msgid ""
 "One of the following strings specifying the scope of session recording: none "
 "- No users are recorded. some - Users/groups specified by users and groups "
@@ -472,7 +482,7 @@ msgstr ""
 "Inga användare spelas in. some – Användare/grupper uppräknade i användar- "
 "och gruppalternativen spelas in. all – Alla användare spelas in."
 
-#: src/config/SSSDConfig/sssdoptions.py:148
+#: src/config/SSSDConfig/sssdoptions.py:147
 msgid ""
 "A comma-separated list of users which should have session recording enabled. "
 "Matches user names as returned by NSS. I.e. after the possible space "
@@ -482,7 +492,7 @@ msgstr ""
 "aktiverad. Matchar användarnamn såsom de returneras av NSS, dvs. efter "
 "eventuellt mellanslagsbyte, ändring av skiftläge osv."
 
-#: src/config/SSSDConfig/sssdoptions.py:150
+#: src/config/SSSDConfig/sssdoptions.py:149
 msgid ""
 "A comma-separated list of groups, members of which should have session "
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
@@ -492,7 +502,7 @@ msgstr ""
 "aktiverad. Matchar gruppnamn såsom de returneras av NSS, dvs. efter "
 "eventuellt mellanslagsbyte, ändring av skiftläge osv."
 
-#: src/config/SSSDConfig/sssdoptions.py:153
+#: src/config/SSSDConfig/sssdoptions.py:152
 msgid ""
 "A comma-separated list of users to be excluded from recording, only when "
 "scope=all"
@@ -500,7 +510,7 @@ msgstr ""
 "En kommaseparerad lista över användare som ska undantas från inspelning, "
 "endast när scope=all"
 
-#: src/config/SSSDConfig/sssdoptions.py:154
+#: src/config/SSSDConfig/sssdoptions.py:153
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
@@ -508,79 +518,79 @@ msgstr ""
 "En kommaseparerad lista över grupper vars medlemmar ska undantas från "
 "inspelning, endast när scope=all. "
 
-#: src/config/SSSDConfig/sssdoptions.py:158
+#: src/config/SSSDConfig/sssdoptions.py:157
 msgid "Identity provider"
 msgstr "Identitetsleverantör"
 
-#: src/config/SSSDConfig/sssdoptions.py:159
+#: src/config/SSSDConfig/sssdoptions.py:158
 msgid "Authentication provider"
 msgstr "Autentiseringsleverantör"
 
-#: src/config/SSSDConfig/sssdoptions.py:160
+#: src/config/SSSDConfig/sssdoptions.py:159
 msgid "Access control provider"
 msgstr "Leverantör av åtkomstkontroll"
 
-#: src/config/SSSDConfig/sssdoptions.py:161
+#: src/config/SSSDConfig/sssdoptions.py:160
 msgid "Password change provider"
 msgstr "Leverantör för lösenordsändring"
 
-#: src/config/SSSDConfig/sssdoptions.py:162
+#: src/config/SSSDConfig/sssdoptions.py:161
 msgid "SUDO provider"
 msgstr "SUDO-leverantör"
 
-#: src/config/SSSDConfig/sssdoptions.py:163
+#: src/config/SSSDConfig/sssdoptions.py:162
 msgid "Autofs provider"
 msgstr "Autofs-leverantör"
 
-#: src/config/SSSDConfig/sssdoptions.py:164
+#: src/config/SSSDConfig/sssdoptions.py:163
 msgid "Host identity provider"
 msgstr "Värdidentitetsleverantör"
 
-#: src/config/SSSDConfig/sssdoptions.py:165
+#: src/config/SSSDConfig/sssdoptions.py:164
 msgid "SELinux provider"
 msgstr "SELinux-leverantör"
 
-#: src/config/SSSDConfig/sssdoptions.py:166
+#: src/config/SSSDConfig/sssdoptions.py:165
 msgid "Session management provider"
 msgstr "Sessionshanteringsleverantör"
 
-#: src/config/SSSDConfig/sssdoptions.py:167
+#: src/config/SSSDConfig/sssdoptions.py:166
 msgid "Resolver provider"
 msgstr "Uppslagsleverantör"
 
-#: src/config/SSSDConfig/sssdoptions.py:170
+#: src/config/SSSDConfig/sssdoptions.py:169
 msgid "Whether the domain is usable by the OS or by applications"
 msgstr "Om domänen kan användas av operativsystemet eller av program"
 
-#: src/config/SSSDConfig/sssdoptions.py:171
+#: src/config/SSSDConfig/sssdoptions.py:170
 msgid "Enable or disable the domain"
 msgstr "Aktivera eller avaktivera domänen"
 
-#: src/config/SSSDConfig/sssdoptions.py:172
+#: src/config/SSSDConfig/sssdoptions.py:171
 msgid "Minimum user ID"
 msgstr "Minsta användar-ID"
 
-#: src/config/SSSDConfig/sssdoptions.py:173
+#: src/config/SSSDConfig/sssdoptions.py:172
 msgid "Maximum user ID"
 msgstr "Största användar-ID"
 
-#: src/config/SSSDConfig/sssdoptions.py:174
+#: src/config/SSSDConfig/sssdoptions.py:173
 msgid "Enable enumerating all users/groups"
 msgstr "Aktivera uppräkning av alla användare/grupper"
 
-#: src/config/SSSDConfig/sssdoptions.py:175
+#: src/config/SSSDConfig/sssdoptions.py:174
 msgid "Cache credentials for offline login"
 msgstr "Cachelagra autentiseringsuppgifter för frånkopplad inloggning"
 
-#: src/config/SSSDConfig/sssdoptions.py:176
+#: src/config/SSSDConfig/sssdoptions.py:175
 msgid "Display users/groups in fully-qualified form"
 msgstr "Visa användare/grupper i fullständigt kvalificerat format"
 
-#: src/config/SSSDConfig/sssdoptions.py:177
+#: src/config/SSSDConfig/sssdoptions.py:176
 msgid "Don't include group members in group lookups"
 msgstr "Inkludera inte gruppmedlemmar i gruppuppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:178
+#: src/config/SSSDConfig/sssdoptions.py:177
 #: src/config/SSSDConfig/sssdoptions.py:190
 #: src/config/SSSDConfig/sssdoptions.py:191
 #: src/config/SSSDConfig/sssdoptions.py:192
@@ -591,18 +601,18 @@ msgstr "Inkludera inte gruppmedlemmar i gruppuppslagningar"
 msgid "Entry cache timeout length (seconds)"
 msgstr "Tidsgräns för postcachen (sekunder)"
 
-#: src/config/SSSDConfig/sssdoptions.py:179
+#: src/config/SSSDConfig/sssdoptions.py:178
 msgid ""
 "Restrict or prefer a specific address family when performing DNS lookups"
 msgstr "Begränsa eller föredra en specifik adressfamilj vid DNS-uppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:180
+#: src/config/SSSDConfig/sssdoptions.py:179
 msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 "Hur länge cachade poster ska behållas efter den senaste lyckade inloggningen "
 "(dagar)"
 
-#: src/config/SSSDConfig/sssdoptions.py:181
+#: src/config/SSSDConfig/sssdoptions.py:180
 msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
@@ -610,21 +620,21 @@ msgstr ""
 "Hur länge SSSD ska använda en enskild DNS-server innan nästa server provas "
 "(millisekunder)"
 
-#: src/config/SSSDConfig/sssdoptions.py:183
+#: src/config/SSSDConfig/sssdoptions.py:182
 msgid "How long should keep trying to resolve single DNS query (seconds)"
 msgstr ""
 "Hur länge uppslagning av en enskild DNS-fråga ska fortsätta försökas "
 "(sekunder)"
 
-#: src/config/SSSDConfig/sssdoptions.py:184
+#: src/config/SSSDConfig/sssdoptions.py:183
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
 msgstr "Hur länge man väntar på svar från DNS när servrar slås upp (sekunder)"
 
-#: src/config/SSSDConfig/sssdoptions.py:185
+#: src/config/SSSDConfig/sssdoptions.py:184
 msgid "The domain part of service discovery DNS query"
 msgstr "Domändelen av DNS-frågan för tjänstedetektering"
 
-#: src/config/SSSDConfig/sssdoptions.py:186
+#: src/config/SSSDConfig/sssdoptions.py:185
 msgid ""
 "Specifies the interval, in seconds, that SSSD waits before attempting to "
 "reconnect to the primary server after a successful connection to the backup "
@@ -633,13 +643,17 @@ msgstr ""
 "Anger intervallet i sekunder som SSSD väntar innan det försöker återansluta "
 "till primärservern efter en lyckad anslutning till reservservern"
 
-#: src/config/SSSDConfig/sssdoptions.py:188
+#: src/config/SSSDConfig/sssdoptions.py:187
 msgid "Override GID value from the identity provider with this value"
 msgstr "Åsidosätt GID-värdet från identitetsleverantören med detta värde"
 
-#: src/config/SSSDConfig/sssdoptions.py:189
+#: src/config/SSSDConfig/sssdoptions.py:188
 msgid "Treat usernames as case sensitive"
 msgstr "Behandla användarnamn som skiftlägeskänsliga"
+
+#: src/config/SSSDConfig/sssdoptions.py:189
+msgid "Lookups by ID are expensive or do not work at all"
+msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:197
 msgid "How often should expired entries be refreshed in background"
@@ -881,7 +895,7 @@ msgid "Search base for SUBID ranges"
 msgstr "Sökbas för SUBID-intervall"
 
 #: src/config/SSSDConfig/sssdoptions.py:259
-#: src/config/SSSDConfig/sssdoptions.py:506
+#: src/config/SSSDConfig/sssdoptions.py:512
 msgid "Which rules should be used to evaluate access control"
 msgstr "Vilka regler ska användas för att utvärdera åtkomstkontrollen"
 
@@ -1039,7 +1053,7 @@ msgid "Enable DNS sites - location based service discovery"
 msgstr "Aktivera DNS-platser – platsbaserad tjänsteidentifiering"
 
 #: src/config/SSSDConfig/sssdoptions.py:301
-#: src/config/SSSDConfig/sssdoptions.py:504
+#: src/config/SSSDConfig/sssdoptions.py:510
 msgid "LDAP filter to determine access privileges"
 msgstr "LDAP-filter för att bestämma åtkomstprivilegier"
 
@@ -1481,7 +1495,7 @@ msgid "UUID attribute"
 msgstr "UUID-attribut"
 
 #: src/config/SSSDConfig/sssdoptions.py:423
-#: src/config/SSSDConfig/sssdoptions.py:464
+#: src/config/SSSDConfig/sssdoptions.py:470
 msgid "objectSID attribute"
 msgstr "objectSID-attribut"
 
@@ -1605,176 +1619,205 @@ msgstr "Attribut som innehåller användarens mappningsdata för lösennyckel"
 msgid "A list of extra attributes to download along with the user entry"
 msgstr "En lista över extra attribut att hämta tillsammans med användarposten"
 
+#: src/config/SSSDConfig/sssdoptions.py:456
+#, fuzzy
+msgid "The object class of an subid entry in LDAP."
+msgstr "Objektklassen hos en värdpost i LDAP."
+
 #: src/config/SSSDConfig/sssdoptions.py:457
+#, fuzzy
+msgid "Subordinate user ID count attribute"
+msgstr "Användarattribut för sudo-regel"
+
+#: src/config/SSSDConfig/sssdoptions.py:458
+#, fuzzy
+msgid "Subordinate group ID count attribute"
+msgstr "Alternativattribut för sudo-regel"
+
+#: src/config/SSSDConfig/sssdoptions.py:459
+#, fuzzy
+msgid "User ID range start value attribute"
+msgstr "Användarnamnsattribut"
+
+#: src/config/SSSDConfig/sssdoptions.py:460
+#, fuzzy
+msgid "Group ID range start value attribute"
+msgstr "Grupp-UUID-attribut"
+
+#: src/config/SSSDConfig/sssdoptions.py:461
+msgid "Owner of an entry"
+msgstr ""
+
+#: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Base DN for group lookups"
 msgstr "Bas-DN för gruppuppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:458
+#: src/config/SSSDConfig/sssdoptions.py:464
 msgid "Objectclass for groups"
 msgstr "Objektklass för grupper"
 
-#: src/config/SSSDConfig/sssdoptions.py:459
+#: src/config/SSSDConfig/sssdoptions.py:465
 msgid "Group name"
 msgstr "Gruppnamn"
 
-#: src/config/SSSDConfig/sssdoptions.py:460
+#: src/config/SSSDConfig/sssdoptions.py:466
 msgid "Group password"
 msgstr "Grupplösenord"
 
-#: src/config/SSSDConfig/sssdoptions.py:461
+#: src/config/SSSDConfig/sssdoptions.py:467
 msgid "GID attribute"
 msgstr "GID-attribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:462
+#: src/config/SSSDConfig/sssdoptions.py:468
 msgid "Group member attribute"
 msgstr "Gruppmedlemsattribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:463
+#: src/config/SSSDConfig/sssdoptions.py:469
 msgid "Group UUID attribute"
 msgstr "Grupp-UUID-attribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:465
+#: src/config/SSSDConfig/sssdoptions.py:471
 msgid "Modification time attribute for groups"
 msgstr "Modifieringstidsattribut för grupper"
 
-#: src/config/SSSDConfig/sssdoptions.py:466
+#: src/config/SSSDConfig/sssdoptions.py:472
 msgid "Type of the group and other flags"
 msgstr "Typen av grupp och andra flaggor"
 
-#: src/config/SSSDConfig/sssdoptions.py:467
+#: src/config/SSSDConfig/sssdoptions.py:473
 msgid "The LDAP group external member attribute"
 msgstr "LDAP-gruppens externa medlemsattribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:468
+#: src/config/SSSDConfig/sssdoptions.py:474
 msgid "Maximum nesting level SSSD will follow"
 msgstr "Maximal kapslingsnivå som SSSD ska följa"
 
-#: src/config/SSSDConfig/sssdoptions.py:469
+#: src/config/SSSDConfig/sssdoptions.py:475
 msgid "Filter for group lookups"
 msgstr "Filter för gruppuppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:470
+#: src/config/SSSDConfig/sssdoptions.py:476
 msgid "Scope of group lookups"
 msgstr "Sökintervall för gruppuppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:472
+#: src/config/SSSDConfig/sssdoptions.py:478
 msgid "Base DN for netgroup lookups"
 msgstr "Bas-DN för nätgruppuppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:473
+#: src/config/SSSDConfig/sssdoptions.py:479
 msgid "Objectclass for netgroups"
 msgstr "Objektklass för nätgrupper"
 
-#: src/config/SSSDConfig/sssdoptions.py:474
+#: src/config/SSSDConfig/sssdoptions.py:480
 msgid "Netgroup name"
 msgstr "Nätgruppnamn"
 
-#: src/config/SSSDConfig/sssdoptions.py:475
+#: src/config/SSSDConfig/sssdoptions.py:481
 msgid "Netgroups members attribute"
 msgstr "Attribut för nätgruppmedlemmar"
 
-#: src/config/SSSDConfig/sssdoptions.py:476
+#: src/config/SSSDConfig/sssdoptions.py:482
 msgid "Netgroup triple attribute"
 msgstr "Attribut för nätgruppstrippel"
 
-#: src/config/SSSDConfig/sssdoptions.py:477
+#: src/config/SSSDConfig/sssdoptions.py:483
 msgid "Modification time attribute for netgroups"
 msgstr "Attribut för ändringstid för nätgrupper"
 
-#: src/config/SSSDConfig/sssdoptions.py:479
+#: src/config/SSSDConfig/sssdoptions.py:485
 msgid "Base DN for service lookups"
 msgstr "Bas-DN för tjänsteuppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:480
+#: src/config/SSSDConfig/sssdoptions.py:486
 msgid "Objectclass for services"
 msgstr "Objektklass för tjänster"
 
-#: src/config/SSSDConfig/sssdoptions.py:481
+#: src/config/SSSDConfig/sssdoptions.py:487
 msgid "Service name attribute"
 msgstr "Tjänstenamnsattribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:482
+#: src/config/SSSDConfig/sssdoptions.py:488
 msgid "Service port attribute"
 msgstr "Tjänsteportsattribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:483
+#: src/config/SSSDConfig/sssdoptions.py:489
 msgid "Service protocol attribute"
 msgstr "Tjänsteprotokollsattribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:485
+#: src/config/SSSDConfig/sssdoptions.py:491
 msgid "Lower bound for ID-mapping"
 msgstr "Undre gräns för ID-mappning"
 
-#: src/config/SSSDConfig/sssdoptions.py:486
+#: src/config/SSSDConfig/sssdoptions.py:492
 msgid "Upper bound for ID-mapping"
 msgstr "Övre gräns för ID-mappning"
 
-#: src/config/SSSDConfig/sssdoptions.py:487
+#: src/config/SSSDConfig/sssdoptions.py:493
 msgid "Number of IDs for each slice when ID-mapping"
 msgstr "Antal ID:n för varje intervall vid ID-mappning"
 
-#: src/config/SSSDConfig/sssdoptions.py:488
+#: src/config/SSSDConfig/sssdoptions.py:494
 msgid "Use autorid-compatible algorithm for ID-mapping"
 msgstr "Använd en autorid-kompatibel algoritm för ID-mappning"
 
-#: src/config/SSSDConfig/sssdoptions.py:489
+#: src/config/SSSDConfig/sssdoptions.py:495
 msgid "Name of the default domain for ID-mapping"
 msgstr "Namnet på standarddomänen för ID-mappning"
 
-#: src/config/SSSDConfig/sssdoptions.py:490
+#: src/config/SSSDConfig/sssdoptions.py:496
 msgid "SID of the default domain for ID-mapping"
 msgstr "SID för standarddomänen för ID-mappning"
 
-#: src/config/SSSDConfig/sssdoptions.py:491
+#: src/config/SSSDConfig/sssdoptions.py:497
 msgid "Number of secondary slices"
 msgstr "Antal sekundära intervall"
 
-#: src/config/SSSDConfig/sssdoptions.py:493
+#: src/config/SSSDConfig/sssdoptions.py:499
 msgid "Whether to use Token-Groups"
 msgstr "Om Token-Groups ska användas"
 
-#: src/config/SSSDConfig/sssdoptions.py:494
+#: src/config/SSSDConfig/sssdoptions.py:500
 msgid "Set lower boundary for allowed IDs from the LDAP server"
 msgstr "Sätt undre gräns för tillåtna ID:n från LDAP-servern"
 
-#: src/config/SSSDConfig/sssdoptions.py:495
+#: src/config/SSSDConfig/sssdoptions.py:501
 msgid "Set upper boundary for allowed IDs from the LDAP server"
 msgstr "Sätt övre gräns för tillåtna ID:n från LDAP-servern"
 
-#: src/config/SSSDConfig/sssdoptions.py:496
+#: src/config/SSSDConfig/sssdoptions.py:502
 msgid "DN for ppolicy queries"
 msgstr "DN för ppolicy-frågor"
 
-#: src/config/SSSDConfig/sssdoptions.py:497
+#: src/config/SSSDConfig/sssdoptions.py:503
 msgid "How many maximum entries to fetch during a wildcard request"
 msgstr "Maximalt antal poster att hämta vid en jokerteckenbegäran"
 
-#: src/config/SSSDConfig/sssdoptions.py:498
+#: src/config/SSSDConfig/sssdoptions.py:504
 msgid "Set libldap debug level"
 msgstr "Sätt felsökningsnivå för libldap"
 
-#: src/config/SSSDConfig/sssdoptions.py:501
+#: src/config/SSSDConfig/sssdoptions.py:507
 msgid "Policy to evaluate the password expiration"
 msgstr "Policy för utvärdering av lösenordets utgång"
 
-#: src/config/SSSDConfig/sssdoptions.py:505
+#: src/config/SSSDConfig/sssdoptions.py:511
 msgid "Which attributes shall be used to evaluate if an account is expired"
 msgstr ""
 "Vilka attribut som ska användas för att avgöra om ett konto har gått ut"
 
-#: src/config/SSSDConfig/sssdoptions.py:509
+#: src/config/SSSDConfig/sssdoptions.py:515
 msgid "URI of an LDAP server where password changes are allowed"
 msgstr "URI till en LDAP-server där lösenordsändringar är tillåtna"
 
-#: src/config/SSSDConfig/sssdoptions.py:510
+#: src/config/SSSDConfig/sssdoptions.py:516
 msgid "URI of a backup LDAP server where password changes are allowed"
 msgstr "URI till en reserv-LDAP-server där lösenordsändringar är tillåtna"
 
-#: src/config/SSSDConfig/sssdoptions.py:511
+#: src/config/SSSDConfig/sssdoptions.py:517
 msgid "DNS service name for LDAP password change server"
 msgstr "DNS-tjänstenamn för LDAP-lösenordsändringsservern"
 
-#: src/config/SSSDConfig/sssdoptions.py:512
+#: src/config/SSSDConfig/sssdoptions.py:518
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
@@ -1782,27 +1825,27 @@ msgstr ""
 "Om attributet ldap_user_shadow_last_change ska uppdateras efter ett "
 "lösenordsbyte"
 
-#: src/config/SSSDConfig/sssdoptions.py:516
+#: src/config/SSSDConfig/sssdoptions.py:522
 msgid "Base DN for sudo rules lookups"
 msgstr "Bas-DN för uppslagning av sudo-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:517
+#: src/config/SSSDConfig/sssdoptions.py:523
 msgid "Automatic full refresh period"
 msgstr "Intervall för automatisk fullständig uppdatering"
 
-#: src/config/SSSDConfig/sssdoptions.py:518
+#: src/config/SSSDConfig/sssdoptions.py:524
 msgid "Automatic smart refresh period"
 msgstr "Intervall för automatisk inkrementell uppdatering"
 
-#: src/config/SSSDConfig/sssdoptions.py:519
+#: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Smart and full refresh random offset"
 msgstr "Slumpmässig förskjutning för inkrementell och fullständig uppdatering"
 
-#: src/config/SSSDConfig/sssdoptions.py:520
+#: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Whether to filter rules by hostname, IP addresses and network"
 msgstr "Om regler ska filtreras efter värdnamn, IP-adresser och nätverk"
 
-#: src/config/SSSDConfig/sssdoptions.py:521
+#: src/config/SSSDConfig/sssdoptions.py:527
 msgid ""
 "Hostnames and/or fully qualified domain names of this machine to filter sudo "
 "rules"
@@ -1810,151 +1853,151 @@ msgstr ""
 "Värdnamn och/eller fullständigt kvalificerade domännamn på denna maskin för "
 "att filtrera sudo-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:522
+#: src/config/SSSDConfig/sssdoptions.py:528
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
 "IPv4- eller IPv6-adresser eller -nätverk för denna maskin för att filtrera "
 "sudo-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:523
+#: src/config/SSSDConfig/sssdoptions.py:529
 msgid "Whether to include rules that contains netgroup in host attribute"
 msgstr "Om regler som innehåller en nätgrupp i värdattributet ska tas med"
 
-#: src/config/SSSDConfig/sssdoptions.py:524
+#: src/config/SSSDConfig/sssdoptions.py:530
 msgid ""
 "Whether to include rules that contains regular expression in host attribute"
 msgstr ""
 "Om regler som innehåller ett reguljärt uttryck i värdattributet ska tas med"
 
-#: src/config/SSSDConfig/sssdoptions.py:525
+#: src/config/SSSDConfig/sssdoptions.py:531
 msgid "Object class for sudo rules"
 msgstr "Objektklass för sudo-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:526
+#: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr "Namn på attributet som används som objektklass för sudo-regler"
 
-#: src/config/SSSDConfig/sssdoptions.py:527
+#: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Sudo rule name"
 msgstr "Namn på sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:528
+#: src/config/SSSDConfig/sssdoptions.py:534
 msgid "Sudo rule command attribute"
 msgstr "Kommandoattribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:529
+#: src/config/SSSDConfig/sssdoptions.py:535
 msgid "Sudo rule host attribute"
 msgstr "Värdattribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:530
+#: src/config/SSSDConfig/sssdoptions.py:536
 msgid "Sudo rule user attribute"
 msgstr "Användarattribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:531
+#: src/config/SSSDConfig/sssdoptions.py:537
 msgid "Sudo rule option attribute"
 msgstr "Alternativattribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:532
+#: src/config/SSSDConfig/sssdoptions.py:538
 msgid "Sudo rule runas attribute"
 msgstr "Runas-attribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:533
+#: src/config/SSSDConfig/sssdoptions.py:539
 msgid "Sudo rule runasuser attribute"
 msgstr "Runasuser-attribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:534
+#: src/config/SSSDConfig/sssdoptions.py:540
 msgid "Sudo rule runasgroup attribute"
 msgstr "Runasgroup-attribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:535
+#: src/config/SSSDConfig/sssdoptions.py:541
 msgid "Sudo rule notbefore attribute"
 msgstr "Notbefore-attribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:536
+#: src/config/SSSDConfig/sssdoptions.py:542
 msgid "Sudo rule notafter attribute"
 msgstr "Notafter-attribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:537
+#: src/config/SSSDConfig/sssdoptions.py:543
 msgid "Sudo rule order attribute"
 msgstr "Order-attribut för sudo-regel"
 
-#: src/config/SSSDConfig/sssdoptions.py:540
+#: src/config/SSSDConfig/sssdoptions.py:546
 msgid "Object class for automounter maps"
 msgstr "Objektklass för automonterarkartor"
 
-#: src/config/SSSDConfig/sssdoptions.py:541
+#: src/config/SSSDConfig/sssdoptions.py:547
 msgid "Automounter map name attribute"
 msgstr "Namn-attribut för automonterarkarta"
 
-#: src/config/SSSDConfig/sssdoptions.py:542
+#: src/config/SSSDConfig/sssdoptions.py:548
 msgid "Object class for automounter map entries"
 msgstr "Objektklass för poster i automonterarkartor"
 
-#: src/config/SSSDConfig/sssdoptions.py:543
+#: src/config/SSSDConfig/sssdoptions.py:549
 msgid "Automounter map entry key attribute"
 msgstr "Nyckelattribut för post i automonterarkarta"
 
-#: src/config/SSSDConfig/sssdoptions.py:544
+#: src/config/SSSDConfig/sssdoptions.py:550
 msgid "Automounter map entry value attribute"
 msgstr "Värdeattribut för post i automonterarkarta"
 
-#: src/config/SSSDConfig/sssdoptions.py:545
+#: src/config/SSSDConfig/sssdoptions.py:551
 msgid "Base DN for automounter map lookups"
 msgstr "Bas-DN för uppslagning av automonterarkartor"
 
-#: src/config/SSSDConfig/sssdoptions.py:546
+#: src/config/SSSDConfig/sssdoptions.py:552
 msgid "The name of the automount master map in LDAP."
 msgstr "Namnet på huvudkartan för automatmontering i LDAP."
 
-#: src/config/SSSDConfig/sssdoptions.py:549
+#: src/config/SSSDConfig/sssdoptions.py:555
 msgid "Base DN for IP hosts lookups"
 msgstr "Bas-DN för uppslagning av IP-värdar"
 
-#: src/config/SSSDConfig/sssdoptions.py:550
+#: src/config/SSSDConfig/sssdoptions.py:556
 msgid "Object class for IP hosts"
 msgstr "Objektklass för IP-värdar"
 
-#: src/config/SSSDConfig/sssdoptions.py:551
+#: src/config/SSSDConfig/sssdoptions.py:557
 msgid "IP host name attribute"
 msgstr "IP-värdnamnsattribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:552
+#: src/config/SSSDConfig/sssdoptions.py:558
 msgid "IP host number (address) attribute"
 msgstr "Adressattribut för IP-värd"
 
-#: src/config/SSSDConfig/sssdoptions.py:553
+#: src/config/SSSDConfig/sssdoptions.py:559
 msgid "IP host entryUSN attribute"
 msgstr "IP-värd-entryUSN-attribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:554
+#: src/config/SSSDConfig/sssdoptions.py:560
 msgid "Base DN for IP networks lookups"
 msgstr "Bas-DN för uppslagning av IP-nätverk"
 
-#: src/config/SSSDConfig/sssdoptions.py:555
+#: src/config/SSSDConfig/sssdoptions.py:561
 msgid "Object class for IP networks"
 msgstr "Objektklass för IP-nätverk"
 
-#: src/config/SSSDConfig/sssdoptions.py:556
+#: src/config/SSSDConfig/sssdoptions.py:562
 msgid "IP network name attribute"
 msgstr "IP-nätverksnamnsattribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:557
+#: src/config/SSSDConfig/sssdoptions.py:563
 msgid "IP network number (address) attribute"
 msgstr "Adressattribut för IP-nätverk"
 
-#: src/config/SSSDConfig/sssdoptions.py:558
+#: src/config/SSSDConfig/sssdoptions.py:564
 msgid "IP network entryUSN attribute"
 msgstr "IP-nätverks-entryUSN-attribut"
 
-#: src/config/SSSDConfig/sssdoptions.py:561
+#: src/config/SSSDConfig/sssdoptions.py:567
 msgid "Comma separated list of allowed users"
 msgstr "Kommaseparerad lista över tillåtna användare"
 
-#: src/config/SSSDConfig/sssdoptions.py:562
+#: src/config/SSSDConfig/sssdoptions.py:568
 msgid "Comma separated list of prohibited users"
 msgstr "Kommaseparerad lista över förbjudna användare"
 
-#: src/config/SSSDConfig/sssdoptions.py:563
+#: src/config/SSSDConfig/sssdoptions.py:569
 msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
@@ -1962,7 +2005,7 @@ msgstr ""
 "Kommaseparerad lista över grupper som får logga in. Detta gäller endast "
 "grupper i denna SSSD-domän. Lokala grupper utvärderas inte."
 
-#: src/config/SSSDConfig/sssdoptions.py:565
+#: src/config/SSSDConfig/sssdoptions.py:571
 msgid ""
 "Comma separated list of groups that are explicitly denied access. This "
 "applies only to groups within this SSSD domain. Local groups are not "
@@ -1971,32 +2014,32 @@ msgstr ""
 "Kommaseparerad lista över grupper som uttryckligen nekas åtkomst. Detta "
 "gäller endast grupper i denna SSSD-domän. Lokala grupper utvärderas inte."
 
-#: src/config/SSSDConfig/sssdoptions.py:569
+#: src/config/SSSDConfig/sssdoptions.py:575
 msgid "The number of preforked proxy children."
 msgstr "Antalet förstartade underprocesser för proxyn."
 
-#: src/config/SSSDConfig/sssdoptions.py:572
+#: src/config/SSSDConfig/sssdoptions.py:578
 msgid "The name of the NSS library to use"
 msgstr "Namnet på NSS-biblioteket att använda"
 
-#: src/config/SSSDConfig/sssdoptions.py:573
+#: src/config/SSSDConfig/sssdoptions.py:579
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr ""
 "Namnet på NSS-biblioteket som används för värd- och nätverksuppslagningar"
 
-#: src/config/SSSDConfig/sssdoptions.py:574
+#: src/config/SSSDConfig/sssdoptions.py:580
 msgid "Whether to look up canonical group name from cache if possible"
 msgstr "Om kanoniskt gruppnamn ska slås upp från cachen om möjligt"
 
-#: src/config/SSSDConfig/sssdoptions.py:577
+#: src/config/SSSDConfig/sssdoptions.py:583
 msgid "PAM stack to use"
 msgstr "PAM-stack som ska användas"
 
-#: src/config/SSSDConfig/sssdoptions.py:580
+#: src/config/SSSDConfig/sssdoptions.py:586
 msgid "Path of passwd file sources."
 msgstr "Sökväg till lösenordsfilkällor."
 
-#: src/config/SSSDConfig/sssdoptions.py:581
+#: src/config/SSSDConfig/sssdoptions.py:587
 msgid "Path of group file sources."
 msgstr "Sökväg till gruppfilkällor."
 
@@ -2028,107 +2071,111 @@ msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr ""
 "Flaggan -i|--interactive är inte tillåten tillsammans med -D|--daemon\n"
 
-#: src/monitor/monitor.c:1836
+#: src/monitor/monitor.c:1838
 msgid "Failed to get initial capabilities\n"
 msgstr "Misslyckades att hämta initiala förmågor\n"
 
-#: src/monitor/monitor.c:1847
+#: src/monitor/monitor.c:1849
 msgid "Non-root service user support isn't built. Can't run under %"
 msgstr ""
 "Stöd för icke-root-tjänsteanvändare är inte byggt. Kan inte köra under %"
 
-#: src/monitor/monitor.c:1864
+#: src/monitor/monitor.c:1866
 #, c-format
 msgid "Can't read config: '%s'\n"
 msgstr "Kan inte läsa konfigurationen: ”%s”\n"
 
-#: src/monitor/monitor.c:1876
-#, c-format
-msgid "Failed to boostrap SSSD 'monitor' process: %s"
+#: src/monitor/monitor.c:1878
+#, fuzzy, c-format
+msgid "Failed to bootstrap SSSD 'monitor' process: %s"
 msgstr "Misslyckades att starta upp SSSD:s process ”monitor”: %s"
 
-#: src/monitor/monitor.c:1971
+#: src/monitor/monitor.c:1973
 msgid "Out of memory\n"
 msgstr "Slut på minne\n"
 
-#: src/providers/krb5/krb5_child.c:4221
+#: src/providers/krb5/krb5_child.c:4316
 msgid "Use anonymous PKINIT to request FAST armor ticket"
 msgstr "Använd anonym PKINIT för att begära FAST-skyddad biljett"
 
-#: src/providers/krb5/krb5_child.c:4223
+#: src/providers/krb5/krb5_child.c:4318
 msgid "Kerberos realm to use"
 msgstr "Kerberos-domän att använda"
 
-#: src/providers/krb5/krb5_child.c:4225
+#: src/providers/krb5/krb5_child.c:4320
 msgid "Requested lifetime of the ticket"
 msgstr "Begärd livslängd på biljetten"
 
-#: src/providers/krb5/krb5_child.c:4227
+#: src/providers/krb5/krb5_child.c:4322
 msgid "Requested renewable lifetime of the ticket"
 msgstr "Begärd förnybar livslängd på biljetten"
 
-#: src/providers/krb5/krb5_child.c:4229
+#: src/providers/krb5/krb5_child.c:4324
 msgid "FAST options ('never', 'try', 'demand')"
 msgstr "FAST-alternativ (”never”, ”try”, ”demand”)"
 
-#: src/providers/krb5/krb5_child.c:4232
+#: src/providers/krb5/krb5_child.c:4327
 msgid "Specifies the server principal to use for FAST"
 msgstr "Anger den serverprincipal som ska användas för FAST"
 
-#: src/providers/krb5/krb5_child.c:4234
+#: src/providers/krb5/krb5_child.c:4329
 msgid "Requests canonicalization of the principal name"
 msgstr "Begär kanonisering av principalnamnet"
 
-#: src/providers/krb5/krb5_child.c:4236
+#: src/providers/krb5/krb5_child.c:4331
 msgid "Use custom version of krb5_get_init_creds_password"
 msgstr "Använd en anpassad version av krb5_get_init_creds_password"
 
-#: src/providers/krb5/krb5_child.c:4238
+#: src/providers/krb5/krb5_child.c:4333
 msgid "Check PAC flags"
 msgstr "Kontrollera PAC-flaggor"
 
-#: src/providers/data_provider_be.c:790
+#: src/providers/krb5/krb5_child.c:4335
+msgid "Set environment variable (KEY=VALUE)"
+msgstr ""
+
+#: src/providers/data_provider_be.c:786
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domän för informationsleverantören (obligatoriskt)"
 
-#: src/sss_client/common.c:1165
+#: src/sss_client/common.c:1208
 msgid "Socket has wrong ownership or permissions."
 msgstr "Socketen har fel ägare eller behörigheter."
 
-#: src/sss_client/common.c:1168
+#: src/sss_client/common.c:1211
 msgid "Unexpected format of the server credential message."
 msgstr "Oväntat format på serverns meddelande om autentiseringsuppgifter."
 
-#: src/sss_client/common.c:1171
+#: src/sss_client/common.c:1214
 msgid "SSSD is not run by trusted user."
 msgstr "SSSD körs inte av en betrodd användare."
 
-#: src/sss_client/common.c:1174
+#: src/sss_client/common.c:1217
 msgid "SSSD socket does not exist."
 msgstr "SSSD-socketen finns inte."
 
-#: src/sss_client/common.c:1177
+#: src/sss_client/common.c:1220
 msgid "Cannot get stat of SSSD socket."
 msgstr "Kan inte hämta status för SSSD-socketen."
 
-#: src/sss_client/common.c:1182
+#: src/sss_client/common.c:1225
 msgid "An error occurred, but no description can be found."
 msgstr "Ett fel uppstod, men ingen beskrivning hittades."
 
-#: src/sss_client/common.c:1188
+#: src/sss_client/common.c:1231
 msgid "Unexpected error while looking for an error description"
 msgstr "Oväntat fel vid sökning efter ett felmeddelande"
 
-#: src/sss_client/pam_sss.c:74
+#: src/sss_client/pam_sss.c:135
 msgid "Permission denied. "
 msgstr "Åtkomst nekas. "
 
-#: src/sss_client/pam_sss.c:75 src/sss_client/pam_sss.c:843
-#: src/sss_client/pam_sss.c:854
+#: src/sss_client/pam_sss.c:136 src/sss_client/pam_sss.c:921
+#: src/sss_client/pam_sss.c:932
 msgid "Server message: "
 msgstr "Servermeddelande: "
 
-#: src/sss_client/pam_sss.c:76
+#: src/sss_client/pam_sss.c:137
 msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
@@ -2136,50 +2183,50 @@ msgstr ""
 "Kerberos-TGT kommer inte att tilldelas vid inloggning, vilket påverkar "
 "användarupplevelsen."
 
-#: src/sss_client/pam_sss.c:77
+#: src/sss_client/pam_sss.c:138
 msgid "Enter PIN:"
 msgstr "Ange PIN:"
 
-#: src/sss_client/pam_sss.c:320
+#: src/sss_client/pam_sss.c:385
 msgid "Passwords do not match"
 msgstr "Lösenorden stämmer inte överens"
 
-#: src/sss_client/pam_sss.c:508
+#: src/sss_client/pam_sss.c:584
 msgid "Password reset by root is not supported."
 msgstr "Lösenordsåterställning av root stöds inte."
 
-#: src/sss_client/pam_sss.c:549
+#: src/sss_client/pam_sss.c:625
 msgid "Authenticated with cached credentials"
 msgstr "Autentiserad med cachade autentiseringsuppgifter"
 
-#: src/sss_client/pam_sss.c:550
+#: src/sss_client/pam_sss.c:626
 msgid ", your cached password will expire at: "
 msgstr ", ditt cachade lösenord går ut: "
 
-#: src/sss_client/pam_sss.c:580
+#: src/sss_client/pam_sss.c:656
 #, c-format
 msgid "Your password has expired. You have %1$d grace login(s) remaining."
 msgstr "Ditt lösenord har gått ut. Du har en frist på %1$d inloggningar kvar."
 
-#: src/sss_client/pam_sss.c:630
+#: src/sss_client/pam_sss.c:706
 #, c-format
 msgid "Your password will expire in %1$d %2$s."
 msgstr "Ditt lösenord går ut om %1$d %2$s."
 
-#: src/sss_client/pam_sss.c:633
+#: src/sss_client/pam_sss.c:709
 #, c-format
 msgid "Your password has expired."
 msgstr "Ditt lösenord har gått ut."
 
-#: src/sss_client/pam_sss.c:684
+#: src/sss_client/pam_sss.c:760
 msgid "Authentication is denied until: "
 msgstr "Autentisering nekas till och med: "
 
-#: src/sss_client/pam_sss.c:705
+#: src/sss_client/pam_sss.c:781
 msgid "System is offline, password change not possible"
 msgstr "Systemet är frånkopplat, ändring av lösenord är inte möjligt"
 
-#: src/sss_client/pam_sss.c:720
+#: src/sss_client/pam_sss.c:796
 msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
@@ -2187,11 +2234,11 @@ msgstr ""
 "Efter att du har ändrat OTP-lösenordet måste du logga ut och sedan logga in "
 "igen för att få en biljett"
 
-#: src/sss_client/pam_sss.c:735
+#: src/sss_client/pam_sss.c:813
 msgid "PIN locked"
 msgstr "PIN-låst"
 
-#: src/sss_client/pam_sss.c:750
+#: src/sss_client/pam_sss.c:828
 msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
@@ -2199,61 +2246,65 @@ msgstr ""
 "Ingen Kerberos-TGT tilldelades eftersom servern inte stöder denna metod. Din "
 "upplevelse av enkel inloggning (SSO) påverkas."
 
-#: src/sss_client/pam_sss.c:840 src/sss_client/pam_sss.c:853
+#: src/sss_client/pam_sss.c:918 src/sss_client/pam_sss.c:931
 msgid "Password change failed. "
 msgstr "Lösenordsändringen misslyckades. "
 
-#: src/sss_client/pam_sss.c:1859
-#, c-format
-msgid "Authenticate at %1$s and press ENTER."
+#: src/sss_client/pam_sss.c:2028
+#, fuzzy, c-format
+msgid "Authenticate at \"%1$s\"."
 msgstr "Autentisera vid %1$s och tryck på ENTER."
 
-#: src/sss_client/pam_sss.c:1862
-#, c-format
-msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
+#: src/sss_client/pam_sss.c:2031
+#, fuzzy, c-format
+msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
 msgstr "Autentisera med PIN %1$s vid %2$s och tryck på ENTER."
 
-#: src/sss_client/pam_sss.c:2281
+#: src/sss_client/pam_sss.c:2470
 msgid "Please (re)insert (different) Smartcard"
 msgstr "Sätt (igen) in ett (annat) smartkort"
 
-#: src/sss_client/pam_sss.c:2482
+#: src/sss_client/pam_sss.c:2700
 msgid "New Password: "
 msgstr "Nytt lösenord: "
 
-#: src/sss_client/pam_sss.c:2483
+#: src/sss_client/pam_sss.c:2701
 msgid "Reenter new Password: "
 msgstr "Skriv det nya lösenordet igen: "
 
-#: src/sss_client/pam_sss.c:2676 src/sss_client/pam_sss.c:2679
+#: src/sss_client/pam_sss.c:2890
+msgid "Press ENTER to continue."
+msgstr ""
+
+#: src/sss_client/pam_sss.c:2913 src/sss_client/pam_sss.c:2916
 msgid "First Factor: "
 msgstr "Första faktorn: "
 
-#: src/sss_client/pam_sss.c:2677 src/sss_client/pam_sss.c:2851
+#: src/sss_client/pam_sss.c:2914 src/sss_client/pam_sss.c:3088
 msgid "Second Factor (optional): "
 msgstr "Andra faktorn (frivillig): "
 
-#: src/sss_client/pam_sss.c:2680 src/sss_client/pam_sss.c:2855
+#: src/sss_client/pam_sss.c:2917 src/sss_client/pam_sss.c:3092
 msgid "Second Factor: "
 msgstr "Andra faktorn: "
 
-#: src/sss_client/pam_sss.c:2684
+#: src/sss_client/pam_sss.c:2921
 msgid "Insert your passkey device, then press ENTER."
 msgstr "Sätt in din lösennyckelenhet och tryck sedan på Retur."
 
-#: src/sss_client/pam_sss.c:2688 src/sss_client/pam_sss.c:2696
+#: src/sss_client/pam_sss.c:2925 src/sss_client/pam_sss.c:2933
 msgid "Password: "
 msgstr "Lösenord: "
 
-#: src/sss_client/pam_sss.c:2850 src/sss_client/pam_sss.c:2854
+#: src/sss_client/pam_sss.c:3087 src/sss_client/pam_sss.c:3091
 msgid "First Factor (Current Password): "
 msgstr "Första faktorn (nuvarande lösenord): "
 
-#: src/sss_client/pam_sss.c:2874
+#: src/sss_client/pam_sss.c:3111
 msgid "Current Password: "
 msgstr "Nuvarande lösenord: "
 
-#: src/sss_client/pam_sss.c:3248
+#: src/sss_client/pam_sss.c:3485
 msgid "Password expired. Change your password now."
 msgstr "Lösenordet har gått ut. Ändra ditt lösenord nu."
 
@@ -2699,9 +2750,9 @@ msgstr "Misslyckades med att visa objektet: %s\n"
 #: src/tools/sssctl/sssctl_cache.c:835 src/tools/sssctl/sssctl_cache.c:918
 #: src/tools/sssctl/sssctl_cache.c:950 src/tools/sssctl/sssctl_cache.c:956
 #: src/tools/sssctl/sssctl_cache.c:1010 src/tools/sssctl/sssctl_cache.c:1034
-#: src/tools/sssctl/sssctl_cache.c:1085 src/tools/sssctl/sssctl_cache.c:1194
-#: src/tools/sssctl/sssctl_cache.c:1229 src/tools/sssctl/sssctl_cache.c:1235
-#: src/tools/sssctl/sssctl_cache.c:1244
+#: src/tools/sssctl/sssctl_cache.c:1085 src/tools/sssctl/sssctl_cache.c:1195
+#: src/tools/sssctl/sssctl_cache.c:1230 src/tools/sssctl/sssctl_cache.c:1236
+#: src/tools/sssctl/sssctl_cache.c:1245
 msgid "talloc failed\n"
 msgstr "talloc misslyckades\n"
 
@@ -2777,25 +2828,25 @@ msgstr "Den cachade GPO-sökvägen [%s] ligger inte under [%s]; ignorerar.\n"
 msgid "Unable to remove downloaded GPO files: %s\n"
 msgstr "Kan inte ta bort hämtade GPO-filer: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1165
+#: src/tools/sssctl/sssctl_cache.c:1166
 #, c-format
 msgid "Failed to fetch cache entry: %s\n"
 msgstr "Misslyckades med att hämta cacheposten: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1170
+#: src/tools/sssctl/sssctl_cache.c:1171
 msgid "Could not determine object domain\n"
 msgstr "Kunde inte avgöra objektdomänen\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1200
+#: src/tools/sssctl/sssctl_cache.c:1201
 msgid "Could not find GUID attribute in GPO entry\n"
 msgstr "Kunde inte hitta GUID-attributet i GPO-posten\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1206
+#: src/tools/sssctl/sssctl_cache.c:1207
 #, c-format
 msgid "Failed to delete GPO: %s\n"
 msgstr "Misslyckades med att radera GPO: %s\n"
 
-#: src/tools/sssctl/sssctl_cache.c:1210
+#: src/tools/sssctl/sssctl_cache.c:1211
 #, c-format
 msgid "%s removed from cache\n"
 msgstr "%s borttagen från cachen\n"
@@ -2893,39 +2944,40 @@ msgstr ""
 "är inställd på \"/my/path/sssd.conf\", används snuttkatalogen \"/my/path/"
 "conf.d\")"
 
-#: src/tools/sssctl/sssctl_config.c:114
+#: src/tools/sssctl/sssctl_config.c:126
 #, c-format
 msgid "File %1$s does not exist.\n"
 msgstr "Filen %1$s finns inte.\n"
 
-#: src/tools/sssctl/sssctl_config.c:115
+#: src/tools/sssctl/sssctl_config.c:127
 msgid "There is no configuration.\n"
 msgstr "Det finns ingen konfiguration.\n"
 
-#: src/tools/sssctl/sssctl_config.c:120
+#: src/tools/sssctl/sssctl_config.c:132
 #, c-format
 msgid "Configuration validation failed: %s\n"
 msgstr "Konfigurationsvalidering misslyckades: %s\n"
 
-#: src/tools/sssctl/sssctl_config.c:121
+#: src/tools/sssctl/sssctl_config.c:133
 msgid "Run with high debug level to see details.\n"
 msgstr "Kör med hög felsökningsnivå för att se detaljer.\n"
 
-#: src/tools/sssctl/sssctl_config.c:130
-msgid "Failed to run validators"
+#: src/tools/sssctl/sssctl_config.c:142
+#, fuzzy
+msgid "Failed to run validators\n"
 msgstr "Misslyckades att köra validerare"
 
-#: src/tools/sssctl/sssctl_config.c:134
+#: src/tools/sssctl/sssctl_config.c:146
 #, c-format
 msgid "Issues identified by validators: %zu\n"
 msgstr "Problem som identifierades av validerarna: %zu\n"
 
-#: src/tools/sssctl/sssctl_config.c:145
+#: src/tools/sssctl/sssctl_config.c:157
 #, c-format
 msgid "Messages generated during configuration merging: %zu\n"
 msgstr "Meddelanden genererade under sammanslagning av konfigurationen: %zu\n"
 
-#: src/tools/sssctl/sssctl_config.c:158
+#: src/tools/sssctl/sssctl_config.c:170
 #, c-format
 msgid "Used configuration snippet files: %zu\n"
 msgstr "Använda konfigurationssnuttfiler: %zu\n"
