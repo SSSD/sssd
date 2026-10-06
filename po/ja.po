@@ -15,7 +15,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-04-23 16:38+0000\n"
+"PO-Revision-Date: 2026-10-06 10:56+0000\n"
 "Last-Translator: Transtats <suanand@redhat.com>\n"
 "Language-Team: Japanese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ja/>\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.10\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -65,7 +65,8 @@ msgstr "レスポンダーの自動シャットダウンまでのアイドル時
 
 #: src/config/SSSDConfig/sssdoptions.py:30
 msgid "Always query all the caches before querying the Data Providers"
-msgstr "データプロバイダーをクエリーする前に、常にすべてのキャッシュをクエリーします"
+msgstr ""
+"データプロバイダーをクエリーする前に、常にすべてのキャッシュをクエリーします"
 
 #: src/config/SSSDConfig/sssdoptions.py:31
 msgid ""
@@ -99,8 +100,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
-"SSSD が Kerberos リプレイキャッシュファイルを保存するファイルシステムの"
-"ディレクトリーです。"
+"SSSD が Kerberos リプレイキャッシュファイルを保存するファイルシステムのディレ"
+"クトリーです。"
 
 #: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Domain to add to names without a domain component."
@@ -116,7 +117,8 @@ msgstr "証明書検証の調整"
 
 #: src/config/SSSDConfig/sssdoptions.py:44
 msgid "All spaces in group or user names will be replaced with this character"
-msgstr "グループ名またはユーザー名のすべてのスペースは、この文字に置き換えられます"
+msgstr ""
+"グループ名またはユーザー名のすべてのスペースは、この文字に置き換えられます"
 
 #: src/config/SSSDConfig/sssdoptions.py:45
 msgid "Tune sssd to honor or ignore netlink state changes"
@@ -244,8 +246,8 @@ msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
 msgstr ""
-"グループ要求の高速インメモリーキャッシュ内で割り当てられるデータテーブルの"
-"サイズ (メガバイト)"
+"グループ要求の高速インメモリーキャッシュ内で割り当てられるデータテーブルのサ"
+"イズ (メガバイト)"
 
 #: src/config/SSSDConfig/sssdoptions.py:78
 msgid ""
@@ -375,8 +377,8 @@ msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
 msgstr ""
-"GSSAPI 認証で PAM アクセスを強制する必要があるペア <PAM service>"
-":<authentication indicator> のリスト"
+"GSSAPI 認証で PAM アクセスを強制する必要があるペア <PAM service>:"
+"<authentication indicator> のリスト"
 
 #: src/config/SSSDConfig/sssdoptions.py:113
 msgid "Allow passkey device authentication."
@@ -432,7 +434,8 @@ msgstr "証明書からの ssh-key の生成を許可します"
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
-msgstr "以下の一致するルールを使用して、ssh-key 生成用の証明書をフィルタリングします"
+msgstr ""
+"以下の一致するルールを使用して、ssh-key 生成用の証明書をフィルタリングします"
 
 #: src/config/SSSDConfig/sssdoptions.py:137
 msgid "List of UIDs or user names allowed to access the PAC responder"
@@ -457,8 +460,8 @@ msgid ""
 "options are recorded. all - All users are recorded."
 msgstr ""
 "セッション記録の範囲を指定する以下の文字列の 1 つ: none: 記録されたユーザーは"
-"いません。some: ユーザーとグループオプションによって指定されているユーザー/"
-"グループが記録されています。all: すべてのユーザーが記録されます。"
+"いません。some: ユーザーとグループオプションによって指定されているユーザー/グ"
+"ループが記録されています。all: すべてのユーザーが記録されます。"
 
 #: src/config/SSSDConfig/sssdoptions.py:148
 msgid ""
@@ -476,9 +479,9 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
-"セッション記録を有効にしておくべきユーザーのグループごとのカンマ区切りの"
-"リストです。NSS が返すグループ名にマッチします。つまり、スペースの置換、大文"
-"字小文字の変更などの可能性がある場合には、その後になります。"
+"セッション記録を有効にしておくべきユーザーのグループごとのカンマ区切りのリス"
+"トです。NSS が返すグループ名にマッチします。つまり、スペースの置換、大文字小"
+"文字の変更などの可能性がある場合には、その後になります。"
 
 #: src/config/SSSDConfig/sssdoptions.py:153
 msgid ""
@@ -662,7 +665,8 @@ msgstr "クライアントの DNS エントリーを更新するときの最大�
 
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid "Whether the provider should explicitly update the PTR record as well"
-msgstr "プロバイダーが同じように PTR レコードを明示的に更新する必要があるかどうか"
+msgstr ""
+"プロバイダーが同じように PTR レコードを明示的に更新する必要があるかどうか"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Whether the nsupdate utility should default to using TCP"
@@ -845,8 +849,8 @@ msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
 msgstr ""
-"最後の要求がルールを何も見つけなかった場合の IPA サーバーに対する"
-"デスクトッププロファイルルールを検索している間の分単位の合計時間"
+"最後の要求がルールを何も見つけなかった場合の IPA サーバーに対するデスクトップ"
+"プロファイルルールを検索している間の分単位の合計時間"
 
 #: src/config/SSSDConfig/sssdoptions.py:258
 #: src/config/SSSDConfig/sssdoptions.py:455
@@ -975,12 +979,13 @@ msgid ""
 "lookups of users and groups from trusted domains differently."
 msgstr ""
 "このオプションは、SSSD が IPA サーバー上で実行されており、信頼されたドメイン"
-"からのユーザーとグループの検索を異なる方法で実行する必要があることを示します"
-"。"
+"からのユーザーとグループの検索を異なる方法で実行する必要があることを示しま"
+"す。"
 
 #: src/config/SSSDConfig/sssdoptions.py:292
 msgid "Use the given string as search base for trusted domains."
-msgstr "信頼されたドメインに対する検索ベースとして、与えられた文字列を使用します。"
+msgstr ""
+"信頼されたドメインに対する検索ベースとして、与えられた文字列を使用します。"
 
 #: src/config/SSSDConfig/sssdoptions.py:295
 msgid "Active Directory domain"
@@ -1029,25 +1034,28 @@ msgstr "AD サーバーに対する GPO ポリシーファイルを検索して�
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
-msgstr "GPO (Deny)InteractiveLogonRight のポリシー設定にマッピングした PAM サービス名"
+msgstr ""
+"GPO (Deny)InteractiveLogonRight のポリシー設定にマッピングした PAM サービス名"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"GPO (Deny)RemoteInteractiveLogonRight のポリシー設定にマッピングした PAM "
-"サービス名"
+"GPO (Deny)RemoteInteractiveLogonRight のポリシー設定にマッピングした PAM サー"
+"ビス名"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
-msgstr "GPO (Deny)NetworkLogonRight のポリシー設定にマッピングした PAM サービス名"
+msgstr ""
+"GPO (Deny)NetworkLogonRight のポリシー設定にマッピングした PAM サービス名"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
-msgstr "GPO (Deny)BatchLogonRight のポリシー設定にマッピングした PAM サービス名"
+msgstr ""
+"GPO (Deny)BatchLogonRight のポリシー設定にマッピングした PAM サービス名"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
@@ -1325,8 +1333,8 @@ msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
-"RFC2307 スキーマを使用するサーバーの LDAP グループのメンバーとして"
-"ローカルユーザーを保持することができます。"
+"RFC2307 スキーマを使用するサーバーの LDAP グループのメンバーとしてローカル"
+"ユーザーを保持することができます。"
 
 #: src/config/SSSDConfig/sssdoptions.py:392
 msgid "entryUSN attribute"
@@ -1766,8 +1774,8 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:522
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
 msgstr ""
-"sudo ルールをフィルターするこのマシンの IPv4 または IPv6 アドレスまたは"
-"ネットワーク"
+"sudo ルールをフィルターするこのマシンの IPv4 または IPv6 アドレスまたはネット"
+"ワーク"
 
 #: src/config/SSSDConfig/sssdoptions.py:523
 msgid "Whether to include rules that contains netgroup in host attribute"
@@ -1911,8 +1919,8 @@ msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
-"ログインが許可されるグループのカンマ区切りの一覧。これは、SSSDドメイン内の"
-"グループにのみ適用されます。ローカルグループは評価されません。"
+"ログインが許可されるグループのカンマ区切りの一覧。これは、SSSDドメイン内のグ"
+"ループにのみ適用されます。ローカルグループは評価されません。"
 
 #: src/config/SSSDConfig/sssdoptions.py:565
 msgid ""
@@ -2371,7 +2379,8 @@ msgstr "ユーザーインプットの読み込みができませんでした\n"
 #: src/tools/sssctl/sssctl.c:91
 #, c-format
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
-msgstr "無効なインプットです。'%s' または '%s' のいずれかを提供してください。\n"
+msgstr ""
+"無効なインプットです。'%s' または '%s' のいずれかを提供してください。\n"
 
 #: src/tools/sssctl/sssctl.c:151 src/tools/sssctl/sssctl.c:161
 msgid "Error while executing external command\n"
@@ -2878,7 +2887,8 @@ msgstr "バックアップディレクトリー [%d] を作成できません: %
 
 #: src/tools/sssctl/sssctl_data.c:97
 msgid "SSSD backup of local data already exists, override?"
-msgstr "ローカルデータの SSSD バックアップはすでに存在しますが、上書きしますか?"
+msgstr ""
+"ローカルデータの SSSD バックアップはすでに存在しますが、上書きしますか?"
 
 #: src/tools/sssctl/sssctl_data.c:113
 msgid "Unable to export user overrides\n"
@@ -2928,8 +2938,8 @@ msgstr "ローカルデータのバックアップを作成中...\n"
 #: src/tools/sssctl/sssctl_data.c:237
 msgid "Unable to create backup of local data, can not remove the cache.\n"
 msgstr ""
-"ローカルデータのバックアップの作成ができません。キャッシュを削除できません"
-"。\n"
+"ローカルデータのバックアップの作成ができません。キャッシュを削除できませ"
+"ん。\n"
 
 #: src/tools/sssctl/sssctl_data.c:242
 msgid "Removing cache files...\n"
@@ -3017,7 +3027,8 @@ msgstr "リモートプロバイダーのインデックスも忘れず更新し
 
 #: src/tools/sssctl/sssctl_domains.c:82
 msgid "Show domain list including primary or trusted domain type"
-msgstr "プライマリーまたは信頼されたドメインタイプを含むドメインリストを表示します"
+msgstr ""
+"プライマリーまたは信頼されたドメインタイプを含むドメインリストを表示します"
 
 #: src/tools/sssctl/sssctl_domains.c:166
 msgid "Online"
@@ -3168,8 +3179,8 @@ msgstr "設定するデバッグレベルを指定します"
 #: src/tools/sssctl/sssctl_logs.c:593
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
-"エラー: Tevent chain ID サポートがなく、ログアナライザーはサポートされません"
-"。\n"
+"エラー: Tevent chain ID サポートがなく、ログアナライザーはサポートされませ"
+"ん。\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:121
 msgid "SSSD InfoPipe user lookup result:\n"

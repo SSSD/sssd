@@ -15,7 +15,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-04-23 17:04+0000\n"
+"PO-Revision-Date: 2026-10-06 10:56+0000\n"
 "Last-Translator: Milo Casagrande <milo@milo.name>\n"
 "Language-Team: Italian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/it/>\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.10\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -192,7 +192,8 @@ msgstr "Indica se mostrare gli utenti filtrati nei gruppi"
 
 #: src/config/SSSDConfig/sssdoptions.py:64
 msgid "The value of the password field the NSS provider should return"
-msgstr "Il valore del campo password che deve essere ritornato dal provider NSS"
+msgstr ""
+"Il valore del campo password che deve essere ritornato dal provider NSS"
 
 #: src/config/SSSDConfig/sssdoptions.py:65
 msgid "Override homedir value from the identity provider with this value"
@@ -430,7 +431,8 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:128
 msgid "Whether to hash host names and addresses in the known_hosts file"
-msgstr "Se eseguire l'hash dei nomi host e degli indirizzi nel file known_hosts"
+msgstr ""
+"Se eseguire l'hash dei nomi host e degli indirizzi nel file known_hosts"
 
 #: src/config/SSSDConfig/sssdoptions.py:129
 msgid ""
@@ -563,7 +565,8 @@ msgstr "Provider resolver"
 
 #: src/config/SSSDConfig/sssdoptions.py:170
 msgid "Whether the domain is usable by the OS or by applications"
-msgstr "Se il dominio è utilizzabile dal sistema operativo o dalle applicazioni"
+msgstr ""
+"Se il dominio è utilizzabile dal sistema operativo o dalle applicazioni"
 
 #: src/config/SSSDConfig/sssdoptions.py:171
 msgid "Enable or disable the domain"
@@ -712,7 +715,8 @@ msgstr "Se il provider debba aggiornare esplicitamente anche il record PTR"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Whether the nsupdate utility should default to using TCP"
-msgstr "Se l'utilità nsupdate debba utilizzare TCP per impostazione predefinita"
+msgstr ""
+"Se l'utilità nsupdate debba utilizzare TCP per impostazione predefinita"
 
 #: src/config/SSSDConfig/sssdoptions.py:209
 msgid "What kind of authentication should be used to perform the DNS update"
@@ -855,7 +859,8 @@ msgstr "Base di ricerca per l'oggetto contenente informazioni sul dominio IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
 msgid "Search base for objects containing info about ID ranges"
-msgstr "Base di ricerca per oggetti contenenti informazioni sugli intervalli ID"
+msgstr ""
+"Base di ricerca per oggetti contenenti informazioni sugli intervalli ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "Search base for view containers"
@@ -1092,37 +1097,37 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
-"InteractiveLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
+"(Deny)InteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
-"RemoteInteractiveLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
+"(Deny)RemoteInteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
-"NetworkLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
+"(Deny)NetworkLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
-"BatchLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
+"(Deny)BatchLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
-"ServiceLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
+"(Deny)ServiceLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1207,7 +1212,8 @@ msgstr "Abilita la validazione delle credenziali"
 
 #: src/config/SSSDConfig/sssdoptions.py:337
 msgid "Store password if offline for later online authentication"
-msgstr "Memorizza la password se offline per l'autenticazione online successiva"
+msgstr ""
+"Memorizza la password se offline per l'autenticazione online successiva"
 
 #: src/config/SSSDConfig/sssdoptions.py:338
 msgid "Renewable lifetime of the TGT"
@@ -2017,7 +2023,8 @@ msgstr "Il nome della libreria NSS da usare"
 
 #: src/config/SSSDConfig/sssdoptions.py:573
 msgid "The name of the NSS library to use for hosts and networks lookups"
-msgstr "Il nome della libreria NSS da utilizzare per le ricerche di host e reti"
+msgstr ""
+"Il nome della libreria NSS da utilizzare per le ricerche di host e reti"
 
 #: src/config/SSSDConfig/sssdoptions.py:574
 msgid "Whether to look up canonical group name from cache if possible"
@@ -2880,8 +2887,8 @@ msgstr "Fallita l'impostazione del contesto certmap.\n"
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Fallita l'aggiunta delle regole di mappatura e corrispondenza con errore "
-"[%d][%s].\n"
+"Fallita l'aggiunta delle regole di mappatura e corrispondenza con errore [%d]"
+"[%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"

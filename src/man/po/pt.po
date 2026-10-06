@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-01-14 15:00+0000\n"
-"PO-Revision-Date: 2026-04-23 17:01+0000\n"
+"PO-Revision-Date: 2026-10-06 11:21+0000\n"
 "Last-Translator: Américo Monteiro <a_monteiro@gmx.com>\n"
 "Language-Team: Portuguese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/pt/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.10\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -90,7 +90,7 @@ msgid ""
 "valued parameters: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgstr ""
 "O ficheiro tem uma sintaxe estilo-ini e consiste de secções e parâmetros. "
-"Uma secção começa com o nome da secção em parênteses rectos e continua até "
+"Uma secção começa com o nome da secção em parênteses retos e continua até "
 "que a próxima secção comece. Um exemplo de secção com parâmetros singulares "
 "e de multi-valores: <placeholder type=\"programlisting\" id=\"0\"/>"
 
@@ -274,8 +274,8 @@ msgid ""
 "Add microseconds to the timestamp in debug messages.  If journald is enabled "
 "for SSSD debug logging this option is ignored."
 msgstr ""
-"Adiciona micro-segundos à marca temporal nas mensagens de depuração.   Se "
-"journald estiver activo para registos de depuração do SSSD esta opção é "
+"Adiciona micro-segundos à marca temporal nas mensagens de depuração.  Se "
+"journald estiver ativo para registos de depuração do SSSD esta opção é "
 "ignorada."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
@@ -416,7 +416,7 @@ msgid ""
 "\"systemctl enable sssd-@service@.socket\".  </phrase>"
 msgstr ""
 "<phrase condition=\"have_systemd\"> Por predefinição, todos os serviços são "
-"desativados e o administrador tem de activar os que permite serem usados ao "
+"desativados e o administrador tem de ativar os que permite serem usados ao "
 "executar: \"systemctl enable sssd-@service@.socket\".  </phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
@@ -932,7 +932,7 @@ msgid ""
 "addresses, links and trigger certain actions."
 msgstr ""
 "SSSD vincula-se à interface netlink para monitorizar alterações a rotas, "
-"endereços, ligações e despoleta certas acções."
+"endereços, ligações e despoleta certas ações."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:581
@@ -1019,8 +1019,8 @@ msgid ""
 "'false'."
 msgstr ""
 "O respondedor PAC é activado automaticamente para o provedor IPA e AD para "
-"avaliar e verificar o PAC. Se isso tiver de ser desactivado defina esta "
-"opção para 'false'."
+"avaliar e verificar o PAC. Se isso tiver de ser desativado defina esta opção "
+"para 'false'."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:649
@@ -6768,7 +6768,7 @@ msgid ""
 "For explicit IPv6 addresses, &lt;host&gt; must be enclosed in brackets []"
 msgstr ""
 "Para endereços IPv6 explícitos, &lt;host&gt; tem de ficar dentro de "
-"parênteses rectos []"
+"parênteses retos []"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:86
@@ -10486,8 +10486,8 @@ msgid ""
 "this file."
 msgstr ""
 "Provedor de autenticação krb5 do SSSD o qual é usado pelos provedores IPA e "
-"AD assim como adiciona os endereços do KDC actual ou controlador de domínio "
-"que o SSSD está usar para este ficheiro."
+"AD também adiciona os endereços do KDC atual ou controlador de domínio que o "
+"SSSD está usar para este ficheiro."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:70
