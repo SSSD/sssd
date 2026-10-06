@@ -109,6 +109,56 @@ def create_adgrp(session_multihost, request, run_powershell_script):
     request.addfinalizer(delete_adgrp)
 
 
+@pytest.fixture(scope="function")
+def enable_sshd_password_auth(session_multihost, request):
+    """ Temporarily enable PasswordAuthentication in sshd for tests
+    that need SSH password login on STIG-hardened systems """
+    client = session_multihost.client[0]
+    # Check both main config and drop-in files under sshd_config.d/
+    # RHEL 9 STIG sets PasswordAuthentication in drop-in files
+    check = client.run_command(
+        'grep -rq "^PasswordAuthentication no"'
+        ' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/ 2>/dev/null',
+        raiseonerr=False
+    )
+    if check.returncode != 0:
+        return
+    client.run_command(
+        'cp -f /etc/ssh/sshd_config /etc/ssh/sshd_config.orig_stig',
+        raiseonerr=False
+    )
+    client.run_command(
+        'sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g"'
+        ' /etc/ssh/sshd_config',
+        raiseonerr=False
+    )
+    # Also fix drop-in files where STIG sets the directive
+    client.run_command(
+        'cp -a /etc/ssh/sshd_config.d /etc/ssh/sshd_config.d.orig_stig',
+        raiseonerr=False
+    )
+    client.run_command(
+        'sed -i "s/^PasswordAuthentication no/PasswordAuthentication yes/g"'
+        ' /etc/ssh/sshd_config.d/*.conf 2>/dev/null',
+        raiseonerr=False
+    )
+    client.run_command('systemctl restart sshd', raiseonerr=False)
+
+    def restore_sshd():
+        """ Restore sshd config """
+        client.run_command(
+            'cp -f /etc/ssh/sshd_config.orig_stig /etc/ssh/sshd_config',
+            raiseonerr=False
+        )
+        client.run_command(
+            'rm -rf /etc/ssh/sshd_config.d &&'
+            ' mv /etc/ssh/sshd_config.d.orig_stig /etc/ssh/sshd_config.d',
+            raiseonerr=False
+        )
+        client.run_command('systemctl restart sshd', raiseonerr=False)
+    request.addfinalizer(restore_sshd)
+
+
 @pytest.fixture(autouse=True)
 def capture_sssd_logs(session_multihost, request):
     """This will print sssd logs in case of test failure"""
@@ -333,7 +383,12 @@ def adjoin(session_multihost, request):
     def adleave():
         """ Disjoin AD """
         session_multihost.client[0].run_command(
+<<<<<<< HEAD
             "cp -af /etc/sssd/sssd.conf.adjoin /etc/sssd/sssd.conf")
+=======
+            f"cp -af /etc/sssd/sssd.conf.adjoin {SSSD_DEFAULT_CONF}",
+            raiseonerr=False)
+>>>>>>> bf003fcaa (Fix STIG fixture to handle sshd drop-in config files)
         _adleave(client_ad)
 
     request.addfinalizer(adleave)
@@ -830,6 +885,35 @@ def samba_share_permissions(session_multihost, request):
     request.addfinalizer(delete_share_directory)
 
 # ################### Session scoped fixtures #########################
+
+
+@pytest.fixture(scope='session', autouse=True)
+def enable_aes_encryption_on_ad(session_multihost, request):
+    """ Enable AES Kerberos encryption on AD for FIPS/STIG compatibility.
+    FIPS:STIG crypto policy on RHEL 9.x only permits AES encryption types
+    but the AD server may not have AES enabled by default. Without this,
+    realm join fails with 'The encryption types desired are not available
+    in active directory' as adcli finds all encryption types are
+    not permitted by the crypto policy. This configures msDS-SupportedEncryptionTypes
+    on domain controllers and sets the registry-level Kerberos encryption
+    policy to enable AES-128 and AES-256 (value 24 = 0x08 + 0x10). """
+    powershell_cmd = (
+        'powershell.exe -inputformat none -noprofile '
+        '"Import-Module ActiveDirectory; '
+        'Get-ADComputer -Filter {PrimaryGroupID -eq 516} '
+        '-Properties msDS-SupportedEncryptionTypes | '
+        "Set-ADComputer -Replace @{'msDS-SupportedEncryptionTypes' = 24}; "
+        'New-Item -Path '
+        "'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+        "\\Policies\\System\\Kerberos\\Parameters' -Force; "
+        'Set-ItemProperty -Path '
+        "'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion"
+        "\\Policies\\System\\Kerberos\\Parameters' "
+        "-Name 'SupportedEncryptionTypes' -Value 24 "
+        '-Type DWord -Force; '
+        'gpupdate /force"'
+    )
+    session_multihost.ad[0].run_command(powershell_cmd, raiseonerr=False)
 
 
 @pytest.fixture(scope='session', autouse=True)

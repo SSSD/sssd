@@ -26,7 +26,8 @@ class TestADRangeRetrieval:
      6. On AD-server, create a ADgroup and add 200 ADusers members to it.
     """
     @staticmethod
-    def test_0001_grouplookup_large_members(multihost, adjoin):
+    def test_0001_grouplookup_large_members(multihost, adjoin,
+                                              enable_sshd_password_auth):
         """
         :title: with ldap provider lookup group with large number of users
         :id: 74ecb720-e2d3-4c72-b43a-12cf5e6166d6
@@ -81,7 +82,8 @@ class TestADRangeRetrieval:
         assert login, 'user log in failed'
 
     @staticmethod
-    def test_0002_ad_provider_search_base_with_filter(multihost, adjoin):
+    def test_0002_ad_provider_search_base_with_filter(multihost, adjoin,
+                                                        enable_sshd_password_auth):
         """
         :title: ad provider search base with filter bz848031
         :id: 928b2f4e-dd1e-416d-abdd-4345be386f5d
@@ -133,7 +135,8 @@ class TestADRangeRetrieval:
         assert login, 'user login failed'
 
     @staticmethod
-    def test_0003_ad_provider_userlookup_large_numberof_groups(multihost, adjoin):
+    def test_0003_ad_provider_userlookup_large_numberof_groups(multihost, adjoin,
+                                                                enable_sshd_password_auth):
         """
         :title: ad provider lookup user belonging to large number of groups
         :id: 87843cff-cf70-4537-adb7-d05bd3d0b3c4
@@ -179,7 +182,8 @@ class TestADRangeRetrieval:
         assert patt1.search(log_str), 'Parsed range values: member] log is missing'
 
     @staticmethod
-    def test_0004_ad_provider_ldap_user_searchbase_with_filter(multihost, adjoin):
+    def test_0004_ad_provider_ldap_user_searchbase_with_filter(multihost, adjoin,
+                                                                enable_sshd_password_auth):
         """
         :title: ad provider ldap user search base with filter
         :id: 27100011-c8c6-46ee-b135-8df50537c0fc
