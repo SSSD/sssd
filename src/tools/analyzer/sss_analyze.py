@@ -72,9 +72,76 @@ class Analyzer:
         """
         # top level parser
         formatter = argparse.RawTextHelpFormatter
+        description = """\
+        Analyzer tool to assist with SSSD log parsing and troubleshooting.
+
+        Extract logs for one client request across the responder, the backend,
+        and optional child processes. Start with 'request list' to find a
+        client ID, then 'request show <CID>' to print that request.
+
+        Prerequisites:
+          Set debug_level to at least 7 in the responder you want to inspect
+          ([nss] and/or [pam]) and in [domain/NAME], then restart SSSD.
+          'request show --merge' also requires debug_microseconds = True.
+
+          Requests answered from the memory cache are not logged.
+          NSS and PAM keep separate client ID sequences.
+
+        Options:
+          -h, --help
+            Show this help message and exit
+
+          --source {files,journald}
+            Where to read logs from (default: files)
+            files     - Read from /var/log/sssd/
+            journald  - Read from systemd journal
+
+          --logdir LOGDIR
+            Custom log directory (default: /var/log/sssd)
+            Only applies when --source=files
+
+        Modules:
+          request Analyze client requests (NSS identity lookups, PAM authentication)
+                  Run 'sssctl analyze request --help' for more details
+
+            Commands:
+               list [--verbose] [--pam]
+                          List recent requests with Client IDs (CID)
+                          --verbose, -v Show detailed timing and status
+                          --pam         Filter PAM requests (default: NSS)
+
+               show CID [--child] [--merge] [--pam]
+                          Display detailed logs for specific Client ID
+                          CID           Client ID number from 'list' output
+                          --child       Include child process logs (ldap_child, krb5_child, etc.)
+                          --merge       Merge logs by timestamp (requires debug_microseconds=True)
+                          --pam         Track PAM request (default: NSS)
+
+        Examples:
+          List recent PAM authentications:
+          sssctl analyze request list --pam
+
+          List NSS lookups with extra detail:
+          sssctl analyze request list -v
+
+          Show PAM client ID 17, including child processes:
+          sssctl analyze request show 17 --pam --child
+
+          Read the systemd journal:
+          sssctl analyze --source=journald request list
+
+          Read a copied log directory:
+          sssctl analyze --logdir=/path/to/sssd request list
+
+          List backend error messages:
+          sssctl analyze error list
+
+        See also:
+          sssctl(8), sssd.conf(5)
+          https://sssd.io/troubleshooting/analyzer.html
+        """
         parser = argparse.ArgumentParser(prog='sssctl analyze',
-                                         description='Analyzer tool to assist '
-                                         'with SSSD log parsing',
+                                         description=description,
                                          formatter_class=formatter)
         parser.add_argument('--source', default='files', choices=['files',
                             'journald'])
