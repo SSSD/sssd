@@ -1,9 +1,9 @@
 """
-SSSD AD Forest multi-domain test cases.
-
-Ports coverage from the legacy IdM-CI / sssd-qe ``ad_forest`` suite
+Rewrite of legacy IdM-CI / sssd-qe ``ad_forest`` suite
 (lookup, auth, simple access, ad_access_filter, join other DC) and from
 legacy multihost ``admultidomain`` (excluding multiforest).
+
+Note: These only run downstream, multiple AD are not supported in upstream.
 
 :requirement: adforest
 """
@@ -18,7 +18,7 @@ from sssd_test_framework.roles.ad import AD, ADGroup, ADUser
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
-from tests.adforest_fixtures import (
+from adforest_fixtures import (
     ad_forest_block_servers,
     ad_forest_configure_sssd,
     ad_forest_rejoin_with_host_upn,
@@ -164,6 +164,11 @@ def _rename_ad_group(group: ADGroup, new_name: str) -> None:
         """,
         raise_on_error=True,
     )
+
+
+# =======================================================================
+# Lookup
+# =======================================================================
 
 
 @pytest.mark.topology(KnownTopology.ADForest)
@@ -330,6 +335,482 @@ def test_adforest__subdomains_use_fallback_homedir(
 
 
 @pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1227863)
+def test_adforest__ignore_group_members_inherited_by_subdomains(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: ignore_group_members with subdomain_inherit applies to subdomains
+    :setup:
+        1. Join forest root
+        2. Create users and groups in each domain
+        3. Start SSSD without ignore_group_members
+    :steps:
+        1. Confirm groups list their members
+        2. Enable ignore_group_members and subdomain_inherit, restart
+        3. Resolve the same groups again
+    :expectedresults:
+        1. Groups include members
+        2. Configuration updates
+        3. Groups resolve but members are not listed
+    :customerscenario: True
+    """
+    root_user, child_user, tree_user, root_group, child_group, tree_group = _setup_forest_users_and_groups(
+        ad, ad_child, ad_tree
+    )
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.start()
+
+    for user, group, domain_role in (
+        (root_user, root_group, ad),
+        (child_user, child_group, ad_child),
+        (tree_user, tree_group, ad_tree),
+    ):
+        gname = domain_role.fqn(group.name)
+        _wait_client_getent_group(client, gname)
+        gresult = client.tools.getent.group(gname)
+        assert gresult is not None, f"getent group failed for {gname}!"
+        assert any(user.name in m for m in gresult.members), f"Expected member listing for {gname}!"
+    client.sssd.dom(join_ad_root.domain)["ignore_group_members"] = "True"
+    client.sssd.dom(join_ad_root.domain)["subdomain_inherit"] = "ignore_group_members"
+    client.sssd.config_apply()
+    client.sssd.restart(clean=True)
+
+    for group, domain_role in (
+        (root_group, ad),
+        (child_group, ad_child),
+        (tree_group, ad_tree),
+    ):
+        gname = domain_role.fqn(group.name)
+        gresult = client.tools.getent.group(gname)
+        assert gresult is not None, f"getent group failed for {gname}!"
+        assert not gresult.members, f"Expected empty member list for {gname} with ignore_group_members!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=1066096)
+def test_adforest__lookup_posix_attributes_without_global_catalog(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: POSIX home and shell are read when ad_enable_gc is false
+    :setup:
+        1. Join forest root
+        2. Create POSIX users with uid/gid/home/shell in each domain
+        3. Configure ldap_id_mapping=False and ad_enable_gc=False
+        4. Start SSSD
+    :steps:
+        1. getent passwd for each POSIX user
+    :expectedresults:
+        1. uid, gid, home and shell match the directory attributes
+    :customerscenario: True
+    """
+    root_user = ad.user("forest-posix-root").add(
+        uid=11100,
+        gid=11100,
+        home=f"/home2/{ad.domain}/forest-posix-root",
+        shell="/bin/ksh",
+    )
+    child_user = ad_child.user("forest-posix-child").add(
+        uid=12100,
+        gid=12100,
+        home=f"/home2/{ad_child.domain}/forest-posix-child",
+        shell="/bin/ksh",
+    )
+    tree_user = ad_tree.user("forest-posix-tree").add(
+        uid=13100,
+        gid=13100,
+        home=f"/home2/{ad_tree.domain}/forest-posix-tree",
+        shell="/bin/ksh",
+    )
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["ldap_id_mapping"] = "False"
+    client.sssd.dom(join_ad_root.domain)["ad_enable_gc"] = "False"
+    client.sssd.start()
+
+    for user, domain_role, uid in (
+        (root_user, ad, 11100),
+        (child_user, ad_child, 12100),
+        (tree_user, ad_tree, 13100),
+    ):
+        name = domain_role.fqn(user.name)
+        result = client.tools.getent.passwd(name)
+        assert result is not None, f"getent passwd failed for {name}!"
+        assert result.uid == uid, f"Unexpected uid for {name}: {result.uid}!"
+        assert result.gid == uid, f"Unexpected gid for {name}: {result.gid}!"
+        assert result.home == f"/home2/{domain_role.domain}/{user.name}"
+        assert result.shell == "/bin/ksh"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1033081)
+def test_adforest__lookup_users_with_posix_attributes(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: POSIX attributes are read from the global catalog for forest users
+    :setup:
+        1. Join forest root
+        2. Create POSIX users in root, child and tree domains
+        3. Configure ldap_id_mapping=False with default ad_enable_gc
+    :steps:
+        1. getent passwd for each POSIX user
+    :expectedresults:
+        1. uid, gid, home and shell match directory attributes for all domains
+    :customerscenario: True
+    """
+    users = (
+        (
+            ad.user("forest-gc-posix-root").add(
+                uid=11000,
+                gid=11000,
+                home=f"/home2/{ad.domain}/forest-gc-posix-root",
+                shell="/bin/ksh",
+            ),
+            ad,
+            11000,
+        ),
+        (
+            ad_child.user("forest-gc-posix-chld").add(
+                uid=12000,
+                gid=12000,
+                home=f"/home2/{ad_child.domain}/forest-gc-posix-chld",
+                shell="/bin/ksh",
+            ),
+            ad_child,
+            12000,
+        ),
+        (
+            ad_tree.user("forest-gc-posix-tree").add(
+                uid=13000,
+                gid=13000,
+                home=f"/home2/{ad_tree.domain}/forest-gc-posix-tree",
+                shell="/bin/ksh",
+            ),
+            ad_tree,
+            13000,
+        ),
+    )
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["ldap_id_mapping"] = "False"
+    client.sssd.start()
+
+    for user, domain_role, uid in users:
+        name = domain_role.fqn(user.name)
+        result = client.tools.getent.passwd(name)
+        assert result is not None, f"getent passwd failed for {name}!"
+        assert result.uid == uid, f"Unexpected uid for {name}: {result.uid}!"
+        assert result.gid == uid, f"Unexpected gid for {name}: {result.gid}!"
+        assert result.home == f"/home2/{domain_role.domain}/{user.name}"
+        assert result.shell == "/bin/ksh"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=[974150, 1263735, 1077328, 1090653, 1097323])
+def test_adforest__lookup_and_auth_when_joined_to_child(
+    client: Client, join_ad_child: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: Lookup and authenticate forest users when joined to the child domain
+    :setup:
+        1. Join the child domain
+        2. Create users in root, child and tree
+        3. Import the child domain and start SSSD
+    :steps:
+        1. Resolve users from child, root and tree
+        2. Authenticate the child-domain user
+    :expectedresults:
+        1. Users from the joined child and trusted domains resolve
+        2. Authentication of the child user succeeds
+    :customerscenario: True
+    """
+    root_user = ad.user("forest-cj-root").add()
+    child_user = ad_child.user("forest-cj-child").add()
+    tree_user = ad_tree.user("forest-cj-tree").add()
+
+    ad_forest_configure_sssd(client, join_ad_child, ad)
+    client.sssd.dom(join_ad_child.domain)["debug_level"] = "0xFFF0"
+    client.sssd.start()
+
+    assert client.tools.id(ad_child.fqn(child_user.name)) is not None
+    _wait_client_lookup(client, ad.fqn(root_user.name))
+    _wait_client_lookup(client, ad_tree.fqn(tree_user.name))
+    assert client.auth.su.password(ad_child.fqn(child_user.name), "Secret123"), "Child-domain authentication failed!"
+    log = client.fs.read(f"/var/log/sssd/sssd_{join_ad_child.domain}.log")
+    assert f"_gc._tcp.Default-First-Site-Name._sites.{ad.domain}" in log, "Expected GC SRV lookup in domain log!"
+    assert (
+        f"SRV resolution of service 'ldap'. Will use DNS discovery domain '{ad.domain}'" in log
+    ), "Expected forest root DNS discovery in domain log!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=[974150, 1077328, 1090653, 1097323])
+def test_adforest__lookup_and_auth_when_joined_to_tree(
+    client: Client, join_ad_tree: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: Lookup and authenticate forest users when joined to the tree domain
+    :setup:
+        1. Join the tree domain
+        2. Create users in root, child and tree
+        3. Import the tree domain and start SSSD
+    :steps:
+        1. Resolve users from tree, root and child
+        2. Authenticate the tree-domain user
+    :expectedresults:
+        1. Users from the joined tree and trusted domains resolve
+        2. Authentication of the tree user succeeds
+    :customerscenario: True
+    """
+    root_user = ad.user("forest-tj-root").add()
+    child_user = ad_child.user("forest-tj-child").add()
+    tree_user = ad_tree.user("forest-tj-tree").add()
+
+    ad_forest_configure_sssd(client, join_ad_tree, ad)
+    client.sssd.dom(join_ad_tree.domain)["debug_level"] = "9"
+    client.sssd.start()
+
+    assert client.tools.id(ad_tree.fqn(tree_user.name)) is not None
+    assert client.tools.id(ad.fqn(root_user.name)) is not None
+    assert client.tools.id(ad_child.fqn(child_user.name)) is not None
+    assert client.auth.su.password(ad_tree.fqn(tree_user.name), "Secret123"), "Tree-domain authentication failed!"
+    log = client.fs.read(f"/var/log/sssd/sssd_{join_ad_tree.domain}.log")
+    assert f"_gc._tcp.Default-First-Site-Name._sites.{ad.domain}" in log, "Expected GC SRV lookup in domain log!"
+    assert (
+        f"SRV resolution of service 'ldap'. Will use DNS discovery domain '{ad.domain}'" in log
+    ), "Expected forest root DNS discovery in domain log!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=2167728)
+def test_adforest__lookup_when_joined_to_child_without_krb5_domain_realm(
+    client: Client, join_ad_child: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: Forest lookups work when joined to child with empty krb5 domain_realm
+    :setup:
+        1. Join the child domain
+        2. Create users in root, child and tree
+        3. Remove domain_realm mappings for forest domains from /etc/krb5.conf
+        4. Start SSSD
+    :steps:
+        1. Resolve users from root, child and tree
+    :expectedresults:
+        1. All three users resolve
+    :customerscenario: True
+    """
+    root_user = ad.user("forest-krb5-root").add()
+    child_user = ad_child.user("forest-krb5-child").add()
+    tree_user = ad_tree.user("forest-krb5-tree").add()
+
+    client.fs.backup("/etc/krb5.conf")
+    try:
+        krb5 = client.fs.read("/etc/krb5.conf")
+        for domain_role in (ad, ad_child, ad_tree):
+            domain = domain_role.domain
+            realm = domain_role.realm
+            # Drop both "domain = REALM" and ".domain = REALM" style mappings
+            krb5 = re.sub(rf"(?m)^\.{re.escape(domain)}\s*=\s*{re.escape(realm)}\s*$", "", krb5)
+            krb5 = re.sub(rf"(?m)^{re.escape(domain)}\s*=\s*{re.escape(realm)}\s*$", "", krb5)
+            # Also drop capitalized legacy forms used in older suites
+            krb5 = re.sub(
+                rf"(?m)^\.{re.escape(domain)}\s*=\s*{re.escape(domain.capitalize())}\s*$",
+                "",
+                krb5,
+            )
+            krb5 = re.sub(
+                rf"(?m)^{re.escape(domain)}\s*=\s*{re.escape(domain.capitalize())}\s*$",
+                "",
+                krb5,
+            )
+        client.fs.write("/etc/krb5.conf", krb5)
+
+        ad_forest_configure_sssd(client, join_ad_child, ad)
+        client.sssd.start()
+
+        assert client.tools.getent.passwd(ad_child.fqn(child_user.name)) is not None
+        _wait_client_lookup(client, ad.fqn(root_user.name))
+        _wait_client_lookup(client, ad_tree.fqn(tree_user.name))
+        assert client.tools.getent.passwd(ad.fqn(root_user.name)) is not None
+        assert client.tools.getent.passwd(ad_tree.fqn(tree_user.name)) is not None
+    finally:
+        client.fs.restore("/etc/krb5.conf")
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1072995)
+def test_adforest__id_results_consistent_across_cache_refresh(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: id output stays consistent across cache refresh
+    :setup:
+        1. Join forest root and create users with cross-domain group memberships
+        2. Configure a short entry_cache_timeout and start SSSD
+    :steps:
+        1. Run id for forest users and capture output
+        2. Wait for cache timeout and run id again
+    :expectedresults:
+        1. id output is captured for forest users
+        2. Group membership output is unchanged after cache refresh
+    :customerscenario: True
+    """
+    root_user, child_user, tree_user, _, _, _ = _setup_forest_users_and_groups(ad, ad_child, ad_tree)
+    _setup_forest_shared_group(ad, root_user, child_user, tree_user)
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["entry_cache_timeout"] = "20"
+    client.sssd.start()
+
+    snapshots = {}
+    for name in (
+        ad.fqn(root_user.name),
+        ad_child.fqn(child_user.name),
+        ad_tree.fqn(tree_user.name),
+    ):
+        result = client.tools.id(name)
+        assert result is not None, f"id failed for {name}!"
+        snapshots[name] = str(result)
+
+    time.sleep(25)
+
+    for name, before in snapshots.items():
+        after = client.tools.id(name)
+        assert after is not None, f"id failed for {name} after cache refresh!"
+        assert str(after) == before, f"id output changed for {name} after cache refresh!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+def test_adforest__group_entries_contain_latest_changes_when_modified(client: Client, join_ad_root: AD, ad: AD):
+    """
+    :title: Group rename is reflected after sss_cache invalidation
+    :setup:
+        1. Join forest root and create a user in a group
+        2. Configure entry_cache_timeout and ldap_id_mapping=False
+        3. Start SSSD and confirm membership in the old group name
+    :steps:
+        1. Rename the group on AD
+        2. Run sss_cache -UG and wait for cache timeout
+        3. Resolve the user again
+    :expectedresults:
+        1. Group is renamed on AD
+        2. Cache is invalidated
+        3. id shows the new group name and not the old one
+    :customerscenario: False
+    """
+    user = ad.user("rename-user1").add(uid=20001, gid=20001)
+    old_group = ad.group("old-rename-group").add(gid=20002).add_member(user)
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["entry_cache_timeout"] = "20"
+    client.sssd.dom(join_ad_root.domain)["ldap_id_mapping"] = "False"
+    client.sssd.start()
+
+    name = ad.fqn(user.name)
+    result = client.tools.id(name)
+    assert result is not None
+    assert result.memberof(ad.fqn("old-rename-group")) or result.memberof("old-rename-group")
+
+    _rename_ad_group(old_group, "new-rename-group")
+    client.host.conn.exec(["sss_cache", "-g", "old-rename-group"])
+    client.host.conn.exec(["sss_cache", "-u", user.name])
+    time.sleep(20)
+
+    result2 = client.tools.id(name)
+    assert result2 is not None, "id failed after group rename!"
+    assert not (
+        result2.memberof(ad.fqn("old-rename-group")) or result2.memberof("old-rename-group")
+    ), "Old group name still visible after cache invalidation!"
+    assert result2.memberof(ad.fqn("new-rename-group")) or result2.memberof(
+        "new-rename-group"
+    ), "New group name not visible after cache invalidation!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=2018432)
+def test_adforest__sssctl_domain_list_matches_forest(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: sssctl domain-list reports only the forest domains
+    :setup:
+        1. Join the forest root
+        2. Start SSSD
+    :steps:
+        1. Run sssctl domain-list
+    :expectedresults:
+        1. Listed domains match root, child and tree (implicit_files ignored)
+    :customerscenario: True
+    """
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.start()
+
+    result = client.host.conn.exec(["sssctl", "domain-list"], raise_on_error=False)
+    assert result.rc == 0, f"sssctl domain-list failed: {result.stderr}!"
+    listed = {line.strip() for line in result.stdout.splitlines() if line.strip()}
+    listed.discard("implicit_files")
+
+    expected = {ad.domain, ad_child.domain, ad_tree.domain}
+    assert listed == expected, f"domain-list {listed} != forest domains {expected}!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=2013297)
+def test_adforest__all_lookups_work_when_ad_enabled_domain_contains_only_the_child(
+    client: Client, join_ad_child: AD, ad: AD, ad_child: AD
+):
+    """
+    :title: ad_enabled_domains restricts the root when the client is joined to the child
+    :setup:
+        1. Join the child domain
+        2. Create users in the root and child domains
+        3. Start SSSD without ad_enabled_domains
+    :steps:
+        1. Resolve root and child users
+        2. Set ad_enabled_domains to the child domain only and restart
+        3. Resolve root and child users again
+    :expectedresults:
+        1. Both users resolve
+        2. Configuration updates
+        3. Child user resolves; root user does not
+    :customerscenario: True
+    """
+    root_user = ad.user("forest-aed-cj-root").add()
+    child_user = ad_child.user("forest-aed-cj-child").add()
+
+    ad_forest_configure_sssd(client, join_ad_child, ad)
+    client.sssd.start()
+
+    assert client.tools.getent.passwd(ad.fqn(root_user.name)) is not None
+    assert client.tools.getent.passwd(ad_child.fqn(child_user.name)) is not None
+
+    client.sssd.dom(join_ad_child.domain)["ad_enabled_domains"] = ad_child.domain
+    client.sssd.config_apply()
+    client.sssd.restart(clean=True)
+
+    assert client.tools.getent.passwd(ad.fqn(root_user.name)) is None, "Root user should be disabled!"
+    assert client.tools.getent.passwd(ad_child.fqn(child_user.name)) is not None
+
+
+# =======================================================================
+# Login
+# =======================================================================
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
 @pytest.mark.importance("high")
 def test_adforest__user_login(client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD):
     """
@@ -431,6 +912,172 @@ def test_adforest__user_login_with_enterprise_principals(
 
     for upn in (root_upn, child_upn, tree_upn):
         assert client.auth.su.password(upn, "Secret123"), f"Enterprise principal login failed for {upn}!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=966557)
+def test_adforest__user_login_with_enterprise_upn_with_two_domains(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD
+):
+    """
+    :title: Enterprise UPN login works with two explicit AD domain sections
+    :setup:
+        1. Join forest root
+        2. Create enterprise UPN users in root and child domains
+        3. Import both domains into sssd.conf
+    :steps:
+        1. Authenticate each enterprise UPN user
+    :expectedresults:
+        1. Both users authenticate successfully
+    :customerscenario: True
+    """
+    root_upn = f"ent-two-dom-root@{ad.domain}"
+    child_upn = f"ent-two-dom-child@{ad_child.domain}"
+
+    ad.user("ent-two-dom-root").add(upn=root_upn)
+    ad_child.user("ent-two-dom-child").add(upn=child_upn)
+
+    client.sssd.import_domain(ad.domain, ad)
+    client.sssd.import_domain(ad_child.domain, ad_child)
+    for domain_name in (ad.domain, ad_child.domain):
+        dom = client.sssd.dom(domain_name)
+        dom["use_fully_qualified_names"] = "True"
+        dom["fallback_homedir"] = "/home/%d/%u"
+        dom["cache_credentials"] = "True"
+        dom["krb5_store_password_if_offline"] = "True"
+        dom["access_provider"] = "ad"
+    client.sssd.start()
+
+    assert client.auth.su.password(root_upn, "Secret123"), "Root enterprise UPN login failed!"
+    assert client.auth.su.password(child_upn, "Secret123"), "Child enterprise UPN login failed!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+def test_adforest__user_is_denied_when_account_is_expired_or_blocked(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: Implicit AD access provider denies expired users in all forest domains
+    :setup:
+        1. Join forest root without setting access_provider explicitly
+        2. Create and expire a user in each domain
+    :steps:
+        1. Attempt to authenticate each expired user
+    :expectedresults:
+        1. All expired users are denied
+    :customerscenario: True
+    """
+    root_user = ad.user("forest-defexp-root").add().expire()
+    child_user = ad_child.user("forest-defexp-child").add().expire()
+    tree_user = ad_tree.user("forest-defexp-tree").add().expire()
+    _wait_forest_gc(ad, (ad_child, child_user.dn), (ad_tree, tree_user.dn))
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.start(clean=True)
+
+    for user, domain_role in (
+        (root_user, ad),
+        (child_user, ad_child),
+        (tree_user, ad_tree),
+    ):
+        name = domain_role.fqn(user.name)
+        # Resolve first so deny is access-control, not "unknown user".
+        _wait_client_lookup(client, name)
+        assert not client.auth.su.password(name, "Secret123"), f"Expired user {name} was allowed!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+def test_adforest__ad_access_provider_denies_expired_users(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: AD access provider denies expired accounts in all forest domains
+    :setup:
+        1. Join forest root
+        2. Create and expire a user in each domain
+        3. Configure access_provider=ad and start SSSD
+    :steps:
+        1. Attempt to authenticate each expired user
+    :expectedresults:
+        1. All expired users are denied
+    :customerscenario: True
+    """
+    root_user = ad.user("forest-exp-root").add().expire()
+    child_user = ad_child.user("forest-exp-child").add().expire()
+    tree_user = ad_tree.user("forest-exp-tree").add().expire()
+    _wait_forest_gc(ad, (ad_child, child_user.dn), (ad_tree, tree_user.dn))
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["access_provider"] = "ad"
+    client.sssd.start(clean=True)
+
+    for user, domain_role in (
+        (root_user, ad),
+        (child_user, ad_child),
+        (tree_user, ad_tree),
+    ):
+        name = domain_role.fqn(user.name)
+        # Resolve first so deny is access-control, not "unknown user".
+        _wait_client_lookup(client, name)
+        assert not client.auth.su.password(name, "Secret123"), f"Expired user {name} was allowed!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=1002591)
+def test_adforest__enterprise_upn_cached_credentials_work_offline(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: Enterprise UPN users authenticate with cached credentials when offline
+    :setup:
+        1. Join forest root
+        2. Create enterprise UPN users in root, child and tree domains
+        3. Configure cache_credentials and krb5_store_password_if_offline
+        4. Authenticate all users online to populate the credential cache
+    :steps:
+        1. Block network to all forest DCs and restart SSSD offline
+        2. Authenticate each enterprise UPN user
+        3. Inspect the domain log for delayed online authentication entries
+    :expectedresults:
+        1. SSSD starts offline
+        2. All enterprise UPN users authenticate successfully
+        3. Domain log records delayed online authentication for each user
+    :customerscenario: True
+    """
+    root_upn = f"ent-offline-root@{ad.domain}"
+    child_upn = f"ent-offline-child@{ad_child.domain}"
+    tree_upn = f"ent-offline-tree@{ad_tree.domain}"
+
+    ad.user("ent-offline-root").add(upn=root_upn)
+    ad_child.user("ent-offline-child").add(upn=child_upn)
+    ad_tree.user("ent-offline-tree").add(upn=tree_upn)
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["access_provider"] = "ad"
+    client.sssd.dom(join_ad_root.domain)["krb5_store_password_if_offline"] = "True"
+    client.sssd.start()
+
+    for upn in (root_upn, child_upn, tree_upn):
+        assert client.auth.ssh.password(upn, "Secret123"), f"Online auth failed for {upn}!"
+        assert client.auth.su.password(upn, "Secret123"), f"Online su auth failed for {upn}!"
+    ad_forest_block_servers(client, ad, ad_child, ad_tree)
+    client.sssd.restart()
+
+    for upn in (root_upn, child_upn, tree_upn):
+        assert client.auth.su.password(upn, "Secret123"), f"Offline auth failed for {upn}!"
+    log = client.fs.read(client.sssd.logs.domain())
+    for upn in (root_upn, child_upn, tree_upn):
+        assert "delayed online authentication" in log, f"Missing delayed online auth log for {upn}!"
+        assert upn in log, f"UPN {upn} missing from delayed online auth log!"
+
+
+# =======================================================================
+# Simple access
+# =======================================================================
 
 
 @pytest.mark.topology(KnownTopology.ADForest)
@@ -594,6 +1241,130 @@ def test_adforest__simple_permit_users_with_flatname_format(
 
 
 @pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+def test_adforest__simple_deny_user_login(client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD):
+    """
+    :title: Simple access provider deny_users blocks child and tree users
+    :setup:
+        1. Join forest root and create users in each domain
+        2. Allow only the root user and deny child and tree users
+    :steps:
+        1. Authenticate root user
+        2. Authenticate child and tree users
+    :expectedresults:
+        1. Root user can log in
+        2. Child and tree users are denied
+    :customerscenario: True
+    """
+    root_user = ad.user("forest-sdu-root").add()
+    child_user = ad_child.user("forest-sdu-child").add()
+    tree_user = ad_tree.user("forest-sdu-tree").add()
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["access_provider"] = "simple"
+    client.sssd.dom(join_ad_root.domain)["simple_allow_users"] = ad.fqn(root_user.name)
+    client.sssd.dom(join_ad_root.domain)["simple_deny_users"] = ",".join(
+        (ad_child.fqn(child_user.name), ad_tree.fqn(tree_user.name))
+    )
+    client.sssd.start()
+
+    assert client.auth.su.password(ad.fqn(root_user.name), "Secret123"), "Root user should be allowed!"
+    assert not client.auth.su.password(
+        ad_child.fqn(child_user.name), "Secret123"
+    ), "Child user should be denied by simple_deny_users!"
+    assert not client.auth.su.password(
+        ad_tree.fqn(tree_user.name), "Secret123"
+    ), "Tree user should be denied by simple_deny_users!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1125187)
+def test_adforest__simple_permit_groups_with_flatname_format(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: Simple allow groups works with DOMAIN\\\\group flat name format
+    :setup:
+        1. Join forest root and create users and groups in each domain
+        2. Configure full_name_format and simple_allow_groups with flat names
+    :steps:
+        1. Authenticate group members from all domains
+        2. Authenticate a non-member root user
+    :expectedresults:
+        1. Group members can log in
+        2. Non-member is denied
+    :customerscenario: True
+    """
+    root_user, child_user, tree_user, root_group, child_group, tree_group = _setup_forest_users_and_groups(
+        ad, ad_child, ad_tree
+    )
+    denied = ad.user("forest-flat-denied").add()
+
+    allow_groups = ",".join(
+        (
+            f"{_flatname(ad)}\\{root_group.name}",
+            f"{_flatname(ad_child)}\\{child_group.name}",
+            f"{_flatname(ad_tree)}\\{tree_group.name}",
+        )
+    )
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["access_provider"] = "simple"
+    client.sssd.dom(join_ad_root.domain)["full_name_format"] = r"%3$s\%1$s"
+    client.sssd.dom(join_ad_root.domain)["simple_allow_groups"] = allow_groups
+    client.sssd.start()
+
+    for user, domain_role in (
+        (root_user, ad),
+        (child_user, ad_child),
+        (tree_user, ad_tree),
+    ):
+        name = domain_role.fqn(user.name)
+        assert client.auth.su.password(name, "Secret123"), f"Flat-name group allow failed for {name}!"
+    assert not client.auth.su.password(ad.fqn(denied.name), "Secret123"), "Non-member user was allowed!"
+
+
+# =======================================================================
+# AD access filter
+# =======================================================================
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+def test_adforest__single_ldap_attribute_permits_user_login(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
+):
+    """
+    :title: ad_access_filter cn= allows only a single root-domain user
+    :setup:
+        1. Join forest root and create allowed and denied users in each domain
+        2. Configure access_provider=ad with ad_access_filter=(cn=<user>)
+    :steps:
+        1. Authenticate the allowed root user
+        2. Authenticate denied users from root, child and tree
+    :expectedresults:
+        1. Allowed user can log in
+        2. All other users are denied
+    :customerscenario: True
+    """
+    allowed = ad.user("forest-cn-allowed").add()
+    denied_root = ad.user("forest-cn-denied").add()
+    denied_child = ad_child.user("forest-cn-child").add()
+    denied_tree = ad_tree.user("forest-cn-tree").add()
+
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["access_provider"] = "ad"
+    client.sssd.dom(join_ad_root.domain)["ad_access_filter"] = f"(cn={allowed.name})"
+    client.sssd.start()
+
+    assert client.auth.su.password(ad.fqn(allowed.name), "Secret123"), "Allowed user failed login!"
+    assert not client.auth.su.password(ad.fqn(denied_root.name), "Secret123"), "Denied root user was allowed!"
+    assert not client.auth.su.password(ad_child.fqn(denied_child.name), "Secret123"), "Child user was allowed!"
+    assert not client.auth.su.password(ad_tree.fqn(denied_tree.name), "Secret123"), "Tree user was allowed!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
 @pytest.mark.importance("high")
 def test_adforest__ad_access_filter_allows_group_members(
     client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
@@ -738,41 +1509,127 @@ def test_adforest__invalid_ad_access_filter_does_not_system_error(client: Client
     assert "System error" not in log, "Unexpected System error in domain log!"
 
 
+# =======================================================================
+# Join, domains and Kerberos
+# =======================================================================
+
+
 @pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-def test_adforest__ad_access_provider_denies_expired_users(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
+@pytest.mark.importance("low")
+@pytest.mark.ticket(bz=1523282)
+def test_adforest__join_root_is_successful_into_different_ou(client: Client, ad: AD, ad_child: AD, ad_tree: AD):
     """
-    :title: AD access provider denies expired accounts in all forest domains
+    :title: Join forest root placing the computer object in a custom OU
     :setup:
-        1. Join forest root
-        2. Create and expire a user in each domain
-        3. Configure access_provider=ad and start SSSD
+        1. Create an OU on the forest root
     :steps:
-        1. Attempt to authenticate each expired user
+        1. Join the client to the root domain with computer-ou pointing at the OU
+        2. Import the domain, start SSSD and resolve administrators from each domain
+        3. Leave the domain on teardown path
     :expectedresults:
-        1. All expired users are denied
+        1. Join succeeds
+        2. Forest users/admins from root, child and tree resolve
+        3. Leave succeeds
     :customerscenario: True
     """
-    root_user = ad.user("forest-exp-root").add().expire()
-    child_user = ad_child.user("forest-exp-child").add().expire()
-    tree_user = ad_tree.user("forest-exp-tree").add().expire()
-    _wait_forest_gc(ad, (ad_child, child_user.dn), (ad_tree, tree_user.dn))
+    forest = (ad, ad_child, ad_tree)
+    short = "client003"
+    ad_forest_remove_linuxservers_ou(ad)
+    ou = ad.ou("linuxservers").add()
 
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["access_provider"] = "ad"
-    client.sssd.start(clean=True)
+    old_hostname = client.host.conn.run("hostname").stdout.strip()
+    client.fs.write("/etc/hostname", f"{short}.{ad.domain}\n")
+    client.host.conn.run(f"hostname {short}.{ad.domain}", raise_on_error=False)
 
-    for user, domain_role in (
-        (root_user, ad),
-        (child_user, ad_child),
-        (tree_user, ad_tree),
-    ):
-        name = domain_role.fqn(user.name)
-        # Resolve first so deny is access-control, not "unknown user".
-        _wait_client_lookup(client, name)
-        assert not client.auth.su.password(name, "Secret123"), f"Expired user {name} was allowed!"
+    for domain in forest:
+        client.host.conn.exec(["realm", "leave", domain.domain], raise_on_error=False)
+
+    client.fs.rm("/etc/krb5.conf")
+    client.fs.rm("/etc/krb5.keytab")
+    ad_forest_remove_stale_computer(forest, short)
+
+    join = client.host.conn.exec(
+        ["realm", "join", f"--computer-ou={ou.dn}", ad.domain],
+        input=ad.host.adminpw,
+        raise_on_error=False,
+    )
+    assert join.rc == 0, f"realm join into OU failed: {join.stderr}!"
+    try:
+        client.sssd.import_domain(ad.domain, ad)
+        client.sssd.dom(ad.domain)["use_fully_qualified_names"] = "True"
+        client.sssd.start()
+
+        assert client.tools.id(ad.fqn("Administrator")) is not None
+        assert client.tools.id(ad_child.fqn("Administrator")) is not None
+        assert client.tools.id(ad_tree.fqn("Administrator")) is not None
+    finally:
+        client.host.conn.exec(["realm", "leave", ad.domain], raise_on_error=False)
+        ad_forest_remove_stale_computer(forest, short)
+        ad_forest_remove_linuxservers_ou(ad)
+        client.fs.write("/etc/hostname", f"{old_hostname}\n")
+        client.host.conn.run(f"hostname {old_hostname}", raise_on_error=False)
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.parametrize("joined_name", ["child", "tree"])
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1523282)
+def test_adforest__join_subdomain_into_organizational_unit(
+    client: Client, ad: AD, ad_child: AD, ad_tree: AD, joined_name: str
+):
+    """
+    :title: Join child or tree domain placing the computer object in a custom OU
+    :setup:
+        1. Create an OU on the target subdomain
+    :steps:
+        1. Join the client to the subdomain with computer-ou pointing at the OU
+        2. Start SSSD and resolve administrators from each forest domain
+        3. Leave the domain on teardown
+    :expectedresults:
+        1. Join succeeds
+        2. Forest admins from root, child and tree resolve
+        3. Leave succeeds
+    :customerscenario: True
+    """
+    domain = ad_child if joined_name == "child" else ad_tree
+    short = "client033" if joined_name == "child" else "client022"
+    forest = (ad, ad_child, ad_tree)
+    ad_forest_remove_linuxservers_ou(domain)
+    ou = domain.ou("linuxservers").add()
+
+    old_hostname = client.host.conn.run("hostname").stdout.strip()
+    client.fs.write("/etc/hostname", f"{short}.{domain.domain}\n")
+    client.host.conn.run(f"hostname {short}.{domain.domain}", raise_on_error=False)
+
+    for forest_domain in forest:
+        client.host.conn.exec(["realm", "leave", forest_domain.domain], raise_on_error=False)
+
+    client.fs.rm("/etc/krb5.conf")
+    client.fs.rm("/etc/krb5.keytab")
+    ad_forest_remove_stale_computer(forest, short)
+
+    join = client.host.conn.exec(
+        ["realm", "join", f"--computer-ou={ou.dn}", domain.domain],
+        input=domain.host.adminpw,
+        raise_on_error=False,
+    )
+    assert join.rc == 0, f"realm join into OU failed: {join.stderr}!"
+    try:
+        client.sssd.import_domain(domain.domain, domain)
+        client.sssd.dom(domain.domain)["use_fully_qualified_names"] = "True"
+        if domain.domain != ad.domain:
+            client.sssd.dom(domain.domain)["ad_server"] = "_srv_"
+        client.sssd.start()
+
+        assert client.tools.id(ad.fqn("Administrator")) is not None
+        assert client.tools.id(ad_child.fqn("Administrator")) is not None
+        assert client.tools.id(ad_tree.fqn("Administrator")) is not None
+    finally:
+        client.host.conn.exec(["realm", "leave", domain.domain], raise_on_error=False)
+        ad_forest_remove_stale_computer(forest, short)
+        ad_forest_remove_linuxservers_ou(domain)
+        client.fs.write("/etc/hostname", f"{old_hostname}\n")
+        client.host.conn.run(f"hostname {old_hostname}", raise_on_error=False)
 
 
 @pytest.mark.topology(KnownTopology.ADForest)
@@ -830,375 +1687,6 @@ def test_adforest__ad_enabled_domains_disables_removed_subdomains(
 
 
 @pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=1227863)
-def test_adforest__ignore_group_members_inherited_by_subdomains(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: ignore_group_members with subdomain_inherit applies to subdomains
-    :setup:
-        1. Join forest root
-        2. Create users and groups in each domain
-        3. Start SSSD without ignore_group_members
-    :steps:
-        1. Confirm groups list their members
-        2. Enable ignore_group_members and subdomain_inherit, restart
-        3. Resolve the same groups again
-    :expectedresults:
-        1. Groups include members
-        2. Configuration updates
-        3. Groups resolve but members are not listed
-    :customerscenario: True
-    """
-    root_user, child_user, tree_user, root_group, child_group, tree_group = _setup_forest_users_and_groups(
-        ad, ad_child, ad_tree
-    )
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.start()
-
-    for user, group, domain_role in (
-        (root_user, root_group, ad),
-        (child_user, child_group, ad_child),
-        (tree_user, tree_group, ad_tree),
-    ):
-        gname = domain_role.fqn(group.name)
-        _wait_client_getent_group(client, gname)
-        gresult = client.tools.getent.group(gname)
-        assert gresult is not None, f"getent group failed for {gname}!"
-        assert any(user.name in m for m in gresult.members), f"Expected member listing for {gname}!"
-    client.sssd.dom(join_ad_root.domain)["ignore_group_members"] = "True"
-    client.sssd.dom(join_ad_root.domain)["subdomain_inherit"] = "ignore_group_members"
-    client.sssd.config_apply()
-    client.sssd.restart(clean=True)
-
-    for group, domain_role in (
-        (root_group, ad),
-        (child_group, ad_child),
-        (tree_group, ad_tree),
-    ):
-        gname = domain_role.fqn(group.name)
-        gresult = client.tools.getent.group(gname)
-        assert gresult is not None, f"getent group failed for {gname}!"
-        assert not gresult.members, f"Expected empty member list for {gname} with ignore_group_members!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=[974150, 1263735, 1077328, 1090653, 1097323])
-def test_adforest__lookup_and_auth_when_joined_to_child(
-    client: Client, join_ad_child: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: Lookup and authenticate forest users when joined to the child domain
-    :setup:
-        1. Join the child domain
-        2. Create users in root, child and tree
-        3. Import the child domain and start SSSD
-    :steps:
-        1. Resolve users from child, root and tree
-        2. Authenticate the child-domain user
-    :expectedresults:
-        1. Users from the joined child and trusted domains resolve
-        2. Authentication of the child user succeeds
-    :customerscenario: True
-    """
-    root_user = ad.user("forest-cj-root").add()
-    child_user = ad_child.user("forest-cj-child").add()
-    tree_user = ad_tree.user("forest-cj-tree").add()
-
-    ad_forest_configure_sssd(client, join_ad_child, ad)
-    client.sssd.dom(join_ad_child.domain)["debug_level"] = "0xFFF0"
-    client.sssd.start()
-
-    assert client.tools.id(ad_child.fqn(child_user.name)) is not None
-    _wait_client_lookup(client, ad.fqn(root_user.name))
-    _wait_client_lookup(client, ad_tree.fqn(tree_user.name))
-    assert client.auth.su.password(ad_child.fqn(child_user.name), "Secret123"), "Child-domain authentication failed!"
-    log = client.fs.read(f"/var/log/sssd/sssd_{join_ad_child.domain}.log")
-    assert f"_gc._tcp.Default-First-Site-Name._sites.{ad.domain}" in log, "Expected GC SRV lookup in domain log!"
-    assert (
-        f"SRV resolution of service 'ldap'. Will use DNS discovery domain '{ad.domain}'" in log
-    ), "Expected forest root DNS discovery in domain log!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=[974150, 1077328, 1090653, 1097323])
-def test_adforest__lookup_and_auth_when_joined_to_tree(
-    client: Client, join_ad_tree: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: Lookup and authenticate forest users when joined to the tree domain
-    :setup:
-        1. Join the tree domain
-        2. Create users in root, child and tree
-        3. Import the tree domain and start SSSD
-    :steps:
-        1. Resolve users from tree, root and child
-        2. Authenticate the tree-domain user
-    :expectedresults:
-        1. Users from the joined tree and trusted domains resolve
-        2. Authentication of the tree user succeeds
-    :customerscenario: True
-    """
-    root_user = ad.user("forest-tj-root").add()
-    child_user = ad_child.user("forest-tj-child").add()
-    tree_user = ad_tree.user("forest-tj-tree").add()
-
-    ad_forest_configure_sssd(client, join_ad_tree, ad)
-    client.sssd.dom(join_ad_tree.domain)["debug_level"] = "9"
-    client.sssd.start()
-
-    assert client.tools.id(ad_tree.fqn(tree_user.name)) is not None
-    assert client.tools.id(ad.fqn(root_user.name)) is not None
-    assert client.tools.id(ad_child.fqn(child_user.name)) is not None
-    assert client.auth.su.password(ad_tree.fqn(tree_user.name), "Secret123"), "Tree-domain authentication failed!"
-    log = client.fs.read(f"/var/log/sssd/sssd_{join_ad_tree.domain}.log")
-    assert f"_gc._tcp.Default-First-Site-Name._sites.{ad.domain}" in log, "Expected GC SRV lookup in domain log!"
-    assert (
-        f"SRV resolution of service 'ldap'. Will use DNS discovery domain '{ad.domain}'" in log
-    ), "Expected forest root DNS discovery in domain log!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("low")
-@pytest.mark.ticket(bz=1066096)
-def test_adforest__posix_attributes_without_global_catalog(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: POSIX home and shell are read when ad_enable_gc is false
-    :setup:
-        1. Join forest root
-        2. Create POSIX users with uid/gid/home/shell in each domain
-        3. Configure ldap_id_mapping=False and ad_enable_gc=False
-        4. Start SSSD
-    :steps:
-        1. getent passwd for each POSIX user
-    :expectedresults:
-        1. uid, gid, home and shell match the directory attributes
-    :customerscenario: True
-    """
-    root_user = ad.user("forest-posix-root").add(
-        uid=11100,
-        gid=11100,
-        home=f"/home2/{ad.domain}/forest-posix-root",
-        shell="/bin/ksh",
-    )
-    child_user = ad_child.user("forest-posix-child").add(
-        uid=12100,
-        gid=12100,
-        home=f"/home2/{ad_child.domain}/forest-posix-child",
-        shell="/bin/ksh",
-    )
-    tree_user = ad_tree.user("forest-posix-tree").add(
-        uid=13100,
-        gid=13100,
-        home=f"/home2/{ad_tree.domain}/forest-posix-tree",
-        shell="/bin/ksh",
-    )
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["ldap_id_mapping"] = "False"
-    client.sssd.dom(join_ad_root.domain)["ad_enable_gc"] = "False"
-    client.sssd.start()
-
-    for user, domain_role, uid in (
-        (root_user, ad, 11100),
-        (child_user, ad_child, 12100),
-        (tree_user, ad_tree, 13100),
-    ):
-        name = domain_role.fqn(user.name)
-        result = client.tools.getent.passwd(name)
-        assert result is not None, f"getent passwd failed for {name}!"
-        assert result.uid == uid, f"Unexpected uid for {name}: {result.uid}!"
-        assert result.gid == uid, f"Unexpected gid for {name}: {result.gid}!"
-        assert result.home == f"/home2/{domain_role.domain}/{user.name}"
-        assert result.shell == "/bin/ksh"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("low")
-@pytest.mark.ticket(bz=1523282)
-def test_adforest__join_root_into_organizational_unit(client: Client, ad: AD, ad_child: AD, ad_tree: AD):
-    """
-    :title: Join forest root placing the computer object in a custom OU
-    :setup:
-        1. Create an OU on the forest root
-    :steps:
-        1. Join the client to the root domain with computer-ou pointing at the OU
-        2. Import the domain, start SSSD and resolve administrators from each domain
-        3. Leave the domain on teardown path
-    :expectedresults:
-        1. Join succeeds
-        2. Forest users/admins from root, child and tree resolve
-        3. Leave succeeds
-    :customerscenario: True
-    """
-    forest = (ad, ad_child, ad_tree)
-    short = "client003"
-    ad_forest_remove_linuxservers_ou(ad)
-    ou = ad.ou("linuxservers").add()
-
-    old_hostname = client.host.conn.run("hostname").stdout.strip()
-    client.fs.write("/etc/hostname", f"{short}.{ad.domain}\n")
-    client.host.conn.run(f"hostname {short}.{ad.domain}", raise_on_error=False)
-
-    for domain in forest:
-        client.host.conn.exec(["realm", "leave", domain.domain], raise_on_error=False)
-
-    client.fs.rm("/etc/krb5.conf")
-    client.fs.rm("/etc/krb5.keytab")
-    ad_forest_remove_stale_computer(forest, short)
-
-    join = client.host.conn.exec(
-        ["realm", "join", f"--computer-ou={ou.dn}", ad.domain],
-        input=ad.host.adminpw,
-        raise_on_error=False,
-    )
-    assert join.rc == 0, f"realm join into OU failed: {join.stderr}!"
-    try:
-        client.sssd.import_domain(ad.domain, ad)
-        client.sssd.dom(ad.domain)["use_fully_qualified_names"] = "True"
-        client.sssd.start()
-
-        assert client.tools.id(ad.fqn("Administrator")) is not None
-        assert client.tools.id(ad_child.fqn("Administrator")) is not None
-        assert client.tools.id(ad_tree.fqn("Administrator")) is not None
-    finally:
-        client.host.conn.exec(["realm", "leave", ad.domain], raise_on_error=False)
-        ad_forest_remove_stale_computer(forest, short)
-        ad_forest_remove_linuxservers_ou(ad)
-        client.fs.write("/etc/hostname", f"{old_hostname}\n")
-        client.host.conn.run(f"hostname {old_hostname}", raise_on_error=False)
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("high")
-@pytest.mark.ticket(bz=2013297)
-def test_adforest__ad_enabled_domains_when_joined_to_child(client: Client, join_ad_child: AD, ad: AD, ad_child: AD):
-    """
-    :title: ad_enabled_domains restricts the root when the client is joined to the child
-    :setup:
-        1. Join the child domain
-        2. Create users in the root and child domains
-        3. Start SSSD without ad_enabled_domains
-    :steps:
-        1. Resolve root and child users
-        2. Set ad_enabled_domains to the child domain only and restart
-        3. Resolve root and child users again
-    :expectedresults:
-        1. Both users resolve
-        2. Configuration updates
-        3. Child user resolves; root user does not
-    :customerscenario: True
-    """
-    root_user = ad.user("forest-aed-cj-root").add()
-    child_user = ad_child.user("forest-aed-cj-child").add()
-
-    ad_forest_configure_sssd(client, join_ad_child, ad)
-    client.sssd.start()
-
-    assert client.tools.getent.passwd(ad.fqn(root_user.name)) is not None
-    assert client.tools.getent.passwd(ad_child.fqn(child_user.name)) is not None
-
-    client.sssd.dom(join_ad_child.domain)["ad_enabled_domains"] = ad_child.domain
-    client.sssd.config_apply()
-    client.sssd.restart(clean=True)
-
-    assert client.tools.getent.passwd(ad.fqn(root_user.name)) is None, "Root user should be disabled!"
-    assert client.tools.getent.passwd(ad_child.fqn(child_user.name)) is not None
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("high")
-@pytest.mark.ticket(bz=2018432)
-def test_adforest__sssctl_domain_list_matches_forest(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: sssctl domain-list reports only the forest domains
-    :setup:
-        1. Join the forest root
-        2. Start SSSD
-    :steps:
-        1. Run sssctl domain-list
-    :expectedresults:
-        1. Listed domains match root, child and tree (implicit_files ignored)
-    :customerscenario: True
-    """
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.start()
-
-    result = client.host.conn.exec(["sssctl", "domain-list"], raise_on_error=False)
-    assert result.rc == 0, f"sssctl domain-list failed: {result.stderr}!"
-    listed = {line.strip() for line in result.stdout.splitlines() if line.strip()}
-    listed.discard("implicit_files")
-
-    expected = {ad.domain, ad_child.domain, ad_tree.domain}
-    assert listed == expected, f"domain-list {listed} != forest domains {expected}!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("high")
-@pytest.mark.ticket(bz=2167728)
-def test_adforest__lookup_when_joined_to_child_without_krb5_domain_realm(
-    client: Client, join_ad_child: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: Forest lookups work when joined to child with empty krb5 domain_realm
-    :setup:
-        1. Join the child domain
-        2. Create users in root, child and tree
-        3. Remove domain_realm mappings for forest domains from /etc/krb5.conf
-        4. Start SSSD
-    :steps:
-        1. Resolve users from root, child and tree
-    :expectedresults:
-        1. All three users resolve
-    :customerscenario: True
-    """
-    root_user = ad.user("forest-krb5-root").add()
-    child_user = ad_child.user("forest-krb5-child").add()
-    tree_user = ad_tree.user("forest-krb5-tree").add()
-
-    client.fs.backup("/etc/krb5.conf")
-    try:
-        krb5 = client.fs.read("/etc/krb5.conf")
-        for domain_role in (ad, ad_child, ad_tree):
-            domain = domain_role.domain
-            realm = domain_role.realm
-            # Drop both "domain = REALM" and ".domain = REALM" style mappings
-            krb5 = re.sub(rf"(?m)^\.{re.escape(domain)}\s*=\s*{re.escape(realm)}\s*$", "", krb5)
-            krb5 = re.sub(rf"(?m)^{re.escape(domain)}\s*=\s*{re.escape(realm)}\s*$", "", krb5)
-            # Also drop capitalized legacy forms used in older suites
-            krb5 = re.sub(
-                rf"(?m)^\.{re.escape(domain)}\s*=\s*{re.escape(domain.capitalize())}\s*$",
-                "",
-                krb5,
-            )
-            krb5 = re.sub(
-                rf"(?m)^{re.escape(domain)}\s*=\s*{re.escape(domain.capitalize())}\s*$",
-                "",
-                krb5,
-            )
-        client.fs.write("/etc/krb5.conf", krb5)
-
-        ad_forest_configure_sssd(client, join_ad_child, ad)
-        client.sssd.start()
-
-        assert client.tools.getent.passwd(ad_child.fqn(child_user.name)) is not None
-        _wait_client_lookup(client, ad.fqn(root_user.name))
-        _wait_client_lookup(client, ad_tree.fqn(tree_user.name))
-        assert client.tools.getent.passwd(ad.fqn(root_user.name)) is not None
-        assert client.tools.getent.passwd(ad_tree.fqn(tree_user.name)) is not None
-    finally:
-        client.fs.restore("/etc/krb5.conf")
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
 @pytest.mark.importance("high")
 @pytest.mark.ticket(bz=1913284, jira=["SSSD-3092", "RHEL-4974"])
 @pytest.mark.require(
@@ -1234,496 +1722,6 @@ def test_adforest__keytab_readable_when_joined_to_child_as_nonroot(
     log = client.fs.read(f"/var/log/sssd/sssd_{ad_child.domain}.log")
     assert "krb5_kt_start_seq_get failed: Permission denied" not in log
     assert "Failed to read keytab [FILE:/etc/krb5.keytab]: No suitable principal found in keytab" not in log
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("high")
-@pytest.mark.ticket(bz=1002591)
-def test_adforest__enterprise_upn_cached_credentials_work_offline(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: Enterprise UPN users authenticate with cached credentials when offline
-    :setup:
-        1. Join forest root
-        2. Create enterprise UPN users in root, child and tree domains
-        3. Configure cache_credentials and krb5_store_password_if_offline
-        4. Authenticate all users online to populate the credential cache
-    :steps:
-        1. Block network to all forest DCs and restart SSSD offline
-        2. Authenticate each enterprise UPN user
-        3. Inspect the domain log for delayed online authentication entries
-    :expectedresults:
-        1. SSSD starts offline
-        2. All enterprise UPN users authenticate successfully
-        3. Domain log records delayed online authentication for each user
-    :customerscenario: True
-    """
-    root_upn = f"ent-offline-root@{ad.domain}"
-    child_upn = f"ent-offline-child@{ad_child.domain}"
-    tree_upn = f"ent-offline-tree@{ad_tree.domain}"
-
-    ad.user("ent-offline-root").add(upn=root_upn)
-    ad_child.user("ent-offline-child").add(upn=child_upn)
-    ad_tree.user("ent-offline-tree").add(upn=tree_upn)
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["access_provider"] = "ad"
-    client.sssd.dom(join_ad_root.domain)["krb5_store_password_if_offline"] = "True"
-    client.sssd.start()
-
-    for upn in (root_upn, child_upn, tree_upn):
-        assert client.auth.ssh.password(upn, "Secret123"), f"Online auth failed for {upn}!"
-        assert client.auth.su.password(upn, "Secret123"), f"Online su auth failed for {upn}!"
-    ad_forest_block_servers(client, ad, ad_child, ad_tree)
-    client.sssd.restart()
-
-    for upn in (root_upn, child_upn, tree_upn):
-        assert client.auth.su.password(upn, "Secret123"), f"Offline auth failed for {upn}!"
-    log = client.fs.read(client.sssd.logs.domain())
-    for upn in (root_upn, child_upn, tree_upn):
-        assert "delayed online authentication" in log, f"Missing delayed online auth log for {upn}!"
-        assert upn in log, f"UPN {upn} missing from delayed online auth log!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("high")
-@pytest.mark.ticket(bz=1038637)
-def test_adforest__subdomain_list_not_fetched_when_sssd_starts_offline(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: SSSD skips subdomain list refresh when it starts offline
-    :setup:
-        1. Join forest root and create enterprise UPN users in all domains
-        2. Configure cache_credentials and authenticate online
-        3. Block network to all forest DCs
-    :steps:
-        1. Restart SSSD while offline
-        2. Authenticate root, child and tree enterprise UPN users
-        3. Inspect the domain log for subdomain refresh messages
-    :expectedresults:
-        1. SSSD restarts in offline mode
-        2. All users authenticate with cached credentials
-        3. Log shows refresh callback and offline subdomain skip message
-    :customerscenario: True
-    """
-    root_upn = f"ent-sub-off-root@{ad.domain}"
-    child_upn = f"ent-sub-off-child@{ad_child.domain}"
-    tree_upn = f"ent-sub-off-tree@{ad_tree.domain}"
-
-    ad.user("ent-sub-off-root").add(upn=root_upn)
-    ad_child.user("ent-sub-off-child").add(upn=child_upn)
-    ad_tree.user("ent-sub-off-tree").add(upn=tree_upn)
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["access_provider"] = "ad"
-    client.sssd.dom(join_ad_root.domain)["krb5_store_password_if_offline"] = "True"
-    client.sssd.dom(join_ad_root.domain)["debug_level"] = "0x0080"
-    client.sssd.start()
-
-    for upn in (root_upn, child_upn, tree_upn):
-        assert client.auth.su.password(upn, "Secret123"), f"Online auth failed for {upn}!"
-    ad_forest_block_servers(client, ad, ad_child, ad_tree)
-    client.sssd.restart()
-    time.sleep(5)
-
-    for upn in (root_upn, child_upn, tree_upn):
-        assert client.auth.su.password(upn, "Secret123"), f"Offline auth failed for {upn}!"
-    log = client.fs.read(client.sssd.logs.domain())
-    assert "ad_subdomains_refresh_connect_done" in log
-    assert "cannot get the subdomain list while offline" in log
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("high")
-@pytest.mark.ticket(bz=1200093)
-def test_adforest__initgroups_by_nonexistent_upn_does_not_crash(client: Client, join_ad_root: AD, ad: AD):
-    """
-    :title: initgroups with a nonexistent UPN does not crash sssd_nss
-    :setup:
-        1. Join forest root and start SSSD
-        2. Compile a helper that calls initgroups(upn, 0)
-    :steps:
-        1. Run the helper with a nonexistent UPN
-        2. Inspect sssd_nss.log and verify sssd_nss is still running
-    :expectedresults:
-        1. Helper exits successfully
-        2. No segfault is logged and sssd_nss remains alive
-    :customerscenario: True
-    """
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.start()
-
-    c_src = (
-        "#include <sys/types.h>\n"
-        "#include <grp.h>\n"
-        "#include <stdio.h>\n"
-        "int main(int argc, char *argv[]) {\n"
-        "    if (argc < 2) return 1;\n"
-        "    initgroups(argv[1], 0);\n"
-        "    return 0;\n"
-        "}\n"
-    )
-    client.fs.write("/tmp/test_initgroups.c", c_src)
-    client.host.conn.run("dnf install -y gcc", raise_on_error=False)
-    compile = client.host.conn.run("gcc /tmp/test_initgroups.c -o /tmp/test_initgroups", raise_on_error=False)
-    assert compile.rc == 0, f"gcc failed: {compile.stderr}!"
-    upn = f"nonexistent@{ad.domain}"
-    result = client.host.conn.run(f"/tmp/test_initgroups '{upn}'", raise_on_error=False)
-    assert result.rc == 0, f"initgroups helper failed with rc={result.rc}!"
-    nss_log = client.fs.read(client.sssd.logs.nss)
-    assert "segfault" not in nss_log.lower(), "sssd_nss segfaulted on initgroups with nonexistent UPN!"
-    svc = client.host.conn.run("systemctl is-active sssd", raise_on_error=False)
-    assert svc.stdout.strip() == "active", "sssd is not running after initgroups call!"
-    client.host.conn.run("rm -f /tmp/test_initgroups.c /tmp/test_initgroups", raise_on_error=False)
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-def test_adforest__group_rename_reflected_after_cache_invalidation(client: Client, join_ad_root: AD, ad: AD):
-    """
-    :title: Group rename is reflected after sss_cache invalidation
-    :setup:
-        1. Join forest root and create a user in a group
-        2. Configure entry_cache_timeout and ldap_id_mapping=False
-        3. Start SSSD and confirm membership in the old group name
-    :steps:
-        1. Rename the group on AD
-        2. Run sss_cache -UG and wait for cache timeout
-        3. Resolve the user again
-    :expectedresults:
-        1. Group is renamed on AD
-        2. Cache is invalidated
-        3. id shows the new group name and not the old one
-    :customerscenario: False
-    """
-    user = ad.user("rename-user1").add(uid=20001, gid=20001)
-    old_group = ad.group("old-rename-group").add(gid=20002).add_member(user)
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["entry_cache_timeout"] = "20"
-    client.sssd.dom(join_ad_root.domain)["ldap_id_mapping"] = "False"
-    client.sssd.start()
-
-    name = ad.fqn(user.name)
-    result = client.tools.id(name)
-    assert result is not None
-    assert result.memberof(ad.fqn("old-rename-group")) or result.memberof("old-rename-group")
-
-    _rename_ad_group(old_group, "new-rename-group")
-    client.host.conn.exec(["sss_cache", "-g", "old-rename-group"])
-    client.host.conn.exec(["sss_cache", "-u", user.name])
-    time.sleep(20)
-
-    result2 = client.tools.id(name)
-    assert result2 is not None, "id failed after group rename!"
-    assert not (
-        result2.memberof(ad.fqn("old-rename-group")) or result2.memberof("old-rename-group")
-    ), "Old group name still visible after cache invalidation!"
-    assert result2.memberof(ad.fqn("new-rename-group")) or result2.memberof(
-        "new-rename-group"
-    ), "New group name not visible after cache invalidation!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-def test_adforest__ad_access_filter_single_user_by_cn(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: ad_access_filter cn= allows only a single root-domain user
-    :setup:
-        1. Join forest root and create allowed and denied users in each domain
-        2. Configure access_provider=ad with ad_access_filter=(cn=<user>)
-    :steps:
-        1. Authenticate the allowed root user
-        2. Authenticate denied users from root, child and tree
-    :expectedresults:
-        1. Allowed user can log in
-        2. All other users are denied
-    :customerscenario: True
-    """
-    allowed = ad.user("forest-cn-allowed").add()
-    denied_root = ad.user("forest-cn-denied").add()
-    denied_child = ad_child.user("forest-cn-child").add()
-    denied_tree = ad_tree.user("forest-cn-tree").add()
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["access_provider"] = "ad"
-    client.sssd.dom(join_ad_root.domain)["ad_access_filter"] = f"(cn={allowed.name})"
-    client.sssd.start()
-
-    assert client.auth.su.password(ad.fqn(allowed.name), "Secret123"), "Allowed user failed login!"
-    assert not client.auth.su.password(ad.fqn(denied_root.name), "Secret123"), "Denied root user was allowed!"
-    assert not client.auth.su.password(ad_child.fqn(denied_child.name), "Secret123"), "Child user was allowed!"
-    assert not client.auth.su.password(ad_tree.fqn(denied_tree.name), "Secret123"), "Tree user was allowed!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-def test_adforest__access_provider_defaults_to_ad_denies_expired_users(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: Implicit AD access provider denies expired users in all forest domains
-    :setup:
-        1. Join forest root without setting access_provider explicitly
-        2. Create and expire a user in each domain
-    :steps:
-        1. Attempt to authenticate each expired user
-    :expectedresults:
-        1. All expired users are denied
-    :customerscenario: True
-    """
-    root_user = ad.user("forest-defexp-root").add().expire()
-    child_user = ad_child.user("forest-defexp-child").add().expire()
-    tree_user = ad_tree.user("forest-defexp-tree").add().expire()
-    _wait_forest_gc(ad, (ad_child, child_user.dn), (ad_tree, tree_user.dn))
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.start(clean=True)
-
-    for user, domain_role in (
-        (root_user, ad),
-        (child_user, ad_child),
-        (tree_user, ad_tree),
-    ):
-        name = domain_role.fqn(user.name)
-        # Resolve first so deny is access-control, not "unknown user".
-        _wait_client_lookup(client, name)
-        assert not client.auth.su.password(name, "Secret123"), f"Expired user {name} was allowed!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=966557)
-def test_adforest__enterprise_upn_with_two_explicit_ad_domains(client: Client, join_ad_root: AD, ad: AD, ad_child: AD):
-    """
-    :title: Enterprise UPN login works with two explicit AD domain sections
-    :setup:
-        1. Join forest root
-        2. Create enterprise UPN users in root and child domains
-        3. Import both domains into sssd.conf
-    :steps:
-        1. Authenticate each enterprise UPN user
-    :expectedresults:
-        1. Both users authenticate successfully
-    :customerscenario: True
-    """
-    root_upn = f"ent-two-dom-root@{ad.domain}"
-    child_upn = f"ent-two-dom-child@{ad_child.domain}"
-
-    ad.user("ent-two-dom-root").add(upn=root_upn)
-    ad_child.user("ent-two-dom-child").add(upn=child_upn)
-
-    client.sssd.import_domain(ad.domain, ad)
-    client.sssd.import_domain(ad_child.domain, ad_child)
-    for domain_name in (ad.domain, ad_child.domain):
-        dom = client.sssd.dom(domain_name)
-        dom["use_fully_qualified_names"] = "True"
-        dom["fallback_homedir"] = "/home/%d/%u"
-        dom["cache_credentials"] = "True"
-        dom["krb5_store_password_if_offline"] = "True"
-        dom["access_provider"] = "ad"
-    client.sssd.start()
-
-    assert client.auth.su.password(root_upn, "Secret123"), "Root enterprise UPN login failed!"
-    assert client.auth.su.password(child_upn, "Secret123"), "Child enterprise UPN login failed!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-def test_adforest__simple_deny_user_login(client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD):
-    """
-    :title: Simple access provider deny_users blocks child and tree users
-    :setup:
-        1. Join forest root and create users in each domain
-        2. Allow only the root user and deny child and tree users
-    :steps:
-        1. Authenticate root user
-        2. Authenticate child and tree users
-    :expectedresults:
-        1. Root user can log in
-        2. Child and tree users are denied
-    :customerscenario: True
-    """
-    root_user = ad.user("forest-sdu-root").add()
-    child_user = ad_child.user("forest-sdu-child").add()
-    tree_user = ad_tree.user("forest-sdu-tree").add()
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["access_provider"] = "simple"
-    client.sssd.dom(join_ad_root.domain)["simple_allow_users"] = ad.fqn(root_user.name)
-    client.sssd.dom(join_ad_root.domain)["simple_deny_users"] = ",".join(
-        (ad_child.fqn(child_user.name), ad_tree.fqn(tree_user.name))
-    )
-    client.sssd.start()
-
-    assert client.auth.su.password(ad.fqn(root_user.name), "Secret123"), "Root user should be allowed!"
-    assert not client.auth.su.password(
-        ad_child.fqn(child_user.name), "Secret123"
-    ), "Child user should be denied by simple_deny_users!"
-    assert not client.auth.su.password(
-        ad_tree.fqn(tree_user.name), "Secret123"
-    ), "Tree user should be denied by simple_deny_users!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=1125187)
-def test_adforest__simple_permit_groups_with_flatname_format(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: Simple allow groups works with DOMAIN\\\\group flat name format
-    :setup:
-        1. Join forest root and create users and groups in each domain
-        2. Configure full_name_format and simple_allow_groups with flat names
-    :steps:
-        1. Authenticate group members from all domains
-        2. Authenticate a non-member root user
-    :expectedresults:
-        1. Group members can log in
-        2. Non-member is denied
-    :customerscenario: True
-    """
-    root_user, child_user, tree_user, root_group, child_group, tree_group = _setup_forest_users_and_groups(
-        ad, ad_child, ad_tree
-    )
-    denied = ad.user("forest-flat-denied").add()
-
-    allow_groups = ",".join(
-        (
-            f"{_flatname(ad)}\\{root_group.name}",
-            f"{_flatname(ad_child)}\\{child_group.name}",
-            f"{_flatname(ad_tree)}\\{tree_group.name}",
-        )
-    )
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["access_provider"] = "simple"
-    client.sssd.dom(join_ad_root.domain)["full_name_format"] = r"%3$s\%1$s"
-    client.sssd.dom(join_ad_root.domain)["simple_allow_groups"] = allow_groups
-    client.sssd.start()
-
-    for user, domain_role in (
-        (root_user, ad),
-        (child_user, ad_child),
-        (tree_user, ad_tree),
-    ):
-        name = domain_role.fqn(user.name)
-        assert client.auth.su.password(name, "Secret123"), f"Flat-name group allow failed for {name}!"
-    assert not client.auth.su.password(ad.fqn(denied.name), "Secret123"), "Non-member user was allowed!"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=1033081)
-def test_adforest__posix_attributes_detected_from_global_catalog(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: POSIX attributes are read from the global catalog for forest users
-    :setup:
-        1. Join forest root
-        2. Create POSIX users in root, child and tree domains
-        3. Configure ldap_id_mapping=False with default ad_enable_gc
-    :steps:
-        1. getent passwd for each POSIX user
-    :expectedresults:
-        1. uid, gid, home and shell match directory attributes for all domains
-    :customerscenario: True
-    """
-    users = (
-        (
-            ad.user("forest-gc-posix-root").add(
-                uid=11000,
-                gid=11000,
-                home=f"/home2/{ad.domain}/forest-gc-posix-root",
-                shell="/bin/ksh",
-            ),
-            ad,
-            11000,
-        ),
-        (
-            ad_child.user("forest-gc-posix-chld").add(
-                uid=12000,
-                gid=12000,
-                home=f"/home2/{ad_child.domain}/forest-gc-posix-chld",
-                shell="/bin/ksh",
-            ),
-            ad_child,
-            12000,
-        ),
-        (
-            ad_tree.user("forest-gc-posix-tree").add(
-                uid=13000,
-                gid=13000,
-                home=f"/home2/{ad_tree.domain}/forest-gc-posix-tree",
-                shell="/bin/ksh",
-            ),
-            ad_tree,
-            13000,
-        ),
-    )
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["ldap_id_mapping"] = "False"
-    client.sssd.start()
-
-    for user, domain_role, uid in users:
-        name = domain_role.fqn(user.name)
-        result = client.tools.getent.passwd(name)
-        assert result is not None, f"getent passwd failed for {name}!"
-        assert result.uid == uid, f"Unexpected uid for {name}: {result.uid}!"
-        assert result.gid == uid, f"Unexpected gid for {name}: {result.gid}!"
-        assert result.home == f"/home2/{domain_role.domain}/{user.name}"
-        assert result.shell == "/bin/ksh"
-
-
-@pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=1072995)
-def test_adforest__id_results_consistent_across_cache_refresh(
-    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
-):
-    """
-    :title: id output stays consistent across cache refresh
-    :setup:
-        1. Join forest root and create users with cross-domain group memberships
-        2. Configure a short entry_cache_timeout and start SSSD
-    :steps:
-        1. Run id for forest users and capture output
-        2. Wait for cache timeout and run id again
-    :expectedresults:
-        1. id output is captured for forest users
-        2. Group membership output is unchanged after cache refresh
-    :customerscenario: True
-    """
-    root_user, child_user, tree_user, _, _, _ = _setup_forest_users_and_groups(ad, ad_child, ad_tree)
-    _setup_forest_shared_group(ad, root_user, child_user, tree_user)
-
-    ad_forest_configure_sssd(client, join_ad_root)
-    client.sssd.dom(join_ad_root.domain)["entry_cache_timeout"] = "20"
-    client.sssd.start()
-
-    snapshots = {}
-    for name in (
-        ad.fqn(root_user.name),
-        ad_child.fqn(child_user.name),
-        ad_tree.fqn(tree_user.name),
-    ):
-        result = client.tools.id(name)
-        assert result is not None, f"id failed for {name}!"
-        snapshots[name] = str(result)
-
-    time.sleep(25)
-
-    for name, before in snapshots.items():
-        after = client.tools.id(name)
-        assert after is not None, f"id failed for {name} after cache refresh!"
-        assert str(after) == before, f"id output changed for {name} after cache refresh!"
 
 
 @pytest.mark.topology(KnownTopology.ADForest)
@@ -1799,62 +1797,110 @@ def test_adforest__kinit_with_host_keytab_across_join_domains(
 
 
 @pytest.mark.topology(KnownTopology.ADForest)
-@pytest.mark.parametrize("joined_name", ["child", "tree"])
-@pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=1523282)
-def test_adforest__join_subdomain_into_organizational_unit(
-    client: Client, ad: AD, ad_child: AD, ad_tree: AD, joined_name: str
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=1038637)
+def test_adforest__subdomain_list_not_fetched_when_sssd_starts_offline(
+    client: Client, join_ad_root: AD, ad: AD, ad_child: AD, ad_tree: AD
 ):
     """
-    :title: Join child or tree domain placing the computer object in a custom OU
+    :title: SSSD skips subdomain list refresh when it starts offline
     :setup:
-        1. Create an OU on the target subdomain
+        1. Join forest root and create enterprise UPN users in all domains
+        2. Configure cache_credentials and authenticate online
+        3. Block network to all forest DCs
     :steps:
-        1. Join the client to the subdomain with computer-ou pointing at the OU
-        2. Start SSSD and resolve administrators from each forest domain
-        3. Leave the domain on teardown
+        1. Restart SSSD while offline
+        2. Authenticate root, child and tree enterprise UPN users
+        3. Inspect the domain log for subdomain refresh messages
     :expectedresults:
-        1. Join succeeds
-        2. Forest admins from root, child and tree resolve
-        3. Leave succeeds
+        1. SSSD restarts in offline mode
+        2. All users authenticate with cached credentials
+        3. Log shows refresh callback and offline subdomain skip message
     :customerscenario: True
     """
-    domain = ad_child if joined_name == "child" else ad_tree
-    short = "client033" if joined_name == "child" else "client022"
-    forest = (ad, ad_child, ad_tree)
-    ad_forest_remove_linuxservers_ou(domain)
-    ou = domain.ou("linuxservers").add()
+    root_upn = f"ent-sub-off-root@{ad.domain}"
+    child_upn = f"ent-sub-off-child@{ad_child.domain}"
+    tree_upn = f"ent-sub-off-tree@{ad_tree.domain}"
 
-    old_hostname = client.host.conn.run("hostname").stdout.strip()
-    client.fs.write("/etc/hostname", f"{short}.{domain.domain}\n")
-    client.host.conn.run(f"hostname {short}.{domain.domain}", raise_on_error=False)
+    ad.user("ent-sub-off-root").add(upn=root_upn)
+    ad_child.user("ent-sub-off-child").add(upn=child_upn)
+    ad_tree.user("ent-sub-off-tree").add(upn=tree_upn)
 
-    for forest_domain in forest:
-        client.host.conn.exec(["realm", "leave", forest_domain.domain], raise_on_error=False)
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.dom(join_ad_root.domain)["access_provider"] = "ad"
+    client.sssd.dom(join_ad_root.domain)["krb5_store_password_if_offline"] = "True"
+    client.sssd.dom(join_ad_root.domain)["debug_level"] = "0x0080"
+    client.sssd.start()
 
-    client.fs.rm("/etc/krb5.conf")
-    client.fs.rm("/etc/krb5.keytab")
-    ad_forest_remove_stale_computer(forest, short)
+    for upn in (root_upn, child_upn, tree_upn):
+        assert client.auth.su.password(upn, "Secret123"), f"Online auth failed for {upn}!"
+    ad_forest_block_servers(client, ad, ad_child, ad_tree)
+    client.sssd.restart()
+    time.sleep(5)
 
-    join = client.host.conn.exec(
-        ["realm", "join", f"--computer-ou={ou.dn}", domain.domain],
-        input=domain.host.adminpw,
+    for upn in (root_upn, child_upn, tree_upn):
+        assert client.auth.su.password(upn, "Secret123"), f"Offline auth failed for {upn}!"
+    log = client.fs.read(client.sssd.logs.domain())
+    assert "ad_subdomains_refresh_connect_done" in log
+    assert "cannot get the subdomain list while offline" in log
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=1200093)
+def test_adforest__initgroups_by_nonexistent_upn_does_not_crash(client: Client, join_ad_root: AD, ad: AD):
+    """
+    :title: initgroups with a nonexistent UPN does not crash sssd_nss
+    :setup:
+        1. Join forest root and start SSSD
+        2. Compile a helper that calls initgroups(upn, 0)
+    :steps:
+        1. Run the helper with a nonexistent UPN
+        2. Inspect sssd_nss.log and verify sssd_nss is still running
+    :expectedresults:
+        1. Helper exits successfully
+        2. No segfault is logged and sssd_nss remains alive
+    :customerscenario: True
+    """
+    ad_forest_configure_sssd(client, join_ad_root)
+    client.sssd.start()
+
+    c_src = """
+#include <sys/types.h>
+#include <grp.h>
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+    if (argc < 2) {
+        return 1;
+    }
+
+    initgroups(argv[1], 0);
+    return 0;
+}
+"""
+    client.fs.write("/tmp/test_initgroups.c", c_src)
+    client.host.conn.run("dnf install -y gcc", raise_on_error=False)
+    compile = client.host.conn.run(
+        "gcc /tmp/test_initgroups.c -o /tmp/test_initgroups",
         raise_on_error=False,
     )
-    assert join.rc == 0, f"realm join into OU failed: {join.stderr}!"
-    try:
-        client.sssd.import_domain(domain.domain, domain)
-        client.sssd.dom(domain.domain)["use_fully_qualified_names"] = "True"
-        if domain.domain != ad.domain:
-            client.sssd.dom(domain.domain)["ad_server"] = "_srv_"
-        client.sssd.start()
+    assert compile.rc == 0, f"gcc failed: {compile.stderr}!"
 
-        assert client.tools.id(ad.fqn("Administrator")) is not None
-        assert client.tools.id(ad_child.fqn("Administrator")) is not None
-        assert client.tools.id(ad_tree.fqn("Administrator")) is not None
-    finally:
-        client.host.conn.exec(["realm", "leave", domain.domain], raise_on_error=False)
-        ad_forest_remove_stale_computer(forest, short)
-        ad_forest_remove_linuxservers_ou(domain)
-        client.fs.write("/etc/hostname", f"{old_hostname}\n")
-        client.host.conn.run(f"hostname {old_hostname}", raise_on_error=False)
+    upn = f"nonexistent@{ad.domain}"
+    result = client.host.conn.run(
+        f"/tmp/test_initgroups '{upn}'",
+        raise_on_error=False,
+    )
+    assert result.rc == 0, f"initgroups helper failed with rc={result.rc}!"
+
+    nss_log = client.fs.read(client.sssd.logs.nss)
+    assert "segfault" not in nss_log.lower(), "sssd_nss segfaulted on initgroups with nonexistent UPN!"
+
+    svc = client.host.conn.run("systemctl is-active sssd", raise_on_error=False)
+    assert svc.stdout.strip() == "active", "sssd is not running after initgroups call!"
+    client.host.conn.run(
+        "rm -f /tmp/test_initgroups.c /tmp/test_initgroups",
+        raise_on_error=False,
+    )
