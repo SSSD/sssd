@@ -15,12 +15,13 @@
 # Transtats <suanand@redhat.com>, 2022, 2026.
 # grimst <grimaitres@gmail.com>, 2023, 2026.
 # Léane GRASSER <leane.grasser@proton.me>, 2024, 2025, 2026.
+# Mattia Sasselli <mattia.sasselli@murena.io>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-04-23 17:00+0000\n"
+"PO-Revision-Date: 2026-10-06 10:53+0000\n"
 "Last-Translator: Jean-Baptiste Holcroft <jean-baptiste@holcroft.fr>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
@@ -29,7 +30,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.10\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -148,8 +149,8 @@ msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
-"Contrôle si le SSSD doit surveiller l'état de resolv.conf pour identifier "
-"quand il doit mettre à jour son résolveur DNS interne."
+"Contrôle si SSSD doit surveiller l'état de resolv.conf pour identifier quand "
+"il doit mettre à jour son résolveur DNS interne."
 
 #: src/config/SSSDConfig/sssdoptions.py:50
 msgid ""
@@ -402,11 +403,13 @@ msgstr "Quand le répondeur de PAM doit-il forcer une demande d'initgroupes"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
-msgstr "Liste des services PAM qui sont autorisés à s'authentifier avec GSSAPI."
+msgstr ""
+"Liste des services PAM qui sont autorisés à s'authentifier avec GSSAPI."
 
 #: src/config/SSSDConfig/sssdoptions.py:110
 msgid "Whether to match authenticated UPN with target user"
-msgstr "S'il faut faire correspondre l'UPN authentifié avec l'utilisateur cible"
+msgstr ""
+"S'il faut faire correspondre l'UPN authentifié avec l'utilisateur cible"
 
 #: src/config/SSSDConfig/sssdoptions.py:111
 msgid ""
@@ -513,10 +516,10 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
-"Une liste d'utilisateurs, séparés par des virgules, dont l'enregistrement de "
-"session devrait être activé. Correspond aux noms d'utilisateurs renvoyés par "
-"le NSS. C'est-à-dire après le remplacement éventuel de l'espace, les "
-"changements de casse, etc."
+"Liste d'utilisateurs, séparés par des virgules, pour lesquels "
+"l'enregistrement de session doit être activé. Les noms d'utilisateur doivent "
+"correspondre à ceux renvoyés par NSS, c'est-à-dire après les éventuelles "
+"modifications d'espaces, de casse, etc."
 
 #: src/config/SSSDConfig/sssdoptions.py:150
 msgid ""
@@ -524,10 +527,10 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
-"Une liste de groupes séparés par des virgules, dont les membres doivent "
-"avoir l'enregistrement de session activé. Correspond aux noms des groupes "
-"renvoyés par le NSS, c-à-d après le remplacement éventuel de l'espace, les "
-"changements de cas, etc."
+"Liste de groupes, séparés par des virgules, dont les membres doivent avoir "
+"l'enregistrement de session activé. Les noms de groupes doivent correspondre "
+"à ceux renvoyés par NSS, c'est-à-dire après les éventuelles modifications "
+"d'espaces, de casse, etc."
 
 #: src/config/SSSDConfig/sssdoptions.py:153
 msgid ""
@@ -820,11 +823,11 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
-"Si l'authentification à 2 facteurs (2FA) est utilisée et que les "
-"informations d'identification sont sauvegardées, cette valeur détermine la "
-"longueur minimale à laquelle le premier facteur d'authentification (mot de "
-"passe à long terme) doit être sauvegardé en tant que hachage SHA512 dans le "
-"cache."
+"Si l'authentification à deux facteurs (2FA) est utilisée et que les "
+"informations d'identification doivent être enregistrées, cette valeur "
+"détermine la longueur minimale que le premier facteur d'authentification "
+"(mot de passe à long terme) doit avoir pour être enregistré sous forme de "
+"hachage SHA512 dans le cache."
 
 #: src/config/SSSDConfig/sssdoptions.py:230
 msgid "Local authentication methods policy "
@@ -1048,7 +1051,8 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:287
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr "L'attribut LDAP qui contient la chaîne d'utilisateur SELinux elle-même."
+msgstr ""
+"L'attribut LDAP qui contient la chaîne d'utilisateur SELinux elle-même."
 
 #: src/config/SSSDConfig/sssdoptions.py:288
 msgid "The LDAP attribute that contains user category such as 'all'."
@@ -1123,37 +1127,37 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
-"InteractiveLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie "
+"(Deny)InteractiveLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
-"RemoteInteractiveLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie "
+"(Deny)RemoteInteractiveLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
-"NetworkLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie "
+"(Deny)NetworkLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
-"BatchLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie "
+"(Deny)BatchLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
-"ServiceLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie "
+"(Deny)ServiceLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1282,11 +1286,13 @@ msgstr "Active les principals d'entreprise"
 
 #: src/config/SSSDConfig/sssdoptions.py:346
 msgid "Enables using of subdomains realms for authentication"
-msgstr "Permet d'utiliser les domaines de sous-domaines pour l'authentification"
+msgstr ""
+"Permet d'utiliser les domaines de sous-domaines pour l'authentification"
 
 #: src/config/SSSDConfig/sssdoptions.py:347
 msgid "A mapping from user names to Kerberos principal names"
-msgstr "Un mappage des noms d'utilisateurs vers les noms de principaux Kerberos"
+msgstr ""
+"Un mappage des noms d'utilisateurs vers les noms de principaux Kerberos"
 
 #: src/config/SSSDConfig/sssdoptions.py:350
 #: src/config/SSSDConfig/sssdoptions.py:351
@@ -2237,7 +2243,8 @@ msgstr "Les mots de passe ne correspondent pas"
 
 #: src/sss_client/pam_sss.c:508
 msgid "Password reset by root is not supported."
-msgstr "La réinitialisation du mot de passe par root n'est pas prise en charge."
+msgstr ""
+"La réinitialisation du mot de passe par root n'est pas prise en charge."
 
 #: src/sss_client/pam_sss.c:549
 msgid "Authenticated with cached credentials"
@@ -2495,8 +2502,8 @@ msgid ""
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
 "Impossible d'ouvrir le domaine %1$s. Si le domaine est un sous-domaine "
-"(domaine approuvé), utiliser le nom pleinement qualifié au lieu du "
-"paramètre --domain/-d.\n"
+"(domaine approuvé), utiliser le nom pleinement qualifié au lieu du paramètre "
+"--domain/-d.\n"
 
 #: src/tools/sss_cache.c:897
 msgid "Could not open available domains\n"
@@ -2634,7 +2641,8 @@ msgstr "Archiver les fichiers journaux SSSD dans un tarball"
 
 #: src/tools/sssctl/sssctl.c:340
 msgid "Change or print information about SSSD debug level"
-msgstr "Modifier ou imprimer les informations sur le niveau de débogage de SSSD"
+msgstr ""
+"Modifier ou imprimer les informations sur le niveau de débogage de SSSD"
 
 #: src/tools/sssctl/sssctl.c:341
 msgid "Analyze logged data"
@@ -2865,7 +2873,8 @@ msgstr "Impossible de déterminer le chemin d'accès réel pour [%s] : %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1073
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
-msgstr "Le chemin d'accès à la GPO en cache [%s] n'est pas sous [%s], ignoré.\n"
+msgstr ""
+"Le chemin d'accès à la GPO en cache [%s] n'est pas sous [%s], ignoré.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1098
 #, c-format
@@ -2939,8 +2948,8 @@ msgstr "Échec de la configuration du contexte de la carte de certification.\n"
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Échec de l'ajout de règles de mappage et de correspondance avec l'erreur "
-"[%d][%s].\n"
+"Échec de l'ajout de règles de mappage et de correspondance avec l'erreur [%d]"
+"[%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"

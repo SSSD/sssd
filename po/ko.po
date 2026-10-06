@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-04-23 17:02+0000\n"
+"PO-Revision-Date: 2026-10-06 11:33+0000\n"
 "Last-Translator: Transtats <suanand@redhat.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ko/>\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.10\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -70,8 +70,8 @@ msgid ""
 "is in seconds and calculated by the following: offline_timeout + "
 "random_offset."
 msgstr ""
-"SSSD가 오프라인 방식으로 전환되면 연결이 끊긴 시간에 따라 온라인으로 "
-"돌아가기 전에 시간이 늘어납니다. 이 값은 초 단위이며 다음에 의해 계산됩니다: "
+"SSSD가 오프라인 방식으로 전환되면 연결이 끊긴 시간에 따라 온라인으로 돌아가"
+"기 전에 시간이 늘어납니다. 이 값은 초 단위이며 다음에 의해 계산됩니다: "
 "offline_timeout + random_offset."
 
 #: src/config/SSSDConfig/sssdoptions.py:36
@@ -95,8 +95,8 @@ msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
-"SSSD가 커버러스(Kerberos) 재생 캐쉬 파일을 저장해야 하는 파일 시스템의 "
-"디렉토리."
+"SSSD가 커버러스(Kerberos) 재생 캐쉬 파일을 저장해야 하는 파일 시스템의 디렉토"
+"리."
 
 #: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Domain to add to names without a domain component."
@@ -131,8 +131,8 @@ msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
-"SSSD가 내부 DNS resolver를 최신화해야 하는 시기를 식별하기 위해 "
-"resolv.conf의 상태를 모니터링 해야 하는지 여부를 제어합니다."
+"SSSD가 내부 DNS resolver를 최신화해야 하는 시기를 식별하기 위해 resolv.conf"
+"의 상태를 모니터링 해야 하는지 여부를 제어합니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:50
 msgid ""
@@ -142,9 +142,9 @@ msgid ""
 "inotify cannot be used."
 msgstr ""
 "SSSD는 내부 DNS resolver를 최신화가 필요 할 때를 식별하기 위해 resolv.conf의 "
-"상태를 관리합니다. 기본적으로, 우리는 이를 위해 inotify를 사용하려고 "
-"시도하고, 만약 inotify를 사용 할 수 없는 경우에 매 5초마다 resolv.conf "
-"투표로 되돌아 갈 것입니다."
+"상태를 관리합니다. 기본적으로, 우리는 이를 위해 inotify를 사용하려고 시도하"
+"고, 만약 inotify를 사용 할 수 없는 경우에 매 5초마다 resolv.conf 투표로 되돌"
+"아 갈 것입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:53
 msgid "Run PAC responder automatically for AD and IPA provider"
@@ -214,8 +214,8 @@ msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
 msgstr ""
-"중앙 디렉토리에 저장된 쉘이 허용되지만 사용할 수 없는 경우 이 대체를 "
-"사용하십시오"
+"중앙 디렉토리에 저장된 쉘이 허용되지만 사용할 수 없는 경우 이 대체를 사용하십"
+"시오"
 
 #: src/config/SSSDConfig/sssdoptions.py:71
 msgid "Shell to use if the provider does not list one"
@@ -235,13 +235,15 @@ msgstr "비밀번호 요청을 위해 빠른 캐쉬 메모리에 할당된 자�
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
-msgstr "그룹 요청을 위한 고속 캐쉬 메모리에 내부에 할당된자료 테이블의 크기(MB)"
+msgstr ""
+"그룹 요청을 위한 고속 캐쉬 메모리에 내부에 할당된자료 테이블의 크기(MB)"
 
 #: src/config/SSSDConfig/sssdoptions.py:78
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
-msgstr "initgroups 요청을 위해 빠른 캐쉬 메모리에 할당된 자료 테이블의 크기(MB)"
+msgstr ""
+"initgroups 요청을 위해 빠른 캐쉬 메모리에 할당된 자료 테이블의 크기(MB)"
 
 #: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
@@ -263,9 +265,8 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
-"항목 캐쉬는 도메인에 대한 entry_cache_timeout 값의 백분율을 초과하여 "
-"요청되는 경우 백그라운드에서 항목을 자동으로 최신화 하도록 설정 할 수 "
-"있습니다."
+"항목 캐쉬는 도메인에 대한 entry_cache_timeout 값의 백분율을 초과하여 요청되"
+"는 경우 백그라운드에서 항목을 자동으로 최신화 하도록 설정 할 수 있습니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:88
 msgid "How long to allow cached logins between online logins (days)"
@@ -279,7 +280,8 @@ msgstr "오프라인일 때 허용되는 접속 시도 실패 횟수"
 msgid ""
 "How long (minutes) to deny login after offline_failed_login_attempts has "
 "been reached"
-msgstr "offline_failed_login_attempts에 도달한 후 접속을 거부하는 데 걸리는 시간(분)"
+msgstr ""
+"offline_failed_login_attempts에 도달한 후 접속을 거부하는 데 걸리는 시간(분)"
 
 #: src/config/SSSDConfig/sssdoptions.py:92
 msgid "What kind of messages are displayed to the user during authentication"
@@ -406,7 +408,8 @@ msgstr "known_hosts 파일에서 호스트 이름과 주소를 해시(hash)할�
 msgid ""
 "How many seconds to keep a host in the known_hosts file after its host keys "
 "were requested"
-msgstr "호스트 키가 요청된 후 호스트를 known_hosts 파일에 유지하는 데 걸리는 시간(초)"
+msgstr ""
+"호스트 키가 요청된 후 호스트를 known_hosts 파일에 유지하는 데 걸리는 시간(초)"
 
 #: src/config/SSSDConfig/sssdoptions.py:131
 msgid "Path to storage of trusted CA certificates"
@@ -444,9 +447,9 @@ msgid ""
 "- No users are recorded. some - Users/groups specified by users and groups "
 "options are recorded. all - All users are recorded."
 msgstr ""
-"세션 기록 범위를 지정하는 다음 문자열 중 하나: 없음 - 기록된 사용자가 "
-"없습니다. 일부 - 사용자 및 그룹 옵션에서 지정한 사용자/그룹이 기록됩니다. "
-"all - 모든 사용자가 기록됩니다."
+"세션 기록 범위를 지정하는 다음 문자열 중 하나: 없음 - 기록된 사용자가 없습니"
+"다. 일부 - 사용자 및 그룹 옵션에서 지정한 사용자/그룹이 기록됩니다. all - 모"
+"든 사용자가 기록됩니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:148
 msgid ""
@@ -463,8 +466,8 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
-"쉼표로 구분된 그룹 목록으로, 그 구성원은 세션 기록을 활성화해야 합니다. "
-"NSS에서 반환된 그룹 이름과 일치합니다. 가능한 공간 교체 후, 케이스 변경 등."
+"쉼표로 구분된 그룹 목록으로, 그 구성원은 세션 기록을 활성화해야 합니다. NSS에"
+"서 반환된 그룹 이름과 일치합니다. 가능한 공간 교체 후, 케이스 변경 등."
 
 #: src/config/SSSDConfig/sssdoptions.py:153
 msgid ""
@@ -476,7 +479,8 @@ msgstr "scope=all인 경우에만 기록에서 제외할 쉼표로 구분된 사
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
-msgstr "scope=all인 경우에만 기록에서 제외되어야 하는 쉼표로 구분된 그룹 목록입니다. "
+msgstr ""
+"scope=all인 경우에만 기록에서 제외되어야 하는 쉼표로 구분된 그룹 목록입니다. "
 
 #: src/config/SSSDConfig/sssdoptions.py:158
 msgid "Identity provider"
@@ -574,7 +578,8 @@ msgstr "마지막 접속 성공 후 캐쉬된 항목을 보관할 기간(일)"
 msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
-msgstr "다음 서버를 시도하기 전에 SSSD가 단일 DNS 서버와 통신해야 하는 시간(밀리초)"
+msgstr ""
+"다음 서버를 시도하기 전에 SSSD가 단일 DNS 서버와 통신해야 하는 시간(밀리초)"
 
 #: src/config/SSSDConfig/sssdoptions.py:183
 msgid "How long should keep trying to resolve single DNS query (seconds)"
@@ -594,8 +599,8 @@ msgid ""
 "reconnect to the primary server after a successful connection to the backup "
 "server"
 msgstr ""
-"백업 서버로 성공적으로 연결 후에 주 서버로 재연결을 시도하기 전에 SSSD가 "
-"대기하는 간격(초)을 지정합니다"
+"백업 서버로 성공적으로 연결 후에 주 서버로 재연결을 시도하기 전에 SSSD가 대기"
+"하는 간격(초)을 지정합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:188
 msgid "Override GID value from the identity provider with this value"
@@ -711,8 +716,8 @@ msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
 msgstr ""
-"하위 도메인 가져오기를 처리해야 하는 공급자. 이와 같은 값은 항상 "
-"id_provider와 같아야 합니다."
+"하위 도메인 가져오기를 처리해야 하는 공급자. 이와 같은 값은 항상 id_provider"
+"와 같아야 합니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:224
 msgid ""
@@ -729,8 +734,8 @@ msgid ""
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
 "만약 2-Factor-Authentication(2FA)가 사용되고 자격 증명을 저장해야 하는 경우 "
-"이 값은 첫 번째 인증 요소(장기 비밀번호)가 SHA512 해쉬로 캐쉬에 저장되어야 "
-"하는 최소 길이를 결정합니다."
+"이 값은 첫 번째 인증 요소(장기 비밀번호)가 SHA512 해쉬로 캐쉬에 저장되어야 하"
+"는 최소 길이를 결정합니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:230
 msgid "Local authentication methods policy "
@@ -819,15 +824,16 @@ msgstr "데스크탑 프로필 관련 개체 검색 기준"
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
-msgstr "IPA 서버에 대응하는 데스크탑 프로파일 규칙의 검색 사이에서 초 단위 시간의 양"
+msgstr ""
+"IPA 서버에 대응하는 데스크탑 프로파일 규칙의 검색 사이에서 초 단위 시간의 양"
 
 #: src/config/SSSDConfig/sssdoptions.py:255
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
 msgstr ""
-"마지막 요청이 규칙을 찾지 못한 경우 IPA 서버에 대한 데스크탑 프로필 규칙 "
-"검색 간격(분)입니다"
+"마지막 요청이 규칙을 찾지 못한 경우 IPA 서버에 대한 데스크탑 프로필 규칙 검"
+"색 간격(분)입니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:258
 #: src/config/SSSDConfig/sssdoptions.py:455
@@ -868,13 +874,15 @@ msgstr "netgroup 멤버의 이름이 포함된 LDAP 속성입니다."
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
-msgstr "netgroup의 멤버인 호스트 및 호스트 그룹의 FQDN을 나열하는 LDAP 속성입니다."
+msgstr ""
+"netgroup의 멤버인 호스트 및 호스트 그룹의 FQDN을 나열하는 LDAP 속성입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:268
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
-msgstr "netgroup의 직접 구성원인 호스트 및 호스트 그룹을 나열하는 LDAP 속성입니다."
+msgstr ""
+"netgroup의 직접 구성원인 호스트 및 호스트 그룹을 나열하는 LDAP 속성입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:270
 msgid "The LDAP attribute that lists netgroup's memberships."
@@ -884,7 +892,8 @@ msgstr "netgroup의 멤버십을 나열하는 LDAP 속성입니다."
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
-msgstr "netgroup의 직접 구성원인 시스템 사용자 및 그룹을 나열하는 LDAP 속성입니다."
+msgstr ""
+"netgroup의 직접 구성원인 시스템 사용자 및 그룹을 나열하는 LDAP 속성입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:273
 msgid "The LDAP attribute that corresponds to the netgroup name."
@@ -929,8 +938,8 @@ msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
 msgstr ""
-"memberUser 및 memberHost 대신 일치하는 데 사용할 수 있는 HBAC 규칙의 DN이 "
-"포함된 LDAP 속성입니다."
+"memberUser 및 memberHost 대신 일치하는 데 사용할 수 있는 HBAC 규칙의 DN이 포"
+"함된 LDAP 속성입니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:287
 msgid "The LDAP attribute that contains SELinux user string itself."
@@ -1009,7 +1018,8 @@ msgstr "GPO(거부)InteractiveLogonRight 정책 설정에 매핑되는 PAM 서�
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
-msgstr "GPO(거부)RemoteInteractiveLogonRight 정책 설정에 매핑되는 PAM 서비스 이름"
+msgstr ""
+"GPO(거부)RemoteInteractiveLogonRight 정책 설정에 매핑되는 PAM 서비스 이름"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
@@ -1037,7 +1047,8 @@ msgstr "GPO 기반 액세스가 항상 거부되는 PAM 서비스 이름"
 #: src/config/SSSDConfig/sssdoptions.py:314
 msgid ""
 "Default logon right (or permit/deny) to use for unmapped PAM service names"
-msgstr "매핑되지 않은 PAM 서비스 이름에 사용할 기본 로그온 권한 (또는 허용/거부)"
+msgstr ""
+"매핑되지 않은 PAM 서비스 이름에 사용할 기본 로그온 권한 (또는 허용/거부)"
 
 #: src/config/SSSDConfig/sssdoptions.py:315
 msgid "a particular site to be used by the client"
@@ -1287,8 +1298,8 @@ msgid ""
 "Whether the LDAP library should perform a reverse lookup to canonicalize the "
 "host name during a SASL bind"
 msgstr ""
-"LDAP 라이브러리에서 SASL 바인드 중에 호스트 이름을 정식화하기 위해 역방향 "
-"검색을 수행해야 하는지 여부"
+"LDAP 라이브러리에서 SASL 바인드 중에 호스트 이름을 정식화하기 위해 역방향 검"
+"색을 수행해야 하는지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:389
 msgid ""
@@ -1327,8 +1338,8 @@ msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
 msgstr ""
-"임시 허용 로그인이 해당 임계값에 도달하거나 그 아래로 갈 때에 비밀번호를 "
-"변경을 강제합니다"
+"임시 허용 로그인이 해당 임계값에 도달하거나 그 아래로 갈 때에 비밀번호를 변경"
+"을 강제합니다"
 
 #: src/config/SSSDConfig/sssdoptions.py:404
 msgid "Length of time to wait for a search request"
@@ -1703,7 +1714,8 @@ msgstr "LDAP 암호 변경 서버의 DNS 서비스 이름"
 msgid ""
 "Whether to update the ldap_user_shadow_last_change attribute after a "
 "password change"
-msgstr "비밀번호 변경 후에 ldap_user_shadow_last_change 속성을 최신화 할지 여부"
+msgstr ""
+"비밀번호 변경 후에 ldap_user_shadow_last_change 속성을 최신화 할지 여부"
 
 #: src/config/SSSDConfig/sssdoptions.py:516
 msgid "Base DN for sudo rules lookups"
@@ -1735,7 +1747,8 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:522
 msgid "IPv4 or IPv6 addresses or network of this machine to filter sudo rules"
-msgstr "sudo 규칙을 필터링하기 위한 이 시스템의 IPv4 또는 IPv6 주소 또는 네트워크"
+msgstr ""
+"sudo 규칙을 필터링하기 위한 이 시스템의 IPv4 또는 IPv6 주소 또는 네트워크"
 
 #: src/config/SSSDConfig/sssdoptions.py:523
 msgid "Whether to include rules that contains netgroup in host attribute"
@@ -1879,8 +1892,8 @@ msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
-"로그인할 수 있는 쉼표로 구분된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 "
-"그룹에만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
+"로그인할 수 있는 쉼표로 구분된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 그룹"
+"에만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:565
 msgid ""
@@ -1888,8 +1901,8 @@ msgid ""
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
 msgstr ""
-"명시적으로 액세스가 거부된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 "
-"그룹에만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
+"명시적으로 액세스가 거부된 그룹 목록입니다. 이는 이 SSSD 도메인 내의 그룹에"
+"만 적용됩니다. 로컬 그룹은 평가되지 않습니다."
 
 #: src/config/SSSDConfig/sssdoptions.py:569
 msgid "The number of preforked proxy children."
@@ -2051,7 +2064,8 @@ msgstr "서버 메시지: "
 msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
-msgstr "커버러스 TGT는 로그인 시 허용되지 않으며, 사용자 환경에 영향을 미칩니다."
+msgstr ""
+"커버러스 TGT는 로그인 시 허용되지 않으며, 사용자 환경에 영향을 미칩니다."
 
 #: src/sss_client/pam_sss.c:77
 msgid "Enter PIN:"
@@ -2101,8 +2115,8 @@ msgid ""
 "After changing the OTP password, you need to log out and back in order to "
 "acquire a ticket"
 msgstr ""
-"OTP 비밀번호를 변경한 후, 티켓을 받으려면 로그아웃한 후 다시 로그인해야 "
-"합니다"
+"OTP 비밀번호를 변경한 후, 티켓을 받으려면 로그아웃한 후 다시 로그인해야 합니"
+"다"
 
 #: src/sss_client/pam_sss.c:735
 msgid "PIN locked"
@@ -2210,8 +2224,8 @@ msgid ""
 msgstr ""
 "\n"
 "******************************************************************************\n"
-"자신의 시스템이 더 이상 사용하지 않는 도구sss_ssh_knownhostsproxy를 "
-"사용하도록 구성되었습니다.\n"
+"자신의 시스템이 더 이상 사용하지 않는 도구sss_ssh_knownhostsproxy를 사용하도"
+"록 구성되었습니다.\n"
 "sss_ssh_knownhosts(1) 설명서 부분을 읽고 해당 교체에 대해 알아보세요.\n"
 "******************************************************************************\n"
 "\n"
@@ -2673,8 +2687,8 @@ msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
 msgstr ""
-"GPO 경로가 캐쉬에서 아직 저장되지 않았습니다. [%s]에서 수동으로 파일을 "
-"제거하세요\n"
+"GPO 경로가 캐쉬에서 아직 저장되지 않았습니다. [%s]에서 수동으로 파일을 제거하"
+"세요\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1062 src/tools/sssctl/sssctl_cache.c:1068
 #, c-format
@@ -2800,9 +2814,9 @@ msgid ""
 "where the main config file is located. For example if the config is set to "
 "\"/my/path/sssd.conf\", the snippet dir \"/my/path/conf.d\" is used)"
 msgstr ""
-"기본이 아닌 스니펫 디렉토리를 지정합니다(기본값은 기본 설정 파일이 있는 "
-"동일한 위치를 검색하는 것입니다. 예를 들어 구성이 \"/my/path/sssd.conf\"로 "
-"설정된 경우 스니펫 디렉토리 \"/my/path/conf.d\"가 사용됨)"
+"기본이 아닌 스니펫 디렉토리를 지정합니다(기본값은 기본 설정 파일이 있는 동일"
+"한 위치를 검색하는 것입니다. 예를 들어 구성이 \"/my/path/sssd.conf\"로 설정"
+"된 경우 스니펫 디렉토리 \"/my/path/conf.d\"가 사용됨)"
 
 #: src/tools/sssctl/sssctl_config.c:114
 #, c-format
@@ -3135,7 +3149,8 @@ msgstr "설정할 디버그 수준 지정"
 
 #: src/tools/sssctl/sssctl_logs.c:593
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
-msgstr "오류: T이벤트 체인 ID 지원이 누락되었으며, 로그 분석이 지원되지 않습니다.\n"
+msgstr ""
+"오류: T이벤트 체인 ID 지원이 누락되었으며, 로그 분석이 지원되지 않습니다.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:121
 msgid "SSSD InfoPipe user lookup result:\n"

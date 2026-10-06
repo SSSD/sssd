@@ -18,7 +18,7 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-01-14 14:57+0000\n"
-"PO-Revision-Date: 2026-04-23 16:52+0000\n"
+"PO-Revision-Date: 2026-10-06 11:06+0000\n"
 "Last-Translator: Elena Mishina <lepata@basealt.ru>\n"
 "Language-Team: Ukrainian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/uk/>\n"
@@ -28,7 +28,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 5.17\n"
+"X-Generator: Weblate 2026.10\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 #: src/config/SSSDConfig/sssdoptions.py:21
@@ -49,7 +49,8 @@ msgstr "Увімкнути або вимкнути діагностичне зв
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Watchdog timeout before restarting service"
-msgstr "Час очікування відповіді засобу спостереження перед перезапуском служби"
+msgstr ""
+"Час очікування відповіді засобу спостереження перед перезапуском служби"
 
 #: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Command to start service"
@@ -61,7 +62,8 @@ msgstr "Кількість дескрипторів файлів, які мож�
 
 #: src/config/SSSDConfig/sssdoptions.py:28
 msgid "Idle time before automatic disconnection of a client"
-msgstr "Проміжок бездіяльності до автоматичного від’єднання клієнтської частини"
+msgstr ""
+"Проміжок бездіяльності до автоматичного від’єднання клієнтської частини"
 
 #: src/config/SSSDConfig/sssdoptions.py:29
 msgid "Idle time before automatic shutdown of the responder"
@@ -708,7 +710,8 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:202
 msgid "The TTL to apply to the client's DNS entry after updating it"
-msgstr "TTL, який слід застосовувати до запису DNS клієнта після його оновлення"
+msgstr ""
+"TTL, який слід застосовувати до запису DNS клієнта після його оновлення"
 
 #: src/config/SSSDConfig/sssdoptions.py:203
 msgid "The interface whose IP should be used for dynamic DNS updates"
@@ -733,7 +736,8 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:207
 msgid "Whether the provider should explicitly update the PTR record as well"
-msgstr "Визначає, чи слід надавачу даних також явним чином оновлювати запис PTR"
+msgstr ""
+"Визначає, чи слід надавачу даних також явним чином оновлювати запис PTR"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Whether the nsupdate utility should default to using TCP"
@@ -1058,7 +1062,8 @@ msgstr "Атрибут LDAP, який містить категорію кори
 
 #: src/config/SSSDConfig/sssdoptions.py:289
 msgid "The LDAP attribute that contains unique ID of the user map."
-msgstr "Атрибут LDAP, який містить унікальний ідентифікатор карти користувачів."
+msgstr ""
+"Атрибут LDAP, який містить унікальний ідентифікатор карти користувачів."
 
 #: src/config/SSSDConfig/sssdoptions.py:290
 msgid ""
@@ -1113,44 +1118,45 @@ msgstr "Режим роботи для керування доступом на 
 msgid ""
 "The amount of time between lookups of the GPO policy files against the AD "
 "server"
-msgstr "Інтервал часу між послідовними сеансами пошуку правил GPO на сервері AD"
+msgstr ""
+"Інтервал часу між послідовними сеансами пошуку правил GPO на сервері AD"
 
 #: src/config/SSSDConfig/sssdoptions.py:305
 msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Назви служб PAM, які виконують прив’язування до параметрів правил GPO (Deny)"
-"InteractiveLogonRight"
+"Назви служб PAM, які виконують прив’язування до параметрів правил GPO "
+"(Deny)InteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Назви служб PAM, які виконують прив’язування до параметрів правил GPO (Deny)"
-"RemoteInteractiveLogonRight"
+"Назви служб PAM, які виконують прив’язування до параметрів правил GPO "
+"(Deny)RemoteInteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Назви служб PAM, які виконують прив’язування до параметрів правил GPO (Deny)"
-"NetworkLogonRight"
+"Назви служб PAM, які виконують прив’язування до параметрів правил GPO "
+"(Deny)NetworkLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Назви служб PAM, які виконують прив’язування до параметрів правил GPO (Deny)"
-"BatchLogonRight"
+"Назви служб PAM, які виконують прив’язування до параметрів правил GPO "
+"(Deny)BatchLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Назви служб PAM, які виконують прив’язування до параметрів правил GPO (Deny)"
-"ServiceLogonRight"
+"Назви служб PAM, які виконують прив’язування до параметрів правил GPO "
+"(Deny)ServiceLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -2301,7 +2307,8 @@ msgstr "Пройдіть розпізнавання на %1$s і натисні�
 #: src/sss_client/pam_sss.c:1862
 #, c-format
 msgid "Authenticate with PIN %1$s at %2$s and press ENTER."
-msgstr "Пройдіть розпізнавання за допомогою PIN %1$s на %2$s і натисніть ENTER."
+msgstr ""
+"Пройдіть розпізнавання за допомогою PIN %1$s на %2$s і натисніть ENTER."
 
 #: src/sss_client/pam_sss.c:2281
 msgid "Please (re)insert (different) Smartcard"
@@ -2950,7 +2957,8 @@ msgstr "Сертифікат не відповідає правилу.\n"
 #: src/tools/sssctl/sssctl_cert.c:265
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr "Помилка під час спроби встановити відповідність сертифіката [%d][%s].\n"
+msgstr ""
+"Помилка під час спроби встановити відповідність сертифіката [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:272
 #, c-format
