@@ -1386,7 +1386,7 @@ sdap_pam_chpass_handler_send(TALLOC_CTX *mem_ctx,
 
 immediately:
     if (pd->pam_status != PAM_SUCCESS) {
-        tevent_req_error(req, EINVAL);
+        tevent_req_error(req, ERR_SERVER_FAILURE);
     } else {
         tevent_req_done(req);
     }
