@@ -1,9 +1,10 @@
 """
 SSSD AD Forest GPO HBAC multi-domain test cases.
 
-Ports coverage from the legacy IdM-CI / sssd-qe ``ad_gpo_hbac_multidomain`` suite.
+Rewrite of legacy IdM-CI / sssd-qe ``ad_gpo_hbac_multidomain`` suite.
 Client joins the forest root; GPOs are created on the root; users live in the
 child or tree domain (parametrized).
+Note: These only run downstream, multiple AD are not supported in upstream.
 
 :requirement: adforest gpo
 """
@@ -16,7 +17,7 @@ from sssd_test_framework.roles.ad import AD, GPO
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.topology import KnownTopology
 
-from tests.adforest_fixtures import ad_forest_configure_sssd
+from adforest_fixtures import ad_forest_configure_sssd
 
 
 def _trusted(ad_child: AD, ad_tree: AD, trusted_name: str) -> AD:
