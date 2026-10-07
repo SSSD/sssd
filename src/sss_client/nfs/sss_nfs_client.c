@@ -180,6 +180,7 @@ static int get_user_from_mc(char *name, size_t len, uid_t uid)
             IDMAP_LOG(0, ("%s: reply too long; pw_name_len=%lu, len=%lu",
                           __func__, pw_name_len, len));
             rc = ENOBUFS;
+            goto done;
         }
         IDMAP_LOG(1, ("found uid %i in memcache", uid));
         memcpy(name, pwd.pw_name, pw_name_len);
@@ -221,6 +222,7 @@ static int get_group_from_mc(char *name, size_t len, id_t gid)
             IDMAP_LOG(0, ("%s: reply too long; gr_name_len=%lu, len=%lu",
                           __func__, gr_name_len, len));
             rc = ENOBUFS;
+            goto done;
         }
         IDMAP_LOG(1, ("found gid %i in memcache", gid));
         memcpy(name, grp.gr_name, gr_name_len);
