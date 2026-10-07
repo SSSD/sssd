@@ -416,7 +416,9 @@ static void sdap_connect_done(struct sdap_op *op,
                              state->sh->ldap, ret);
         sss_log(SSS_LOG_ERR, "Could not start TLS encryption.");
         state->result = ret;
-        tevent_req_error(req, ERR_SERVER_FAILURE);
+        tevent_req_error(req, ret == LDAP_TIMEOUT ? ERR_TLS_HANDSHAKE_INTERRUPTED
+                                                  : ERR_SERVER_FAILURE);
+
         return;
     }
 
