@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        tag: ${{ fromJson(needs.prepare.outputs.matrix).multihost }}
+        tag: ${{ fromJson(needs.prepare.outputs.matrix).system }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read
@@ -87,7 +87,9 @@ jobs:
           #!/bin/bash
           set -ex
 
-          ./contrib/ci/run --deps-only
+          export PATH="$PWD/contrib/ci:$PATH"
+          . contrib/ci/deps.sh
+          deps_install
           autoreconf -if
 
           mkdir -p /dev/shm/sssd

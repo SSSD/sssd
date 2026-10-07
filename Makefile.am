@@ -493,9 +493,7 @@ dist_noinst_SCRIPTS = \
     contrib/ci/deps.sh \
     contrib/ci/distro.sh \
     contrib/ci/get-matrix.py \
-    contrib/ci/misc.sh \
     contrib/ci/rpm-spec-builddeps \
-    contrib/ci/run \
     contrib/ci/valgrind-condense \
     contrib/gdb/sssd_gdb_plugin.py \
     contrib/git/pre-push \
@@ -527,9 +525,7 @@ dist_noinst_DATA = \
     src/config/testconfigs/sssd-test-parse.conf \
     src/config/testconfigs/sssd-enabled-option.conf \
     src/config/etc/sssd.api.d/crash_test_dummy \
-    contrib/ci/README.md \
     contrib/ci/sssd.supp \
-    contrib/ci/sssd.debian.supp \
     contrib/gdbinit \
     contrib/pubkey.asc \
     $(SYSTEMTAP_PROBES) \
