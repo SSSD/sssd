@@ -657,6 +657,13 @@ static void test_ipa_server_create_trusts_twoway(struct tevent_req *req)
 
     assert_null(test_ctx->ipa_ctx->server_mode->trusts->next->next->next);
 
+    /* Only this test creates the two-way subdomain keytab; clean it up
+     * here instead of in the shared teardown so that unrelated oneway
+     * tests (which fork real child processes and are sensitive to
+     * timing) are not affected by an extra, always-a-no-op unlink().
+     */
+    unlink(IPA_ONEWAY_TWO_KEYTAB);
+
     test_ev_done(test_ctx->tctx, EOK);
 }
 

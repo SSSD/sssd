@@ -490,7 +490,6 @@ dist_noinst_SCRIPTS = \
     contrib/fedora/make_srpm.sh \
     contrib/ci/check-valgrind \
     contrib/ci/rpm-spec-builddeps \
-    contrib/ci/run \
     contrib/ci/valgrind-condense \
     src/tests/pyhbac-test.py \
     src/tests/pyhbac-test.py2.sh \
@@ -517,12 +516,12 @@ dist_noinst_DATA = \
     src/config/testconfigs/sssd-test-parse.conf \
     src/config/testconfigs/sssd-enabled-option.conf \
     src/config/etc/sssd.api.d/crash_test_dummy \
-    contrib/ci/README.md \
     contrib/ci/configure.sh \
     contrib/ci/deps.sh \
     contrib/ci/distro.sh \
-    contrib/ci/misc.sh \
     contrib/ci/sssd.supp \
+    contrib/gdbinit \
+    contrib/pubkey.asc \
     $(SYSTEMTAP_PROBES) \
     $(NULL)
 
