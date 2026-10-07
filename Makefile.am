@@ -365,6 +365,10 @@ if BUILD_KRB5_LOCALAUTH_PLUGIN
 non_interactive_cmocka_based_tests += test_sssd_krb5_localauth_plugin
 endif # BUILD_KRB5_LOCALAUTH_PLUGIN
 
+if BUILD_NFS_IDMAP
+non_interactive_cmocka_based_tests += test_nfsidmap
+endif # BUILD_NFS_IDMAP
+
 endif   # HAVE_CMOCKA
 
 check_PROGRAMS = \
@@ -4210,6 +4214,32 @@ sss_la_LIBADD = \
 sss_la_LDFLAGS = \
     -module \
     -avoid-version \
+    $(NULL)
+
+test_nfsidmap_SOURCES = \
+    src/tests/cmocka/test_nfsidmap.c \
+    src/sss_client/common.c \
+    src/sss_client/nss_mc_common.c \
+    src/util/io.c \
+    src/util/murmurhash3.c \
+    src/sss_client/nss_mc_passwd.c \
+    src/sss_client/nss_mc_group.c \
+    src/sss_client/nfs/sss_nfs_client.c \
+    $(NULL)
+test_nfsidmap_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(NFSIDMAP_CFLAGS) \
+    $(NULL)
+test_nfsidmap_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(LIBADD_DL) \
+    $(NFSIDMAP_LIBS) \
+    $(CLIENT_LIBS) \
+    $(NULL)
+test_nfsidmap_LDFLAGS = \
+    -Wl,-wrap,sss_nss_mc_getpwuid \
+    -Wl,-wrap,sss_nss_mc_getgrgid \
     $(NULL)
 endif
 
