@@ -31,8 +31,7 @@ jobs:
       working-directory: x86_64
       run: |
         source ../contrib/fedora/bashrc_sssd
-        # -g3 includes macro definitions in debug info, for better
-        # backtraces/suppressions in the make check-valgrind step below.
+        # -g3 is needed for useful Valgrind backtraces/suppressions
         make CFLAGS+="$SSS_WARNINGS -Werror -g3" -j$PROCESSORS
 
     - name: make check
