@@ -75,20 +75,4 @@ function distro_pkg_install()
     fi
 }
 
-# Remove packages.
-# Args: [pkg_name...]
-function distro_pkg_remove()
-{
-    declare prompt=$'Need root permissions to remove packages.\n'
-    prompt+="Enter sudo password for $USER: "
-    if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
-        [ $# != 0 ] && sudo -p "$prompt" yum --assumeyes remove -- "$@"
-    elif [[ "$DISTRO_BRANCH" == -debian-* ]]; then
-        [ $# != 0 ] && sudo -p "$prompt" apt-get --yes remove -- "$@"
-    else
-        echo "Cannot remove packages on $DISTRO_BRANCH" >&2
-        exit 1
-    fi
-}
-
 fi # _DISTRO_SH
