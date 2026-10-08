@@ -381,6 +381,34 @@ static int pam_test_setup(void **state)
     return 0;
 }
 
+static int pam_test_setup_local_only(void **state)
+{
+    struct sss_test_conf_param dom_params[] = {
+        { "enumerate", "false" },
+        { "cache_credentials", "true" },
+        { "entry_cache_timeout", "300" },
+        { "local_auth_policy", "only" },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    struct sss_test_conf_param pam_params[] = {
+        { CONFDB_PAM_P11_URI, "pkcs11:manufacturer=SoftHSM%20project" },
+        { "p11_child_timeout", "30" },
+        { "pam_cert_verification", NULL },
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    struct sss_test_conf_param monitor_params[] = {
+        { "certificate_verification", "no_ocsp"},
+        { NULL, NULL },             /* Sentinel */
+    };
+
+    test_pam_setup(dom_params, pam_params, monitor_params, state);
+
+    pam_test_setup_common();
+    return 0;
+}
+
 #ifdef BUILD_PASSKEY
 static int pam_test_setup_passkey(void **state)
 {
@@ -1035,8 +1063,8 @@ static int test_pam_simple_check(uint32_t status, uint8_t *body, size_t blen)
 #ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
 /* Local Smartcard authentication is offered in the JSON message, the
  * SSS_CERT_AUTH_PROMPTING added for it is not sent to the client */
-static int test_pam_cert_check_json(uint32_t status, uint8_t *body,
-                                    size_t blen)
+static int check_pam_cert_json(uint32_t status, uint8_t *body, size_t blen,
+                               bool expect_password)
 {
     size_t rp = 0;
     uint32_t val;
@@ -1056,12 +1084,18 @@ static int test_pam_cert_check_json(uint32_t status, uint8_t *body,
         SAFEALIGN_COPY_UINT32(&type, body + rp, &rp);
         SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
         assert_int_not_equal(type, SSS_CERT_AUTH_PROMPTING);
+        assert_int_not_equal(type, SSS_PASSWORD_PROMPTING);
 
         if (type == SSS_PAM_CERT_INFO) {
             found_cert_info = true;
         } else if (type == SSS_PAM_JSON_AUTH_INFO) {
             assert_int_equal(*(body + rp + val - 1), 0);
             assert_non_null(strstr((char *) (body + rp), "\"smartcard\": {"));
+            if (expect_password) {
+                assert_non_null(strstr((char *) (body + rp), "\"password\": {"));
+            } else {
+                assert_null(strstr((char *) (body + rp), "\"password\": {"));
+            }
             found_json = true;
         }
         rp += val;
@@ -1072,6 +1106,18 @@ static int test_pam_cert_check_json(uint32_t status, uint8_t *body,
     assert_true(found_json);
 
     return EOK;
+}
+
+static int test_pam_cert_check_json(uint32_t status, uint8_t *body,
+                                    size_t blen)
+{
+    return check_pam_cert_json(status, body, blen, true);
+}
+
+static int test_pam_cert_check_json_no_password(uint32_t status,
+                                                uint8_t *body, size_t blen)
+{
+    return check_pam_cert_json(status, body, blen, false);
 }
 #endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
 
@@ -2599,8 +2645,7 @@ void test_pam_preauth_cert_match_gdm_smartcard(void **state)
 }
 
 #ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
-/* Test if local Smartcard authentication is offered in the JSON message */
-void test_pam_preauth_cert_match_json(void **state)
+static void preauth_cert_match_json(cmd_cb_fn_t check_cb)
 {
     int ret;
     const char *json_services[] = { "gdm-switchable-auth", NULL };
@@ -2615,7 +2660,7 @@ void test_pam_preauth_cert_match_json(void **state)
     will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
-    set_cmd_cb(test_pam_cert_check_json);
+    set_cmd_cb(check_cb);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
                           pam_test_ctx->pam_cmds);
     assert_int_equal(ret, EOK);
@@ -2625,6 +2670,20 @@ void test_pam_preauth_cert_match_json(void **state)
     assert_int_equal(ret, EOK);
 
     pam_test_ctx->pctx->json_services = NULL;
+}
+
+/* Test if local Smartcard authentication is offered in the JSON message,
+ * next to password authentication which the backend did not announce */
+void test_pam_preauth_cert_match_json(void **state)
+{
+    preauth_cert_match_json(test_pam_cert_check_json);
+}
+
+/* With local_auth_policy = only online password authentication is skipped,
+ * so only local Smartcard authentication is offered */
+void test_pam_preauth_cert_match_json_local_only(void **state)
+{
+    preauth_cert_match_json(test_pam_cert_check_json_no_password);
 }
 #endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
 
@@ -5090,6 +5149,9 @@ int main(int argc, const char *argv[])
 #ifdef HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_match_json,
                                         pam_test_setup, pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_preauth_cert_match_json_local_only,
+                                        pam_test_setup_local_only,
+                                        pam_test_teardown),
 #endif /* HAVE_GDM_CUSTOM_JSON_PAM_EXTENSION */
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_match_wrong_user,
                                         pam_test_setup, pam_test_teardown),
