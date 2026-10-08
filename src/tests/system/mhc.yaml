@@ -15,6 +15,9 @@ domains:
     - /etc/sssd/*
     - /var/log/sssd/*
     - /var/lib/sss/db/*
+    config:
+      coredumpd:
+        mode: fail
 
   - hostname: master.ldap.test
     role: ldap
@@ -33,6 +36,8 @@ domains:
         ipa_domain: ipa.test
         krb5_keytab: /var/enrollment/ipa.test.keytab
         ldap_krb5_keytab: /var/enrollment/ipa.test.keytab
+      coredumpd:
+        mode: fail
     artifacts:
     - /etc/sssd/*
     - /var/log/dirsrv/*
