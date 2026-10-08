@@ -41,9 +41,8 @@ from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["su", "ssh"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_gpo__is_set_to_enforcing(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__is_set_to_enforcing(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host base access control is set to enforcing and users are allowed
     :description:
@@ -57,9 +56,9 @@ def test_gpo__is_set_to_enforcing(client: Client, provider: GenericADProvider, m
         4. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing'
         5. Start SSSD
     :steps:
-        1. Authenticate as 'user'
-        2. Authenticate as 'user1' and 'user2'
-        3. Authenticate as 'deny_user1' and 'deny_user2'
+        1. Authenticate as 'user' via su and ssh
+        2. Authenticate as 'user1' and 'user2' via su and ssh
+        3. Authenticate as 'deny_user1' and 'deny_user2' via su and ssh
     :expectedresults:
         1. User authentication is unsuccessful
         2. User authentications are successful
@@ -84,31 +83,29 @@ def test_gpo__is_set_to_enforcing(client: Client, provider: GenericADProvider, m
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(
-        username="user", password="Secret123"
-    ), "User absent from policy authenticated successfully!"
+    assert not client.auth.su.password("user", "Secret123"), "User absent from policy authenticated successfully (su)!"
+    assert not client.auth.ssh.password(
+        "user", "Secret123"
+    ), "User absent from policy authenticated successfully (ssh)!"
 
-    assert client.auth.parametrize(method).password(
-        username="user1", password="Secret123"
-    ), "Allowed user authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
 
-    assert client.auth.parametrize(method).password(
-        username="user2", password="Secret123"
-    ), "Allowed group user authentication failed!"
+    assert client.auth.su.password("user2", "Secret123"), "Allowed group user authentication failed (su)!"
+    assert client.auth.ssh.password("user2", "Secret123"), "Allowed group user authentication failed (ssh)!"
 
-    assert not client.auth.parametrize(method).password(
-        username="deny_user1", password="Secret123"
-    ), "Denied user authenticated successfully!"
+    assert not client.auth.su.password("deny_user1", "Secret123"), "Denied user authenticated successfully (su)!"
+    assert not client.auth.ssh.password("deny_user1", "Secret123"), "Denied user authenticated successfully (ssh)!"
 
-    assert not client.auth.parametrize(method).password(
-        username="deny_user2", password="Secret123"
-    ), "Denied group user authenticated successfully!"
+    assert not client.auth.su.password("deny_user2", "Secret123"), "Denied group user authenticated successfully (su)!"
+    assert not client.auth.ssh.password(
+        "deny_user2", "Secret123"
+    ), "Denied group user authenticated successfully (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["su", "ssh"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_gpo__is_set_to_enforcing_with_no_policy(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__is_set_to_enforcing_with_no_policy(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host base access control is set to enforcing with no policy
     :description:
@@ -119,7 +116,7 @@ def test_gpo__is_set_to_enforcing_with_no_policy(client: Client, provider: Gener
         2. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing'
         3. Start SSSD
     :steps:
-        1. Authenticate 'user'
+        1. Authenticate 'user' via su and ssh
         2. Check logs for gpo_access_check result
     :expectedresults:
         1. User authentication is successful
@@ -131,13 +128,13 @@ def test_gpo__is_set_to_enforcing_with_no_policy(client: Client, provider: Gener
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(username="user", password="Secret123")
+    assert client.auth.su.password("user", "Secret123"), "User authentication failed (su)!"
+    assert client.auth.ssh.password("user", "Secret123"), "User authentication failed (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["su", "ssh"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host base access control is set to permissive
     :description:
@@ -150,7 +147,7 @@ def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, provide
         3. Configure sssd.conf with 'ad_gpo_access_control' = 'permissive'
         4. Start SSSD
     :steps:
-        1. Authenticate 'user1'
+        1. Authenticate 'user1' via su and ssh
         2. Check logs for ad_gpo_access_control value
         3. Check logs for gpo_access_check result
     :expectedresults:
@@ -171,9 +168,9 @@ def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, provide
     client.sssd.domain["ad_gpo_access_control"] = "permissive"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        username="user1", password="Secret123"
-    ), "(Permissive) Allowed user authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "(Permissive) Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "(Permissive) Allowed user authentication failed (ssh)!"
+
     log_str = client.fs.read(client.sssd.logs.domain())
 
     assert (
@@ -184,9 +181,8 @@ def test_gpo__is_set_to_permissive_and_users_are_allowed(client: Client, provide
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["su", "ssh"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host base access control is set to permissive
     :description:
@@ -199,7 +195,7 @@ def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, provider
         3. Configure sssd.conf with 'ad_gpo_access_control' = 'permissive'
         4. Start SSSD
     :steps:
-        1. Authenticate 'deny_user1'
+        1. Authenticate 'deny_user1' via su and ssh
         2. Check logs for ad_gpo_access_control value
         3. Check logs for gpo_access_check result
     :expectedresults:
@@ -220,9 +216,8 @@ def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, provider
     client.sssd.domain["ad_gpo_access_control"] = "permissive"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        username="deny_user1", password="Secret123"
-    ), "(Permissive) Denied user authentication failed!"
+    assert client.auth.su.password("deny_user1", "Secret123"), "(Permissive) Denied user authentication failed (su)!"
+    assert client.auth.ssh.password("deny_user1", "Secret123"), "(Permissive) Denied user authentication failed (ssh)!"
 
     log_str = client.fs.read(client.sssd.logs.domain())
     assert (
@@ -233,9 +228,8 @@ def test_gpo__is_set_to_permissive_and_users_are_denied(client: Client, provider
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["su", "ssh"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host base access control is set to disabled and all users are allowed
     :description:
@@ -248,7 +242,7 @@ def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, provi
         3. Configure sssd.conf with 'ad_gpo_access_control' = 'disabled'
         4. Start SSSD
     :steps:
-        1. Authenticate as 'user', 'user1' and 'deny_user1'
+        1. Authenticate as 'user', 'user1' and 'deny_user1' via su and ssh
         2. Check logs for ad_gpo_access_control value
     :expectedresults:
         1. All users authentication are successful
@@ -269,17 +263,14 @@ def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, provi
     client.sssd.domain["ad_gpo_access_control"] = "disabled"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        username="user", password="Secret123"
-    ), "(Disabled) User authentication failed!"
+    assert client.auth.su.password("user", "Secret123"), "(Disabled) User authentication failed (su)!"
+    assert client.auth.ssh.password("user", "Secret123"), "(Disabled) User authentication failed (ssh)!"
 
-    assert client.auth.parametrize(method).password(
-        username="user1", password="Secret123"
-    ), "(Disabled) User authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "(Disabled) User authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "(Disabled) User authentication failed (ssh)!"
 
-    assert client.auth.parametrize(method).password(
-        username="deny_user1", password="Secret123"
-    ), "(Disabled) User authentication failed!"
+    assert client.auth.su.password("deny_user1", "Secret123"), "(Disabled) User authentication failed (su)!"
+    assert client.auth.ssh.password("deny_user1", "Secret123"), "(Disabled) User authentication failed (ssh)!"
 
     log_str = client.fs.read(client.sssd.logs.domain())
     assert (
@@ -288,10 +279,9 @@ def test_gpo__is_set_to_disabled_and_all_users_are_allowed(client: Client, provi
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=1695576)
-def test_gpo__implicit_deny_is_set_to_true(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__implicit_deny_is_set_to_true(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host base access control is set to enforcing and implicit deny is true
     :description:
@@ -302,7 +292,7 @@ def test_gpo__implicit_deny_is_set_to_true(client: Client, provider: GenericADPr
         2. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing' and 'ad_gpo_implicit_deny' = True
         3. Start SSSD
     :steps:
-        1. Authenticate as 'user'
+        1. Authenticate as 'user' via su and ssh
     :expectedresults:
         1. 'user' authentication is unsuccessful
     :customerscenario: True
@@ -313,17 +303,13 @@ def test_gpo__implicit_deny_is_set_to_true(client: Client, provider: GenericADPr
     client.sssd.domain["ad_gpo_implicit_deny"] = "True"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(
-        username="user", password="Secret123"
-    ), "User authenticated successfully!"
+    assert not client.auth.su.password("user", "Secret123"), "User authenticated successfully (su)!"
+    assert not client.auth.ssh.password("user", "Secret123"), "User authenticated successfully (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(
-    client: Client, provider: GenericADProvider, method: str
-):
+def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host base access control checking inheritance for sites enforced and domains
     :description:
@@ -341,8 +327,8 @@ def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(
         5. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing'
         6. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
-        2. Authenticate as 'user2'
+        1. Authenticate as 'user1' via su and ssh
+        2. Authenticate as 'user2' via su and ssh
     :expectedresults:
         1. 'user1' authentication is successful
         2. 'user2' authentication is unsuccessful
@@ -368,19 +354,16 @@ def test_gpo__domain_and_sites_inheritance_when_site_is_enforcing(
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        username="user1", password="Secret123"
-    ), "User authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "User authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "User authentication failed (ssh)!"
 
-    assert not client.auth.parametrize(method).password(
-        username="user2", password="Secret123"
-    ), "User authenticated successfully!"
+    assert not client.auth.su.password("user2", "Secret123"), "User authenticated successfully (su)!"
+    assert not client.auth.ssh.password("user2", "Secret123"), "User authenticated successfully (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_gpo__domain_and_sites_inheritance(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__domain_and_sites_inheritance(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host base access control checking inheritance for sites and domains.
     :description:
@@ -397,8 +380,8 @@ def test_gpo__domain_and_sites_inheritance(client: Client, provider: GenericADPr
         4. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing'
         5. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
-        2. Authenticate as 'user2'
+        1. Authenticate as 'user1' via su and ssh
+        2. Authenticate as 'user2' via su and ssh
     :expectedresults:
         1. 'user1' authentication is unsuccessful
         2. 'user2' authentication is successful
@@ -424,19 +407,16 @@ def test_gpo__domain_and_sites_inheritance(client: Client, provider: GenericADPr
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(
-        username="user1", password="Secret123"
-    ), "Site user authenticated successfully!"
+    assert not client.auth.su.password("user1", "Secret123"), "Site user authenticated successfully (su)!"
+    assert not client.auth.ssh.password("user1", "Secret123"), "Site user authenticated successfully (ssh)!"
 
-    assert client.auth.parametrize(method).password(
-        username="user2", password="Secret123"
-    ), "Domain user authentication failed!"
+    assert client.auth.su.password("user2", "Secret123"), "Domain user authentication failed (su)!"
+    assert client.auth.ssh.password("user2", "Secret123"), "Domain user authentication failed (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_gpo__ou_and_domain_inheritance(client: Client, provider: AD, method: str):
+def test_gpo__ou_and_domain_inheritance(client: Client, provider: AD):
     """
     :title: Group policy object host base access control checking inheritance between ous and domains.
     :description:
@@ -455,8 +435,8 @@ def test_gpo__ou_and_domain_inheritance(client: Client, provider: AD, method: st
         6. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing'
         7. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
-        2. Authenticate as 'user2'
+        1. Authenticate as 'user1' via su and ssh
+        2. Authenticate as 'user2' via su and ssh
     :expectedresults:
         1. 'user1' authentication is unsuccessful
         2. 'user2' authentication is successful
@@ -485,20 +465,17 @@ def test_gpo__ou_and_domain_inheritance(client: Client, provider: AD, method: st
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(
-        username="user1", password="Secret123"
-    ), "Domain user authenticated successfully!"
+    assert not client.auth.su.password("user1", "Secret123"), "Domain user authenticated successfully (su)!"
+    assert not client.auth.ssh.password("user1", "Secret123"), "Domain user authenticated successfully (ssh)!"
 
-    assert client.auth.parametrize(method).password(
-        username="user2", password="Secret123"
-    ), "OU user authentication failed!"
+    assert client.auth.su.password("user2", "Secret123"), "OU user authentication failed (su)!"
+    assert client.auth.ssh.password("user2", "Secret123"), "OU user authentication failed (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.ticket(bz=1804005)
-def test_gpo__sites_inheritance_using_gpo_link_order(client: Client, ad: AD, method: str):
+def test_gpo__sites_inheritance_using_gpo_link_order(client: Client, ad: AD):
     """
     :title: Group policy object host base access control checking inheritance using GPO link order.
     :description:
@@ -513,8 +490,8 @@ def test_gpo__sites_inheritance_using_gpo_link_order(client: Client, ad: AD, met
         4. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing'
         5. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
-        2. Authenticate as 'user2'
+        1. Authenticate as 'user1' via su and ssh
+        2. Authenticate as 'user2' via su and ssh
     :expectedresults:
         1. 'user1' authentication is unsuccessful
         2. 'user2' authentication is successful
@@ -540,11 +517,11 @@ def test_gpo__sites_inheritance_using_gpo_link_order(client: Client, ad: AD, met
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert not client.auth.parametrize(method).password(
-        username="user1", password="Secret123"
-    ), "User authenticated successfully!"
+    assert not client.auth.su.password("user1", "Secret123"), "User authenticated successfully (su)!"
+    assert not client.auth.ssh.password("user1", "Secret123"), "User authenticated successfully (ssh)!"
 
-    assert client.auth.parametrize(method).password(username="user2", password="Secret123"), "User failed login!"
+    assert client.auth.su.password("user2", "Secret123"), "User failed login (su)!"
+    assert client.auth.ssh.password("user2", "Secret123"), "User failed login (ssh)!"
 
 
 @pytest.mark.importance("critical")
@@ -655,9 +632,8 @@ def test_gpo__map_remote_interactive_disabling_sshd(client: Client, provider: Ge
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
-def test_gpo__works_when_the_server_is_unreachable(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__works_when_the_server_is_unreachable(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host based works when the server is unreachable.
     :description: Tests that gpo processing works from the cache when the server is unreachable
@@ -669,11 +645,11 @@ def test_gpo__works_when_the_server_is_unreachable(client: Client, provider: Gen
            'krb5_store_password_if_offline' = 'True' and 'offline_credentials_expiration' = '0'
         4. Start SSSD
     :steps:
-        1. Authenticate 'user1'
-        2. Authenticate 'deny_user1'
+        1. Authenticate 'user1' via su and ssh
+        2. Authenticate 'deny_user1' via su and ssh
         3. Use iptables and block traffic to the ad server
-        4. Authenticate 'user1'
-        5. Authenticate 'deny_user1'
+        4. Authenticate 'user1' via su and ssh
+        5. Authenticate 'deny_user1' via su and ssh
     :expectedresults:
         1. 'user1' authentication is successful
         2. 'deny_user1' authentication is unsuccessful
@@ -698,31 +674,26 @@ def test_gpo__works_when_the_server_is_unreachable(client: Client, provider: Gen
     client.sssd.pam["offline_credentials_expiration"] = "0"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        "user1", password="Secret123"
-    ), "Allowed user authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
 
-    assert not client.auth.parametrize(method).password(
-        "deny_user1", password="Secret123"
-    ), "Denied user authenticated successfully!"
+    assert not client.auth.su.password("deny_user1", "Secret123"), "Denied user authenticated successfully (su)!"
+    assert not client.auth.ssh.password("deny_user1", "Secret123"), "Denied user authenticated successfully (ssh)!"
 
     client.firewall.outbound.drop_host(provider)
     client.sssd.bring_offline()
 
-    assert client.auth.parametrize(method).password(
-        "user1", password="Secret123"
-    ), "Allowed user authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
 
-    assert not client.auth.parametrize(method).password(
-        "deny_user1", password="Secret123"
-    ), "Denied user authenticated successfully!"
+    assert not client.auth.su.password("deny_user1", "Secret123"), "Denied user authenticated successfully (su)!"
+    assert not client.auth.ssh.password("deny_user1", "Secret123"), "Denied user authenticated successfully (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=1547234)
-def test_gpo__honors_the_ad_site_parameter(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__honors_the_ad_site_parameter(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host based access control honors the ad_site parameter in the configuration.
     :description:
@@ -741,8 +712,8 @@ def test_gpo__honors_the_ad_site_parameter(client: Client, provider: GenericADPr
            'ad_site' = "New-Site"
         5. Start SSSD
     :steps:
-        1. Authenticate as 'user1' with ssh
-        2. Authenticate as 'deny_user1' with ssh
+        1. Authenticate as 'user1' with su and ssh
+        2. Authenticate as 'deny_user1' with su and ssh
     :expectedresults:
         1. 'user1' authentication is successful
         2. 'deny_user1' authentication is unsuccessful
@@ -763,20 +734,17 @@ def test_gpo__honors_the_ad_site_parameter(client: Client, provider: GenericADPr
     client.sssd.domain["ad_site"] = "New-Site"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        "user1", password="Secret123"
-    ), "Allowed user authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
 
-    assert not client.auth.parametrize(method).password(
-        "deny_user1", password="Secret123"
-    ), "Denied user authenticated successfully!"
+    assert not client.auth.su.password("deny_user1", "Secret123"), "Denied user authenticated successfully (su)!"
+    assert not client.auth.ssh.password("deny_user1", "Secret123"), "Denied user authenticated successfully (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.ticket(gh=905)
-def test_gpo__only_needs_host_security_filters_and_permissions(client: Client, ad: AD, method: str):
+def test_gpo__only_needs_host_security_filters_and_permissions(client: Client, ad: AD):
     """
     :title: Group policy object host based access control only needs host security filters and permissions.
     :description:
@@ -792,8 +760,8 @@ def test_gpo__only_needs_host_security_filters_and_permissions(client: Client, a
            and set 'authenticated users' to 'gporead'
         5. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
-        2. Authenticate as 'deny_user1'
+        1. Authenticate as 'user1' via su and ssh
+        2. Authenticate as 'deny_user1' via su and ssh
     :expectedresults:
         1. 'user1' authentication is successful
         2. 'deny_user1' authentication is unsuccessful
@@ -821,22 +789,17 @@ def test_gpo__only_needs_host_security_filters_and_permissions(client: Client, a
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        "user1", password="Secret123"
-    ), "Allowed user authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
 
-    assert not client.auth.parametrize(method).password(
-        "deny_user1", password="Secret123"
-    ), "Denied user authenticated successfully!"
+    assert not client.auth.su.password("deny_user1", "Secret123"), "Denied user authenticated successfully (su)!"
+    assert not client.auth.ssh.password("deny_user1", "Secret123"), "Denied user authenticated successfully (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=1316164)
-def test_gpo__ignores_invalid_and_unnecessary_keys_and_values(
-    client: Client, provider: GenericADProvider, method: str
-):
+def test_gpo__ignores_invalid_and_unnecessary_keys_and_values(client: Client, provider: GenericADProvider):
     """
     :title: Group policy object host based access control ignores invalid and unnecessary keys and values.
     :description:
@@ -851,8 +814,8 @@ def test_gpo__ignores_invalid_and_unnecessary_keys_and_values(
         3. Configure sssd.conf with 'ad_gpo_access_control' = 'enforcing'
         4. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
-        2. Authenticate as 'deny_user1'
+        1. Authenticate as 'user1' via su and ssh
+        2. Authenticate as 'deny_user1' via su and ssh
     :expectedresults:
         1. 'user1' authentication is successful
         2. 'deny_user1' authentication is unsuccessful
@@ -872,20 +835,17 @@ def test_gpo__ignores_invalid_and_unnecessary_keys_and_values(
     client.sssd.domain["ad_gpo_access_control"] = "enforcing"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        "user1", password="Secret123"
-    ), "Allowed user authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
 
-    assert not client.auth.parametrize(method).password(
-        "deny_user1", password="Secret123"
-    ), "Denied user authenticated successfully!"
+    assert not client.auth.su.password("deny_user1", "Secret123"), "Denied user authenticated successfully (su)!"
+    assert not client.auth.ssh.password("deny_user1", "Secret123"), "Denied user authenticated successfully (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.ticket(bz=1855281)
-def test_gpo__skips_unreadable_gpo_policies(client: Client, ad: AD, method: str):
+def test_gpo__skips_unreadable_gpo_policies(client: Client, ad: AD):
     """
     :title: Group policy object host based access control skips unreadable GPO policies.
     :description:
@@ -902,8 +862,8 @@ def test_gpo__skips_unreadable_gpo_policies(client: Client, ad: AD, method: str)
            'ad_gpo_ignore_unreadable' = 'True
         5. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
-        2. Authenticate as 'deny_user1'
+        1. Authenticate as 'user1' via su and ssh
+        2. Authenticate as 'deny_user1' via su and ssh
     :expectedresults:
         1. 'user1' authentication is successful
         2. 'deny_user1' authentication is unsuccessful
@@ -925,13 +885,11 @@ def test_gpo__skips_unreadable_gpo_policies(client: Client, ad: AD, method: str)
     client.sssd.domain["ad_gpo_ignore_unreadable"] = "True"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        "user1", password="Secret123"
-    ), "Allowed user authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
 
-    assert not client.auth.parametrize(method).password(
-        "deny_user1", password="Secret123"
-    ), "Denied user authenticated successfully!"
+    assert not client.auth.su.password("deny_user1", "Secret123"), "Denied user authenticated successfully (su)!"
+    assert not client.auth.ssh.password("deny_user1", "Secret123"), "Denied user authenticated successfully (ssh)!"
 
 
 @pytest.mark.importance("critical")
@@ -990,12 +948,9 @@ def test_gpo__rejects_path_traversal_in_gpo_file_sys_path(client: Client, provid
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(bz=2151450)
-def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(
-    client: Client, provider: GenericADProvider, method: str
-):
+def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(client: Client, provider: GenericADProvider):
     """
     :title: Primary group is missing from users when auto_private_groups are enabled
     :description:
@@ -1007,7 +962,7 @@ def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(
            'auto_private_groups = true'
         4. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
+        1. Authenticate as 'user1' via su and ssh
         2. Lookup user
     :expectedresults:
         1. Authentication is successful
@@ -1028,9 +983,8 @@ def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(
     client.sssd.domain["ldap_use_tokengroups"] = "false"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        "user1", password="Secret123"
-    ), "Allowed user authentication failed!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
 
     result = client.tools.id("user1")
     assert result is not None, "User not found!"
@@ -1038,12 +992,11 @@ def test_gpo__finds_all_groups_when_auto_private_groups_is_set_true(
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.parametrize("auto_private_groups", ["true", "false", "hybrid"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(gh=7452)
 def test_gpo__works_when_auto_private_group_is_used_with_posix_accounts(
-    client: Client, provider: GenericADProvider, method: str, auto_private_groups: str
+    client: Client, provider: GenericADProvider, auto_private_groups: str
 ):
     """
     :title: GPO evaluation fails when auto_private_groups used with posix accounts
@@ -1055,8 +1008,8 @@ def test_gpo__works_when_auto_private_group_is_used_with_posix_accounts(
            'auto_private_groups = parameter' and 'ldap_id_mapping = false'
         4. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
-        2. Authenticate as 'deny_user1'
+        1. Authenticate as 'user1' via su and ssh
+        2. Authenticate as 'deny_user1' via su and ssh
     :expectedresults:
         1. Authentication is successful
         2. Authenticated user is unsuccessful
@@ -1077,17 +1030,17 @@ def test_gpo__works_when_auto_private_group_is_used_with_posix_accounts(
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        "user1", password="Secret123"
-    ), "Allowed user authentication failed!"
-    assert not client.auth.parametrize(method).password("deny_user1", password="Secret123"), "Denied user logged in!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
+
+    assert not client.auth.su.password("deny_user1", "Secret123"), "Denied user logged in (su)!"
+    assert not client.auth.ssh.password("deny_user1", "Secret123"), "Denied user logged in (ssh)!"
 
 
 @pytest.mark.importance("critical")
-@pytest.mark.parametrize("method", ["ssh", "su"])
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(gh=7591)
-def test_gpo__ldap_user_name_attribute_mapping(client: Client, provider: GenericADProvider, method: str):
+def test_gpo__ldap_user_name_attribute_mapping(client: Client, provider: GenericADProvider):
     """
     :title: GPO evaluation fails when the LDAP attribute "name" is used instead of default sAMAccountName attribute
     :description: The name attribute is not populated in Samba, limiting the test to AD
@@ -1099,8 +1052,8 @@ def test_gpo__ldap_user_name_attribute_mapping(client: Client, provider: Generic
            'auto_private_groups = false', 'ldap_user_name = name' and 'ldap_id_mapping = false'
         4. Start SSSD
     :steps:
-        1. Authenticate as 'user1'
-        2. Authenticate as 'deny_user1'
+        1. Authenticate as 'user1' via su and ssh
+        2. Authenticate as 'deny_user1' via su and ssh
     :expectedresults:
         1. Authentication is successful
         2. Authenticated user is unsuccessful
@@ -1126,10 +1079,11 @@ def test_gpo__ldap_user_name_attribute_mapping(client: Client, provider: Generic
     client.sssd.domain["ldap_id_mapping"] = "false"
     client.sssd.start()
 
-    assert client.auth.parametrize(method).password(
-        "user1", password="Secret123"
-    ), "Allowed user authentication failed!"
-    assert not client.auth.parametrize(method).password("deny_user1", password="Secret123"), "Denied user logged in!"
+    assert client.auth.su.password("user1", "Secret123"), "Allowed user authentication failed (su)!"
+    assert client.auth.ssh.password("user1", "Secret123"), "Allowed user authentication failed (ssh)!"
+
+    assert not client.auth.su.password("deny_user1", "Secret123"), "Denied user logged in (su)!"
+    assert not client.auth.ssh.password("deny_user1", "Secret123"), "Denied user logged in (ssh)!"
 
 
 @pytest.mark.importance("medium")
