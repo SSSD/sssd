@@ -26,7 +26,9 @@ prepare:
         ansifilter \
         cyrus-sasl-devel \
         gcc \
+        gdb \
         git \
+        jq \
         libssh-devel \
         openldap-devel \
         openssl-devel \
@@ -40,10 +42,17 @@ prepare:
       source /tmp/venv/bin/activate
       pip3 install -r "$TMT_TREE/src/tests/system/requirements.txt"
 
+      # TODO: drop once https://github.com/pbrezina/sssd-test-framework/tree/iparestore is merged upstream
+      pip3 install --force-reinstall --no-deps \
+        "git+https://github.com/pbrezina/sssd-test-framework.git@iparestore"
+
+      pip3 install --force-reinstall --no-deps \
+        "git+https://github.com/pbrezina/pytest-mh.git@env-pylibssh"
+
   - name: Setup containers and install ci-* commands
     how: shell
     url: https://github.com/pbrezina/sssd-ci-containers.git
-    ref: tmt
+    ref: coredump
     script: $TMT_PREPARE_SHELL_URL_REPOSITORY/tmt/setup.sh
 
   - name: Install SSSD from the COPR build
@@ -126,10 +135,13 @@ discover:
         # Remove AD from mhc.yaml
         yq -i 'del(.domains[0].hosts[] | select(.role == "ad"))' "$TMT_TREE/src/tests/system/mhc.yaml"
 
+
         # Run the test. Artifacts go into $TMT_TEST_DATA, which tmt links to
-        # this test case in the results (unlike $TMT_PLAN_DATA, which is
-        # shared across the whole plan and not tied to any individual test).
-        pytest \
+        # this test case in the results.
+
+        mkdir -p "$TMT_TEST_DATA/artifacts"
+
+        MH_PYLIBSSH_DEBUG="$TMT_TEST_DATA/artifacts/libssh.log" pytest \
           --durations=0 \
           --color=yes \
           --show-capture=no \
@@ -139,6 +151,23 @@ discover:
           -vvv . |& tee "$TMT_TEST_DATA/pytest-colored.log" || rc=$?
 
         ansifilter "$TMT_TEST_DATA/pytest-colored.log" -o "$TMT_TEST_DATA/pytest.log"
+
+        echo "Available coredumps: "
+        coredumpctl list || true
+
+        # Dump each corefile information
+        # coredumpctl exits with an error when the list is empty, hence the
+        # trailing "|| true" guards below -- that is not a test failure.
+        OPTS="-batch -iex 'set debuginfod enabled on' -iex 'set pagination off' -ex 'frame 0' -ex 'info args' -ex 'info locals'"
+        coredumpctl --json=short list | jq -r '
+          .[]
+          | select(.corefile == "present" or .corefile == "journal")
+          | "\(.pid)\t\(.exe)"
+          ' | while IFS=$'\t' read -r pid exe; do
+            echo "=== Processing PID: $pid ($exe) ==="
+            coredumpctl debug "$pid" -A "$OPTS" || true
+        done || true
+
         exit "${rc:-0}"
 
 execute:

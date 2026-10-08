@@ -18,6 +18,12 @@ domains:
     config:
       coredumpd:
         mode: fail
+        # nslcd has a known shutdown race that passes an invalid fd to
+        # FD_ISSET(), aborting on glibc's fortify check
+        # (https://github.com/arthurdejong/nss-pam-ldapd/commit/b7841fc),
+        # fixed upstream in nss-pam-ldapd 0.9.13 but not yet in Fedora's
+        # package. Ignore it so it does not fail the proxy provider tests.
+        filter: '(?m)^(?!core\.nslcd\.).+$'
 
   - hostname: master.ldap.test
     role: ldap
