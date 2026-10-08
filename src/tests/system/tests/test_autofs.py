@@ -382,6 +382,50 @@ def test_autofs__autofs_provider_none_serves_maps_from_warm_cache(client: Client
     }, "Automount maps do not match with provider=none!"
 
 
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
+@pytest.mark.preferred_topology(KnownTopology.LDAP)
+def test_autofs__maps_are_loaded_when_autofs_provider_is_not_set(client: Client, nfs: NFS, provider: GenericProvider):
+    """
+    :title: Automount maps are loaded when autofs_provider is not explicitly set in sssd.conf
+    :description:
+        Verifies the default autofs_provider behavior when the key is absent from sssd.conf.
+        SSSD should fall back to the id_provider and still serve automount maps.
+    :setup:
+        1. Create NFS export
+        2. Create auto.master map
+        3. Create auto.export map
+        4. Add /var/export (auto.export) key to auto.master
+        5. Add "NFS export" key as "export" to auto.export
+        6. Enable autofs responder without setting autofs_provider
+        7. Start SSSD
+        8. Reload autofs daemon
+    :steps:
+        1. Access /var/export/export
+        2. Dump automount maps "automount -m"
+    :expectedresults:
+        1. Directory can be accessed and it is correctly mounted to the NFS share
+        2. /var/export contains auto.export map and "export" key
+    :customerscenario: False
+    """
+    nfs_export = nfs.export("export").add()
+    auto_master = provider.automount.map("auto.master").add()
+    auto_export = provider.automount.map("auto.export").add()
+    auto_master.key("/var/export").add(info=auto_export)
+    key = auto_export.key("export").add(info=nfs_export)
+
+    client.sssd.common.autofs()
+    client.sssd.start()
+    client.automount.reload()
+
+    assert client.automount.mount(
+        "/var/export/export", nfs_export
+    ), "Mount failed when autofs_provider is not explicitly set!"
+    assert client.automount.dumpmaps() == {
+        "/var/export": {"map": "auto.export", "keys": [str(key)]},
+    }, "Automount maps not loaded with default autofs_provider!"
+
+
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
