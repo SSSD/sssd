@@ -31,7 +31,6 @@
 
 #include "util/util.h"
 #include "providers/ldap/sdap.h"
-#include "providers/ldap/sdap_id_op.h"
 #include "providers/ldap/sdap_sudo.h"
 #include "resolv/async_resolv.h"
 

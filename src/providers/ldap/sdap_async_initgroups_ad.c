@@ -250,6 +250,7 @@ done:
 struct sdap_ad_resolve_sids_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *id_ctx;
+    struct sss_failover_ctx *fctx;
     struct sdap_id_conn_ctx *conn;
     struct sdap_options *opts;
     struct sss_domain_info *domain;
@@ -266,7 +267,7 @@ struct tevent_req *
 sdap_ad_resolve_sids_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           struct sdap_id_ctx *id_ctx,
-                          struct sdap_id_conn_ctx *conn,
+                          struct sss_failover_ctx *fctx,
                           struct sdap_options *opts,
                           struct sss_domain_info *domain,
                           char **sids)
@@ -284,7 +285,7 @@ sdap_ad_resolve_sids_send(TALLOC_CTX *mem_ctx,
 
     state->ev = ev;
     state->id_ctx = id_ctx;
-    state->conn = conn;
+    state->fctx = fctx;
     state->opts = opts;
     state->domain = get_domains_head(domain);
     state->sids = sids;
@@ -345,8 +346,8 @@ static errno_t sdap_ad_resolve_sids_step(struct tevent_req *req)
     }
 
     subreq = groups_get_send(state, state->ev, state->id_ctx, sdap_domain,
-                             state->conn, state->current_sid,
-                             BE_FILTER_SECID, false, true, false);
+                             state->fctx, state->current_sid, BE_FILTER_SECID,
+                             false, true, false);
     if (subreq == NULL) {
         return ENOMEM;
     }
@@ -377,8 +378,8 @@ static void sdap_ad_resolve_sids_done(struct tevent_req *subreq)
               state->current_sid);
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to resolve SID %s, "
-              "ret: %d]: %s\n", state->current_sid, ret,
-              strerror(ret));
+              "ret: %d]: %s\n", state->current_sid,
+              ret, strerror(ret));
         goto done;
     }
 
@@ -447,7 +448,7 @@ sdap_ad_tokengroups_initgr_mapping_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct sdap_domain *sdom;
-    struct ad_id_ctx *subdom_id_ctx;
+    //struct ad_id_ctx *subdom_id_ctx;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -485,6 +486,7 @@ sdap_ad_tokengroups_initgr_mapping_send(TALLOC_CTX *mem_ctx,
         }
     }
 
+    /*
     subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
     state->op = sdap_id_op_create(state, subdom_id_ctx->ldap_ctx->conn_cache);
     if (!state->op) {
@@ -498,6 +500,7 @@ sdap_ad_tokengroups_initgr_mapping_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto immediately;
     }
+    */
 
     tevent_req_set_callback(subreq,
                             sdap_ad_tokengroups_initgr_mapping_connect_done,
@@ -521,13 +524,14 @@ sdap_ad_tokengroups_initgr_mapping_connect_done(struct tevent_req *subreq)
 {
     struct sdap_ad_tokengroups_initgr_mapping_state *state = NULL;
     struct tevent_req *req = NULL;
-    int ret;
+    //int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req,
                             struct sdap_ad_tokengroups_initgr_mapping_state);
 
 
+    /*
     ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
@@ -535,9 +539,11 @@ sdap_ad_tokengroups_initgr_mapping_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+    */
 
     subreq = sdap_get_ad_tokengroups_send(state, state->ev, state->opts,
-                                          sdap_id_op_handle(state->op),
+                                          // sdap_id_op_handle(state->op),
+                                          NULL,
                                           state->username,
                                           state->orig_dn, state->timeout);
     if (subreq == NULL) {
@@ -793,7 +799,7 @@ sdap_ad_tokengroups_initgr_posix_send(TALLOC_CTX *mem_ctx,
     struct tevent_req *req = NULL;
     struct tevent_req *subreq = NULL;
     struct sdap_domain *sdom;
-    struct ad_id_ctx *subdom_id_ctx;
+    //struct ad_id_ctx *subdom_id_ctx;
     errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
@@ -831,7 +837,9 @@ sdap_ad_tokengroups_initgr_posix_send(TALLOC_CTX *mem_ctx,
             goto immediately;
         }
     }
+    /*
     subdom_id_ctx = talloc_get_type(sdom->pvt, struct ad_id_ctx);
+
     state->op = sdap_id_op_create(state, subdom_id_ctx->ldap_ctx->conn_cache);
     if (!state->op) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
@@ -844,6 +852,7 @@ sdap_ad_tokengroups_initgr_posix_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto immediately;
     }
+    */
 
     tevent_req_set_callback(subreq,
                             sdap_ad_tokengroups_initgr_posix_sids_connect_done,
@@ -867,13 +876,14 @@ sdap_ad_tokengroups_initgr_posix_sids_connect_done(struct tevent_req *subreq)
 {
     struct sdap_ad_tokengroups_initgr_posix_state *state = NULL;
     struct tevent_req *req = NULL;
-    int ret;
+    //int ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req,
                             struct sdap_ad_tokengroups_initgr_posix_state);
 
 
+/*
     ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
@@ -881,9 +891,11 @@ sdap_ad_tokengroups_initgr_posix_sids_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+    */
 
     subreq = sdap_get_ad_tokengroups_send(state, state->ev, state->opts,
-                                          sdap_id_op_handle(state->op),
+                                          // sdap_id_op_handle(state->op),
+                                          NULL,
                                           state->username, state->orig_dn,
                                           state->timeout);
     if (subreq == NULL) {
@@ -1059,7 +1071,7 @@ sdap_ad_tokengroups_initgr_posix_tg_done(struct tevent_req *subreq)
 
     /* download missing SIDs */
     subreq = sdap_ad_resolve_sids_send(state, state->ev, state->id_ctx,
-                                       state->conn,
+                                       NULL,
                                        state->opts, state->domain,
                                        state->missing_sids);
     if (subreq == NULL) {
@@ -1197,7 +1209,7 @@ sdap_ad_get_domain_local_groups_send(TALLOC_CTX *mem_ctx,
     state->opts = opts;
     state->sysdb = sysdb;
     state->dom = dom;
-    state->search_bases = state->conn->id_ctx->opts->sdom->group_search_bases;
+    // state->search_bases = state->conn->id_ctx->opts->sdom->group_search_bases;
     state->groups = groups;
     state->num_groups = num_groups;
 
@@ -1207,6 +1219,7 @@ sdap_ad_get_domain_local_groups_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
+/*
     state->op = sdap_id_op_create(state, state->conn->conn_cache);
     if (state->op == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_create failed\n");
@@ -1219,7 +1232,7 @@ sdap_ad_get_domain_local_groups_send(TALLOC_CTX *mem_ctx,
         DEBUG(SSSDBG_OP_FAILURE, "sdap_id_op_connect_send failed.\n");
         goto fail;
     }
-
+*/
     tevent_req_set_callback(subreq,
                             sdap_ad_get_domain_local_groups_connect_done, req);
 
@@ -1239,8 +1252,8 @@ sdap_ad_get_domain_local_groups_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_ad_get_domain_local_groups_state *state = tevent_req_data(req,
                                   struct sdap_ad_get_domain_local_groups_state);
+/*
     int ret;
-
     ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
@@ -1248,9 +1261,11 @@ sdap_ad_get_domain_local_groups_connect_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+    */
     subreq = rfc2307bis_nested_groups_send(state, state->ev, state->opts,
                                            state->sysdb, state->dom,
-                                           sdap_id_op_handle(state->op),
+                                           //sdap_id_op_handle(state->op),
+                                           NULL,
                                            state->search_bases,
                                            state->groups, state->num_groups,
                                            state->group_hash, 0);
@@ -1572,7 +1587,7 @@ struct tevent_req *
 sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
                                     struct tevent_context *ev,
                                     struct sdap_id_ctx *id_ctx,
-                                    struct sdap_id_conn_ctx *conn,
+                                    struct sss_failover_ctx *fctx,
                                     struct sdap_options *opts,
                                     struct sysdb_ctx *sysdb,
                                     struct sss_domain_info *domain,
@@ -1628,7 +1643,7 @@ sdap_ad_tokengroups_initgroups_send(TALLOC_CTX *mem_ctx,
                                                          name, orig_dn,
                                                          timeout);
     } else {
-        subreq = sdap_ad_tokengroups_initgr_posix_send(state, ev, id_ctx, conn,
+        subreq = sdap_ad_tokengroups_initgr_posix_send(state, ev, id_ctx, NULL,
                                                        opts, sysdb, domain, sh,
                                                        name, orig_dn,
                                                        timeout);
