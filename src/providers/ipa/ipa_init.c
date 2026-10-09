@@ -49,9 +49,6 @@
     "SRV discovery or the dns_discovery_domain option for the IPA "     \
     "domain while running on the server itself\n"
 
-#define PREAUTH_INDICATOR_ERROR "Failed to create preauth indicator file, " \
-    "special password prompting might not be available.\n"
-
 struct ipa_init_ctx {
     struct ipa_options *options;
     struct ipa_id_ctx *id_ctx;
@@ -508,11 +505,7 @@ static errno_t ipa_init_auth_ctx(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = create_preauth_indicator();
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, PREAUTH_INDICATOR_ERROR);
-        sss_log(SSSDBG_CRIT_FAILURE, PREAUTH_INDICATOR_ERROR);
-    }
+    create_preauth_indicator();
 
     *_auth_ctx = ipa_auth_ctx;
     ret = EOK;
