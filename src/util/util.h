@@ -797,6 +797,7 @@ errno_t sss_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx, const char *derb64,
 
 
 /* from util_preauth.c */
+void cleanup_preauth_indicator(void);
 errno_t create_preauth_indicator(void);
 
 #ifdef SSSD_LIBEXEC_PATH

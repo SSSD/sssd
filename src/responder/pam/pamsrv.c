@@ -328,6 +328,8 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
                   "Smartcard/passkey authentication or configured prompting might "
                   "not work as expected.\n");
         }
+    } else {
+        cleanup_preauth_indicator();
     }
 
     ret = confdb_get_string(pctx->rctx->cdb, pctx, CONFDB_PAM_CONF_ENTRY,
