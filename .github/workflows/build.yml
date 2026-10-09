@@ -68,7 +68,11 @@ jobs:
       - uses: cross-platform-actions/action@v1.5.0
         with:
           operating_system: 'freebsd'
+<<<<<<< HEAD
           version: '14.3'
+=======
+          version: '15.1'
+>>>>>>> df5a5649b (FreeBSD CI: Switch to 15.1-RELEASE)
           architecture: 'x86_64'
           run: |
             # Use latest package set
@@ -76,6 +80,7 @@ jobs:
             sudo cp /etc/pkg/FreeBSD.conf /usr/local/etc/pkg/repos/FreeBSD.conf
             sudo sed -i.bak -e 's|/quarterly|/latest|' /usr/local/etc/pkg/repos/FreeBSD.conf
 
+<<<<<<< HEAD
             # Trick SSSD into believing that nsupdate supports 'realm' clause
             # until FreeBSD switches to MIT Kerberos by default
             # Can be removed with FreeBSD 15
@@ -86,6 +91,12 @@ jobs:
             sed -i.bak -e 's|timezone;|0;|g' src/util/util.c
             sed -i.bak -e 's|daylight,|0,|g' src/providers/ldap/ldap_auth.c \
                 src/providers/ldap/sdap_access.c
+=======
+            # Patch the regexp to make the test pass
+            # See https://github.com/SSSD/sssd/pull/8227
+            sed -i.bak -e 's,\\(domain\\|application\\),[domainapplication]\\{1\,\\},g' \
+                src/config/cfg_rules.ini
+>>>>>>> df5a5649b (FreeBSD CI: Switch to 15.1-RELEASE)
 
             echo "::group::Dependencies installation"
             sudo -E pkg install -y \
