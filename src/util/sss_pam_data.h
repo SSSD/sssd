@@ -100,6 +100,21 @@ int pam_add_response(struct pam_data *pd,
                      int len, const uint8_t *data);
 
 /**
+ * @brief Add a response which is only used inside of the PAM responder and
+ *        is not sent to the client
+ *
+ * @param[in] pd Data structure containing the response_data linked list
+ * @param[in] type Response type
+ * @param[in] len Length of the response data
+ * @param[in] data Response data
+ *
+ * @return EOK on success, ENOMEM on failure
+ */
+int pam_add_response_no_send(struct pam_data *pd,
+                             enum response_type type,
+                             int len, const uint8_t *data);
+
+/**
  * @brief Get the selected response type data from the response_data linked
  *        list
  *
