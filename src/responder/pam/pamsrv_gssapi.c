@@ -835,6 +835,9 @@ int gssapi_state_destructor(struct gssapi_state *state)
     OM_uint32 minor;
 
     gss_delete_sec_context(&minor, &state->ctx, NULL);
+    if (state->cli_ctx != NULL && state->cli_ctx->state_ctx == state) {
+        state->cli_ctx->state_ctx = NULL;
+    }
 
     return 0;
 }
