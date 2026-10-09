@@ -1279,5 +1279,8 @@ done:
         sss_cmd_send_error(state->cli_ctx, ret);
     }
 
+    if (state->cli_ctx->state_ctx == state) {
+        state->cli_ctx->state_ctx = NULL;
+    }
     sss_cmd_done(state->cli_ctx, state);
 }
