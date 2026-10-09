@@ -805,11 +805,15 @@ class SSSDDomain(SSSDConfigObject):
         # Check whether we're adding a provider entry.
         is_provider = option.rfind('_provider')
         if (is_provider > 0):
-            provider = option[:is_provider]
-            try:
-                self.add_provider(value, provider)
-            except NoSuchProviderError:
-                raise NoOptionError
+            # Handle "none" as a special case - explicitly disabled provider
+            if isinstance(value, str) and value.lower() == 'none':
+                self.options[option] = value
+            else:
+                provider = option[:is_provider]
+                try:
+                    self.add_provider(value, provider)
+                except NoSuchProviderError:
+                    raise NoOptionError
         else:
             self.options[option] = value
 
