@@ -199,4 +199,10 @@ krb5_error_code sss_krb5_init_context(krb5_context *context);
 void get_krb5_data_from_cred(struct sss_iobuf *iobuf, krb5_data *k5data);
 
 bool sss_krb5_creds_compare(krb5_context kctx, krb5_creds *a, krb5_creds *b);
+
+krb5_error_code get_validation_principal(krb5_context ctx,
+                                         krb5_keytab keytab,
+                                         const char *keytab_name,
+                                         krb5_principal client_princ,
+                                         krb5_principal *_validation_princ);
 #endif /* __SSS_KRB5_H__ */

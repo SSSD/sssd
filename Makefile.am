@@ -3837,6 +3837,7 @@ simple_access_tests_LDADD = \
 
 krb5_common_test_SOURCES = \
     src/tests/cmocka/test_krb5_common.c \
+    src/tests/cmocka/common_mock_krb5.c \
     $(NULL)
 krb5_common_test_CFLAGS = \
     $(KRB5_CFLAGS) \
