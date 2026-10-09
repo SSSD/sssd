@@ -42,6 +42,13 @@ struct mock_ldap_entry {
 
 struct mock_ldap_entry *global_ldap_entry;
 
+/* When set, returned verbatim in place of the entry's DN or of the
+ * description of attribute mock_attr_override_idx, so a test can hand
+ * the parser bytes that a C string cannot carry */
+static const struct berval *mock_dn_override;
+static const struct berval *mock_attr_override;
+static int mock_attr_override_idx;
+
 static int mock_ldap_entry_iter(void)
 {
     return sss_mock_type(int);
@@ -119,6 +126,22 @@ char *__wrap_ldap_get_dn(LDAP *ld, LDAPMessage *entry)
 {
     struct mock_ldap_entry *ldap_entry = mock_ldap_entry_get();
     return discard_const(ldap_entry->dn);
+}
+
+int __wrap_ldap_get_dn_ber(LDAP *ld, LDAPMessage *entry,
+                           BerElement **berout, BerValue *dn)
+{
+    struct mock_ldap_entry *ldap_entry = mock_ldap_entry_get();
+    if (mock_dn_override != NULL) {
+        *dn = *mock_dn_override;
+    } else {
+        dn->bv_val = discard_const(ldap_entry->dn);
+        dn->bv_len = ldap_entry->dn ? strlen(ldap_entry->dn) : 0;
+    }
+
+    *berout = (BerElement *)-1;
+    will_return(mock_ldap_entry_iter, 0);
+    return LDAP_SUCCESS;
 }
 
 void __wrap_ldap_memfree(void *p)
@@ -209,6 +232,66 @@ char *__wrap_ldap_next_attribute(LDAP *ld,
         will_return(mock_ldap_entry_iter, idx + 1);
     }
     return val;
+}
+
+void __wrap_ber_memfree(void *p)
+{
+    talloc_free(p);
+}
+
+void __wrap_ber_free(void *p, int cnt)
+{
+    if (p)
+        mock_ldap_entry_iter();  /* make will_return happy */
+}
+
+int __wrap_ldap_get_attribute_ber(LDAP *ld,
+                                  LDAPMessage *entry,
+                                  BerElement *ber,
+                                  BerValue *attr,
+                                  BerVarray *vals)
+{
+    struct mock_ldap_entry *ldap_entry = mock_ldap_entry_get();
+    int idx = mock_ldap_entry_iter();
+    const char **attrvals;
+    struct berval *bvals;
+    char *val;
+    size_t count, i;
+
+    val = discard_const(ldap_entry->attrs[idx].name);
+    if (mock_attr_override != NULL && idx == mock_attr_override_idx) {
+        *attr = *mock_attr_override;
+    } else {
+        attr->bv_val = val;
+        attr->bv_len = val ? strlen(val) : 0;
+    }
+    will_return(mock_ldap_entry_iter, idx + 1);
+    if (!val)
+        return LDAP_SUCCESS;
+
+    attrvals = ldap_entry->attrs[idx].values;
+    /* ldap_get_attribute_ber() leaves the array unset for a type
+     * without values */
+    if (attrvals == NULL) {
+        *vals = NULL;
+        return LDAP_SUCCESS;
+    }
+
+    count = 0;
+    for (i = 0; attrvals[i]; i++) {
+        count++;
+    }
+
+    bvals = talloc_zero_array(global_talloc_context,
+                              struct berval,
+                              count + 1);
+    for (i = 0; attrvals[i]; i++) {
+        bvals[i].bv_val = discard_const(attrvals[i]);
+        bvals[i].bv_len = strlen(attrvals[i]);
+    }
+    *vals = bvals;
+
+    return LDAP_SUCCESS;
 }
 
 /* Mock parsing search base without overlinking the test */
@@ -689,6 +772,402 @@ void test_parse_no_oc(void **state)
 /* Negative test - the entry has no DN. Just make sure
  * we don't crash and detect the failure.
  */
+void test_parse_repeated_attr(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_user;
+    struct sdap_attr_map *map;
+    struct ldb_message_element *el;
+    unsigned char *decoded_key;
+    size_t key_len;
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    const char *ssh_values1[] = { "key1", NULL };
+    const char *ssh_values2[] = { "key2", NULL };
+    /* A multi-valued attribute split into repeated single-valued
+     * attributes of the same description, as Google Secure LDAP sends
+     * user-defined attributes */
+    struct mock_ldap_attr test_rfc2307_user_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { .name = "sshPublicKey", .values = ssh_values1 },
+        { .name = "sshPublicKey", .values = ssh_values2 },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_user.dn = "cn=testuser,dc=example,dc=com";
+    test_rfc2307_user.attrs = test_rfc2307_user_attrs;
+    set_entry_parse(&test_rfc2307_user);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_int_equal(attrs->num, 3);
+    assert_entry_has_attr(attrs, SYSDB_NAME, "tuser1");
+
+    /* Both instances must contribute a value */
+    ret = sysdb_attrs_get_el_ext(attrs, SYSDB_SSH_PUBKEY, false, &el);
+    assert_int_equal(ret, ERR_OK);
+    assert_int_equal(el->num_values, 2);
+
+    decoded_key = sss_base64_decode(test_ctx,
+                                    (const char *)el->values[0].data,
+                                    &key_len);
+    assert_non_null(decoded_key);
+    assert_memory_equal(decoded_key, "key1", key_len);
+    talloc_free(decoded_key);
+
+    decoded_key = sss_base64_decode(test_ctx,
+                                    (const char *)el->values[1].data,
+                                    &key_len);
+    assert_non_null(decoded_key);
+    assert_memory_equal(decoded_key, "key2", key_len);
+    talloc_free(decoded_key);
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
+void test_parse_attr_no_values(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_user;
+    struct sdap_attr_map *map;
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *gecos_values[] = { "Test User", NULL };
+    /* A type without values, as returned for a typesOnly search or a
+     * value the server withholds */
+    struct mock_ldap_attr test_rfc2307_user_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = NULL },
+        { .name = "gecos", .values = gecos_values },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_user.dn = "cn=testuser,dc=example,dc=com";
+    test_rfc2307_user.attrs = test_rfc2307_user_attrs;
+    set_entry_parse(&test_rfc2307_user);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_int_equal(attrs->num, 2);
+    assert_entry_has_no_attr(attrs, SYSDB_NAME);
+    assert_entry_has_attr(attrs, SYSDB_GECOS, "Test User");
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
+void test_parse_range_disabled(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_group;
+    struct sdap_attr_map *map;
+
+    const char *oc_values[] = { "posixGroup", NULL };
+    const char *member_values[] = { "tuser1", "tuser2", NULL };
+    const char *cn_values[] = { "tgroup", NULL };
+    /* A ranged attribute precedes the rest of the entry, as Active
+     * Directory sends it for large groups */
+    struct mock_ldap_attr test_rfc2307_group_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "memberUid;range=0-1", .values = member_values },
+        { .name = "cn", .values = cn_values },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_group.dn = "cn=tgroup,dc=example,dc=com";
+    test_rfc2307_group.attrs = test_rfc2307_group_attrs;
+    set_entry_parse(&test_rfc2307_group);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_group_map, SDAP_OPTS_GROUP, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    /* With range retrieval disabled the ranged attribute is skipped */
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_GROUP,
+                           &attrs, true);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_int_equal(attrs->num, 2);
+    assert_entry_has_no_attr(attrs, SYSDB_MEMBER);
+    assert_entry_has_attr(attrs, SYSDB_NAME, "tgroup");
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
+void test_parse_range_unmapped(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_user;
+    struct sdap_attr_map *map;
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *extra_values[] = { "extra1", "extra2", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    /* A ranged attribute that is not in the map precedes the rest of
+     * the entry */
+    struct mock_ldap_attr test_rfc2307_user_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "extra;range=0-1", .values = extra_values },
+        { .name = "uid", .values = uid_values },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_user.dn = "cn=testuser,dc=example,dc=com";
+    test_rfc2307_user.attrs = test_rfc2307_user_attrs;
+    set_entry_parse(&test_rfc2307_user);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_int_equal(attrs->num, 2);
+    assert_entry_has_no_attr(attrs, "extra");
+    assert_entry_has_attr(attrs, SYSDB_NAME, "tuser1");
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
+void test_parse_empty_dn(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rootdse;
+    struct sdap_attr_map *map;
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    struct mock_ldap_attr test_rootdse_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { NULL, NULL }
+    };
+
+    /* The RootDSE is the one entry with an empty DN */
+    test_rootdse.dn = "";
+    test_rootdse.attrs = test_rootdse_attrs;
+    set_entry_parse(&test_rootdse);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_int_equal(attrs->num, 2);
+    assert_entry_has_attr(attrs, SYSDB_ORIG_DN, "");
+    assert_entry_has_attr(attrs, SYSDB_NAME, "tuser1");
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
+void test_parse_objectclass_case(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_user;
+    struct sdap_attr_map *map;
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    /* Attribute descriptions are case-insensitive; a server may return
+     * the description in a different case than the request used */
+    struct mock_ldap_attr test_rfc2307_user_attrs[] = {
+        { .name = "objectclass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_user.dn = "cn=testuser,dc=example,dc=com";
+    test_rfc2307_user.attrs = test_rfc2307_user_attrs;
+    set_entry_parse(&test_rfc2307_user);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_int_equal(attrs->num, 2);
+    assert_entry_has_attr(attrs, SYSDB_NAME, "tuser1");
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
+void test_parse_objectclass_extra_attr(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_user;
+    struct sdap_attr_map *map;
+    struct ldb_message_element *el;
+    char *extra_attrs[] = { discard_const("ocs:objectClass"), NULL };
+    size_t map_size;
+
+    const char *oc_values[] = { "top", "posixAccount", "customPerson", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    struct mock_ldap_attr test_rfc2307_user_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_user.dn = "cn=testuser,dc=example,dc=com";
+    test_rfc2307_user.attrs = test_rfc2307_user_attrs;
+    set_entry_parse(&test_rfc2307_user);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    /* objectClass itself can be requested through ldap_user_extra_attrs */
+    ret = sdap_extend_map(test_ctx, map, SDAP_OPTS_USER, extra_attrs,
+                          &map, &map_size);
+    assert_int_equal(ret, ERR_OK);
+    assert_int_equal(map_size, SDAP_OPTS_USER + 1);
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, map_size,
+                           &attrs, false);
+    assert_int_equal(ret, ERR_OK);
+
+    assert_entry_has_attr(attrs, SYSDB_NAME, "tuser1");
+    ret = sysdb_attrs_get_el_ext(attrs, "ocs", false, &el);
+    assert_int_equal(ret, ERR_OK);
+    assert_int_equal(el->num_values, 3);
+
+    talloc_free(map);
+    talloc_free(attrs);
+}
+
+void test_parse_oc_prefix(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_user;
+    struct sdap_attr_map *map;
+
+    /* A strict prefix of the class name in the map is not a match */
+    const char *oc_values[] = { "posix", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    struct mock_ldap_attr test_rfc2307_user_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_user.dn = "cn=testuser,dc=example,dc=com";
+    test_rfc2307_user.attrs = test_rfc2307_user_attrs;
+    set_entry_parse(&test_rfc2307_user);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    assert_int_equal(ret, EINVAL);
+
+    talloc_free(map);
+}
+
+void test_parse_zero_byte(void **state)
+{
+    int ret;
+    struct sysdb_attrs *attrs;
+    struct parse_test_ctx *test_ctx = talloc_get_type_abort(*state,
+                                                      struct parse_test_ctx);
+    struct mock_ldap_entry test_rfc2307_user;
+    struct sdap_attr_map *map;
+    const struct berval dn_with_zero = {
+        .bv_val = discard_const("cn=testuser\0,dc=example,dc=com"),
+        .bv_len = 30
+    };
+    const struct berval desc_with_zero = {
+        .bv_val = discard_const("uid\0Number"),
+        .bv_len = 10
+    };
+
+    const char *oc_values[] = { "posixAccount", NULL };
+    const char *uid_values[] = { "tuser1", NULL };
+    struct mock_ldap_attr test_rfc2307_user_attrs[] = {
+        { .name = "objectClass", .values = oc_values },
+        { .name = "uid", .values = uid_values },
+        { NULL, NULL }
+    };
+
+    test_rfc2307_user.dn = "cn=testuser,dc=example,dc=com";
+    test_rfc2307_user.attrs = test_rfc2307_user_attrs;
+    set_entry_parse(&test_rfc2307_user);
+
+    ret = sdap_copy_map(test_ctx, rfc2307_user_map, SDAP_OPTS_USER, &map);
+    assert_int_equal(ret, ERR_OK);
+
+    /* A zero byte inside the DN */
+    mock_dn_override = &dn_with_zero;
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    mock_dn_override = NULL;
+    assert_int_equal(ret, EINVAL);
+
+    /* A zero byte inside the description of the second attribute */
+    mock_attr_override = &desc_with_zero;
+    mock_attr_override_idx = 1;
+    ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
+                           map, SDAP_OPTS_USER,
+                           &attrs, false);
+    mock_attr_override = NULL;
+    assert_int_equal(ret, EINVAL);
+
+    talloc_free(map);
+}
+
 void test_parse_no_dn(void **state)
 {
     int ret;
@@ -1255,11 +1734,38 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_parse_secondary_oc,
                                         parse_entry_test_setup,
                                         parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_repeated_attr,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_attr_no_values,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_range_disabled,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_range_unmapped,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_empty_dn,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_objectclass_case,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_objectclass_extra_attr,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
         /* Negative tests */
         cmocka_unit_test_setup_teardown(test_parse_no_oc,
                                         parse_entry_test_setup,
                                         parse_entry_test_teardown),
         cmocka_unit_test_setup_teardown(test_parse_bad_oc,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_oc_prefix,
+                                        parse_entry_test_setup,
+                                        parse_entry_test_teardown),
+        cmocka_unit_test_setup_teardown(test_parse_zero_byte,
                                         parse_entry_test_setup,
                                         parse_entry_test_teardown),
         cmocka_unit_test_setup_teardown(test_parse_no_dn,
