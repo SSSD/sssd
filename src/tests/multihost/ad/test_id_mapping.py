@@ -22,6 +22,31 @@ class Testidmaprange(object):
       2. Add the user using adcli user add.
     :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1268902
     """
+    @pytest.fixture(autouse=True)
+    def idmap_cleanup(self, multihost):
+        """Restore default idmap config and wipe sssd cache after each test.
+
+        These tests set a small ldap_idmap_range_size, which makes sssd store
+        an idmap slice in its cache that is invalid once the default range
+        size is restored. If the cache is left in place, the AD backend fails
+        to start on the next realm join ("BUG: Range maximum exceeds the
+        global maximum"), breaking every subsequent AD test in the run. As a
+        teardown fixture this runs even when the test body fails before
+        reaching its own cleanup line.
+        """
+        yield
+        client = sssdTools(multihost.client[0], multihost.ad[0])
+        try:
+            dom_section = 'domain/%s' % client.get_domain_section_name()
+            client.sssd_conf(
+                dom_section,
+                {'ldap_idmap_range_size': '',
+                 'ldap_idmap_helper_table_size': '',
+                 'debug_level': ''},
+                action='delete')
+        finally:
+            client.clear_sssd_cache()
+
     @pytest.mark.tier1
     def test_001_findrid(self, multihost, get_rid):
         """
@@ -55,7 +80,6 @@ class Testidmaprange(object):
         if cmd.returncode == 0:
             rid = client.find_rid(ad_user)
             assert rid != 0 or rid is not None
-        client.sssd_conf(dom_section, sssd_params, action='delete')
 
     @pytest.mark.tier2
     def test_003_disablerange(self, multihost, get_rid):
@@ -91,7 +115,6 @@ class Testidmaprange(object):
                 assert True
             else:
                 assert False
-        client.sssd_conf(dom_section, sssd_params, action='delete')
 
     @pytest.mark.tier2
     def test_004_rangeequalsid(self, multihost, get_rid):
@@ -123,7 +146,6 @@ class Testidmaprange(object):
                 assert True
             else:
                 assert False
-        client.sssd_conf(dom_section, sssd_params, action='delete')
 
     @pytest.mark.tier2
     def test_005_disablerange(self, multihost, get_rid):
@@ -158,7 +180,6 @@ class Testidmaprange(object):
                 assert True
             else:
                 assert False
-        client.sssd_conf(dom_section, sssd_params, action='delete')
 
     @pytest.mark.tier2
     def test_006_rangevalues(self, multihost, get_rid):
@@ -196,7 +217,6 @@ class Testidmaprange(object):
                     assert True
                 else:
                     assert False
-        client.sssd_conf(dom_section, sssd_params, action='delete')
 
     @pytest.mark.tier2
     def test_007_disablerangevalues(self, multihost, get_rid):
@@ -240,4 +260,3 @@ class Testidmaprange(object):
                 assert True
             else:
                 assert False
-        client.sssd_conf(section, sssd_params, action='delete')
