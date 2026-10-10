@@ -117,6 +117,7 @@ class TestPasswordPolicy():
         client = multihost.client[0]
         tools = sssdTools(multihost.client[0])
         cn_config = 'cn=config'
+        ldap_modify_ds(multihost, ldap.MOD_REPLACE, cn_config, 'passwordExp', [b'on'])
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, cn_config, 'passwordMaxAge', [b'1'])
         user_dn = 'uid=ppuser1,ou=People,dc=example,dc=test'
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, user_dn, 'userPassword', [b'Secret123'])
@@ -165,6 +166,8 @@ class TestPasswordPolicy():
         cn_config = 'cn=config'
         ldap_modify_ds(multihost, ldap.MOD_REPLACE, cn_config, 'passwordExp', [b'on'])
         ldap_modify_ds(multihost, ldap.MOD_ADD, cn_config, 'passwordGraceLimit', [b'3'])
+        user_dn = 'uid=ppuser1,ou=People,dc=example,dc=test'
+        ldap_modify_ds(multihost, ldap.MOD_REPLACE, user_dn, 'userPassword', [b'Secret123'])
         client.run_command("> /var/log/secure")
         time.sleep(3)
         check_login_client(multihost, 'ppuser1', 'Secret123')
