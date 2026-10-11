@@ -30,8 +30,7 @@ if __name__ == "__main__":
     centos = sorted(get_centos_matrix())
 
     matrix = {
-        'intgcheck': [*centos],
-        'multihost': [*centos],
+        'system': [*centos],
     }
 
     print(json.dumps(matrix, indent=2))
