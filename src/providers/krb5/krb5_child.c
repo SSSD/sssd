@@ -3747,7 +3747,9 @@ done:
 
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline)
 {
-    static const size_t IN_BUF_SIZE = 2048;
+    /* Large enough for a passkey assertion with an ML-DSA-87 signature
+     * (4627 bytes, base64-encoded in the reply). */
+    static const size_t IN_BUF_SIZE = 16384;
     uint8_t buf[IN_BUF_SIZE];
     ssize_t len;
     errno_t ret;
