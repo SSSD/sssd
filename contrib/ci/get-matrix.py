@@ -57,8 +57,7 @@ if __name__ == "__main__":
     centos = sorted(get_centos_matrix())
 
     matrix = {
-        'intgcheck': [*fedora, *centos],
-        'multihost': [*fedora, *centos],
+        'system': [*fedora, *centos],
     }
 
     print(json.dumps(matrix, indent=2))

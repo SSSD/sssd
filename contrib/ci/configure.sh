@@ -19,8 +19,6 @@
 if [ -z ${_CONFIGURE_SH+set} ]; then
 declare -r _CONFIGURE_SH=
 
-. distro.sh
-
 # List of "configure" arguments.
 declare -a CONFIGURE_ARG_LIST=(
     "--disable-dependency-tracking"
@@ -34,14 +32,6 @@ declare -a CONFIGURE_ARG_LIST=(
     "--with-passkey"
     "--without-python2-bindings"
 )
-
-# Different versions of Debian might need different versions here but this is
-# sufficient to make the CI work
-if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
-    CONFIGURE_ARG_LIST+=(
-        "--with-smb-idmap-interface-version=5"
-    )
-fi
 
 declare -r -a CONFIGURE_ARG_LIST
 
