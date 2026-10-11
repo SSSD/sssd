@@ -26,25 +26,16 @@ declare -a DEPS_LIST=(
     valgrind
 )
 
-# "Integration tests dependencies satisfied" flag
-declare DEPS_INTGCHECK_SATISFIED=true
-
 if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
     declare _DEPS_LIST_SPEC
     DEPS_LIST+=(
-        fakeroot
         libfaketime
         libcmocka-devel
         nss_wrapper
-        openldap-clients
-        openldap-servers
         rpm-build
         uid_wrapper
-        pam_wrapper
         passwd
         curl-devel
-        krb5-server
-        krb5-workstation
         libunistring-devel
     )
 
@@ -181,7 +172,6 @@ if [[ "$DISTRO_BRANCH" == -debian-* ]]; then
         libsubid-dev
     )
 
-    DEPS_INTGCHECK_SATISFIED=true
 fi
 
 declare -a -r DEPS_LIST
@@ -190,12 +180,6 @@ declare -a -r DEPS_LIST
 function deps_install()
 {
     distro_pkg_install "${DEPS_LIST[@]}"
-}
-
-# Remove dependencies.
-function deps_remove()
-{
-    distro_pkg_remove "${DEPS_LIST[@]}"
 }
 
 fi # _DEPS_SH
