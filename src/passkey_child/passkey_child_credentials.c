@@ -34,6 +34,13 @@
 #include "util/debug.h"
 #include "util/util.h"
 
+#ifdef HAVE_FIDO_ES384
+#include <fido/es384.h>
+#endif
+#ifdef HAVE_FIDO_MLDSA
+#include <fido/mldsa.h>
+#endif
+
 #include "passkey_child.h"
 
 errno_t
@@ -528,11 +535,27 @@ struct cose_pk_ops {
 COSE_PK_WRAPPERS(es256)
 COSE_PK_WRAPPERS(rs256)
 COSE_PK_WRAPPERS(eddsa)
+#ifdef HAVE_FIDO_ES384
+COSE_PK_WRAPPERS(es384)
+#endif
+#ifdef HAVE_FIDO_MLDSA
+COSE_PK_WRAPPERS(mldsa44)
+COSE_PK_WRAPPERS(mldsa65)
+COSE_PK_WRAPPERS(mldsa87)
+#endif
 
 static const struct cose_pk_ops cose_pk_ops_list[] = {
     COSE_PK_OPS(es256, COSE_ES256, "EC", 256),
+#ifdef HAVE_FIDO_ES384
+    COSE_PK_OPS(es384, COSE_ES384, "EC", 384),
+#endif
     COSE_PK_OPS(rs256, COSE_RS256, "RSA", 0),
     COSE_PK_OPS(eddsa, COSE_EDDSA, "ED25519", 0),
+#ifdef HAVE_FIDO_MLDSA
+    COSE_PK_OPS(mldsa44, COSE_MLDSA44, "ML-DSA-44", 0),
+    COSE_PK_OPS(mldsa65, COSE_MLDSA65, "ML-DSA-65", 0),
+    COSE_PK_OPS(mldsa87, COSE_MLDSA87, "ML-DSA-87", 0),
+#endif
 };
 
 static const struct cose_pk_ops *

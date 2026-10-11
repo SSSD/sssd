@@ -35,8 +35,21 @@
 #define TIMEOUT         15
 #define FREQUENCY       1
 
+#ifdef HAVE_FIDO_ES384
+#define PASSKEY_COSE_TYPES_ES384 "|es384"
+#else
+#define PASSKEY_COSE_TYPES_ES384 ""
+#endif
+
+#ifdef HAVE_FIDO_MLDSA
+#define PASSKEY_COSE_TYPES_MLDSA "|mldsa44|mldsa65|mldsa87"
+#else
+#define PASSKEY_COSE_TYPES_MLDSA ""
+#endif
+
 /* COSE types accepted by the --type option */
-#define PASSKEY_COSE_TYPES "es256|rs256|eddsa"
+#define PASSKEY_COSE_TYPES "es256" PASSKEY_COSE_TYPES_ES384 "|rs256|eddsa" \
+                           PASSKEY_COSE_TYPES_MLDSA
 
 enum action_opt {
     ACTION_NONE,
