@@ -116,6 +116,7 @@ struct sdap_access_req_ctx {
     struct ldb_message *user_entry;
     size_t current_rule;
     enum sdap_access_control_type ac_type;
+    bool pw_expire_warn_seen;
 };
 
 static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
@@ -150,6 +151,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     state->access_ctx = access_ctx;
     state->conn = conn;
     state->current_rule = 0;
+    state->pw_expire_warn_seen = false;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Performing access check for user [%s]\n", pd->user);
@@ -212,8 +214,8 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
     while (ret == EOK) {
         switch (state->access_ctx->access_rule[state->current_rule]) {
         case LDAP_ACCESS_EMPTY:
-            /* we are done with no errors */
-            return EOK;
+            /* all rules passed; preserve warn semantics if seen */
+            return state->pw_expire_warn_seen ? ERR_PASSWORD_EXPIRED_WARN : EOK;
 
         /* This option is deprecated by LDAP_ACCESS_PPOLICY */
         case LDAP_ACCESS_LOCKOUT:
@@ -295,7 +297,8 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
                                           state->access_ctx->type,
                                           state->access_ctx->id_ctx->opts);
             if (ret == ERR_PASSWORD_EXPIRED) {
-                ret = ERR_PASSWORD_EXPIRED_WARN;
+                state->pw_expire_warn_seen = true;
+                ret = EOK;
             }
             break;
 

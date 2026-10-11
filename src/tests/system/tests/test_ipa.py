@@ -1256,3 +1256,72 @@ def test_ipa__prohibited_short_names(ipa: IPA):
 
     assert result is not None, "Test failure - no result of SSSD restart!"
     assert result.rc != 0, "SSSD should refuse to start with full_name_format set to '%1$s'!"
+
+
+@pytest.mark.importance("low")
+@pytest.mark.topology(KnownTopology.IPA)
+def test_ipa__password_expiration_warning_does_not_overwrite_errors(client: Client, ipa: IPA):
+    """
+    :title: SSSD warns that a password is about to expire
+    :setup:
+        1. Create user with expired password
+        2. Lock the user by disabling it
+        3. Set 'ipa_access_order = pwd_expire_policy_warn, expire' and restart SSSD
+        4. Create SSH key for the user and store it one the server
+    :steps:
+        1. SSH into the local host with the SSH key of the user
+        2. Change 'ldap_access_order' to 'pwd_expire_policy_warn, expire'
+        3. SSH into the local host with the SSH key of the user
+    :expectedresults:
+        1. SSH is successful and shows 'Your password has expired.' on standard error
+        2. Config change is successful
+        3. SSH fails because the 'expire' policy rejects the locked user
+    :customerscenario: False
+    """
+
+    user = ipa.user("user1").add(password="Secret123", require_password_reset=True)
+
+    result = ipa.host.conn.run(f"ipa user-disable {user.name}")
+    assert result.rc == 0, "'ipa user-disable' failed"
+    assert f'Disabled user account "{user.name}"' in result.stdout, "Unexpected output from 'ipa user-disable'"
+
+    client.sssd.domain["ipa_access_order"] = "pwd_expire_policy_warn"
+    client.sssd.enable_responder("ssh")
+    client.sssd.restart()
+
+    pwd = client.tools.getent.passwd(user.name)
+    assert pwd is not None, "User not found!"
+    assert pwd.name is not None, "User name is missing!"
+    assert pwd.home is not None, "home directory is missing!"
+
+    key = client.tools.sshkey.generate(pwd.name, pwd.home)[0]
+    user.modify(sshpubkey=key)
+    # remove password from keyfil to make non-interactive login work
+    client.host.conn.run(f"ssh-keygen -p -P ' ' -N '' -f {pwd.home}/.ssh/id_rsa")
+
+    client.sssd.restart(clean=True)
+
+    result = client.host.conn.run(
+        f"sudo -u {user.name} ssh -o StrictHostKeychecking=no "
+        "-o PubkeyAuthentication=yes -o GSSAPIAuthentication=no "
+        "-o KbdInteractiveAuthentication=no -o PasswordAuthentication=no "
+        f"-l {user.name} localhost whoami",
+        raise_on_error=False,
+    )
+    assert result.rc == 0, "SSH with pubkey failed"
+    assert result.stdout == f"{user.name}", "Missing user name output"
+    assert "Your password has expired." in result.stderr, "Missing 'Your password has expired.' in error output"
+
+    client.sssd.domain["ipa_access_order"] = "pwd_expire_policy_warn, expire"
+    client.sssd.restart()
+
+    result = client.host.conn.run(
+        f"sudo -u {user.name} ssh -o StrictHostKeychecking=no "
+        "-o PubkeyAuthentication=yes -o GSSAPIAuthentication=no "
+        "-o KbdInteractiveAuthentication=no -o PasswordAuthentication=no "
+        f"-l {user.name} localhost whoami",
+        raise_on_error=False,
+    )
+    assert result.rc != 0, "SSH was successful but should have failed"
+    assert result.stdout == "", "Output is not empty"
+    assert "Your password has expired." in result.stderr, "Missing 'Your password has expired.' in error output"
