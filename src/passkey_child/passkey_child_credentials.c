@@ -675,6 +675,8 @@ evp_pkey_to_cose_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Public key type %s (COSE algorithm %d).\n",
+          ops->name, ops->type);
     _pk_data->type = ops->type;
     _pk_data->public_key = public_key;
     public_key = NULL;
@@ -686,6 +688,15 @@ done:
     }
 
     return ret;
+}
+
+const char *
+cose_type_name(int type)
+{
+    const struct cose_pk_ops *ops;
+
+    ops = cose_pk_ops_by_type(type);
+    return ops != NULL ? ops->name : "unknown";
 }
 
 void

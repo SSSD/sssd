@@ -428,6 +428,16 @@ errno_t
 evp_pkey_to_cose_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data);
 
 /**
+ * @brief Name of a COSE type, as accepted by the --type option
+ *
+ * @param[in] type COSE type
+ *
+ * @return the name, or "unknown" for an unsupported type
+ */
+const char *
+cose_type_name(int type);
+
+/**
  * @brief Free libfido2's public key data structure of the given COSE type
  *
  * @param[in] type COSE type

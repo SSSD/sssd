@@ -398,6 +398,9 @@ verify_assert(struct pk_data_t *pk_data, fido_assert_t *assert)
         goto done;
     }
 
+    DEBUG(SSSDBG_TRACE_FUNC, "Assertion verified with %s key.\n",
+          cose_type_name(pk_data->type));
+
 done:
     return ret;
 }
