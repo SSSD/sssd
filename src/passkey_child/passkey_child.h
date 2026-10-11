@@ -35,6 +35,9 @@
 #define TIMEOUT         15
 #define FREQUENCY       1
 
+/* COSE types accepted by the --type option */
+#define PASSKEY_COSE_TYPES "es256|rs256|eddsa"
+
 enum action_opt {
     ACTION_NONE,
     ACTION_REGISTER,
@@ -257,46 +260,18 @@ print_credentials_to_file(const struct passkey_data *data,
                           const char *pem_key);
 
 /**
- * @brief Format libfido2's es256 data structure to EVP_PKEY
+ * @brief Format libfido2's public key data of the given COSE type to EVP_PKEY
  *
- * @param[in] mem_ctx Memory context
- * @param[in] es256_key Public key pointer
- * @param[in] es256_key_len Public key length
+ * @param[in] type COSE type
+ * @param[in] key Public key pointer
+ * @param[in] key_len Public key length
  * @param[out] _evp_pkey Pointer to public key structure
  *
  * @return 0 if the key was formatted properly, error code otherwise.
  */
 int
-es256_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *es256_key,
-                         size_t es256_key_len, EVP_PKEY **_evp_pkey);
-
-/**
- * @brief Format libfido2's rs256 data structure to EVP_PKEY
- *
- * @param[in] mem_ctx Memory context
- * @param[in] rs256_key Public key pointer
- * @param[in] rs256_key_len Public key length
- * @param[out] _evp_pkey Pointer to public key structure
- *
- * @return 0 if the key was formatted properly, error code otherwise.
- */
-int
-rs256_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *rs256_key,
-                         size_t rs256_key_len, EVP_PKEY **_evp_pkey);
-
-/**
- * @brief Format libfido2's eddsa data structure to EVP_PKEY
- *
- * @param[in] mem_ctx Memory context
- * @param[in] eddsa_key Public key pointer
- * @param[in] eddsa_key_len Public key length
- * @param[out] _evp_pkey Pointer to public key structure
- *
- * @return 0 if the key was formatted properly, error code otherwise.
- */
-int
-eddsa_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *eddsa_key,
-                         size_t eddsa_key_len, EVP_PKEY **_evp_pkey);
+cose_pubkey_to_evp_pkey(int type, const void *key, size_t key_len,
+                        EVP_PKEY **_evp_pkey);
 
 /**
  * @brief Format the public key to base64
@@ -426,7 +401,9 @@ errno_t
 reset_public_key(struct pk_data_t *_pk_data);
 
 /**
- * @brief Format EVP_PKEY to libfido2's es256 data structure
+ * @brief Format EVP_PKEY to the matching libfido2 public key data structure
+ *
+ * The COSE type is derived from the EVP_PKEY key type and size.
  *
  * @param[in] evp_pkey EVP_PKEY public key
  * @param[out] _pk_data Public key data
@@ -435,31 +412,16 @@ reset_public_key(struct pk_data_t *_pk_data);
  *         error code otherwise.
  */
 errno_t
-evp_pkey_to_es256_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data);
+evp_pkey_to_cose_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data);
 
 /**
- * @brief Format EVP_PKEY to libfido2's rs256 data structure
+ * @brief Free libfido2's public key data structure of the given COSE type
  *
- * @param[in] evp_pkey EVP_PKEY public key
- * @param[out] _pk_data Public key data
- *
- * @return 0 if the public key was formatted properly,
- *         error code otherwise.
+ * @param[in] type COSE type
+ * @param[in,out] _public_key Public key pointer, set to NULL on return
  */
-errno_t
-evp_pkey_to_rs256_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data);
-
-/**
- * @brief Format EVP_PKEY to libfido2's eddsa data structure
- *
- * @param[in] evp_pkey EVP_PKEY public key
- * @param[out] _pk_data Public key data
- *
- * @return 0 if the public key was formatted properly,
- *         error code otherwise.
- */
-errno_t
-evp_pkey_to_eddsa_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data);
+void
+cose_pubkey_free(int type, void **_public_key);
 
 /**
  * @brief Format the public key to the libfido2 data structure

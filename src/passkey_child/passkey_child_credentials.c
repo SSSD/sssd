@@ -481,31 +481,135 @@ done:
     return ret;
 }
 
-int
-es256_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *es256_key,
-                         size_t es256_key_len, EVP_PKEY **_evp_pkey)
+/* Operations on libfido2's public key data structure of a COSE type. libfido2
+ * provides the same set of functions for each type, differing only in the
+ * structure type; the wrappers below give them a common signature. */
+struct cose_pk_ops {
+    int type;
+    /* Name used by the --type option */
+    const char *name;
+    /* OpenSSL key type and size (0 for any) to match EVP_PKEY keys */
+    const char *evp_type;
+    int evp_bits;
+    void *(*pk_new)(void);
+    void (*pk_free)(void **pk);
+    int (*pk_from_ptr)(void *pk, const void *ptr, size_t len);
+    int (*pk_from_evp)(void *pk, const EVP_PKEY *evp_pkey);
+    EVP_PKEY *(*pk_to_evp)(const void *pk);
+};
+
+#define COSE_PK_WRAPPERS(alg) \
+    static void *alg##_pk_new_op(void) \
+    { \
+        return alg##_pk_new(); \
+    } \
+    static void alg##_pk_free_op(void **pk) \
+    { \
+        alg##_pk_free((alg##_pk_t **) pk); \
+    } \
+    static int alg##_pk_from_ptr_op(void *pk, const void *ptr, size_t len) \
+    { \
+        return alg##_pk_from_ptr(pk, ptr, len); \
+    } \
+    static int alg##_pk_from_evp_op(void *pk, const EVP_PKEY *evp_pkey) \
+    { \
+        return alg##_pk_from_EVP_PKEY(pk, evp_pkey); \
+    } \
+    static EVP_PKEY *alg##_pk_to_evp_op(const void *pk) \
+    { \
+        return alg##_pk_to_EVP_PKEY(pk); \
+    }
+
+#define COSE_PK_OPS(alg, cose_type, evp_type, evp_bits) \
+    { cose_type, #alg, evp_type, evp_bits, \
+      alg##_pk_new_op, alg##_pk_free_op, alg##_pk_from_ptr_op, \
+      alg##_pk_from_evp_op, alg##_pk_to_evp_op }
+
+COSE_PK_WRAPPERS(es256)
+COSE_PK_WRAPPERS(rs256)
+COSE_PK_WRAPPERS(eddsa)
+
+static const struct cose_pk_ops cose_pk_ops_list[] = {
+    COSE_PK_OPS(es256, COSE_ES256, "EC", 256),
+    COSE_PK_OPS(rs256, COSE_RS256, "RSA", 0),
+    COSE_PK_OPS(eddsa, COSE_EDDSA, "ED25519", 0),
+};
+
+static const struct cose_pk_ops *
+cose_pk_ops_by_type(int type)
 {
+    for (size_t i = 0; i < N_ELEMENTS(cose_pk_ops_list); i++) {
+        if (cose_pk_ops_list[i].type == type) {
+            return &cose_pk_ops_list[i];
+        }
+    }
+
+    return NULL;
+}
+
+static const struct cose_pk_ops *
+cose_pk_ops_by_evp_pkey(const EVP_PKEY *evp_pkey)
+{
+    const struct cose_pk_ops *ops;
+
+    for (size_t i = 0; i < N_ELEMENTS(cose_pk_ops_list); i++) {
+        ops = &cose_pk_ops_list[i];
+        if (EVP_PKEY_is_a(evp_pkey, ops->evp_type) == 1
+            && (ops->evp_bits == 0
+                || EVP_PKEY_get_bits(evp_pkey) == ops->evp_bits)) {
+            return ops;
+        }
+    }
+
+    return NULL;
+}
+
+errno_t
+cose_str_to_int(const char *type, int *out)
+{
+    for (size_t i = 0; i < N_ELEMENTS(cose_pk_ops_list); i++) {
+        if (strcasecmp(type, cose_pk_ops_list[i].name) == 0) {
+            *out = cose_pk_ops_list[i].type;
+            return EOK;
+        }
+    }
+
+    *out = 0;
+    return ERR_INVALID_CRED_TYPE;
+}
+
+int
+cose_pubkey_to_evp_pkey(int type, const void *key, size_t key_len,
+                        EVP_PKEY **_evp_pkey)
+{
+    const struct cose_pk_ops *ops;
     EVP_PKEY *evp_pkey = NULL;
-    es256_pk_t *public_key = NULL;
+    void *public_key = NULL;
     errno_t ret;
 
-    public_key = es256_pk_new();
+    ops = cose_pk_ops_by_type(type);
+    if (ops == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Invalid key type [%d].\n", type);
+        return EINVAL;
+    }
+
+    public_key = ops->pk_new();
     if (public_key == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "es256_pk_new failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "%s_pk_new failed.\n", ops->name);
         ret = ENOMEM;
         goto done;
     }
 
-    ret = es256_pk_from_ptr(public_key, es256_key, es256_key_len);
+    ret = ops->pk_from_ptr(public_key, key, key_len);
     if (ret != FIDO_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "es256_pk_from_ptr failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
+        DEBUG(SSSDBG_OP_FAILURE, "%s_pk_from_ptr failed [%d]: %s.\n",
+              ops->name, ret, fido_strerr(ret));
         goto done;
     }
 
-    evp_pkey = es256_pk_to_EVP_PKEY(public_key);
+    evp_pkey = ops->pk_to_evp(public_key);
     if (evp_pkey == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "es256_pk_to_EVP_PKEY failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "%s_pk_to_EVP_PKEY failed.\n", ops->name);
         ret = ENOMEM;
         goto done;
     }
@@ -514,167 +618,60 @@ es256_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *es256_key,
     ret = EOK;
 
 done:
-    es256_pk_free(&public_key);
-
-    return ret;
-}
-
-int
-rs256_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *rs256_key,
-                         size_t rs256_key_len, EVP_PKEY **_evp_pkey)
-{
-    EVP_PKEY *evp_pkey = NULL;
-    rs256_pk_t *public_key = NULL;
-    errno_t ret;
-
-    public_key = rs256_pk_new();
-    if (public_key == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "rs256_pk_new failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = rs256_pk_from_ptr(public_key, rs256_key, rs256_key_len);
-    if (ret != FIDO_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "rs256_pk_from_ptr failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
-        goto done;
-    }
-
-    evp_pkey = rs256_pk_to_EVP_PKEY(public_key);
-    if (evp_pkey == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "rs256_pk_to_EVP_PKEY failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    *_evp_pkey = evp_pkey;
-    ret = EOK;
-
-done:
-    rs256_pk_free(&public_key);
-
-    return ret;
-}
-
-int
-eddsa_pubkey_to_evp_pkey(TALLOC_CTX *mem_ctx, const void *eddsa_key,
-                         size_t eddsa_key_len, EVP_PKEY **_evp_pkey)
-{
-    EVP_PKEY *evp_pkey = NULL;
-    eddsa_pk_t *public_key = NULL;
-    errno_t ret;
-
-    public_key = eddsa_pk_new();
-    if (public_key == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "eddsa_pk_new failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = eddsa_pk_from_ptr(public_key, eddsa_key, eddsa_key_len);
-    if (ret != FIDO_OK) {
-        DEBUG(SSSDBG_OP_FAILURE, "eddsa_pk_from_ptr failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
-        goto done;
-    }
-
-    evp_pkey = eddsa_pk_to_EVP_PKEY(public_key);
-    if (evp_pkey == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "eddsa_pk_to_EVP_PKEY failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    *_evp_pkey = evp_pkey;
-    ret = EOK;
-
-done:
-    eddsa_pk_free(&public_key);
+    ops->pk_free(&public_key);
 
     return ret;
 }
 
 errno_t
-evp_pkey_to_es256_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
+evp_pkey_to_cose_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
 {
+    const struct cose_pk_ops *ops;
     void *public_key = NULL;
     errno_t ret;
 
-    public_key = es256_pk_new();
+    ops = cose_pk_ops_by_evp_pkey(evp_pkey);
+    if (ops == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Unrecognized key type [%s].\n",
+              EVP_PKEY_get0_type_name(evp_pkey));
+        return EINVAL;
+    }
+
+    public_key = ops->pk_new();
     if (public_key == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "es256_pk_new failed.\n");
+        DEBUG(SSSDBG_OP_FAILURE, "%s_pk_new failed.\n", ops->name);
         ret = ENOMEM;
         goto done;
     }
 
-    ret = es256_pk_from_EVP_PKEY(public_key, evp_pkey);
+    ret = ops->pk_from_evp(public_key, evp_pkey);
     if (ret != FIDO_OK) {
         DEBUG(SSSDBG_OP_FAILURE,
-              "es256_pk_from_EVP_PKEY failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
+              "%s_pk_from_EVP_PKEY failed [%d]: %s.\n",
+              ops->name, ret, fido_strerr(ret));
         goto done;
     }
 
+    _pk_data->type = ops->type;
     _pk_data->public_key = public_key;
+    public_key = NULL;
     ret = EOK;
 
 done:
+    if (public_key != NULL) {
+        ops->pk_free(&public_key);
+    }
+
     return ret;
 }
 
-errno_t
-evp_pkey_to_rs256_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
+void
+cose_pubkey_free(int type, void **_public_key)
 {
-    void *public_key = NULL;
-    errno_t ret;
+    const struct cose_pk_ops *ops;
 
-    public_key = rs256_pk_new();
-    if (public_key == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "rs256_pk_new failed.\n");
-        ret = ENOMEM;
-        goto done;
+    ops = cose_pk_ops_by_type(type);
+    if (ops != NULL) {
+        ops->pk_free(_public_key);
     }
-
-    ret = rs256_pk_from_EVP_PKEY(public_key, evp_pkey);
-    if (ret != FIDO_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "rs256_pk_from_EVP_PKEY failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
-        goto done;
-    }
-
-    _pk_data->public_key = public_key;
-    ret = EOK;
-
-done:
-    return ret;
-}
-
-errno_t
-evp_pkey_to_eddsa_pubkey(const EVP_PKEY *evp_pkey, struct pk_data_t *_pk_data)
-{
-    void *public_key = NULL;
-    errno_t ret;
-
-    public_key = eddsa_pk_new();
-    if (public_key == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "eddsa_pk_new failed.\n");
-        ret = ENOMEM;
-        goto done;
-    }
-
-    ret = eddsa_pk_from_EVP_PKEY(public_key, evp_pkey);
-    if (ret != FIDO_OK) {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "eddsa_pk_from_EVP_PKEY failed [%d]: %s.\n",
-              ret, fido_strerr(ret));
-        goto done;
-    }
-
-    _pk_data->public_key = public_key;
-    ret = EOK;
-
-done:
-    return ret;
 }
