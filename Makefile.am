@@ -1289,6 +1289,7 @@ libsss_util_la_SOURCES = \
     src/util/find_uid.c \
     src/util/sss_ini.c \
     src/util/io.c \
+    src/util/sss_iobuf.c \
     src/util/util_sss_idmap.c \
     src/util/well_known_sids.c \
     src/util/string_utils.c \
