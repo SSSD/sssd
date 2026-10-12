@@ -18,6 +18,7 @@
 */
 
 #include "authtok.h"
+#include "util/sss_iobuf.h"
 
 struct sss_auth_token {
     enum sss_authtok_type type;
@@ -692,37 +693,78 @@ errno_t sss_authtok_set_2fa(struct sss_auth_token *tok,
 
 errno_t sss_auth_unpack_passkey_blob(TALLOC_CTX *mem_ctx,
                                      const uint8_t *blob,
+                                     size_t blob_len,
                                      char **_prompt,
                                      char **_key,
                                      char **_pin)
 {
-    size_t len = 0;
-    char *prompt;
-    char *key;
-    char *pin;
+    errno_t ret;
+    struct sss_iobuf *iobuf = NULL;
+    const char *prompt_str;
+    const char *key_str;
+    const char *pin_str;
+    char *prompt = NULL;
+    char *key = NULL;
+    char *pin = NULL;
 
-    prompt = talloc_strdup(mem_ctx, (const char *) blob + len);
+    if (blob == NULL || _prompt == NULL || _key == NULL || _pin == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Invalid parameters.\n");
+        return EINVAL;
+    }
+
+    if (blob_len == 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Blob length is zero.\n");
+        return EINVAL;
+    }
+
+    iobuf = sss_iobuf_init_readonly(NULL, blob, blob_len, false);
+    if (iobuf == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to create iobuf.\n");
+        return ENOMEM;
+    }
+
+    /* Extract prompt string */
+    ret = sss_iobuf_read_stringz(iobuf, &prompt_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to read prompt string.\n");
+        goto done;
+    }
+
+    prompt = talloc_strdup(mem_ctx, prompt_str);
     if (prompt == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup prompt failed.\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
-    len += strlen(prompt) + 1;
 
-    key = talloc_strdup(mem_ctx, (const char *) blob + len);
+    /* Extract key string */
+    ret = sss_iobuf_read_stringz(iobuf, &key_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to read key string.\n");
+        goto done;
+    }
+
+    key = talloc_strdup(mem_ctx, key_str);
     if (key == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup key failed.\n");
-        talloc_free(prompt);
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
-    len += strlen(key) + 1;
 
-    if ((strcasecmp(prompt, "true") == 0)) {
-        pin = talloc_strdup(mem_ctx, (const char *) blob + len);
+    /* Extract pin string if prompt is "true" */
+    if (strcasecmp(prompt, "true") == 0) {
+        ret = sss_iobuf_read_stringz(iobuf, &pin_str);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Missing NUL terminator for pin.\n");
+            DEBUG(SSSDBG_CRIT_FAILURE, "Unable to read pin string.\n");
+            goto done;
+        }
+
+        pin = talloc_strdup(mem_ctx, pin_str);
         if (pin == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup pin failed.\n");
-            talloc_free(prompt);
-            talloc_free(key);
-            return ENOMEM;
+            ret = ENOMEM;
+            goto done;
         }
     } else {
         pin = NULL;
@@ -731,8 +773,16 @@ errno_t sss_auth_unpack_passkey_blob(TALLOC_CTX *mem_ctx,
     *_prompt = prompt;
     *_key = key;
     *_pin = pin;
+    ret = EOK;
 
-    return EOK;
+done:
+    if (ret != EOK) {
+        talloc_free(prompt);
+        talloc_free(key);
+        talloc_free(pin);
+    }
+    talloc_free(iobuf);
+    return ret;
 }
 
 errno_t sss_authtok_set_passkey_krb(struct sss_auth_token *tok,
@@ -792,7 +842,7 @@ static errno_t sss_authtok_set_passkey_from_blob(struct sss_auth_token *tok,
         goto done;
     }
 
-    ret = sss_auth_unpack_passkey_blob(tmp_ctx, data, &prompt, &key,
+    ret = sss_auth_unpack_passkey_blob(tmp_ctx, data, len, &prompt, &key,
                                        &pin);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_auth_unpack_passkey_blob returned [%d]: [%s].\n",
@@ -854,8 +904,8 @@ errno_t sss_authtok_get_passkey(TALLOC_CTX *mem_ctx,
         return (tok->type == SSS_AUTHTOK_TYPE_EMPTY) ? ENOENT : EACCES;
     }
 
-    ret = sss_auth_unpack_passkey_blob(mem_ctx, tok->data, &prompt, &key,
-                                       &pin);
+    ret = sss_auth_unpack_passkey_blob(mem_ctx, tok->data, tok->length,
+                                       &prompt, &key, &pin);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "sss_auth_unpack_passkey_blob returned [%d]: [%s].\n",
               ret, sss_strerror(ret));
