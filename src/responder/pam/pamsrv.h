@@ -76,7 +76,6 @@ struct pam_ctx {
     char **gssapi_indicators_apply;
     bool gssapi_check_upn;
     bool passkey_auth;
-    struct pam_passkey_table_data *pk_table_data;
     char **json_services;
 };
 
