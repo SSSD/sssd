@@ -136,8 +136,8 @@ def test_ldap_krb5__ldap_child_handles_missing_keytab_without_segfault(
     )
     assert "segfault" not in result.stdout, f"LDAP child segfaulted when keytab was missing: {result.stdout}!"
 
-    core_files = client.coredumpd.list_core_files()
-    ldap_child_cores = [f for f in core_files if "ldap_child" in f]
+    core_dumps = client.coredumpd.list_coredumps()
+    ldap_child_cores = [dump for dump in core_dumps if "ldap_child" in dump.get("exe", "")]
     assert not ldap_child_cores, f"ldap_child produced core dumps when keytab was missing: {ldap_child_cores}!"
 
 
