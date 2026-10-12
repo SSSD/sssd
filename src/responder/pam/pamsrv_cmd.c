@@ -214,6 +214,11 @@ static int extract_authtok_v2(struct sss_auth_token *tok,
     case SSS_AUTHTOK_TYPE_PASSKEY_KRB:
     case SSS_AUTHTOK_TYPE_PASSKEY_REPLY:
     case SSS_AUTHTOK_TYPE_PAM_STACKED:
+        if (auth_token_length == 0) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Zero-length auth [%s] type token, returning EINVAL\n",
+                                     sss_authtok_type_to_str(auth_token_type));
+            return EINVAL;
+        }
         ret = sss_authtok_set(tok, auth_token_type,
                               auth_token_data, auth_token_length);
         break;
