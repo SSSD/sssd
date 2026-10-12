@@ -147,6 +147,7 @@ struct resp_ctx {
 };
 
 struct cli_creds;
+struct pam_passkey_table_data;
 
 struct cli_ctx {
     struct tevent_context *ev;
@@ -166,6 +167,8 @@ struct cli_ctx {
     struct tevent_timer *idle;
     time_t last_request_time;
     uint32_t client_id_num;
+
+    struct pam_passkey_table_data *pk_table_data;
 };
 
 struct sss_cmd_table {

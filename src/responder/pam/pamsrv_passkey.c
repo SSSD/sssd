@@ -142,7 +142,13 @@ errno_t passkey_kerberos(struct pam_ctx *pctx,
         return EIO;
     }
 
-    data = sss_ptr_hash_lookup(pctx->pk_table_data->table, key,
+    if (preq->cctx->pk_table_data == NULL || preq->cctx->pk_table_data->table == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Passkey KRB state table missing (pre-auth state not initialized).\n");
+        return EIO;
+    }
+
+    data = sss_ptr_hash_lookup(preq->cctx->pk_table_data->table, key,
                                struct pk_child_user_data);
     if (data == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1260,6 +1266,7 @@ errno_t save_passkey_data(TALLOC_CTX *mem_ctx,
     char *pk_key;
     errno_t ret;
     TALLOC_CTX *tmp_ctx;
+    struct cli_ctx *cctx = preq->cctx;
 
     tmp_ctx = talloc_new(NULL);
     if (tmp_ctx == NULL) {
@@ -1268,17 +1275,21 @@ errno_t save_passkey_data(TALLOC_CTX *mem_ctx,
 
     /* Passkey data (pk_table_data) is stolen onto client ctx, it will
      * be freed when the client closes, and the sss_ptr_hash interface
-     * takes care of automatically removing it from the hash table then */
-    pctx->pk_table_data = talloc_zero(tmp_ctx, struct pam_passkey_table_data);
-    if (pctx->pk_table_data == NULL) {
-        ret = ENOMEM;
-        goto done;
+     * takes care of automatically removing it from the hash table then.
+     * This persists across PREAUTH and AUTHENTICATE requests. */
+    if (cctx->pk_table_data == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Allocating pk_table_data for client\n");
+        cctx->pk_table_data = talloc_zero(cctx, struct pam_passkey_table_data);
+        if (cctx->pk_table_data == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
-    if (pctx->pk_table_data->table == NULL) {
-        pctx->pk_table_data->table = sss_ptr_hash_create(pctx->pk_table_data,
+    if (cctx->pk_table_data->table == NULL) {
+        cctx->pk_table_data->table = sss_ptr_hash_create(cctx->pk_table_data,
                                                          NULL, NULL);
-        if (pctx->pk_table_data->table == NULL) {
+        if (cctx->pk_table_data->table == NULL) {
             ret = ENOMEM;
             goto done;
         }
@@ -1290,13 +1301,13 @@ errno_t save_passkey_data(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    pctx->pk_table_data->key = talloc_strdup(pctx->pk_table_data, pk_key);
-    if (pctx->pk_table_data->key == NULL) {
+    cctx->pk_table_data->key = talloc_strdup(cctx->pk_table_data, pk_key);
+    if (cctx->pk_table_data->key == NULL) {
         ret = ENOMEM;
         goto done;
     }
 
-    ret = sss_ptr_hash_add(pctx->pk_table_data->table, pk_key, data,
+    ret = sss_ptr_hash_add(cctx->pk_table_data->table, pk_key, data,
                            struct pk_child_user_data);
     if (ret == EEXIST) {
         DEBUG(SSSDBG_TRACE_FUNC, "pk_table key [%s] already exists\n",
@@ -1308,8 +1319,7 @@ errno_t save_passkey_data(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    talloc_steal(mem_ctx, pctx->pk_table_data);
-    pctx->pk_table_data->data = talloc_steal(mem_ctx, data);
+    cctx->pk_table_data->data = talloc_steal(cctx, data);
 
     ret = EOK;
 
