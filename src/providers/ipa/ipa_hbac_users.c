@@ -257,16 +257,10 @@ hbac_user_attrs_to_rule(TALLOC_CTX *mem_ctx,
                 goto done;
             }
 
-            ret = sss_parse_internal_fqname(tmp_ctx, sysdb_name,
-                                            &shortname, NULL);
-            if (ret != EOK) {
-                DEBUG(SSSDBG_CRIT_FAILURE,
-                      "Cannot parse %s, skipping\n", sysdb_name);
-                continue;
-            }
-
+            /* Store the fully-qualified internal name (user@domain) so that the
+             * HBAC evaluator compares rule users with domain awareness. */
             new_users->names[num_users] = talloc_strdup(new_users->names,
-                                                        shortname);
+                                                        sysdb_name);
             if (new_users->names[num_users] == NULL) {
                 ret = ENOMEM;
                 goto done;
