@@ -215,6 +215,12 @@ int sss_packet_recv(struct sss_packet *packet, int fd)
     }
 
     new_len = sss_packet_get_len(packet);
+    if (new_len < SSS_NSS_HEADER_SIZE) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Refusing undersized packet from fd %d (length %zu bytes)\n",
+              fd, new_len);
+        return EINVAL;
+    }
     if (new_len > packet->memsize) {
         enum sss_cli_command cmd = sss_packet_get_cmd(packet);
         size_t max_recv_size;
