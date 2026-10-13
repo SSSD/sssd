@@ -22,7 +22,6 @@
             <arg choice='opt'>
                 <replaceable>options</replaceable>
             </arg>
-            <arg choice='plain'><replaceable>[PASSWORD]</replaceable></arg>
         </cmdsynopsis>
     </refsynopsisdiv>
 
@@ -76,8 +75,8 @@
                 </term>
                 <listitem>
                     <para>
-                        The SSSD domain to use the password in. The
-                        default name is <quote>default</quote>.
+                        The SSSD domain to use the password in. This
+                        option is mandatory.
                     </para>
                 </listitem>
             </varlistentry>
