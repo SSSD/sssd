@@ -393,12 +393,13 @@ hbac_eval_user_element(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    ret = sss_parse_internal_fqname(tmp_ctx, username, &shortname, NULL);
-    if (ret != EOK) {
-        ret = ERR_WRONG_NAME_FORMAT;
+    /* Keep the fully-qualified internal name (user@domain) so that the HBAC
+     * evaluator compares users with domain awareness. */
+    users->name = talloc_strdup(users, username);
+    if (users->name == NULL) {
+        ret = ENOMEM;
         goto done;
     }
-    users->name = talloc_steal(users, shortname);
 
     ipa_domain = get_domains_head(domain);
     if (ipa_domain == NULL) {
