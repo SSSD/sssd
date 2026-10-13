@@ -2833,8 +2833,12 @@ struct group orig_group_dup = {
     .gr_mem = NULL,
 };
 
-static int test_sss_nss_getorigbyusername_check(uint32_t status, uint8_t *body,
-                                            size_t blen)
+/* Verify the original-attributes part of a getorigbyusername reply and return
+ * the offset right after it, so callers that expect additional data (e.g. group
+ * memberships) can continue parsing from there. */
+static size_t test_sss_nss_getorigbyusername_check_body(uint32_t status,
+                                                        uint8_t *body,
+                                                        size_t blen)
 {
     const char *s;
     enum sss_id_type id_type;
@@ -2864,6 +2868,16 @@ static int test_sss_nss_getorigbyusername_check(uint32_t status, uint8_t *body,
     s = (char *) body+rp;
     assert_string_equal(s, "orig_name");
     rp += strlen(s) + 1;
+
+    return rp;
+}
+
+static int test_sss_nss_getorigbyusername_check(uint32_t status, uint8_t *body,
+                                            size_t blen)
+{
+    size_t rp;
+
+    rp = test_sss_nss_getorigbyusername_check_body(status, body, blen);
     assert_int_equal(rp, blen);
 
     return EOK;
@@ -2986,6 +3000,146 @@ void test_sss_nss_getorigbygroupname(void **state)
     /* Query for that user, call a callback when command finishes */
     set_cmd_cb(test_sss_nss_getorigbygroupname_check);
     ret = sss_cmd_execute(sss_nss_test_ctx->cctx, SSS_NSS_GETORIGBYGROUPNAME,
+                          sss_nss_test_ctx->sss_nss_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(sss_nss_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+static int
+test_sss_nss_getorigbyusername_with_groups_check(uint32_t status,
+                                                 uint8_t *body, size_t blen)
+{
+    const char *expected_groups[] = { "testorigwg_gr1", "testorigwg_gr2" };
+    bool found_group[] = { false, false };
+    const char *s;
+    size_t rp;
+    size_t num_groups = 0;
+    unsigned i;
+
+    /* The original attributes are returned first, with the same layout as
+     * SSS_NSS_GETORIGBYUSERNAME. */
+    rp = test_sss_nss_getorigbyusername_check_body(status, body, blen);
+    assert_true(rp < blen);
+
+    /* The remaining key-value pairs are the group memberships. The order of the
+     * groups is not guaranteed, so collect them and compare unordered. */
+    while (rp < blen) {
+        s = (char *) body+rp;
+        assert_string_equal(s, SSS_NSS_ATTR_NAME_GROUP_MEMBERSHIP);
+        rp += strlen(s) + 1;
+        assert_true(rp < blen);
+
+        s = (char *) body+rp;
+        for (i = 0; i < N_ELEMENTS(expected_groups); i++) {
+            if (strcmp(s, expected_groups[i]) == 0) {
+                assert_false(found_group[i]); /* no duplicates */
+                found_group[i] = true;
+                break;
+            }
+        }
+        /* The value has to match one of the expected groups. */
+        assert_int_not_equal(i, N_ELEMENTS(expected_groups));
+        rp += strlen(s) + 1;
+        num_groups++;
+    }
+
+    assert_int_equal(rp, blen);
+    assert_int_equal(num_groups, N_ELEMENTS(expected_groups));
+    for (i = 0; i < N_ELEMENTS(expected_groups); i++) {
+        assert_true(found_group[i]);
+    }
+
+    return EOK;
+}
+
+struct passwd orig_wg_usr = {
+    .pw_name = discard_const("testorigwg"),
+    .pw_uid = 4321,
+    .pw_gid = 4320,
+    .pw_dir = discard_const("/home/testorigwg"),
+    .pw_gecos = discard_const("test user"),
+    .pw_shell = discard_const("/bin/sh"),
+    .pw_passwd = discard_const("*"),
+};
+
+struct group orig_wg_gr1 = {
+    .gr_gid = 43211,
+    .gr_name = discard_const("testorigwg_gr1"),
+    .gr_passwd = discard_const("*"),
+    .gr_mem = NULL,
+};
+
+struct group orig_wg_gr2 = {
+    .gr_gid = 43212,
+    .gr_name = discard_const("testorigwg_gr2"),
+    .gr_passwd = discard_const("*"),
+    .gr_mem = NULL,
+};
+
+void test_sss_nss_getorigbyusername_with_groups(void **state)
+{
+    errno_t ret;
+    struct sysdb_attrs *attrs;
+
+    attrs = sysdb_new_attrs(sss_nss_test_ctx);
+    assert_non_null(attrs);
+
+    ret = sysdb_attrs_add_string(attrs, SYSDB_SID_STR, "S-1-2-3-4");
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_attrs_add_string(attrs, ORIGINALAD_PREFIX SYSDB_NAME,
+                                 "orig_name");
+    assert_int_equal(ret, EOK);
+
+    /* Mark initgroups as already completed so the group lookup is served from
+     * the cache instead of going (offline) to the back end. */
+    ret = sysdb_attrs_add_time_t(attrs, SYSDB_INITGR_EXPIRE, time(NULL) + 300);
+    assert_int_equal(ret, EOK);
+
+    /* Prime the cache with a valid user and two groups it is a member of. */
+    ret = store_user(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
+                     &orig_wg_usr, attrs, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
+                      &orig_wg_gr1, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group(sss_nss_test_ctx, sss_nss_test_ctx->tctx->dom,
+                      &orig_wg_gr2, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group_member(sss_nss_test_ctx,
+                             orig_wg_gr1.gr_name,
+                             sss_nss_test_ctx->tctx->dom,
+                             orig_wg_usr.pw_name,
+                             sss_nss_test_ctx->tctx->dom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    ret = store_group_member(sss_nss_test_ctx,
+                             orig_wg_gr2.gr_name,
+                             sss_nss_test_ctx->tctx->dom,
+                             orig_wg_usr.pw_name,
+                             sss_nss_test_ctx->tctx->dom,
+                             SYSDB_MEMBER_USER);
+    assert_int_equal(ret, EOK);
+
+    mock_input_user_or_group("testorigwg");
+    /* The command issues a second (initgroups) cache request to resolve the
+     * group memberships, which parses the user name again. */
+    mock_parse_inp("testorigwg", TEST_DOM_NAME, EOK);
+    will_return_always(__wrap_sss_packet_get_cmd,
+                       SSS_NSS_GETORIGBYUSERNAME_WITH_GROUPS);
+    will_return_always(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Query for that user, call a callback when command finishes */
+    set_cmd_cb(test_sss_nss_getorigbyusername_with_groups_check);
+    ret = sss_cmd_execute(sss_nss_test_ctx->cctx,
+                          SSS_NSS_GETORIGBYUSERNAME_WITH_GROUPS,
                           sss_nss_test_ctx->sss_nss_cmds);
     assert_int_equal(ret, EOK);
 
@@ -6089,6 +6243,9 @@ int main(int argc, const char *argv[])
                                         sss_nss_test_setup,
                                         sss_nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_sss_nss_getorigbyusername,
+                                        sss_nss_test_setup,
+                                        sss_nss_test_teardown),
+        cmocka_unit_test_setup_teardown(test_sss_nss_getorigbyusername_with_groups,
                                         sss_nss_test_setup,
                                         sss_nss_test_teardown),
         cmocka_unit_test_setup_teardown(test_sss_nss_getorigbygroupname,
