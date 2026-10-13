@@ -351,7 +351,14 @@ static void autofs_setent_done(struct tevent_req *subreq)
     state->enum_ctx->ready = true;
 
     /* Make the enumeration context disappear with maps table. */
-    talloc_steal(state->autofs_ctx->maps, state->enum_ctx);
+    if (sss_ptr_hash_has_key(state->autofs_ctx->maps, state->enum_ctx->key)) {
+        talloc_steal(state->autofs_ctx->maps, state->enum_ctx);
+    } else {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Key [%s] was orphaned during async operation, "
+              "skipping reparent to avoid leak\n",
+              state->enum_ctx->key);
+    }
 
     setent_notify_done(&state->enum_ctx->notify_list);
     tevent_req_done(req);
