@@ -31,6 +31,41 @@
                               || cmd == GET_GROUP \
                               || cmd == GET_GROUP_MEMBERS )
 
+static char *entra_id_escape_value(TALLOC_CTX *mem_ctx, const char *in)
+{
+    size_t quotes = 0;
+    size_t len;
+    size_t i;
+    char *out;
+    char *p;
+
+    if (in == NULL) {
+        return NULL;
+    }
+
+    len = strlen(in);
+    for (i = 0; i < len; i++) {
+        if (in[i] == '\'') {
+            quotes++;
+        }
+    }
+
+    out = talloc_array(mem_ctx, char, len + quotes + 1);
+    if (out == NULL) {
+        return NULL;
+    }
+
+    for (i = 0, p = out; i < len; i++) {
+        if (in[i] == '\'') {
+            *p++ = '\'';
+        }
+        *p++ = in[i];
+    }
+    *p = '\0';
+
+    return out;
+}
+
 /* Extracts and normalizes the base URL from an idp_type string of
  * the form https://... Sets *base_url to NULL if no URL is present
  *
@@ -96,6 +131,8 @@ errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     char *uri;
     char *filter;
     char *filter_enc;
+    char *input_esc;
+    char *short_name_esc;
     const char *obj_id;
     const char **id_list;
     char *short_name;
@@ -115,34 +152,50 @@ errno_t entra_id_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
         }
     }
 
+    input_esc = entra_id_escape_value(rest_ctx, input);
+    if (input_esc == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to escape input.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     switch (oidc_cmd) {
     case GET_USER:
     case GET_USER_GROUPS:
         sep = strrchr(input, '@');
         if (sep == NULL || sep == input) {
-            filter = talloc_asprintf(rest_ctx, "startsWith(userPrincipalName,'%s@')", input);
+            filter = talloc_asprintf(rest_ctx,
+                                     "startsWith(userPrincipalName,'%s@')",
+                                     input_esc);
         } else {
             filter = talloc_asprintf(rest_ctx,
                                      "mail eq '%s' or userPrincipalName eq '%s'",
-                                     input, input);
+                                     input_esc, input_esc);
         }
         break;
     case GET_GROUP:
     case GET_GROUP_MEMBERS:
         sep = strrchr(input, '@');
         if (sep == NULL || sep == input) {
-            filter = talloc_asprintf(rest_ctx, "displayName eq '%s'", input);
+            filter = talloc_asprintf(rest_ctx, "displayName eq '%s'", input_esc);
         } else {
             short_name = talloc_strndup(rest_ctx, input, sep - input);
             if (short_name == NULL) {
                 DEBUG(SSSDBG_OP_FAILURE,
                       "Failed to generate short name, using plain input [%s].\n",
                       input);
-                filter = talloc_asprintf(rest_ctx, "displayName eq '%s'", input);
+                filter = talloc_asprintf(rest_ctx, "displayName eq '%s'", input_esc);
             } else {
+                short_name_esc = entra_id_escape_value(rest_ctx, short_name);
+                if (short_name_esc == NULL) {
+                    DEBUG(SSSDBG_OP_FAILURE,
+                          "Failed to escape short name [%s].\n", short_name);
+                    ret = ENOMEM;
+                    goto done;
+                }
                 filter = talloc_asprintf(rest_ctx,
                                          "displayName eq '%s' or displayName eq '%s'",
-                                         input, short_name);
+                                         input_esc, short_name_esc);
             }
         }
         break;
