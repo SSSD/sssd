@@ -226,3 +226,54 @@ if (-not $c) { Write-Error "CA not found"; exit 1 }
 
     log = client.fs.read(client.sssd.logs.domain())
     assert f"ldaps://{ad.server}" in log, f"Logs should show LDAPS connection to {ad.server}"
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyAD)
+@pytest.mark.ticket(jira="RHEL-75324", gh=9381)
+@pytest.mark.importance("high")
+def test_ad__tgt_validation_prefers_service_principal_over_computer_account(
+    client: Client, provider: GenericADProvider
+):
+    """
+    :title: TGT validation skips AD computer account principal in favour of a service principal
+    :description:
+        When the keytab contains a computer-account principal (CLIENT$@REALM)
+        before service principals (host/CLIENT@REALM), SSSD must not use the
+        computer account for TGT validation.  AD does not issue service tickets
+        for computer account principals, so picking one blocks all logins.
+    :setup:
+        1. Assert keytab has CLIENT$@REALM listed before host/CLIENT@REALM
+           (the natural output of adcli/realm join; skip if not the case)
+        2. Add an AD user
+        3. Enable krb5_validate and start SSSD
+    :steps:
+        1. Authenticate the user via SSH
+        2. Check krb5_child.log for the principal used in TGT verification
+    :expectedresults:
+        1. Authentication succeeds
+        2. Log shows a service principal (host/ or RestrictedKrbHost/), not CLIENT$
+    :customerscenario: True
+    """
+    # The domain-join keytab must have CLIENT$@REALM before host/CLIENT@REALM.
+    # adcli/realm always produce this ordering, so this is a sanity check rather
+    # than an expected failure.
+    keytab = client.sssd.domain.get("krb5_keytab", "/etc/krb5.keytab")
+    out = client.host.conn.run(f"klist -k {keytab}").stdout
+    assert out.index("CLIENT$") < out.index("host/"), (
+        f"Keytab {keytab} does not have CLIENT$ before host/ — cannot reproduce the bug"
+    )
+
+    provider.user("user1").add(password="Secret123")
+
+    client.sssd.domain["krb5_validate"] = "true"
+    client.sssd.start()
+
+    assert client.auth.ssh.password("user1", "Secret123"), "User user1 failed login!"
+
+    log = client.fs.read("/var/log/sssd/krb5_child.log")
+    assert "TGT verified using key for [host/" in log or "TGT verified using key for [RestrictedKrbHost/" in log, (
+        "SSSD did not use a service principal for TGT validation!"
+    )
+    assert "TGT verified using key for [CLIENT$" not in log, (
+        "SSSD used the AD computer account principal (CLIENT$) for TGT validation!"
+    )
