@@ -492,9 +492,21 @@ static int cli_ctx_destructor(struct cli_ctx *cctx)
     return 0;
 }
 
+/* When accept() fails because the process or the system ran out of file
+ * descriptors (EMFILE/ENFILE), the listening fd stays readable and the event
+ * loop would immediately re-fire the accept handler, busy-spinning the
+ * responder. In that case we temporarily disable readability on the listening
+ * fd and re-enable it after a backoff. The backoff grows exponentially (so we
+ * do not hammer the CPU while fd pressure persists) up to a cap, and is reset
+ * to the base value on the next successful accept(). */
+#define ACCEPT_RESUME_BACKOFF_BASE_US (200 * 1000)        /* 200 ms */
+#define ACCEPT_RESUME_BACKOFF_MAX_US  (5 * 1000 * 1000)   /* 5 s */
+
 struct accept_fd_ctx {
     struct resp_ctx *rctx;
     connection_setup_t connection_setup;
+    struct tevent_timer *resume_accept_timer;
+    uint32_t accept_backoff_us;
 };
 
 /*
@@ -515,6 +527,56 @@ static void accept_and_terminate_cli(int fd)
     }
     close(client_fd);
     return;
+}
+
+static void accept_resume_timer(struct tevent_context *ev,
+                                struct tevent_timer *te,
+                                struct timeval current_time,
+                                void *data)
+{
+    struct accept_fd_ctx *accept_ctx;
+
+    accept_ctx = talloc_get_type(data, struct accept_fd_ctx);
+
+    accept_ctx->resume_accept_timer = NULL;
+    TEVENT_FD_READABLE(accept_ctx->rctx->lfde);
+}
+
+/* Handle an accept() failure caused by file descriptor exhaustion by pausing
+ * accept() for a bounded, exponentially growing backoff instead of letting the
+ * event loop busy-spin on the still-readable listening fd. */
+static void accept_fd_backoff(struct accept_fd_ctx *accept_ctx)
+{
+    struct resp_ctx *rctx = accept_ctx->rctx;
+    struct timeval tv;
+
+    if (accept_ctx->resume_accept_timer != NULL) {
+        return;
+    }
+
+    tv = tevent_timeval_current_ofs(accept_ctx->accept_backoff_us / 1000000,
+                                    accept_ctx->accept_backoff_us % 1000000);
+
+    accept_ctx->resume_accept_timer = tevent_add_timer(rctx->ev, accept_ctx, tv,
+                                                       accept_resume_timer,
+                                                       accept_ctx);
+    if (accept_ctx->resume_accept_timer == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to schedule accept() resume timer, keeping the fd readable\n");
+        return;
+    }
+
+    DEBUG(SSSDBG_IMPORTANT_INFO,
+          "Out of file descriptors, pausing accept() for %u ms\n",
+          accept_ctx->accept_backoff_us / 1000);
+
+    TEVENT_FD_NOT_READABLE(rctx->lfde);
+
+    /* Grow the backoff for the next consecutive failure, up to the cap. */
+    accept_ctx->accept_backoff_us *= 2;
+    if (accept_ctx->accept_backoff_us > ACCEPT_RESUME_BACKOFF_MAX_US) {
+        accept_ctx->accept_backoff_us = ACCEPT_RESUME_BACKOFF_MAX_US;
+    }
 }
 
 static void accept_fd_handler(struct tevent_context *ev,
@@ -547,10 +609,23 @@ static void accept_fd_handler(struct tevent_context *ev,
     len = sizeof(cctx->addr);
     cctx->cfd = accept(rctx->lfd, (struct sockaddr *)&cctx->addr, &len);
     if (cctx->cfd == -1) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Accept failed [%s]\n", strerror(errno));
+        ret = errno;
+
+        DEBUG(SSSDBG_CRIT_FAILURE, "Accept failed [%s]\n", strerror(ret));
         talloc_free(cctx);
+
+        /* On file descriptor exhaustion the listening fd stays readable and
+         * the event loop would busy-spin re-entering this handler. Back off
+         * instead. Other errors (e.g. ECONNABORTED/EINTR/EPROTO) are transient
+         * and handled by simply returning. */
+        if (ret == EMFILE || ret == ENFILE) {
+            accept_fd_backoff(accept_ctx);
+        }
         return;
     }
+
+    /* Successful accept: reset the fd-exhaustion backoff to its base value. */
+    accept_ctx->accept_backoff_us = ACCEPT_RESUME_BACKOFF_BASE_US;
 
     ret = get_client_cred(cctx);
     if (ret != EOK) {
@@ -779,6 +854,7 @@ static int set_unix_socket(struct resp_ctx *rctx,
         if(!accept_ctx) goto failed;
         accept_ctx->rctx = rctx;
         accept_ctx->connection_setup = conn_setup;
+        accept_ctx->accept_backoff_us = ACCEPT_RESUME_BACKOFF_BASE_US;
 
         rctx->lfde = tevent_add_fd(rctx->ev, rctx, rctx->lfd,
                                    TEVENT_FD_READ, accept_fd_handler,
