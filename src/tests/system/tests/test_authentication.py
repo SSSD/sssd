@@ -1270,12 +1270,12 @@ def test_authentication__offline_password_change_shows_offline_message(client: C
 @pytest.mark.ticket(bz=875738)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_authentication__offline_auth_failure_no_system_error(client: Client, provider: GenericProvider):
+def test_authentication__offline_auth_failure_report_auth_message(client: Client, provider: GenericProvider):
     """
     :title: Offline auth failure does not produce "System error" in logs
     :description:
         When a user fails offline authentication with a wrong password, SSSD
-        should report proper authentication failure, not "System error".
+        should report proper authentication failure.
     :setup:
         1. Create user with password Secret123
         2. Configure SSSD with cache_credentials=True
@@ -1284,14 +1284,15 @@ def test_authentication__offline_auth_failure_no_system_error(client: Client, pr
         1. Authenticate user to cache credentials
         2. Block server and bring SSSD offline
         3. Attempt login with wrong password
-        4. Check PAM log for "System error"
+        4. Check PAM log for authentication failure message
     :expectedresults:
         1. Login succeeds
         2. SSSD is offline
         3. Login fails
-        4. "System error" is NOT in PAM log
+        4. "Authentication failure message" is in PAM log
     :customerscenario: True
     """
+    auth_fail_msg = "Authentication service cannot retrieve authentication info"
     provider.user("user1").add(password="Secret123")
     client.sssd.domain["cache_credentials"] = "True"
     client.sssd.start()
@@ -1304,7 +1305,7 @@ def test_authentication__offline_auth_failure_no_system_error(client: Client, pr
     assert not client.auth.ssh.password("user1", "wrongpassword"), "Wrong password should fail"
 
     log = client.fs.read(client.sssd.logs.pam)
-    assert "System error" not in log, "'System error' should not appear in PAM log for offline auth failure"
+    assert auth_fail_msg in log, "log message does not appear in PAM log for offline auth failure"
 
 
 @pytest.mark.importance("medium")

@@ -49,7 +49,7 @@ idp_online_check_handler_send(TALLOC_CTX *mem_ctx,
     /* TODO: evaluate if proper online check is needed */
     ret = ENOTSUP;
 
-    tevent_req_error(req, ret);
+    tevent_req_done_or_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;

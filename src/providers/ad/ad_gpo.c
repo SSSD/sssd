@@ -3944,7 +3944,7 @@ ad_gpo_extract_smb_components(TALLOC_CTX *mem_ctx,
               "gPCFileSysPath contains path traversal component '..': "
               "[%s]. Rejecting to prevent cache directory escape.\n",
               smb_path);
-        ret = EINVAL;
+        ret = ERR_ACCESS_DENIED;
         goto done;
     }
 
