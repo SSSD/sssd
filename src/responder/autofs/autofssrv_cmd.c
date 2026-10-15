@@ -521,7 +521,7 @@ sss_autofs_cmd_setautomntent_done(struct tevent_req *req)
         return;
     }
 
-    sss_cmd_done(cmd_ctx->cli_ctx, NULL);
+    sss_cmd_done(cmd_ctx->cli_ctx, cmd_ctx);
 }
 
 static int
@@ -733,7 +733,7 @@ sss_autofs_cmd_getautomntent_done(struct tevent_req *req)
         return;
     }
 
-    sss_cmd_done(cmd_ctx->cli_ctx, NULL);
+    sss_cmd_done(cmd_ctx->cli_ctx, cmd_ctx);
 }
 
 static errno_t
@@ -935,7 +935,7 @@ sss_autofs_cmd_getautomntbyname_done(struct tevent_req *req)
         return;
     }
 
-    sss_cmd_done(cmd_ctx->cli_ctx, NULL);
+    sss_cmd_done(cmd_ctx->cli_ctx, cmd_ctx);
 }
 
 struct cli_protocol_version *register_cli_protocol_version(void)
