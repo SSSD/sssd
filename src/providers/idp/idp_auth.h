@@ -34,6 +34,7 @@ struct idp_auth_ctx {
     struct idp_init_ctx *init_ctx;
     struct dp_option *idp_options;
     hash_table_t *open_request_table;
+    struct be_ptask *cleanup_task;
 
     const char *idp_type;
     const char *client_id;

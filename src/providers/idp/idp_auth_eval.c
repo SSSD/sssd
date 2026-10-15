@@ -88,6 +88,12 @@ errno_t eval_device_auth_buf(struct idp_auth_ctx *idp_auth_ctx,
         goto done;
     }
 
+    open_req->created_at = time(NULL);
+    if (open_req->created_at == (time_t)-1) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Failed to get request timestampt.\n");
+        open_req->created_at = 0;
+    }
+
     ret = sss_ptr_hash_add(idp_auth_ctx->open_request_table,
                            user_data->user_code,
                            open_req, struct idp_open_req_data);

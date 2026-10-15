@@ -52,6 +52,7 @@ errno_t eval_group_buf(struct idp_id_ctx *idp_id_ctx,
  */
 struct idp_open_req_data {
     char *device_code_data;
+    time_t created_at;
 };
 
 /** @brief Evaluate Device Authorization reply, if valid create a pam_data
