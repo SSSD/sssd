@@ -28,6 +28,8 @@
 #include "src/providers/idp/idp_opts.h"
 #include "src/providers/idp/idp_id.h"
 #include "src/providers/idp/idp_auth.h"
+#include "src/providers/idp/idp_private.h"
+#include "providers/be_ptask.h"
 #include "lib/idmap/sss_idmap.h"
 #include "util/util_sss_idmap.h"
 
@@ -320,6 +322,62 @@ done:
     return ret;
 }
 
+#define IDP_OPEN_REQ_CLEANUP_PERIOD  180  /* 3 minutes */
+#define IDP_OPEN_REQ_MAX_AGE         300  /* 5 minutes */
+
+static errno_t
+idp_open_request_cleanup(TALLOC_CTX *mem_ctx,
+                         struct tevent_context *ev,
+                         struct be_ctx *be_ctx,
+                         struct be_ptask *be_ptask,
+                         void *pvt)
+{
+    struct idp_auth_ctx *auth_ctx = talloc_get_type(pvt, struct idp_auth_ctx);
+    hash_entry_t *entries = NULL;
+    unsigned long count;
+    unsigned long i;
+    int hret;
+    time_t now;
+    struct idp_open_req_data *open_req;
+
+    now = time(NULL);
+    if (now == (time_t)-1) {
+        DEBUG(SSSDBG_MINOR_FAILURE, "Could not get current time.\n");
+        return EOK;
+    }
+
+    hret = hash_entries(auth_ctx->open_request_table, &count, &entries);
+    if (hret != HASH_SUCCESS) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Could not get open request table entries.\n");
+        return EOK;
+    }
+
+    if (count == 0) {
+        talloc_free(entries);
+        return EOK;
+    }
+
+    for (i = 0; i < count; i++) {
+        open_req = sss_ptr_get_value(&entries[i].value,
+                                     struct idp_open_req_data);
+        if (open_req == NULL) {
+            continue;
+        }
+
+        if (now - open_req->created_at > IDP_OPEN_REQ_MAX_AGE) {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Removing expired open request [%s].\n",
+                  entries[i].key.str);
+            sss_ptr_hash_delete(auth_ctx->open_request_table,
+                                entries[i].key.str, true);
+        }
+    }
+
+    talloc_free(entries);
+    return EOK;
+}
+
 errno_t sssm_idp_auth_init(TALLOC_CTX *mem_ctx,
                            struct be_ctx *be_ctx,
                            void *module_data,
@@ -351,6 +409,22 @@ errno_t sssm_idp_auth_init(TALLOC_CTX *mem_ctx,
     if (auth_ctx->open_request_table == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Failed to create hash table.\n");
         ret = ENOMEM;
+        goto done;
+    }
+
+    ret = be_ptask_create_sync(auth_ctx, be_ctx,
+                               IDP_OPEN_REQ_CLEANUP_PERIOD,
+                               IDP_OPEN_REQ_CLEANUP_PERIOD,
+                               IDP_OPEN_REQ_CLEANUP_PERIOD,
+                               0, IDP_OPEN_REQ_CLEANUP_PERIOD, 0,
+                               idp_open_request_cleanup, auth_ctx,
+                               "IDP open request table cleanup",
+                               BE_PTASK_OFFLINE_EXECUTE,
+                               &auth_ctx->cleanup_task);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to create open request cleanup task [%d]: %s\n",
+              ret, sss_strerror(ret));
         goto done;
     }
 
