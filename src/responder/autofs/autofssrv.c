@@ -30,6 +30,9 @@
 #include "sss_iface/sss_iface_async.h"
 #include "util/sss_ptr_hash.h"
 
+/* 'automount' runs under root */
+#define DEFAULT_ALLOWED_UIDS "0"
+
 static errno_t
 autofs_get_config(struct autofs_ctx *actx,
                   struct confdb_ctx *cdb)
@@ -102,6 +105,7 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
     struct resp_ctx *rctx;
     struct sss_cmd_table *autofs_cmds;
     struct autofs_ctx *autofs_ctx;
+    char *uid_str;
     int ret;
 
     autofs_cmds = get_autofs_cmds();
@@ -132,6 +136,23 @@ autofs_process_init(TALLOC_CTX *mem_ctx,
 
     autofs_ctx->rctx = rctx;
     autofs_ctx->rctx->pvt_ctx = autofs_ctx;
+
+    ret = confdb_get_string(autofs_ctx->rctx->cdb, autofs_ctx->rctx,
+                            CONFDB_AUTOFS_CONF_ENTRY, CONFDB_SERVICE_ALLOWED_UIDS,
+                            DEFAULT_ALLOWED_UIDS, &uid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to get allowed UIDs.\n");
+        goto fail;
+    }
+
+    ret = csv_string_to_uid_array(autofs_ctx->rctx, uid_str,
+                                  &autofs_ctx->rctx->allowed_uids_count,
+                                  &autofs_ctx->rctx->allowed_uids);
+    talloc_free(uid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Failed to set allowed UIDs.\n");
+        goto fail;
+    }
 
     /* Create the lookup table for setautomntent results */
     autofs_ctx->maps = sss_ptr_hash_create(autofs_ctx,
