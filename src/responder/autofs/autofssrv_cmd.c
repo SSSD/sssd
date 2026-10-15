@@ -392,8 +392,8 @@ autofs_read_setautomntent_input(struct cli_ctx *cli_ctx,
 
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
-    /* if not terminated fail */
-    if (body[blen - 1] != '\0') {
+    /* if not NULL terminated fail */
+    if ((blen == 0) || (body[blen - 1] != '\0')) {
         return EINVAL;
     }
 
@@ -565,7 +565,8 @@ autofs_read_getautomntent_input(struct cli_ctx *cli_ctx,
     sss_packet_get_body(pctx->creq->in, &body, &blen);
 
     SAFEALIGN_COPY_UINT32_CHECK(&namelen, body+c, blen, &c);
-    if (namelen == 0 || namelen > blen - c) {
+    /* '>=' keeps the terminator at mapname[namelen] within the body */
+    if (namelen == 0 || namelen >= blen - c) {
         return EINVAL;
     }
 
@@ -581,8 +582,9 @@ autofs_read_getautomntent_input(struct cli_ctx *cli_ctx,
         return EINVAL;
     }
 
-    SAFEALIGN_COPY_UINT32_CHECK(_cursor, body + c + namelen + 1, blen, &c);
-    SAFEALIGN_COPY_UINT32_CHECK(_max_entries, body + c + namelen + 1, blen, &c);
+    c += namelen + 1;
+    SAFEALIGN_COPY_UINT32_CHECK(_cursor, body + c, blen, &c);
+    SAFEALIGN_COPY_UINT32_CHECK(_max_entries, body + c, blen, &c);
     *_mapname = mapname;
 
     return EOK;
@@ -754,7 +756,8 @@ autofs_read_getautomntbyname_input(struct cli_ctx *cli_ctx,
 
     /* Get map name. */
     SAFEALIGN_COPY_UINT32_CHECK(&namelen, body + c, blen, &c);
-    if (namelen == 0 || namelen > blen - c) {
+    /* '>=' keeps the terminator at mapname[namelen] within the body */
+    if (namelen == 0 || namelen >= blen - c) {
         return EINVAL;
     }
 
@@ -774,7 +777,8 @@ autofs_read_getautomntbyname_input(struct cli_ctx *cli_ctx,
 
     /* Get key name. */
     SAFEALIGN_COPY_UINT32_CHECK(&keylen, body + c, blen, &c);
-    if (keylen == 0 || keylen > blen - c) {
+    /* '>=' keeps the terminator at keyname[keylen] within the body. */
+    if (keylen == 0 || keylen >= blen - c) {
         return EINVAL;
     }
 
