@@ -464,8 +464,6 @@ dist_noinst_SCRIPTS = \
     contrib/ci/configure.sh \
     contrib/ci/deps.sh \
     contrib/ci/distro.sh \
-    contrib/ci/get-matrix.py \
-    contrib/ci/misc.sh \
     contrib/ci/rpm-spec-builddeps \
     contrib/ci/run \
     contrib/ci/run-multihost \
