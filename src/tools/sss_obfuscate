@@ -24,7 +24,7 @@ def parse_options():
     parser.add_option("-d", "--domain",
                       dest="domain", default=None,
                       help="The domain to use the password in (mandatory)",
-                      metavar="DOMNAME")
+                      metavar="DOMAIN")
     parser.add_option("-f", "--file",
                       dest="filename", default=None,
                       help="Set input file to FILE (default: Use system "
