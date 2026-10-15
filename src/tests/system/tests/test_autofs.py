@@ -100,7 +100,7 @@ def test_autofs__propagate_offline_status_for_a_single_domain(client: Client, pr
     log = client.fs.read(client.sssd.logs.autofs).splitlines()
     offline_status_propagated = False
     for index, line in enumerate(log):
-        if "sbus_reply_check" in line and "SSSD is offline" in line:
+        if "sbus_reply_check" in line and "No more servers to try" in line:
             offline_status_propagated = True
             break
 
