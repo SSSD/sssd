@@ -70,6 +70,9 @@ static errno_t eval_flags(struct sss_nss_cmd_ctx *cmd_ctx,
     return EOK;
 }
 
+static void sss_nss_getorigbyusername_wg_user_done(struct tevent_req *subreq);
+static void sss_nss_getorigbyusername_wg_initgr_done(struct tevent_req *subreq);
+
 static void sss_nss_getby_done(struct tevent_req *subreq);
 static void sss_nss_getlistby_done(struct tevent_req *subreq);
 
@@ -78,6 +81,7 @@ static errno_t sss_nss_getby_name(struct cli_ctx *cli_ctx,
                                   enum cache_req_type type,
                                   const char **attrs,
                                   enum sss_mc_type memcache,
+                                  bool include_initgroups,
                                   sss_nss_protocol_fill_packet_fn fill_fn)
 {
     struct cache_req_data *data;
@@ -91,6 +95,8 @@ static errno_t sss_nss_getby_name(struct cli_ctx *cli_ctx,
         ret = ENOMEM;
         goto done;
     }
+
+    cmd_ctx->include_initgroups = include_initgroups;
 
     cmd_ctx->flags = 0;
     if (ex_version) {
@@ -241,7 +247,8 @@ static errno_t sss_nss_getby_svc(struct cli_ctx *cli_ctx,
                                  data, SSS_MC_NONE, NULL, 0);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "sss_nss_get_object_send() failed\n");
-        return ENOMEM;
+        ret = ENOMEM;
+        goto done;
     }
 
     tevent_req_set_callback(subreq, sss_nss_getby_done, cmd_ctx);
@@ -599,6 +606,10 @@ static void sss_nss_getby_done(struct tevent_req *subreq)
 
     cmd_ctx = tevent_req_callback_data(subreq, struct sss_nss_cmd_ctx);
 
+    if (cmd_ctx->include_initgroups) {
+        return sss_nss_getorigbyusername_wg_user_done(subreq);
+    }
+
     ret = sss_nss_get_object_recv(cmd_ctx, subreq, &result, &cmd_ctx->rawname);
     talloc_zfree(subreq);
     if (ret != EOK) {
@@ -904,7 +915,7 @@ static errno_t sss_nss_endent(struct cli_ctx *cli_ctx,
 static errno_t sss_nss_cmd_getpwnam(struct cli_ctx *cli_ctx)
 {
     return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_USER_BY_NAME, NULL,
-                              SSS_MC_PASSWD, sss_nss_protocol_fill_pwent);
+                              SSS_MC_PASSWD, false, sss_nss_protocol_fill_pwent);
 }
 
 static errno_t sss_nss_cmd_getpwuid(struct cli_ctx *cli_ctx)
@@ -916,7 +927,7 @@ static errno_t sss_nss_cmd_getpwuid(struct cli_ctx *cli_ctx)
 static errno_t sss_nss_cmd_getpwnam_ex(struct cli_ctx *cli_ctx)
 {
     return sss_nss_getby_name(cli_ctx, true, CACHE_REQ_USER_BY_NAME, NULL,
-                              SSS_MC_PASSWD, sss_nss_protocol_fill_pwent);
+                              SSS_MC_PASSWD, false, sss_nss_protocol_fill_pwent);
 }
 
 static errno_t sss_nss_cmd_getpwuid_ex(struct cli_ctx *cli_ctx)
@@ -964,7 +975,7 @@ static errno_t sss_nss_cmd_endpwent(struct cli_ctx *cli_ctx)
 static errno_t sss_nss_cmd_getgrnam(struct cli_ctx *cli_ctx)
 {
     return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_GROUP_BY_NAME, NULL,
-                              SSS_MC_GROUP, sss_nss_protocol_fill_grent);
+                              SSS_MC_GROUP, false, sss_nss_protocol_fill_grent);
 }
 
 static errno_t sss_nss_cmd_getgrgid(struct cli_ctx *cli_ctx)
@@ -976,7 +987,7 @@ static errno_t sss_nss_cmd_getgrgid(struct cli_ctx *cli_ctx)
 static errno_t sss_nss_cmd_getgrnam_ex(struct cli_ctx *cli_ctx)
 {
     return sss_nss_getby_name(cli_ctx, true, CACHE_REQ_GROUP_BY_NAME, NULL,
-                              SSS_MC_GROUP, sss_nss_protocol_fill_grent);
+                              SSS_MC_GROUP, false, sss_nss_protocol_fill_grent);
 }
 
 static errno_t sss_nss_cmd_getgrgid_ex(struct cli_ctx *cli_ctx)
@@ -1025,13 +1036,13 @@ static errno_t sss_nss_cmd_endgrent(struct cli_ctx *cli_ctx)
 static errno_t sss_nss_cmd_initgroups(struct cli_ctx *cli_ctx)
 {
     return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_INITGROUPS, NULL,
-                              SSS_MC_INITGROUPS, sss_nss_protocol_fill_initgr);
+                              SSS_MC_INITGROUPS, false, sss_nss_protocol_fill_initgr);
 }
 
 static errno_t sss_nss_cmd_initgroups_ex(struct cli_ctx *cli_ctx)
 {
     return sss_nss_getby_name(cli_ctx, true, CACHE_REQ_INITGROUPS, NULL,
-                              SSS_MC_INITGROUPS, sss_nss_protocol_fill_initgr);
+                              SSS_MC_INITGROUPS, false, sss_nss_protocol_fill_initgr);
 }
 
 static errno_t sss_nss_cmd_subid_ranges(struct cli_ctx *cli_ctx)
@@ -1047,7 +1058,7 @@ static errno_t sss_nss_cmd_subid_ranges(struct cli_ctx *cli_ctx)
         };
 
     return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_SUBID_RANGES_BY_NAME, attrs,
-                              SSS_MC_NONE, sss_nss_protocol_fill_subid_ranges);
+                              SSS_MC_NONE, false, sss_nss_protocol_fill_subid_ranges);
 #else
     return ENOTSUP;
 #endif
@@ -1139,7 +1150,7 @@ static errno_t sss_nss_cmd_getsidbyname(struct cli_ctx *cli_ctx)
                             SYSDB_OBJECTCATEGORY, NULL };
 
     return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_OBJECT_BY_NAME, attrs,
-                              SSS_MC_NONE, sss_nss_protocol_fill_sid);
+                              SSS_MC_NONE, false, sss_nss_protocol_fill_sid);
 }
 
 static errno_t sss_nss_cmd_getsidbyusername(struct cli_ctx *cli_ctx)
@@ -1150,7 +1161,7 @@ static errno_t sss_nss_cmd_getsidbyusername(struct cli_ctx *cli_ctx)
                             SYSDB_OBJECTCATEGORY, NULL };
 
     return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_USER_BY_NAME, attrs,
-                              SSS_MC_NONE, sss_nss_protocol_fill_sid);
+                              SSS_MC_NONE, false, sss_nss_protocol_fill_sid);
 }
 
 static errno_t sss_nss_cmd_getsidbygroupname(struct cli_ctx *cli_ctx)
@@ -1161,7 +1172,7 @@ static errno_t sss_nss_cmd_getsidbygroupname(struct cli_ctx *cli_ctx)
                             SYSDB_OBJECTCATEGORY, NULL };
 
     return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_GROUP_BY_NAME, attrs,
-                              SSS_MC_NONE, sss_nss_protocol_fill_sid);
+                              SSS_MC_NONE, false, sss_nss_protocol_fill_sid);
 }
 
 static errno_t sss_nss_cmd_getsidbyid(struct cli_ctx *cli_ctx)
@@ -1204,7 +1215,8 @@ static errno_t sss_nss_cmd_getidbysid(struct cli_ctx *cli_ctx)
 }
 
 static errno_t sss_nss_cmd_getorigbyname_common(struct cli_ctx *cli_ctx,
-                                                enum cache_req_type type)
+                                                enum cache_req_type type,
+                                                bool include_initgroups)
 {
     errno_t ret;
     struct sss_nss_ctx *nss_ctx;
@@ -1227,24 +1239,200 @@ static errno_t sss_nss_cmd_getorigbyname_common(struct cli_ctx *cli_ctx,
     }
 
     return sss_nss_getby_name(cli_ctx, false, type, attrs,
-                              SSS_MC_NONE, sss_nss_protocol_fill_orig);
+                              SSS_MC_NONE, include_initgroups,
+                              sss_nss_protocol_fill_orig);
 }
 
 static errno_t sss_nss_cmd_getorigbyname(struct cli_ctx *cli_ctx)
 {
-    return sss_nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_OBJECT_BY_NAME);
+    return sss_nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_OBJECT_BY_NAME, false);
 }
 
 static errno_t sss_nss_cmd_getorigbyusername(struct cli_ctx *cli_ctx)
 {
-    return sss_nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_USER_BY_NAME);
+    return sss_nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_USER_BY_NAME, false);
 }
 
 static errno_t sss_nss_cmd_getorigbygroupname(struct cli_ctx *cli_ctx)
 {
-    return sss_nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_GROUP_BY_NAME);
+    return sss_nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_GROUP_BY_NAME, false);
 }
 
+struct sss_nss_getorigbyusername_wg_state {
+    struct sss_nss_cmd_ctx *cmd_ctx;
+    struct cache_req_result *user_result;
+};
+
+static errno_t
+sss_nss_cmd_getorigbyusername_with_groups(struct cli_ctx *cli_ctx)
+{
+    return sss_nss_cmd_getorigbyname_common(cli_ctx, CACHE_REQ_USER_BY_NAME, true);
+}
+
+static void
+sss_nss_getorigbyusername_wg_user_done(struct tevent_req *subreq)
+{
+    struct sss_nss_getorigbyusername_wg_state *state;
+    struct sss_nss_cmd_ctx *cmd_ctx;
+    struct cache_req_result *result;
+    struct tevent_req *initgr_req;
+    const char *name;
+    errno_t ret;
+
+    cmd_ctx = tevent_req_callback_data(subreq, struct sss_nss_cmd_ctx);
+
+    ret = sss_nss_get_object_recv(cmd_ctx, subreq, &result, &cmd_ctx->rawname);
+    talloc_zfree(subreq);
+    if (ret != EOK) {
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, ret);
+        goto done;
+    }
+
+    if (result->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unexpected number of results [%u], expected [1].\n",
+              result->count);
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, EINVAL);
+        goto done;
+    }
+
+    state = talloc_zero(cmd_ctx, struct sss_nss_getorigbyusername_wg_state);
+    if (state == NULL) {
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, ENOMEM);
+        goto done;
+    }
+    state->cmd_ctx = cmd_ctx;
+    state->user_result = result;
+
+    name = ldb_msg_find_attr_as_string(result->msgs[0], SYSDB_NAME, NULL);
+    if (name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing user name in result.\n");
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, EINVAL);
+        goto done;
+    }
+
+    initgr_req = cache_req_initgr_by_name_send(state, cmd_ctx->cli_ctx->ev,
+                                cmd_ctx->cli_ctx->rctx,
+                                cmd_ctx->cli_ctx->rctx->ncache,
+                                cmd_ctx->nss_ctx->cache_refresh_percent,
+                                CACHE_REQ_POSIX_DOM,
+                                result->domain->name, name);
+    if (initgr_req == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "cache_req_send() failed\n");
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, ENOMEM);
+        goto done;
+    }
+
+    tevent_req_set_callback(initgr_req,
+                            sss_nss_getorigbyusername_wg_initgr_done,
+                            state);
+    return;
+
+done:
+    talloc_free(cmd_ctx);
+}
+
+/* Determine whether an initgroups lookup ever completed successfully for the
+ * user. SYSDB_INITGR_EXPIRE is only set after a successful (online) initgroups
+ * completion, so a zero/missing value means the group memberships were never
+ * resolved (e.g. the backend was offline) rather than the user genuinely not
+ * being a member of any supplementary group. */
+static bool
+sss_nss_wg_initgr_completed(struct sss_nss_getorigbyusername_wg_state *state)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct ldb_result *res;
+    const char *name;
+    uint64_t initgr_expire;
+    errno_t ret;
+    static const char *attrs[] = { SYSDB_INITGR_EXPIRE, NULL };
+
+    name = ldb_msg_find_attr_as_string(state->user_result->msgs[0],
+                                       SYSDB_NAME, NULL);
+    if (name == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Missing user name in result.\n");
+        return false;
+    }
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return false;
+    }
+
+    ret = sysdb_get_user_attr(tmp_ctx, state->user_result->domain, name,
+                              attrs, &res);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "sysdb_get_user_attr() failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        goto done;
+    }
+
+    if (res->count != 1) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Unexpected number of results [%u], expected [1].\n", res->count);
+        ret = EINVAL;
+        goto done;
+    }
+
+    initgr_expire = ldb_msg_find_attr_as_uint64(res->msgs[0],
+                                                SYSDB_INITGR_EXPIRE, 0);
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    if (ret != EOK) {
+        return false;
+    }
+    return (initgr_expire != 0);
+}
+
+static void
+sss_nss_getorigbyusername_wg_initgr_done(struct tevent_req *subreq)
+{
+    struct sss_nss_getorigbyusername_wg_state *state;
+    struct sss_nss_cmd_ctx *cmd_ctx;
+    errno_t ret;
+
+    state = tevent_req_callback_data(subreq,
+                                     struct sss_nss_getorigbyusername_wg_state);
+    cmd_ctx = state->cmd_ctx;
+
+    ret = cache_req_initgr_by_name_recv(state, subreq, NULL);
+    talloc_zfree(subreq);
+    if (ret == ENOENT) {
+        /* No supplementary groups were returned. This can mean the user
+         * genuinely has none, or that the memberships could not be resolved
+         * (e.g. the backend went offline after the user was looked up).
+         */
+        if (!sss_nss_wg_initgr_completed(state)) {
+            ret = EIO;
+        } else {
+            /* The user genuinely has no supplementary groups: reply with the user
+             * data and no groups. */
+            ret = EOK;
+            cmd_ctx->include_initgroups = false;
+        }
+    }
+
+    if (ret != EOK) {
+        /* Group resolution failed (e.g. backend offline, cache error). Do not
+         * return a successful reply with silently missing groups: the caller
+         * explicitly requested the group memberships. */
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Initgroups resolution failed [%d]: %s\n",
+              ret, sss_strerror(ret));
+        sss_nss_protocol_done(cmd_ctx->cli_ctx, ret);
+        talloc_free(cmd_ctx);
+        return;
+    }
+
+    sss_nss_protocol_reply(cmd_ctx->cli_ctx, cmd_ctx->nss_ctx, cmd_ctx,
+                           state->user_result, cmd_ctx->fill_fn);
+
+    talloc_free(cmd_ctx);
+}
 
 static errno_t sss_nss_cmd_getnamebycert(struct cli_ctx *cli_ctx)
 {
@@ -1260,7 +1448,7 @@ static errno_t sss_nss_cmd_getlistbycert(struct cli_ctx *cli_ctx)
 static errno_t sss_nss_cmd_gethostbyname(struct cli_ctx *cli_ctx)
 {
     return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_IP_HOST_BY_NAME, NULL,
-                              SSS_MC_NONE, sss_nss_protocol_fill_hostent);
+                              SSS_MC_NONE, false, sss_nss_protocol_fill_hostent);
 }
 
 static errno_t sss_nss_cmd_gethostbyaddr(struct cli_ctx *cli_ctx)
@@ -1308,7 +1496,7 @@ static errno_t sss_nss_cmd_endhostent(struct cli_ctx *cli_ctx)
 static errno_t sss_nss_cmd_getnetbyname(struct cli_ctx *cli_ctx)
 {
     return sss_nss_getby_name(cli_ctx, false, CACHE_REQ_IP_NETWORK_BY_NAME, NULL,
-                              SSS_MC_NONE, sss_nss_protocol_fill_netent);
+                              SSS_MC_NONE, false, sss_nss_protocol_fill_netent);
 }
 
 static errno_t sss_nss_cmd_getnetbyaddr(struct cli_ctx *cli_ctx)
@@ -1388,6 +1576,7 @@ struct sss_cmd_table *get_sss_nss_cmds(void)
         { SSS_NSS_GETIDBYSID, sss_nss_cmd_getidbysid },
         { SSS_NSS_GETORIGBYNAME, sss_nss_cmd_getorigbyname },
         { SSS_NSS_GETORIGBYUSERNAME, sss_nss_cmd_getorigbyusername },
+        { SSS_NSS_GETORIGBYUSERNAME_WITH_GROUPS, sss_nss_cmd_getorigbyusername_with_groups },
         { SSS_NSS_GETORIGBYGROUPNAME, sss_nss_cmd_getorigbygroupname },
         { SSS_NSS_GETNAMEBYCERT, sss_nss_cmd_getnamebycert },
         { SSS_NSS_GETLISTBYCERT, sss_nss_cmd_getlistbycert },
