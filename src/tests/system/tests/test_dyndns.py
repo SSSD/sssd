@@ -195,6 +195,52 @@ def test_dyndns__update_is_set_to_false(client: Client, provider: GenericProvide
 
 @pytest.mark.topology(KnownTopologyGroup.AnyDC)
 @pytest.mark.importance("critical")
+@pytest.mark.parametrize(
+    "interfaces",
+    [("eth0", False), ("eth0, dummy0", True)],
+    ids=["dyndns_iface = eth0", "dyndns_iface = eth0, dummy0"],
+)
+def test_dyndns__update_with_address_filtering(
+    client: Client, provider: GenericProvider, interfaces: tuple[str, bool]
+):
+    """
+    :title: Dynamic DNS updates filtered address
+
+    If dyndns_iface is not set, it defaults to the interface that SSSD uses to communicate with the provider,
+    in this case 'eth0'. Only when the filtered IP, when the device is specified 'dummy0', dns will update.
+
+    :setup:
+        1. Create dummy interfaces
+        2. Check for existing records
+        3. Configure SSSD and specify one ip to filter and start
+    :steps:
+        1. Look up record
+    :expectedresults:
+        1. Hostname is found only when 'dummy0' is configured
+    :customerscenario: True
+    """
+    hostname = client.hostnameutils.fqdn
+    ip, _, _ = create_dummy_interface(client, provider)
+
+    check_records(client, provider, hostname)
+
+    client.sssd.domain["dyndns_update"] = "True"
+    client.sssd.domain["dyndns_update_ptr"] = "True"
+    client.sssd.domain["dyndns_refresh_interval_offset"] = "0"
+    client.sssd.domain["dyndns_address"] = f"{'.'.join(ip.split('.')[:-1] + ['0'])}/24"
+    client.sssd.domain["dyndns_iface"] = interfaces[0]
+    client.sssd.start()
+
+    if interfaces[-1]:
+        a_records = client.net.dig(hostname, provider.server)
+        assert a_records, f"Host {hostname} was not found!"
+        assert any(r["data"] == ip for r in a_records), f"Host {hostname} found with invalid ip!"
+    else:
+        assert client.net.dig(hostname, provider.server, attempts=2, delay=2) is None, f"Host {hostname} was found!"
+
+
+@pytest.mark.topology(KnownTopologyGroup.AnyDC)
+@pytest.mark.importance("critical")
 def test_dyndns__update_configured_ttl_value(client: Client, provider: GenericProvider):
     """
     :title: Dynamic DNS update creates record with configured TTL value
