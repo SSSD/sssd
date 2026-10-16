@@ -35,6 +35,6 @@ sdap_hostid_handler_send(TALLOC_CTX *mem_ctx,
 errno_t
 sdap_hostid_handler_recv(TALLOC_CTX *mem_ctx,
                          struct tevent_req *req,
-                         struct dp_reply_std *data);
+                         dp_no_output *_no_output);
 
 #endif /* _SDAP_HOSTID_H_ */

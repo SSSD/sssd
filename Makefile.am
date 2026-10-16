@@ -24,7 +24,7 @@ if HAVE_MANPAGES
 SUBDIRS += src/man
 endif
 
-SUBDIRS += . src/tests/cwrap src/tests/intg src/tests/test_CA \
+SUBDIRS += . src/tests/cwrap src/tests/test_CA \
              src/tests/test_ECC_CA src/tools/analyzer
 
 # Some old versions of automake don't define builddir
@@ -320,6 +320,7 @@ if HAVE_CMOCKA
         test_krb5_idp_plugin \
         test_sss_pam_data \
         test_pamsrv_json \
+        test_oidc_user_id \
         $(NULL)
 
 
@@ -363,6 +364,10 @@ endif
 if BUILD_KRB5_LOCALAUTH_PLUGIN
 non_interactive_cmocka_based_tests += test_sssd_krb5_localauth_plugin
 endif # BUILD_KRB5_LOCALAUTH_PLUGIN
+
+if BUILD_NFS_IDMAP
+non_interactive_cmocka_based_tests += test_nfsidmap
+endif # BUILD_NFS_IDMAP
 
 endif   # HAVE_CMOCKA
 
@@ -469,15 +474,12 @@ dist_noinst_SCRIPTS = \
     src/config/SSSDConfigTest.py3.sh \
     contrib/fedora/bashrc_sssd \
     contrib/fedora/make_srpm.sh \
-    contrib/ci/clean \
+    contrib/ci/check-valgrind \
     contrib/ci/configure.sh \
     contrib/ci/deps.sh \
     contrib/ci/distro.sh \
     contrib/ci/get-matrix.py \
-    contrib/ci/misc.sh \
     contrib/ci/rpm-spec-builddeps \
-    contrib/ci/run \
-    contrib/ci/run-multihost \
     contrib/ci/valgrind-condense \
     contrib/gdb/sssd_gdb_plugin.py \
     contrib/git/pre-push \
@@ -506,9 +508,7 @@ dist_noinst_DATA = \
     src/config/testconfigs/sssd-test-parse.conf \
     src/config/testconfigs/sssd-enabled-option.conf \
     src/config/etc/sssd.api.d/crash_test_dummy \
-    contrib/ci/README.md \
     contrib/ci/sssd.supp \
-    contrib/ci/sssd.debian.supp \
     contrib/gdbinit \
     contrib/pubkey.asc \
     $(SYSTEMTAP_PROBES) \
@@ -1779,7 +1779,6 @@ sssd_be_SOURCES = \
     src/providers/data_provider/dp_iface_failover.c \
     src/providers/data_provider/dp_resp_client.c \
     src/providers/data_provider/dp_request.c \
-    src/providers/data_provider/dp_reply_std.c \
     src/providers/data_provider/dp_target_sudo.c \
     src/providers/data_provider/dp_target_hostid.c \
     src/providers/data_provider/dp_target_autofs.c \
@@ -2645,6 +2644,29 @@ test_pamsrv_json_LDADD = \
 if BUILD_SAMBA
 test_pamsrv_json_LDADD += $(NDR_KRB5PAC_LIBS)
 endif
+
+test_oidc_user_id_SOURCES = \
+    src/oidc_child/oidc_child_user_id.c \
+    src/util/string_utils.c \
+    src/tests/cmocka/test_oidc_user_id.c \
+    $(NULL)
+test_oidc_user_id_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(POPT_CFLAGS) \
+    $(JANSSON_CFLAGS) \
+    $(CRYPTO_CFLAGS) \
+    $(NULL)
+test_oidc_user_id_LDADD = \
+    libsss_debug.la \
+    libsss_crypt.la \
+    libsss_test_common.la \
+    $(CMOCKA_LIBS) \
+    $(TALLOC_LIBS) \
+    $(POPT_LIBS) \
+    $(JANSSON_LIBS) \
+    $(CRYPTO_LIBS) \
+    $(NULL)
 
 test_sss_pam_data_SOURCES = \
     src/util/sss_pam_data.c \
@@ -3814,6 +3836,7 @@ simple_access_tests_LDADD = \
 
 krb5_common_test_SOURCES = \
     src/tests/cmocka/test_krb5_common.c \
+    src/tests/cmocka/common_mock_krb5.c \
     $(NULL)
 krb5_common_test_CFLAGS = \
     $(KRB5_CFLAGS) \
@@ -4091,52 +4114,6 @@ test_sssd_krb5_localauth_plugin_LDADD = \
     $(NULL)
 endif
 
-#####################
-# Integration tests #
-#####################
-
-intgcheck-prepare:
-	set -e; \
-	rm -Rf intg; \
-	$(MKDIR_P) intg/bld; \
-	: Use /hopefully/ short prefix to keep D-Bus socket path short; \
-	prefix=`mktemp --tmpdir --directory sssd-intg.XXXXXXXX`; \
-	$(LN_S) "$$prefix" intg/pfx; \
-	cd intg/bld; \
-	$(abs_top_srcdir)/configure \
-	    --prefix="$$prefix" \
-	    --with-ldb-lib-dir="$$prefix"/lib/ldb \
-	    --with-pid-path="$$prefix"/run/sssd \
-	    --enable-intgcheck-reqs \
-	    --without-selinux \
-	    --with-session-recording-shell=/bin/false \
-	    $(INTGCHECK_CONFIGURE_FLAGS) \
-	    CFLAGS="-O2 -g $$CFLAGS -DINTGCHECK_BUILD"; \
-	$(MAKE) $(AM_MAKEFLAGS) ; \
-	$(MAKE) $(AM_MAKEFLAGS) test_ssh_client; \
-	: Force single-thread install to workaround concurrency issues; \
-	$(MAKE) $(AM_MAKEFLAGS) -j1 install; \
-	: Remove .la files from LDB module directory to avoid loader warnings; \
-	rm "$$prefix"/lib/ldb/*.la; \
-	cd ../..
-
-intgcheck-run:
-	set -e; \
-	if [ ! -d intg/pfx ]; then $(MAKE) intgcheck-prepare; fi; \
-	cd intg/bld; \
-	$(MAKE) $(AM_MAKEFLAGS) -C src/tests/intg intgcheck-installed; \
-	cd ../..
-
-intgcheck-clean:
-	set -e; \
-	prefix=`readlink -e intg/pfx`; \
-	rm -Rf "$$prefix" intg
-
-intgcheck:
-	$(MAKE) intgcheck-prepare
-	$(MAKE) intgcheck-run
-	$(MAKE) intgcheck-clean
-
 ####################
 # Client Libraries #
 ####################
@@ -4187,6 +4164,32 @@ sss_la_LIBADD = \
 sss_la_LDFLAGS = \
     -module \
     -avoid-version \
+    $(NULL)
+
+test_nfsidmap_SOURCES = \
+    src/tests/cmocka/test_nfsidmap.c \
+    src/sss_client/common.c \
+    src/sss_client/nss_mc_common.c \
+    src/util/io.c \
+    src/util/murmurhash3.c \
+    src/sss_client/nss_mc_passwd.c \
+    src/sss_client/nss_mc_group.c \
+    src/sss_client/nfs/sss_nfs_client.c \
+    $(NULL)
+test_nfsidmap_CFLAGS = \
+    $(AM_CFLAGS) \
+    $(CMOCKA_CFLAGS) \
+    $(NFSIDMAP_CFLAGS) \
+    $(NULL)
+test_nfsidmap_LDADD = \
+    $(CMOCKA_LIBS) \
+    $(LIBADD_DL) \
+    $(NFSIDMAP_LIBS) \
+    $(CLIENT_LIBS) \
+    $(NULL)
+test_nfsidmap_LDFLAGS = \
+    -Wl,-wrap,sss_nss_mc_getpwuid \
+    -Wl,-wrap,sss_nss_mc_getgrgid \
     $(NULL)
 endif
 
@@ -4925,6 +4928,7 @@ oidc_child_SOURCES = \
     src/oidc_child/oidc_child.c \
     src/oidc_child/oidc_child_curl.c \
     src/oidc_child/oidc_child_json.c \
+    src/oidc_child/oidc_child_user_id.c \
     src/oidc_child/oidc_child_id.c \
     src/oidc_child/libcrypto/oidc_child_get_jwk.c \
     src/util/child_bootstrap.c \
@@ -4932,6 +4936,8 @@ oidc_child_SOURCES = \
     src/util/memory.c \
     src/util/memory_erase.c \
     src/util/strtonum.c \
+    src/util/string_utils.c \
+    src/util/util_ext.c \
     src/util/sss_chain_id.c \
     src/util/sss_prctl.c \
     src/util/cert/libcrypto/cert.c \
@@ -4947,6 +4953,7 @@ oidc_child_CFLAGS = \
     $(NULL)
 oidc_child_LDADD = \
     libsss_debug.la \
+    libsss_crypt.la \
     $(TALLOC_LIBS) \
     $(POPT_LIBS) \
     $(JANSSON_LIBS) \

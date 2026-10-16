@@ -831,6 +831,26 @@ const uint8_t test_cert3_der[] = {
     "d+GO2zfbNX8oS/LjZ5f/Vpmiu04VPdiifdYAbfCQez3bevYBQn4D/bq/xVHoHSLY" \
     "x0N7c7iPuFTCbg+OVrkH3OtPuRT/4kTn"
 
+#define TEST_CERT_WITHOUT_SID_EXT \
+    "MIIDSzCCAjOgAwIBAgIUOue9814XTdiAqheGZjzrkrdhooAwDQYJKoZIhvcNAQEL" \
+    "BQAwGDEWMBQGA1UEAwwNcm9vdC1kYy5hZC52bTAeFw0yNjEwMDgxNTEyMzBaFw0y" \
+    "NzEwMDgxNTEyMzBaMBgxFjAUBgNVBAMMDXJvb3QtZGMuYWQudm0wggEiMA0GCSqG" \
+    "SIb3DQEBAQUAA4IBDwAwggEKAoIBAQDxRgOYuKIudmsg25qT787h+daIBu5wMDIY" \
+    "Auy5goiXObVmf6H5mcR4QxupA7Js39Wts70Yhaupl1AANqXjl/Di0B0B3LJ69bqn" \
+    "Bv4J4zYdXdjyR7XBzbJVAExr8smomOqVUjC2MpPb2yTkSpVYQyTdUdCCc6EJBQoP" \
+    "IJrjxZHwH+pGInQDupCycia9MlawLWQFFZ8rIaspsIDTjbsww9k9pIQUgVQNHHl+" \
+    "0MBNV70Bn4L5rvb2yeyEV8PrmX0ql9mfoJaXZ+JMbQwLe5cSk/NviO/d0iqCWB9c" \
+    "CQhac4cmXBwkY4tRPt7IsTNWdlj/vni80QYlhy7+dBr9kQRm+TKnAgMBAAGjgYww" \
+    "gYkwHQYDVR0OBBYEFMKwt+h2D1upXwnl7n+RbNKUNbxaMB8GA1UdIwQYMBaAFMKw" \
+    "t+h2D1upXwnl7n+RbNKUNbxaMA4GA1UdDwEB/wQEAwIFoDAdBgNVHSUEFjAUBggr" \
+    "BgEFBQcDAgYIKwYBBQUHAwEwGAYDVR0RBBEwD4INcm9vdC1kYy5hZC52bTANBgkq" \
+    "hkiG9w0BAQsFAAOCAQEA52V9wY6MGzVusbxLKSdeIv6zTHzOSC2W18nzqgsz6GEv" \
+    "adQEqf3B43dQOjK0llqxebqoBJkV5dlnoCeMNf50Q328w6abeAW5cl0S9yOHvNEi" \
+    "BU1Z6PrsMBH23RaMh5e8eKN3iCYGwA5YP+GlEFu0JocuU+wj+44auwUnnAw7bqLj" \
+    "9QW5kHBIvs5WoJM1RGDMKSIJ6LkWF09eBjSiLqW2fo7JGqZuqkjoU0C2gxdKi9C8" \
+    "d7WEzXRqZW+VZ6Ia9sLI/G5LLH241JiyM7VcR02cfmBJO9MAFRYmFE9jmh2JIqgA" \
+    "Zp+ZRX9+wWtunLMj8Oa8b6qXMG0OJLoMAYRzmSYnIg=="
+
 void test_sss_cert_get_content(void **state)
 {
     int ret;
@@ -2813,14 +2833,19 @@ static void test_sss_certmap_ldapu1_sid(void **state)
 
     uint8_t *der;
     size_t der_size;
-
-    der = sss_base64_decode(NULL, TEST_CERT_WITH_SID_EXT, &der_size);
-    assert_non_null(der);
+    uint8_t *der_no_sid;
+    size_t der_no_sid_size;
 
     ret = sss_certmap_init(NULL, ext_debug, NULL, &ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(ctx);
     assert_null(ctx->prio_list);
+
+    der = sss_base64_decode(ctx, TEST_CERT_WITH_SID_EXT, &der_size);
+    assert_non_null(der);
+
+    der_no_sid = sss_base64_decode(ctx, TEST_CERT_WITHOUT_SID_EXT, &der_no_sid_size);
+    assert_non_null(der_no_sid);
 
     /* full sid */
     ret = sss_certmap_add_rule(ctx, 100,
@@ -2881,6 +2906,11 @@ static void test_sss_certmap_ldapu1_sid(void **state)
     assert_non_null(filter);
     assert_string_equal(filter, "rule98=1001");
     assert_null(domains);
+
+    /*  SID is not present in certificate, must fail but not crash */
+    ret = sss_certmap_expand_mapping_rule(ctx, der_no_sid, der_no_sid_size,
+                                          &filter, &domains);
+    assert_int_not_equal(ret, 0);
 
     sss_certmap_free_ctx(ctx);
 }

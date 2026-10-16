@@ -29,7 +29,12 @@
 #include "util/util.h"
 #include "sss_client/sss_cli.h"
 
-static void cleanup_preauth_indicator(void)
+#define PREAUTH_INDICATOR_ERROR \
+    "Failed to create pre-authentication indicator file, " \
+    "Smartcard/passkey authentication or configured prompting " \
+    "might not work as expected.\n"
+
+void cleanup_preauth_indicator(void)
 {
     int ret;
 
@@ -42,27 +47,17 @@ static void cleanup_preauth_indicator(void)
     }
 }
 
-errno_t create_preauth_indicator(void)
+void create_preauth_indicator(void)
 {
-    TALLOC_CTX *tmp_ctx;
-    errno_t ret;
     int fd;
-
-    tmp_ctx = talloc_new(NULL);
-    if (tmp_ctx == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "talloc_new failed.\n");
-        return ENOMEM;
-    }
 
     fd = open(PAM_PREAUTH_INDICATOR, O_CREAT | O_EXCL | O_WRONLY | O_NOFOLLOW,
               0644);
     if (fd < 0) {
         if (errno != EEXIST) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to create preauth indicator file [%s].\n",
-                  PAM_PREAUTH_INDICATOR);
-            ret = EOK;
-            goto done;
+            DEBUG(SSSDBG_OP_FAILURE, PREAUTH_INDICATOR_ERROR);
+            sss_log(SSS_LOG_ERR, PREAUTH_INDICATOR_ERROR);
+            return;
         }
 
         DEBUG(SSSDBG_TRACE_FUNC,
@@ -72,15 +67,11 @@ errno_t create_preauth_indicator(void)
         close(fd);
     }
 
-    ret = atexit(cleanup_preauth_indicator);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_OP_FAILURE, "atexit failed. Continuing.\n");
+    /* Keep the indicator around for socket activated responders so clients
+     * can request pre-auth even after the responder exits when idle. */
+    if (!is_socket_activated()) {
+        if (atexit(cleanup_preauth_indicator) != EOK) {
+            DEBUG(SSSDBG_OP_FAILURE, "atexit failed. Continuing.\n");
+        }
     }
-
-    ret = EOK;
-
-done:
-    talloc_free(tmp_ctx);
-
-    return ret;
 }

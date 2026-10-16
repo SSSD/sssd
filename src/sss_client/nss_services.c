@@ -59,9 +59,10 @@ static void sss_nss_getservent_data_clean(void) {
  * Protocol may be zero-length to imply "any"
  *
  * GETSERVBYPORT Request:
- * 0-3: 16-bit port number in network byte order
- * 4-15: Reserved/padding
- * 16-X: Zero-terminated string (protocol)
+ * 0-1: 16-bit port number in network byte order
+ * 2-3: 16-bit reserved/padding
+ * 4-7: 32-bit reserved/padding
+ * 8-X: Zero-terminated string (protocol)
  * Protocol may be zero-length to imply "any"
  *
  * Replies:

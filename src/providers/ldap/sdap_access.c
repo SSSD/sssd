@@ -116,6 +116,7 @@ struct sdap_access_req_ctx {
     struct ldb_message *user_entry;
     size_t current_rule;
     enum sdap_access_control_type ac_type;
+    bool pw_expire_warn_seen;
 };
 
 static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
@@ -150,6 +151,7 @@ sdap_access_send(TALLOC_CTX *mem_ctx,
     state->access_ctx = access_ctx;
     state->conn = conn;
     state->current_rule = 0;
+    state->pw_expire_warn_seen = false;
 
     DEBUG(SSSDBG_TRACE_FUNC,
           "Performing access check for user [%s]\n", pd->user);
@@ -212,8 +214,8 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
     while (ret == EOK) {
         switch (state->access_ctx->access_rule[state->current_rule]) {
         case LDAP_ACCESS_EMPTY:
-            /* we are done with no errors */
-            return EOK;
+            /* all rules passed; preserve warn semantics if seen */
+            return state->pw_expire_warn_seen ? ERR_PASSWORD_EXPIRED_WARN : EOK;
 
         /* This option is deprecated by LDAP_ACCESS_PPOLICY */
         case LDAP_ACCESS_LOCKOUT:
@@ -295,7 +297,8 @@ static errno_t sdap_access_check_next_rule(struct sdap_access_req_ctx *state,
                                           state->access_ctx->type,
                                           state->access_ctx->id_ctx->opts);
             if (ret == ERR_PASSWORD_EXPIRED) {
-                ret = ERR_PASSWORD_EXPIRED_WARN;
+                state->pw_expire_warn_seen = true;
+                ret = EOK;
             }
             break;
 
@@ -417,7 +420,7 @@ static errno_t sdap_account_expired_shadow(struct pam_data *pd,
     }
 
     today = (long) (time(NULL) / (60 * 60 * 24));
-    if (sp_expire > 0 && today >= sp_expire) {
+    if (sp_expire >= 0 && today >= sp_expire) {
 
         ret = pam_add_response(pd, SSS_PAM_SYSTEM_INFO,
                                sizeof(SHADOW_EXPIRE_MSG),
@@ -989,20 +992,19 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
                                                       struct tevent_req);
     struct sdap_access_filter_req_ctx *state =
             tevent_req_data(req, struct sdap_access_filter_req_ctx);
-    int ret, dp_error;
+    int ret;
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (ret == ERR_OFFLINE) {
             ret = sdap_access_decide_offline(state->cached_access);
             if (ret == EOK) {
                 tevent_req_done(req);
                 return;
             }
         }
-
         tevent_req_error(req, ret);
         return;
     }
@@ -1032,10 +1034,10 @@ static void sdap_access_filter_connect_done(struct tevent_req *subreq)
 
 static void sdap_access_filter_done(struct tevent_req *subreq)
 {
-    int ret, tret, dp_error;
-    size_t num_results;
+    int ret, tret;
+    size_t num_results = 0;
     bool found = false;
-    struct sysdb_attrs **results;
+    struct sysdb_attrs **results = NULL;
     struct tevent_req *req =
             tevent_req_callback_data(subreq, struct tevent_req);
     struct sdap_access_filter_req_ctx *state =
@@ -1045,15 +1047,16 @@ static void sdap_access_filter_done(struct tevent_req *subreq)
                                 &num_results, &results);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
-    if (ret != EOK) {
-        if (dp_error == DP_ERR_OK) {
-            /* retry */
-            tret = sdap_access_filter_retry(req);
-            if (tret == EOK) {
-                return;
-            }
-        } else if (dp_error == DP_ERR_OFFLINE) {
+    ret = sdap_id_op_done(state->sdap_op, ret);
+    if (ret == EAGAIN) {
+        /* retry */
+        tret = sdap_access_filter_retry(req);
+        if (tret == EOK) {
+            return;
+        }
+        goto done;
+    } else if (ret != EOK) {
+        if (ret == ERR_OFFLINE) {
             ret = sdap_access_decide_offline(state->cached_access);
         } else if (ret == ERR_INVALID_FILTER) {
             sss_log(SSS_LOG_ERR, MALFORMED_FILTER, state->filter);
@@ -1558,24 +1561,23 @@ static void sdap_access_ppolicy_connect_done(struct tevent_req *subreq)
 {
     struct tevent_req *req;
     struct sdap_access_ppolicy_req_ctx *state;
-    int ret, dp_error;
+    int ret;
     const char *ppolicy_dn;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
     state = tevent_req_data(req, struct sdap_access_ppolicy_req_ctx);
 
-    ret = sdap_id_op_connect_recv(subreq, &dp_error);
+    ret = sdap_id_op_connect_recv(subreq);
     talloc_zfree(subreq);
 
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OFFLINE) {
+        if (ret == ERR_OFFLINE) {
             ret = sdap_access_decide_offline(state->cached_access);
             if (ret == EOK) {
                 tevent_req_done(req);
                 return;
             }
         }
-
         tevent_req_error(req, ret);
         return;
     }
@@ -1674,7 +1676,7 @@ done:
 
 static void sdap_access_ppolicy_get_lockout_done(struct tevent_req *subreq)
 {
-    int ret, tret, dp_error;
+    int ret, tret;
     size_t num_results;
     bool pwdLockout = false;
     struct sysdb_attrs **results;
@@ -1688,7 +1690,7 @@ static void sdap_access_ppolicy_get_lockout_done(struct tevent_req *subreq)
     talloc_zfree(subreq);
     if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE, "Cannot retrieve ppolicy\n");
-        ret = ERR_NETWORK_IO;
+        ret = ERR_SERVER_FAILURE;
         goto done;
     }
 
@@ -1773,7 +1775,7 @@ static void sdap_access_ppolicy_get_lockout_done(struct tevent_req *subreq)
 done:
     if (ret != EAGAIN) {
         /* release connection */
-        tret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+        tret = sdap_id_op_done(state->sdap_op, ret);
         if (tret != EOK) {
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "sdap_get_generic_send() returned error [%d][%s]\n",
@@ -1911,12 +1913,12 @@ done:
 
 static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
 {
-    int ret, tret, dp_error;
-    size_t num_results;
+    int ret, tret;
+    size_t num_results = 0;
     bool locked = false;
     const char *pwdAccountLockedTime;
     const char *pwdAccountLockedDurationTime;
-    struct sysdb_attrs **results;
+    struct sysdb_attrs **results = NULL;
     struct tevent_req *req;
     struct sdap_access_ppolicy_req_ctx *state;
 
@@ -1926,15 +1928,15 @@ static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
     ret = sdap_get_generic_recv(subreq, state, &num_results, &results);
     talloc_zfree(subreq);
 
-    ret = sdap_id_op_done(state->sdap_op, ret, &dp_error);
+    ret = sdap_id_op_done(state->sdap_op, ret);
     if (ret != EOK) {
-        if (dp_error == DP_ERR_OK) {
+        if (ret == EAGAIN) {
             /* retry */
             tret = sdap_access_ppolicy_retry(req);
             if (tret == EOK) {
                 return;
             }
-        } else if (dp_error == DP_ERR_OFFLINE) {
+        } else if (ret == ERR_OFFLINE) {
             ret = sdap_access_decide_offline(state->cached_access);
         } else {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -1954,6 +1956,7 @@ static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
         DEBUG(SSSDBG_CONF_SETTINGS,
               "User [%s] was not found with the specified filter. "
               "Denying access.\n", state->username);
+        locked = true;
     } else if (results == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "num_results > 0, but results is NULL\n");
         ret = ERR_INTERNAL;

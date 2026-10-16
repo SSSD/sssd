@@ -979,6 +979,101 @@ def test_ldap__resolver_provider_lookup_services_by_port(client: Client, ldap: L
         raise AssertionError("No service entry found!")
 
 
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_service_when_port_is_out_range(client: Client, ldap: LDAP):
+    """
+    :title: Lookup a service when a port is out of range and the invalid port should not be returned using getent
+    :setup:
+        1. Create a service with port 1234567 (out of valid range)
+        2. Start SSSD
+    :steps:
+        1. Look up the service by name
+        2. Check SSSD domain log for port-range error
+    :expectedresults:
+        1. getent returns no result for the service
+        2. Log contains "Failed to identify service port" and "Numerical result out of range"
+    :customerscenario: False
+    """
+    ldap.services("svc_badport").add(port=1234567, protocol="udp", aliases=[])
+    client.sssd.start()
+
+    result = client.tools.getent.services("svc_badport", service="sss")
+    assert result is None, "Service with out-of-range port should not be returned!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert "Failed to identify service port" in log, "Expected port-out-of-range error in log!"
+    assert "Numerical result out of range" in log, "Expected 'Numerical result out of range' message in log!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_services_with_filtered_search_base(client: Client, ldap: LDAP):
+    """
+    :title: ldap_service_search_base with a protocol filter limits the returned services
+    :setup:
+        1. Create a TCP service
+        2. Create a UDP service
+        3. Configure ldap_service_search_base with a filter restricting to UDP protocol
+        4. Start SSSD
+    :steps:
+        1. Look up the UDP service
+        2. Look up the TCP service
+    :expectedresults:
+        1. UDP service is found
+        2. TCP service is not found (excluded by the filter)
+    :customerscenario: False
+    """
+    base = ldap.ldap.naming_context
+    ldap.services("svc_tcp").add(port=1234, protocol="tcp", aliases=[])
+    ldap.services("svc_udp").add(port=1234, protocol="udp", aliases=[])
+
+    client.sssd.dom("test")["ldap_service_search_base"] = f"ou=Services,{base}?one?(ipServiceProtocol=udp)"
+    client.sssd.start()
+
+    result = client.tools.getent.services("svc_udp", service="sss")
+    assert result is not None, "UDP service should be found with the protocol filter!"
+    assert result.name == "svc_udp"
+
+    result = client.tools.getent.services("svc_tcp", service="sss")
+    assert result is None, "TCP service should not be found with udp-only protocol filter!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__resolver_provider_lookup_services_with_case_sensitivity_set_to_false(client: Client, ldap: LDAP):
+    """
+    :title: Service lookups succeed with mixed-case names and aliases when case_sensitive is false
+    :setup:
+        1. Create a service named "Svc1" with a mixed-case alias "SVC1_Alias1"
+        2. Configure SSSD with case_sensitive = false
+        3. Start SSSD
+    :steps:
+        1. Look up service using lowercase name "svc1"
+        2. Look up service using uppercase alias "svc1_alias1"
+        3. Look up service by port with mixed-case protocol "TCP"
+    :expectedresults:
+        1. Service is found regardless of case
+        2. Alias lookup succeeds regardless of case
+        3. Port/protocol lookup succeeds regardless of case
+    :customerscenario: False
+    """
+    ldap.services("Svc1").add(port=1234, protocol="tcp", aliases=["SVC1_Alias1"])
+
+    client.sssd.dom("test")["case_sensitive"] = "false"
+    client.sssd.start()
+
+    result = client.tools.getent.services("svc1", service="sss")
+    assert result is not None, "Service lookup should succeed with lowercase name when case_sensitive=false!"
+    assert result.port == 1234
+
+    result = client.tools.getent.services("svc1_alias1", service="sss")
+    assert result is not None, "Service alias lookup should succeed case-insensitively!"
+
+    result = client.tools.getent.services("1234/TCP", service="sss")
+    assert result is not None, "Service port/protocol lookup should succeed with uppercase protocol!"
+
+
 @pytest.mark.topology(KnownTopology.LDAP)
 @pytest.mark.parametrize("timeout, expect_expire", [(15, True), (0, True), (-100, True)])
 @pytest.mark.importance("medium")
@@ -1079,3 +1174,183 @@ def test_ldap__connection_expire_timeout_default_value_is_logged(client: Client,
     assert (
         "Option ldap_connection_expire_timeout has value 900" in log
     ), "Default ldap_connection_expire_timeout value (900) not found in domain log!"
+
+
+@pytest.mark.ticket(bz=748856)
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__display_password_expiration_warning(client: Client, ldap: LDAP):
+    """
+    :title: Display password expiration warning
+    :setup:
+        1. Set "passwordExp" to "on"
+        2. Set "passwordMaxAge" to "86400"
+        3. Set "passwordWarning" to "86400"
+        4. Add a user to LDAP
+        5. Start SSSD
+    :steps:
+        1. Authenticate as the user1 via 'su' with password "Secret123"
+        2. Check that user was informed about password expiration
+        3. Repeat the steps above with 'ssh' method
+    :expectedresults:
+        1. Authentication should succeed
+        2. Corresponding password expiration warning should be generated
+        3. Same results are expected for 'ssh' too
+    :customerscenario: False
+    """
+    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "86400", "passwordWarning": "86400"})
+    ldap.user("user1").add(password="Secret123")
+    client.sssd.start()
+
+    for method in ["su", "ssh"]:
+        rc, _, stdout, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
+        assert rc == 0, "User 'user1' login failed!"
+        assert "Your password will expire in " in stdout, "Password expiration warning not generated!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=785908)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__search_base_limits_rfc2307bis_posixgroup_scope(client: Client, ldap: LDAP):
+    """
+    :title: ldap_search_base limits group scope for rfc2307bis and groupOfNames schema
+    :description:
+        When ldap_search_base is set, groups stored outside that base must not be resolved,
+        even when they are nested members of a group that is inside the base.
+    :setup:
+        1. Create groups inside and outside the configured ldap_search_base, nested across the boundary
+        2. Configure SSSD with rfc2307bis schema, groupOfNames object class and a limited ldap_search_base
+        3. Start SSSD
+    :steps:
+        1. Lookup groups that are inside the search base
+        2. Lookup groups that are outside the search base
+    :expectedresults:
+        1. Groups inside the search base are found
+        2. Groups outside the search base are not found
+    :customerscenario: True
+    :requirement: SSSD - Default debug level
+    """
+    outside_ou = ldap.ou("qagroup").add()
+    user = ldap.user("tempuser").add()
+
+    outside_group = ldap.group("outside_group", basedn=outside_ou, rfc2307bis=True).add(members=[user])
+    ldap.group("inside_group", rfc2307bis=True).add(members=[outside_group])
+
+    client.sssd.domain["ldap_schema"] = "rfc2307bis"
+    client.sssd.domain["ldap_group_object_class"] = "groupOfNames"
+    client.sssd.dom("test")["ldap_search_base"] = f"ou=groups,{ldap.ldap.naming_context}"
+    client.sssd.start()
+
+    assert client.tools.getent.group("inside_group") is not None, "inside_group was not found!"
+    assert (
+        client.tools.getent.group("outside_group") is None
+    ), "outside_group should not be visible outside search base!"
+
+
+@pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.importance("low")
+def test_ldap__password_expiration_warning_does_not_overwrite_errors(client: Client, provider: LDAP):
+    """
+    :title: SSSD warns that a password is about to expire
+    :setup:
+        1. Create user with expired password
+        3. Set 'ldap_access_order = pwd_expire_policy_warn' and restart SSSD
+        4. Create SSH key for the user and write it to 'authorizred_keys'
+    :steps:
+        1. SSH into the local host with the SSH key of the user
+        2. Change 'ldap_access_order' to 'pwd_expire_policy_warn, expire'
+        3. SSH into the local host with the SSH key of the user
+    :expectedresults:
+        1. SSH is successful and shows 'Your password has expired.' on standard error
+        2. Config change is successful
+        3. SSH fails because the 'expire' policy rejects the locked user
+    :customerscenario: False
+    """
+
+    user = provider.user("user1").add(
+        shadowMin=0, shadowMax=99999, shadowWarning=7, shadowLastChange=0, shadowExpire=1, password="Secret123"
+    )
+
+    client.sssd.domain["auto_private_groups"] = "True"
+    client.sssd.domain["access_provider"] = "ldap"
+    client.sssd.domain["ldap_pwd_policy"] = "shadow"
+    client.sssd.domain["ldap_account_expire_policy"] = "shadow"
+    client.sssd.domain["ldap_access_order"] = "pwd_expire_policy_warn"
+    client.sssd.restart()
+
+    pwd = client.tools.getent.passwd(user.name)
+    assert pwd is not None, "User not found!"
+    assert pwd.name is not None, "User name is missing!"
+    assert pwd.home is not None, "home directory is missing!"
+
+    client.host.conn.run(f"su - {user.name}", raise_on_error=False)
+    key = client.tools.sshkey.generate(pwd.name, pwd.home)[0]
+    client.fs.write(f"{pwd.home}/.ssh/authorized_keys", key)
+    # remove password from keyfile to make non-interactive login work
+    client.host.conn.run(f"ssh-keygen -p -P ' ' -N '' -f {pwd.home}/.ssh/id_rsa")
+
+    client.sssd.restart(clean=True)
+
+    result = client.host.conn.run(
+        f"sudo -u {user.name} ssh -o StrictHostKeychecking=no "
+        "-o PubkeyAuthentication=yes -o GSSAPIAuthentication=no "
+        "-o KbdInteractiveAuthentication=no -o PasswordAuthentication=no "
+        f"-l {user.name} localhost whoami",
+        raise_on_error=False,
+    )
+    assert result.rc == 0, "SSH with pubkey failed!"
+    assert result.stdout == f"{user.name}", "Missing user name output!"
+    assert "Your password has expired." in result.stderr, "Missing 'Your password has expired.' in error output!"
+
+    client.sssd.domain["ldap_access_order"] = "pwd_expire_policy_warn, expire"
+    client.sssd.restart(clean=True)
+
+    result = client.host.conn.run(
+        f"sudo -u {user.name} ssh -o StrictHostKeychecking=no "
+        "-o PubkeyAuthentication=yes -o GSSAPIAuthentication=no "
+        "-o KbdInteractiveAuthentication=no -o PasswordAuthentication=no "
+        f"-l {user.name} localhost whoami",
+        raise_on_error=False,
+    )
+    assert result.rc != 0, "SSH was successful but should have failed!"
+    assert result.stdout == "", "Output is not empty!"
+    assert "Your password has expired." in result.stderr, "Missing 'Your password has expired.' in error output!"
+
+
+@pytest.mark.ticket(bz=954323)
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__display_grace_logins_when_password_has_expired(client: Client, ldap: LDAP):
+    """
+    :title: Display number of remaining grace logins when password is expired
+    :description: Warns user of remaining grace logins upon logging in with an expired password.
+    :setup:
+        1. Set "passwordExp" to "on"
+        2. Set "passwordMaxAge" to "1"
+        3. Set "passwordGraceLimit" to "2"
+        3. Add a user to LDAP
+        4. Wait until the password is expired
+        6. Start SSSD
+    :steps:
+        1. Authenticate as the user1 via 'su' with password "Secret123"
+        2. Verify stdout for the message indicating remaining grace logins
+        3. Repeat steps 1-2 with 'ssh' method
+    :expectedresults:
+        1. Authentication should succeed
+        2. Corresponding log should be generated
+        3. Results above are expected in every iteration
+    :customerscenario: False
+    """
+    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "2"})
+    ldap.user("user1").add(password="Secret123")
+    client.sssd.start()
+    time.sleep(2)
+
+    grace_logins = 2
+    for method in ["su", "ssh"]:
+        rc, _, stdout, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
+        grace_logins -= 1
+        assert rc == 0, f"User 'user1' login failed!: rc == {rc}; method: {method}, grace logins left: {grace_logins}"
+        assert (
+            f"You have {grace_logins} grace login(s) remaining" in stdout
+        ), "Expected grace logins message in stdout, but none was found."

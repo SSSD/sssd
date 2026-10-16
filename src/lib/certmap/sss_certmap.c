@@ -580,6 +580,10 @@ static int expand_sid(struct sss_certmap_ctx *ctx, const char *attr_name,
     char *exp;
     const char *sep;
 
+    if (sid == NULL) {
+        CM_DEBUG(ctx, "SID is missing.");
+        return EINVAL;
+    }
     if (attr_name == NULL) {
         exp = talloc_strdup(ctx, sid);
     } else if (strcasecmp(attr_name, "rid") == 0) {

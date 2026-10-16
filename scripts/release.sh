@@ -20,6 +20,11 @@ function get_stable_branch() {
   echo "sssd-$x-$y"
 }
 
+# Check whether the version string has a pre-release suffix (e.g. -beta1).
+function is_prerelease() {
+  [[ "$1" == *-* ]]
+}
+
 # Get the previous version tag for release notes generation.
 # For X.Y.Z releases (Z>0), the previous version is X.Y.(Z-1).
 # For X.Y.0 releases (Y>0), the previous version is X.(Y-1).0.
@@ -67,7 +72,7 @@ git_remote="${5:-origin}"
 # "no" can be used for pre-releases where the release is still developed
 # on the master branch.
 if [[ "$create_stable_branch" == "auto" ]]; then
-  if [[ "$branch" == "master" ]]; then
+  if [[ "$branch" == "master" ]] && ! is_prerelease "$version"; then
     create_stable_branch="yes"
   else
     create_stable_branch="no"
@@ -175,13 +180,16 @@ GROUP_END
 fi
 
 GROUP_START "Create GitHub release"
+release_flags=(--draft)
+is_prerelease "$version" && release_flags+=(--prerelease)
+
 gh release create "$version" \
     --repo "$github_repo" \
     --title "sssd-$version" \
     --notes "[**See full release notes here.**](https://sssd.io/release-notes/sssd-$version.html)" \
     --generate-notes \
     --verify-tag \
-    --draft \
+    "${release_flags[@]}" \
     "sssd-${version}.tar.gz" \
     "sssd-${version}.tar.gz.asc" \
     "sssd-${version}.tar.gz.sha256sum"

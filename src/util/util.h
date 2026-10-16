@@ -797,7 +797,8 @@ errno_t sss_cert_derb64_to_ldap_filter(TALLOC_CTX *mem_ctx, const char *derb64,
 
 
 /* from util_preauth.c */
-errno_t create_preauth_indicator(void);
+void cleanup_preauth_indicator(void);
+void create_preauth_indicator(void);
 
 #ifdef SSSD_LIBEXEC_PATH
 #define P11_CHILD_LOG_FILE "p11_child"
@@ -868,5 +869,16 @@ errno_t sss_parse_dns_uri(TALLOC_CTX *ctx,
 
 /* from sss_config.c */
 const char *sss_get_default_config_file(TALLOC_CTX *mem_ctx);
+
+__attribute__((always_inline))
+static inline void tevent_req_done_or_error(struct tevent_req *req,
+                                        errno_t ret)
+{
+    if (ret != EOK) {
+        tevent_req_error(req, ret);
+    } else {
+        tevent_req_done(req);
+    }
+}
 
 #endif /* __SSSD_UTIL_H__ */

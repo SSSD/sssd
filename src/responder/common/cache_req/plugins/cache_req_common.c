@@ -121,31 +121,17 @@ cache_req_well_known_sid_result(TALLOC_CTX *mem_ctx,
 
 bool
 cache_req_common_process_dp_reply(struct cache_req *cr,
-                                  errno_t ret,
-                                  uint16_t err_maj,
-                                  uint32_t err_min,
-                                  const char *err_msg)
+                                  errno_t ret)
 {
     bool bret;
 
-    if (ret != EOK) {
+    if (ret != EOK && ret != ENOENT) {
         int msg_level = SSSDBG_IMPORTANT_INFO;
         /* ERR_DOMAIN_NOT_FOUND: 'ad_enabled_domains' option can exclude domain */
         if (ret == ERR_DOMAIN_NOT_FOUND) msg_level = SSSDBG_CONF_SETTINGS;
         CACHE_REQ_DEBUG(msg_level, cr,
                         "Could not get account info [%d]: %s\n",
                         ret, sss_strerror(ret));
-        CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
-                        "Due to an error we will return cached data\n");
-
-        bret = false;
-        goto done;
-    }
-
-    if (err_maj) {
-        CACHE_REQ_DEBUG(SSSDBG_IMPORTANT_INFO, cr,
-                        "Data Provider Error: %u, %u, %s\n",
-                        (unsigned int)err_maj, (unsigned int)err_min, err_msg);
         CACHE_REQ_DEBUG(SSSDBG_TRACE_FUNC, cr,
                         "Due to an error we will return cached data\n");
 
@@ -163,16 +149,11 @@ bool
 cache_req_common_dp_recv(struct tevent_req *subreq,
                          struct cache_req *cr)
 {
-    const char *err_msg;
-    uint16_t err_maj;
-    uint32_t err_min;
     errno_t ret;
     bool bret;
 
-    /* Use subreq as memory context so err_msg is freed with it. */
-    ret = sss_dp_get_account_recv(subreq, subreq, &err_maj, &err_min, &err_msg);
-    bret = cache_req_common_process_dp_reply(cr, ret, err_maj,
-                                             err_min, err_msg);
+    ret = sss_dp_get_account_recv(subreq, subreq);
+    bret = cache_req_common_process_dp_reply(cr, ret);
 
     return bret;
 }

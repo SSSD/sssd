@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       create_stable_branch:
-        description: 'Create stable branch (auto = yes if branch is master)'
+        description: 'Create stable branch (auto = yes if branch is master and version is not a pre-release)'
         required: true
         default: 'auto'
         type: choice

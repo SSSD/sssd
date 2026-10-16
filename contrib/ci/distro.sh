@@ -28,8 +28,6 @@ declare DISTRO_RELEASE=
 
 if [ -e /etc/redhat-release ]; then
     DISTRO_FAMILY=redhat
-elif [ -e /etc/debian_version ]; then
-    DISTRO_FAMILY=debian
 else
     DISTRO_FAMILY=unknown
 fi
@@ -63,30 +61,8 @@ function distro_pkg_install()
                  /^No package .* available.$/ {s=1}
                  {print}
                  END {exit s}'
-    elif [[ "$DISTRO_BRANCH" == -debian-* ]]; then
-        [ $# != 0 ] && DEBIAN_FRONTEND=noninteractive \
-                       # Ensure updated apt cache
-                       sudo -p "$prompt" apt-get --yes update \
-                    && DEBIAN_FRONTEND=noninteractive \
-                       sudo -p "$prompt" apt-get --yes install -- "$@"
     else
         echo "Cannot install packages on $DISTRO_BRANCH" >&2
-        exit 1
-    fi
-}
-
-# Remove packages.
-# Args: [pkg_name...]
-function distro_pkg_remove()
-{
-    declare prompt=$'Need root permissions to remove packages.\n'
-    prompt+="Enter sudo password for $USER: "
-    if [[ "$DISTRO_BRANCH" == -redhat-* ]]; then
-        [ $# != 0 ] && sudo -p "$prompt" yum --assumeyes remove -- "$@"
-    elif [[ "$DISTRO_BRANCH" == -debian-* ]]; then
-        [ $# != 0 ] && sudo -p "$prompt" apt-get --yes remove -- "$@"
-    else
-        echo "Cannot remove packages on $DISTRO_BRANCH" >&2
         exit 1
     fi
 }

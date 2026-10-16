@@ -321,13 +321,9 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
     if (pctx->cert_auth
         || pctx->passkey_auth
         || pctx->num_prompting_config_sections != 0) {
-        ret = create_preauth_indicator();
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "Failed to create pre-authentication indicator file, "
-                  "Smartcard/passkey authentication or configured prompting might "
-                  "not work as expected.\n");
-        }
+        create_preauth_indicator();
+    } else {
+        cleanup_preauth_indicator();
     }
 
     ret = confdb_get_string(pctx->rctx->cdb, pctx, CONFDB_PAM_CONF_ENTRY,
@@ -505,7 +501,6 @@ int main(int argc, const char *argv[])
 
     umask(DFL_RSP_UMASK);
 
-#ifndef INTGCHECK_BUILD
     /* This is to clear dangerous variables like 'LDB_MODULES_PATH'
      * from environment of privileged responder.
      * In case of socket activation, 'LISTEN_PID' and 'LISTEN_FDS'
@@ -526,7 +521,6 @@ int main(int argc, const char *argv[])
         setenv("LISTEN_FDS", env_listen_fds, 1);
         talloc_free(env_listen_fds);
     }
-#endif  /* 'intgcheck' relies on 'LDB_MODULES_PATH' to setup a test env */
 
     pc = poptGetContext(argv[0], argc, argv, long_options, 0);
     while((opt = poptGetNextOpt(pc)) != -1) {

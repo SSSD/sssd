@@ -172,7 +172,7 @@ struct tevent_req *ipa_get_trusted_memberships_send(TALLOC_CTX *mem_ctx,
                                                     struct sdap_id_ctx *sdap_id_ctx,
                                                     const char *domain);
 
-errno_t ipa_get_trusted_memberships_recv(struct tevent_req *req, int *dp_error_out);
+errno_t ipa_get_trusted_memberships_recv(struct tevent_req *req);
 
 struct tevent_req *ipa_ext_group_member_send(TALLOC_CTX *mem_ctx,
                                              struct tevent_context *ev,

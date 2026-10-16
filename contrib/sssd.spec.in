@@ -470,6 +470,7 @@ use the KCM: Kerberos credentials cache.
 Summary: The IdP back end of the SSSD, Kerberos plugins and OIDC helper
 License: GPL-3.0-or-later
 Requires: sssd-common = %{version}-%{release}
+Requires: libsss_idmap = %{version}-%{release}
 
 %description idp
 Provides the Identity Provider (IdP) back end that the SSSD can utilize to fetch

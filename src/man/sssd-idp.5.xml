@@ -190,6 +190,77 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>idp_auth_user_identifier_attr (string)</term>
+                    <listitem>
+                        <para>
+                            Attribute used to identify the authenticated user
+                            in userinfo data or token claims.
+                        </para>
+                        <para>
+                            For hybrid Active Directory and Entra ID
+                            deployments where <quote>id_provider = ad</quote>
+                            and <quote>auth_provider = idp</quote>, this option
+                            must be set explicitly. No value is derived from
+                            the identity provider, because more than one
+                            attribute can link an Entra ID object to its
+                            on-premises counterpart and only the administrator
+                            knows which one the directory synchronization is
+                            configured to use.
+                        </para>
+                        <para>
+                            Setting this option to
+                            <quote>onPremisesImmutableId</quote> is the usual
+                            choice for such deployments. Microsoft Entra
+                            Connect populates that attribute with the
+                            base64-encoded form of the 16-byte Active
+                            Directory <quote>objectGUID</quote> when
+                            objectGUID is used as the sourceAnchor. SSSD
+                            decodes the value and converts the raw bytes with
+                            the same conversion used for AD objectGUID
+                            attributes, so the result matches the UUID stored
+                            in the SSSD cache for the AD user.
+                        </para>
+                        <para>
+                            Note that Microsoft Entra Connect 1.1.524.0 and
+                            later use <quote>ms-DS-ConsistencyGuid</quote> as
+                            the sourceAnchor for user objects instead of
+                            <quote>objectGUID</quote>. The value is normally
+                            copied from objectGUID for objects that do not have
+                            it set yet, in which case the decoded identifier
+                            still matches. It does not match if
+                            ms-DS-ConsistencyGuid was populated independently,
+                            if users were moved between forests or domains, or
+                            if a different attribute such as employeeID was
+                            selected as the sourceAnchor. See
+                            <ulink
+                            url="https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/plan-connect-design-concepts">
+                            Microsoft Entra Connect: Design concepts</ulink>
+                            for details on sourceAnchor selection.
+                        </para>
+                        <para>
+                            Microsoft Graph does not return
+                            <quote>onPremisesImmutableId</quote> by default.
+                            The <quote>idp_userinfo_endpoint</quote> must
+                            request it with <quote>$select</quote>, see the
+                            example below and
+                            <ulink
+                            url="https://learn.microsoft.com/en-us/graph/api/resources/user">
+                            the Microsoft Graph user resource type</ulink>.
+                        </para>
+                        <para>
+                            If the configured attribute is missing or cannot be
+                            decoded (for example cloud-only Entra ID users
+                            without <quote>onPremisesImmutableId</quote>),
+                            authentication fails. SSSD does not fall back to
+                            another attribute when this option is set.
+                        </para>
+                        <para>
+                            Default: not set, <quote>sub</quote> for Keycloak
+                            and <quote>id</quote> for other IdP types
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>idp_request_timeout (integer)</term>
                     <listitem>
                         <para>
@@ -284,6 +355,25 @@ idp_id_scope = https://graph.microsoft.com/.default
 idp_auth_scope = openid profile email
 </programlisting>
 <programlisting>
+[domain/ad.example.com]
+id_provider = ad
+auth_provider = idp
+access_provider = permit
+
+ad_domain = ad.example.com
+krb5_realm = AD.EXAMPLE.COM
+
+idp_type = entra_id
+idp_client_id = 12345678-abcd-0101-efef-ba9876543210
+idp_client_secret = YOUR-CLIENT-SECRET
+idp_token_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/token
+idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me?$select=id,userPrincipalName,onPremisesImmutableId
+idp_device_auth_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/devicecode
+idp_id_scope = https://graph.microsoft.com/.default
+idp_auth_scope = openid profile email
+idp_auth_user_identifier_attr = onPremisesImmutableId
+</programlisting>
+<programlisting>
 [domain/keycloak]
 idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/
 id_provider = idp
@@ -295,6 +385,15 @@ idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/master/
 idp_id_scope = profile
 idp_auth_scope = openid profile email
 </programlisting>
+        </para>
+        <para>
+            In the hybrid Active Directory and Entra ID example above,
+            <quote>onPremisesImmutableId</quote> is used during authentication
+            so the IdP result matches the AD objectGUID UUID stored in the
+            SSSD cache. The attribute must be requested via
+            <quote>$select</quote> on the Graph userinfo endpoint and is only
+            populated for users synchronized from Active Directory with
+            objectGUID as the sourceAnchor.
         </para>
     </refsect1>
 

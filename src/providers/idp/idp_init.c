@@ -299,15 +299,15 @@ errno_t sssm_idp_id_init(TALLOC_CTX *mem_ctx,
 
     dp_set_method(dp_methods, DPM_ACCOUNT_HANDLER,
                   idp_account_info_handler_send, idp_account_info_handler_recv, id_ctx,
-                  struct idp_id_ctx, struct dp_id_data, struct dp_reply_std);
+                  struct idp_id_ctx, struct dp_id_data, dp_no_output);
 
     dp_set_method(dp_methods, DPM_CHECK_ONLINE,
                   idp_online_check_handler_send, idp_online_check_handler_recv, id_ctx,
-                  struct idp_id_ctx, void, struct dp_reply_std);
+                  struct idp_id_ctx, void, dp_no_output);
 
     dp_set_method(dp_methods, DPM_ACCT_DOMAIN_HANDLER,
                   default_account_domain_send, default_account_domain_recv, NULL,
-                  void, struct dp_get_acct_domain_data, struct dp_reply_std);
+                  void, struct dp_get_acct_domain_data, dp_no_output);
 
     init_ctx->id_ctx = id_ctx;
     ret = EOK;
@@ -392,6 +392,10 @@ errno_t sssm_idp_auth_init(TALLOC_CTX *mem_ctx,
         ret = EINVAL;
         goto done;
     }
+
+    /* Optional: attribute used as the authenticated user identifier. */
+    auth_ctx->auth_user_identifier_attr = dp_opt_get_cstring(init_ctx->opts,
+                                             IDP_AUTH_USER_IDENTIFIER_ATTR);
 
     dp_set_method(dp_methods, DPM_AUTH_HANDLER,
                   idp_pam_auth_handler_send, idp_pam_auth_handler_recv, auth_ctx,

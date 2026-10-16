@@ -362,8 +362,13 @@ int sysdb_search_entry_by_sid_str(TALLOC_CTX *mem_ctx,
     struct ldb_message **msgs = NULL;
     struct ldb_dn *basedn;
     size_t msgs_count = 0;
+    char *sanitized_sid_str;
     char *filter;
     int ret;
+
+    if (sid_str == NULL) {
+        return EINVAL;
+    }
 
     tmp_ctx = talloc_new(NULL);
     if (!tmp_ctx) {
@@ -377,7 +382,13 @@ int sysdb_search_entry_by_sid_str(TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    filter = talloc_asprintf(tmp_ctx, filter_str, sid_str);
+    ret = sss_filter_sanitize(tmp_ctx, sid_str, &sanitized_sid_str);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE, "sss_filter_sanitize failed.\n");
+        goto done;
+    }
+
+    filter = talloc_asprintf(tmp_ctx, filter_str, sanitized_sid_str);
     if (!filter) {
         ret = ENOMEM;
         goto done;

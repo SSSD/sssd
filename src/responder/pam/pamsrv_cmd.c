@@ -511,28 +511,38 @@ static int pam_parse_in_data(struct pam_data *pd,
     size_t last;
     int ret;
 
+    /* A valid v1 request holds five NUL-terminated strings (user, service,
+     * tty, ruser, rhost) followed by two auth tokens. Each string needs at
+     * least its terminator and each auth token needs a type+length header,
+     * so anything smaller is malformed.
+     */
+    if (blen < (5 + 2*2*sizeof(uint32_t))) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Received data is invalid.\n");
+        return EINVAL;
+    }
+
     last = blen - 1;
     end = 0;
 
     /* user name */
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->logon_name = (char *) &body[start];
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->service = (char *) &body[start];
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->tty = (char *) &body[start];
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->ruser = (char *) &body[start];
 
     for (start = end; end < last; end++) if (body[end] == '\0') break;
-    if (body[end++] != '\0') return EINVAL;
+    if (end >= blen || body[end++] != '\0') return EINVAL;
     pd->rhost = (char *) &body[start];
 
     ret = extract_authtok_v1(pd->authtok, body, blen, &end);
@@ -1002,8 +1012,10 @@ errno_t pam_get_auth_types(struct pam_data *pd,
     }
 
     DEBUG(SSSDBG_TRACE_ALL, "Authentication types for user [%s] and service "
-                            "[%s]:%s%s%s%s%s\n", pd->user, pd->service,
-                            types.password_auth ? " password": "",
+                            "[%s]:%s%s%s%s%s\n",
+                            pd->user ? pd->user : "-",
+                            pd->service ? pd->service : "-",
+                            types.password_auth ? " password" : "",
                             types.otp_auth ? " two-factor" : "",
                             types.passkey_auth ? " passkey" : "",
                             types.oauth2_auth ? " oauth2" : "",
@@ -1897,6 +1909,13 @@ get_domain_request_type(struct pam_auth_req *preq,
 
     /* By default, only POSIX domains are to be contacted */
     req_dom_type = CACHE_REQ_POSIX_DOM;
+
+    /* SSS_PAM_ITEM_SERVICE is optional in the client protocol, so the service
+     * may be unset. Without a service name it can never match a configured
+     * application service, so fall back to the POSIX default. */
+    if (preq->pd->service == NULL) {
+        return req_dom_type;
+    }
 
     for (int i = 0; pctx->app_services[i]; i++) {
         if (strcmp(pctx->app_services[i], preq->pd->service) == 0) {

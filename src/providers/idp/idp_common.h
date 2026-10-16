@@ -42,6 +42,7 @@ enum idp_opts {
     IDP_USERINFO_ENDPOINT,
     IDP_ID_SCOPE,
     IDP_AUTH_SCOPE,
+    IDP_AUTH_USER_IDENTIFIER_ATTR,
     IDP_AUTO_REFRESH,
     IDMAP_LOWER,
     IDMAP_UPPER,
@@ -67,7 +68,7 @@ idp_online_check_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t idp_online_check_handler_recv(TALLOC_CTX *mem_ctx,
                                       struct tevent_req *req,
-                                      struct dp_reply_std *data);
+                                      dp_no_output *_no_output);
 
 /* oidc_child_handler.c */
 struct tevent_req *handle_oidc_child_send(TALLOC_CTX *mem_ctx,
