@@ -382,3 +382,61 @@ def test_ldap_krb5__password_change_via_ssh(client: Client, provider: GenericPro
     ), f"krb5_child initial auth message not found: {log_content[:500]}!"
 
     assert client.auth.ssh.password("puser1", new_password), "Auth with new password failed after password change!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.authentication
+@pytest.mark.ticket(bz=1734094)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__access_provider_krb5_enforces_k5login(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: access_provider krb5 enforces .k5login based access control
+
+    BZ 1734094: access_provider=krb5 must honor the user's ~/.k5login file. As documented
+    in sssd-krb5(5), an empty .k5login denies all access to the user, a .k5login that lists
+    the user's principal permits access, and with no .k5login the default rule permits the
+    user's own principal.
+
+    :setup:
+        1. Add user puser1 to LDAP and KDC
+        2. Add a matching group puser1 so the name resolves for file ownership
+        3. Configure SSSD with LDAP+KRB5 and access_provider=krb5
+        4. Start SSSD
+        5. Resolve puser1 so NSS can resolve the name for file ownership
+        6. Create puser1 home directory
+    :steps:
+        1. Log in as puser1 via SSH password with no .k5login present
+        2. Create an empty .k5login and log in again
+        3. Write puser1's principal into .k5login and log in again
+    :expectedresults:
+        1. Login succeeds, default rule permits the user's own principal
+        2. Login fails, an empty .k5login denies all access
+        3. Login succeeds, the listed principal is permitted
+    :customerscenario: True
+    """
+    user = provider.user("puser1").add(uid=50001, gid=50001, password="Secret123")
+    # Matching group so puser1 resolves as both user and group for file ownership.
+    provider.group("puser1").add(gid=50001).add_member(user)
+    kdc.principal("puser1").add(password="Secret123")
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["access_provider"] = "krb5"
+    client.sssd.domain["cache_credentials"] = "true"
+    client.sssd.start()
+
+    # Resolve user so SSSD caches the entry and NSS can resolve the name for chown.
+    assert client.tools.id("puser1") is not None, "puser1 should be resolvable via SSSD!"
+
+    # access_provider=krb5 reads ~/.k5login for access decisions; the home dir must exist to write it.
+    client.fs.mkdir_p("/home/puser1", mode="0700", user="puser1", group="puser1")
+
+    # With no .k5login the default rule permits the user's own principal.
+    assert client.auth.ssh.password("puser1", "Secret123"), "Login failed with no .k5login present!"
+
+    # An empty .k5login denies all access (sssd-krb5(5)).
+    client.fs.write("/home/puser1/.k5login", "", user="puser1", group="puser1", mode="0640")
+    assert not client.auth.ssh.password("puser1", "Secret123"), "Login succeeded with empty .k5login!"
+
+    # A .k5login that lists the user's principal permits access again.
+    client.fs.write("/home/puser1/.k5login", f"puser1@{kdc.realm}", user="puser1", group="puser1", mode="0640")
+    assert client.auth.ssh.password("puser1", "Secret123"), "Login failed with principal listed in .k5login!"
