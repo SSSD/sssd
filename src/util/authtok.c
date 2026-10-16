@@ -691,12 +691,12 @@ errno_t sss_authtok_set_2fa(struct sss_auth_token *tok,
     return EOK;
 }
 
-errno_t sss_auth_unpack_passkey_blob(TALLOC_CTX *mem_ctx,
-                                     const uint8_t *blob,
-                                     size_t blob_len,
-                                     char **_prompt,
-                                     char **_key,
-                                     char **_pin)
+static errno_t sss_auth_unpack_passkey_blob(TALLOC_CTX *mem_ctx,
+                                            const uint8_t *blob,
+                                            size_t blob_len,
+                                            char **_prompt,
+                                            char **_key,
+                                            char **_pin)
 {
     errno_t ret;
     struct sss_iobuf *iobuf = NULL;
