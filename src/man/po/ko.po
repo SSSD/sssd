@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.5.2\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2021-07-12 20:51+0200\n"
-"PO-Revision-Date: 2026-10-06 11:35+0000\n"
-"Last-Translator: seo hojin <jinswhat@naver.com>\n"
+"PO-Revision-Date: 2026-10-16 08:30+0000\n"
+"Last-Translator: 김인수 <simmon@nplob.com>\n"
 "Language-Team: Korean <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ko/>\n"
 "Language: ko\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.10.1\n"
 
 #. type: Content of: <reference><title>
 #: sss_groupmod.8.xml:5 sssd.conf.5.xml:5 sssd-ldap.5.xml:5 pam_sss.8.xml:5
@@ -1467,10 +1467,10 @@ msgid ""
 "but the SSSD will go and update the cache on its own, so that future "
 "requests will not need to block waiting for a cache update."
 msgstr ""
-"예를 들어, 도메인의 entry_cache_timeout이 30초로 설정되고 "
-"entry_cache_nowait_percentage가 50(퍼센트)로 설정된 경우, 마지막 캐시 "
-"업데이트 후 15초 이후에 들어오는 항목은 즉시 반환되지만, SSSD가 독자적으로 "
-"캐시를 업데이트하므로 향후 요청이 캐시 업데이트를 기다리며 차단되지 않습니다."
+"예로, 만약 도메인의 entry_cache_timeout이 30초로 설정되고 "
+"entry_cache_nowait_percentage가 50 (퍼센트)로 설정되면, 마지막 캐쉬 최신화 "
+"뒤 15초 후에 들어오는 항목은 즉시 반환되지만, SSSD가 스스로 캐쉬를 "
+"최신화하여, 향후 요청은 캐쉬 최신화를 기다리며 차단되지 않습니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:929
@@ -2165,8 +2165,8 @@ msgid ""
 "immediately update the cached identity information for the user in order to "
 "ensure that authentication takes place with the latest information."
 msgstr ""
-"SSSD가 온라인 상태일 때 모든 PAM 요청에 대해, SSSD는 최신 정보로 인증이 "
-"이루어지도록 사용자의 캐시된 ID 정보를 즉시 업데이트하려고 시도합니다."
+"SSSD가 온라인 상태인 경우 모든 PAM 요청을 위해, SSSD는 최신 정보로 인증이 "
+"이루어지도록 사용자의 캐쉬된 식별 정보를 즉시 최신화하려고 시도합니다."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1438
