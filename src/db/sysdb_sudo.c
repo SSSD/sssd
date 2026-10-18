@@ -674,7 +674,7 @@ static errno_t sysdb_sudo_get_refresh_time(struct sss_domain_info *domain,
         goto done;
     }
 
-    *value = ldb_msg_find_attr_as_int(res->msgs[0], attr_name, 0);
+    *value = (time_t)ldb_msg_find_attr_as_uint64(res->msgs[0], attr_name, 0);
 
     ret = EOK;
 
