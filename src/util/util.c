@@ -176,12 +176,6 @@ const char **dup_string_list(TALLOC_CTX *memctx, const char **str_list)
     return dup_list;
 }
 
-/* Take two string lists (terminated on a NULL char*)
- * and return up to three arrays of strings based on
- * shared ownership.
- *
- * Pass NULL to any return type you don't care about
- */
 errno_t diff_string_lists(TALLOC_CTX *memctx,
                           char **_list1,
                           char **_list2,
@@ -194,45 +188,26 @@ errno_t diff_string_lists(TALLOC_CTX *memctx,
     int i;
     int i2 = 0;
     int i12 = 0;
+    int list1_count = 0;
+    int list2_count = 0;
     hash_table_t *table;
     hash_key_t key;
     hash_value_t value;
-    char **list1 = NULL;
-    char **list2 = NULL;
     char **list1_only = NULL;
     char **list2_only = NULL;
     char **both_lists = NULL;
     unsigned long count;
-    hash_key_t *keys;
+    struct hash_iter_context_t *iter;
+    hash_entry_t *entry;
 
     TALLOC_CTX *tmp_ctx = talloc_new(memctx);
     if (!tmp_ctx) {
         return ENOMEM;
     }
 
-    if (!_list1) {
-        list1 = talloc_array(tmp_ctx, char *, 1);
-        if (!list1) {
-            talloc_free(tmp_ctx);
-            return ENOMEM;
-        }
-        list1[0] = NULL;
-    }
-    else {
-        list1 = _list1;
-    }
-
-    if (!_list2) {
-        list2 = talloc_array(tmp_ctx, char *, 1);
-        if (!list2) {
-            talloc_free(tmp_ctx);
-            return ENOMEM;
-        }
-        list2[0] = NULL;
-    }
-    else {
-        list2 = _list2;
-    }
+    /* Count list sizes for pre-allocation */
+    while (_list1 && _list1[list1_count]) list1_count++;
+    while (_list2 && _list2[list2_count]) list2_count++;
 
     error = hash_create(0, &table, NULL, NULL);
     if (error != HASH_SUCCESS) {
@@ -244,57 +219,55 @@ errno_t diff_string_lists(TALLOC_CTX *memctx,
     value.type = HASH_VALUE_UNDEF;
 
     /* Add all entries from list 1 into a hash table */
-    i = 0;
-    while (list1[i]) {
-        key.str = talloc_strdup(tmp_ctx, list1[i]);
+    for (i = 0; i < list1_count; i++) {
+        key.str = _list1[i];
         error = hash_enter(table, &key, &value);
         if (error != HASH_SUCCESS) {
             ret = EIO;
             goto done;
         }
-        i++;
+    }
+
+    if (_list2_only) {
+        list2_only = talloc_array(tmp_ctx, char *, list2_count + 1);
+        if (!list2_only) {
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    if (_both_lists) {
+        both_lists = talloc_array(tmp_ctx, char *, list2_count + 1);
+        if (!both_lists) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     /* Iterate through list 2 and remove matching items */
-    i = 0;
-    while (list2[i]) {
-        key.str = talloc_strdup(tmp_ctx, list2[i]);
+    for (i = 0; i < list2_count; i++) {
+        key.str = _list2[i];
         error = hash_delete(table, &key);
         if (error == HASH_SUCCESS) {
             if (_both_lists) {
                 /* String was present in both lists */
+                both_lists[i12] = talloc_strdup(both_lists, _list2[i]);
+                if (!both_lists[i12]) {
+                    ret = ENOMEM;
+                    goto done;
+                }
                 i12++;
-                both_lists = talloc_realloc(tmp_ctx, both_lists, char *, i12+1);
-                if (!both_lists) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-                both_lists[i12-1] = talloc_strdup(both_lists, list2[i]);
-                if (!both_lists[i12-1]) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                both_lists[i12] = NULL;
             }
         }
         else if (error == HASH_ERROR_KEY_NOT_FOUND) {
             if (_list2_only) {
                 /* String was present only in list2 */
+                list2_only[i2] = talloc_strdup(list2_only, _list2[i]);
+                if (!list2_only[i2]) {
+                    ret = ENOMEM;
+                    goto done;
+                }
                 i2++;
-                list2_only = talloc_realloc(tmp_ctx, list2_only,
-                                            char *, i2+1);
-                if (!list2_only) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-                list2_only[i2-1] = talloc_strdup(list2_only, list2[i]);
-                if (!list2_only[i2-1]) {
-                    ret = ENOMEM;
-                    goto done;
-                }
-
-                list2_only[i2] = NULL;
             }
         }
         else {
@@ -302,63 +275,59 @@ errno_t diff_string_lists(TALLOC_CTX *memctx,
             ret = EIO;
             goto done;
         }
-        i++;
     }
 
     /* Get the leftover entries in the hash table */
     if (_list1_only) {
-        error = hash_keys(table, &count, &keys);
-        if (error != HASH_SUCCESS) {
-            ret = EIO;
-            goto done;
-        }
+        count = hash_count(table);
 
-        list1_only = talloc_array(tmp_ctx, char *, count+1);
+        list1_only = talloc_array(tmp_ctx, char *, count + 1);
         if (!list1_only) {
             ret = ENOMEM;
             goto done;
         }
 
-        for (i = 0; i < count; i++) {
-            list1_only[i] = talloc_strdup(list1_only, keys[i].str);
+        iter = new_hash_iter_context(table);
+        if (!iter) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        i = 0;
+        while ((entry = iter->next(iter)) != NULL) {
+            list1_only[i] = talloc_strdup(list1_only, entry->key.str);
             if (!list1_only[i]) {
+                free(iter);
                 ret = ENOMEM;
                 goto done;
             }
+            i++;
         }
-        list1_only[count] = NULL;
+        list1_only[i] = NULL;
 
-        free(keys);
+        free(iter);
 
         *_list1_only = talloc_steal(memctx, list1_only);
     }
 
     if (_list2_only) {
-        if (list2_only) {
-            *_list2_only = talloc_steal(memctx, list2_only);
+        list2_only[i2] = NULL;
+        list2_only = talloc_realloc(tmp_ctx, list2_only, char *, i2 + 1);
+        if (!list2_only) {
+            ret = ENOMEM;
+            goto done;
         }
-        else {
-            *_list2_only = talloc_array(memctx, char *, 1);
-            if (!(*_list2_only)) {
-                ret = ENOMEM;
-                goto done;
-            }
-            *_list2_only[0] = NULL;
-        }
+        *_list2_only = talloc_steal(memctx, list2_only);
     }
 
     if (_both_lists) {
-        if (both_lists) {
-            *_both_lists = talloc_steal(memctx, both_lists);
+        both_lists[i12] = NULL;
+        both_lists = talloc_realloc(tmp_ctx, both_lists, char *, i12 + 1);
+        if (!both_lists) {
+            ret = ENOMEM;
+            goto done;
         }
-        else {
-            *_both_lists = talloc_array(memctx, char *, 1);
-            if (!(*_both_lists)) {
-                ret = ENOMEM;
-                goto done;
-            }
-            *_both_lists[0] = NULL;
-        }
+        *_both_lists = talloc_steal(memctx, both_lists);
     }
 
     ret = EOK;
