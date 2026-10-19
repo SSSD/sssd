@@ -233,7 +233,8 @@ class TestADMisc:
         assert patt.search(log_str)
 
     @pytest.mark.tier1_3
-    def test_0003_gssapi_ssh(self, multihost, adjoin, create_aduser_group):
+    def test_0003_gssapi_ssh(self, multihost, adjoin, create_aduser_group,
+                                enable_sshd_password_auth):
         """
         :title: gssapi ssh log in with 'krb5_confd_path'
         :description: User should log in with GSSAPI after setting
