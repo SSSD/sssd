@@ -882,7 +882,66 @@
                             users of the latter listed.
                         </para>
                         <para>
-                            Default: root
+                            NOTE: Please be aware that these options will only
+                            filter request on the user or group name, but not
+                            on the UID or GID. If you also need to filter the
+                            UID or GID, you have to set <quote>filter_uids</quote>
+                            or <quote>filter_gids</quote> too.
+                        </para>
+                        <para>
+                            Default: Not set.
+                        </para>
+                        <para>
+                            NOTE: The root user and group are always filtered out
+                            regardless of this option.
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
+                    <term>filter_uids, filter_gids (string)</term>
+                    <listitem>
+                        <para>
+                            Exclude certain UIDs or GIDs from being fetched
+                            from the sss NSS database. Requests for a filtered
+                            ID are answered immediately with "not found",
+                            without querying the back end at all, which avoids
+                            the latency and the directory server load caused
+                            by lookups for IDs known never to exist there,
+                            such as the ones of local system accounts.
+                        </para>
+                        <para>
+                            Each value is either a single ID or an inclusive
+                            range written as <quote>MIN-MAX</quote> (spaces
+                            not allowed around the '-'). This option can also
+                            be set per-domain, in which case it applies to that
+                            domain and its sub-domains only.
+                        </para>
+                        <para>
+                            NOTE: As with <quote>filter_groups</quote>,
+                            filtering a GID doesn't affect inheritance of nested
+                            group members, since filtering happens after they are
+                            propagated for returning via NSS.
+                        </para>
+                        <para>
+                            NOTE: These options will only filter request on the
+                            UID or GID, but not on the name. If you also need to
+                            filter the name, you have to set
+                            <quote>filter_users</quote> or
+                            <quote>filter_groups</quote> too.
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+filter_uids = 0-999, 65534
+filter_gids = 0-999, 65534
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: Not set.
+                        </para>
+                        <para>
+                            NOTE: The 0 user and group are always filtered out
+                            regardless of this option.
                         </para>
                     </listitem>
                 </varlistentry>

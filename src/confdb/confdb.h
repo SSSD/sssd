@@ -103,6 +103,8 @@
 #define CONFDB_NSS_FILTER_USERS_IN_GROUPS "filter_users_in_groups"
 #define CONFDB_NSS_FILTER_USERS "filter_users"
 #define CONFDB_NSS_FILTER_GROUPS "filter_groups"
+#define CONFDB_NSS_FILTER_UIDS "filter_uids"
+#define CONFDB_NSS_FILTER_GIDS "filter_gids"
 #define CONFDB_NSS_PWFIELD  "pwfield"
 #define CONFDB_NSS_OVERRIDE_HOMEDIR "override_homedir"
 #define CONFDB_NSS_FALLBACK_HOMEDIR "fallback_homedir"
