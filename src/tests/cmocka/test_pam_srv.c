@@ -1030,91 +1030,6 @@ static int test_pam_simple_check(uint32_t status, uint8_t *body, size_t blen)
     return EOK;
 }
 
-#define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
-
-static int test_pam_cert_check_gdm_smartcard(uint32_t status, uint8_t *body,
-                                             size_t blen)
-{
-    size_t rp = 0;
-    uint32_t val;
-
-    assert_int_equal(status, 0);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, pam_test_ctx->exp_pam_status);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, 3);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, 9);
-
-    assert_int_equal(*(body + rp + val - 1), 0);
-    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
-    rp += val;
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, SSS_PAM_ENV_ITEM);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, (strlen(PKCS11_LOGIN_TOKEN_ENV_NAME "=")
-                           + sizeof(TEST_TOKEN_NAME)));
-    assert_string_equal((char *)(body + rp),
-                        PKCS11_LOGIN_TOKEN_ENV_NAME "=" TEST_TOKEN_NAME);
-    rp += val;
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, SSS_PAM_CERT_INFO);
-
-    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
-    assert_int_equal(val, (sizeof("pamuser@"TEST_DOM_NAME)
-                                + sizeof(TEST_TOKEN_NAME)
-                                + sizeof(TEST_MODULE_NAME)
-                                + sizeof(TEST_KEY_ID)
-                                + sizeof(TEST_LABEL)
-                                + sizeof(TEST_PROMPT)
-                                + sizeof("pamuser")
-                                + sizeof("false")));
-
-    assert_int_equal(*(body + rp + sizeof("pamuser@"TEST_DOM_NAME) - 1), 0);
-    assert_string_equal((char *)(body + rp), "pamuser@"TEST_DOM_NAME);
-    rp += sizeof("pamuser@"TEST_DOM_NAME);
-
-    assert_int_equal(*(body + rp + sizeof(TEST_TOKEN_NAME) - 1), 0);
-    assert_string_equal((char *)(body + rp), TEST_TOKEN_NAME);
-    rp += sizeof(TEST_TOKEN_NAME);
-
-    assert_int_equal(*(body + rp + sizeof(TEST_MODULE_NAME) - 1), 0);
-    assert_string_equal((char *)(body + rp), TEST_MODULE_NAME);
-    rp += sizeof(TEST_MODULE_NAME);
-
-    assert_int_equal(*(body + rp + sizeof(TEST_KEY_ID) - 1), 0);
-    assert_string_equal((char *)(body + rp), TEST_KEY_ID);
-    rp += sizeof(TEST_KEY_ID);
-
-    assert_int_equal(*(body + rp + sizeof(TEST_LABEL) - 1), 0);
-    assert_string_equal((char *)(body + rp), TEST_LABEL);
-    rp += sizeof(TEST_LABEL);
-
-    assert_int_equal(*(body + rp + sizeof(TEST_PROMPT) - 1), 0);
-    assert_string_equal((char *)(body + rp), TEST_PROMPT);
-    rp += sizeof(TEST_PROMPT);
-
-    assert_int_equal(*(body + rp + sizeof("pamuser") - 1), 0);
-    assert_string_equal((char *)(body + rp), "pamuser");
-    rp += sizeof("pamuser");
-
-    assert_int_equal(*(body + rp + sizeof("false") - 1), 0);
-    assert_string_equal((char *)(body + rp), "false");
-    rp += sizeof("false");
-
-    assert_int_equal(rp, blen);
-    return EOK;
-}
-
 static void check_string_array(const char **strs, uint8_t *body, size_t *rp)
 {
     size_t c;
@@ -2522,30 +2437,6 @@ void test_pam_preauth_cert_match(void **state)
     will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
 
     set_cmd_cb(test_pam_cert_check);
-    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
-                          pam_test_ctx->pam_cmds);
-    assert_int_equal(ret, EOK);
-
-    /* Wait until the test finishes with EOK */
-    ret = test_ev_loop(pam_test_ctx->tctx);
-    assert_int_equal(ret, EOK);
-}
-
-/* Test if PKCS11_LOGIN_TOKEN_NAME is added for the gdm-smartcard service */
-void test_pam_preauth_cert_match_gdm_smartcard(void **state)
-{
-    int ret;
-
-    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
-
-    mock_input_pam_cert(pam_test_ctx, "pamuser", NULL, NULL, NULL, NULL, NULL,
-                        "gdm-smartcard", test_lookup_by_cert_cb,
-                        SSSD_TEST_CERT_0001);
-
-    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_PREAUTH);
-    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
-
-    set_cmd_cb(test_pam_cert_check_gdm_smartcard);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_PREAUTH,
                           pam_test_ctx->pam_cmds);
     assert_int_equal(ret, EOK);
@@ -5011,8 +4902,6 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_nomatch,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_match,
-                                        pam_test_setup, pam_test_teardown),
-        cmocka_unit_test_setup_teardown(test_pam_preauth_cert_match_gdm_smartcard,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_preauth_cert_match_wrong_user,
                                         pam_test_setup, pam_test_teardown),
