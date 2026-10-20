@@ -1434,6 +1434,48 @@ static int test_pam_simple_check_success(uint32_t status,
     return test_pam_simple_check(status, body, blen);
 }
 
+#define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
+
+static int test_pam_cert_auth_gdm_smartcard_check(uint32_t status,
+                                                  uint8_t *body, size_t blen)
+{
+    size_t rp = 0;
+    uint32_t val;
+
+    pam_test_ctx->exp_pam_status = PAM_SUCCESS;
+
+    assert_int_equal(status, 0);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, pam_test_ctx->exp_pam_status);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 2);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_ENV_ITEM);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, (strlen(PKCS11_LOGIN_TOKEN_ENV_NAME "=")
+                           + sizeof(TEST_TOKEN_NAME)));
+    assert_string_equal((char *)(body + rp),
+                        PKCS11_LOGIN_TOKEN_ENV_NAME "=" TEST_TOKEN_NAME);
+    rp += val;
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, SSS_PAM_DOMAIN_NAME);
+
+    SAFEALIGN_COPY_UINT32(&val, body + rp, &rp);
+    assert_int_equal(val, 9);
+
+    assert_int_equal(*(body + rp + val - 1), 0);
+    assert_string_equal((char *)(body + rp), TEST_DOM_NAME);
+    rp += val;
+
+    assert_int_equal(rp, blen);
+    return EOK;
+}
+
 static int test_pam_creds_insufficient_check(uint32_t status,
                                              uint8_t *body, size_t blen)
 {
@@ -2645,6 +2687,34 @@ void test_pam_cert_auth(void **state)
 
 
     set_cmd_cb(test_pam_simple_check_success);
+    ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
+                          pam_test_ctx->pam_cmds);
+    assert_int_equal(ret, EOK);
+
+    /* Wait until the test finishes with EOK */
+    ret = test_ev_loop(pam_test_ctx->tctx);
+    assert_int_equal(ret, EOK);
+}
+
+/* Test that PKCS11_LOGIN_TOKEN_NAME is exported */
+void test_pam_cert_auth_gdm_smartcard(void **state)
+{
+    int ret;
+
+    set_cert_auth_param(pam_test_ctx->pctx, CA_DB);
+
+    mock_input_pam_cert(pam_test_ctx, "pamuser", "123456", TEST_TOKEN_NAME,
+                        TEST_MODULE_NAME, TEST_KEY_ID, TEST_LABEL,
+                        "gdm-smartcard",
+                        test_lookup_by_cert_cb, SSSD_TEST_CERT_0001);
+
+    will_return(__wrap_sss_packet_get_cmd, SSS_PAM_AUTHENTICATE);
+    will_return(__wrap_sss_packet_get_body, WRAP_CALL_REAL);
+
+    /* Assume backend cannot handle Smartcard credentials */
+    pam_test_ctx->exp_pam_status = PAM_BAD_ITEM;
+
+    set_cmd_cb(test_pam_cert_auth_gdm_smartcard_check);
     ret = sss_cmd_execute(pam_test_ctx->cctx, SSS_PAM_AUTHENTICATE,
                           pam_test_ctx->pam_cmds);
     assert_int_equal(ret, EOK);
@@ -4932,6 +5002,8 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_pam_cert_auth,
                                         pam_test_setup_mech_rsa_sha384_pkcs,
                                         pam_test_teardown),
+        cmocka_unit_test_setup_teardown(test_pam_cert_auth_gdm_smartcard,
+                                        pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_pss_cert_auth,
                                         pam_test_setup, pam_test_teardown),
         cmocka_unit_test_setup_teardown(test_pam_ecc_cert_auth,
