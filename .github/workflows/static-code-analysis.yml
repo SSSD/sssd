@@ -88,3 +88,65 @@ jobs:
 
     - name: Run pre-commit checks
       uses: pre-commit/action@v3.0.1
+
+  polarion:
+    needs: files-changed
+    if: github.event_name != 'schedule' && needs.files-changed.outputs.system_tests == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/setup-python@v7
+      with:
+        python-version: '3.x'
+
+    - name: Checkout sssd repository
+      uses: actions/checkout@v7
+      with:
+        path: sssd
+
+    - name: Install system tests dependencies
+      shell: bash
+      working-directory: ./sssd/src/tests/system
+      run: |
+        set -ex
+
+        sudo apt-get update
+
+        # Install dependencies for python-ldap
+        sudo apt-get install -y libsasl2-dev python3-dev libldap2-dev libssl-dev libssh-dev
+
+        # Virtualenv
+        pip3 install virtualenv
+        python3 -m venv .venv
+        source .venv/bin/activate
+
+        # Install system tests requirements
+        pip3 install -r ./requirements.txt
+
+    - name: Check polarion metadata
+      shell: bash
+      working-directory: ./sssd/src/tests/system
+      run: |
+        # Run pytest in collect only mode to quickly catch issues in Polarion metadata.
+        set -ex -o pipefail
+
+        mkdir -p $GITHUB_WORKSPACE/artifacts
+        source .venv/bin/activate
+        pytest \
+          --color=yes \
+          --mh-config=./mhc.yaml \
+          --mh-artifacts-dir=$GITHUB_WORKSPACE/artifacts \
+          --polarion-config=../polarion.yaml \
+          --output-polarion-testcase=$GITHUB_WORKSPACE/artifacts/testcase.xml \
+          --collect-only . |& tee $GITHUB_WORKSPACE/pytest-collect.log
+
+    - name: Upload artifacts
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        if-no-files-found: ignore
+        name: ${{ matrix.tag }}-system
+        path: |
+          artifacts
+          pytest-collect.log
