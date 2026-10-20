@@ -905,3 +905,47 @@ def test_ldap__display_grace_logins_when_password_has_expired(client: Client, ld
         assert (
             f"You have {grace_logins} grace login(s) remaining" in stdout
         ), "Expected grace logins message in stdout, but none was found."
+
+
+@pytest.mark.ticket(jira="IDM-8218")
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_ldap__authentication_fails_once_password_max_age_is_reached(client: Client, ldap: LDAP):
+    """
+    :title: Authentication fails once "passwordMaxAge" is reached
+    :description:
+        With server-side password expiration enabled, a one-second "passwordMaxAge" and no grace
+        logins, the directory rejects the bind once the password has expired. Disabling password
+        expiration makes the same password valid again.
+    :setup:
+        1. Set "passwordExp" to "on", "passwordMaxAge" to "1" and "passwordGraceLimit" to "0"
+        2. Add user "user1" with password "Secret123"
+        3. Wait until passwordMaxAge has elapsed
+        4. Start SSSD
+    :steps:
+        1. Authenticate as "user1" via 'su' and 'ssh' with password "Secret123"
+        2. Set "passwordExp" to "off"
+        3. Authenticate as "user1" via 'su' and 'ssh' with password "Secret123" again
+    :expectedresults:
+        1. Authentication fails using both methods because the password is expired and no grace logins remain
+        2. Password expiration is disabled, so passwordMaxAge no longer applies
+        3. Authentication succeeds using both methods with the original password
+    :customerscenario: False
+    """
+    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "0"})
+    ldap.user("user1").add(password="Secret123")
+    time.sleep(2)
+    client.sssd.start()
+
+    for method in ["su", "ssh"]:
+        rc, _, _, _ = client.auth.parametrize(method).password_with_output("user1", "Secret123")
+        assert (
+            rc == 1
+        ), f"Expected authentication failure due to expired password and no grace logins! Method: {method}."
+
+    ldap.ldap.modify("cn=config", replace={"passwordExp": "off"})
+
+    for method in ["su", "ssh"]:
+        assert client.auth.parametrize(method).password(
+            "user1", "Secret123"
+        ), f"Expected authentication success after disabling password expiration! Method: {method}."
