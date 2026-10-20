@@ -76,6 +76,16 @@ int sss_ncache_set_sid(struct sss_nc_ctx *ctx, bool permanent,
                        struct sss_domain_info *dom, const char *sid);
 int sss_ncache_set_cert(struct sss_nc_ctx *ctx, bool permanent,
                         const char *cert);
+/* Permanently filter out a whole ID range, boundaries included. Such entries
+ * never expire and are only dropped by sss_ncache_reset_permanent(). They are
+ * kept outside of the hash used for the single-ID entries, so that filtering
+ * out a wide range stays cheap. */
+int sss_ncache_set_uid_range(struct sss_nc_ctx *ctx,
+                             struct sss_domain_info *dom,
+                             uid_t min, uid_t max);
+int sss_ncache_set_gid_range(struct sss_nc_ctx *ctx,
+                             struct sss_domain_info *dom,
+                             gid_t min, gid_t max);
 int sss_ncache_set_service_name(struct sss_nc_ctx *ctx, bool permanent,
                                 struct sss_domain_info *dom,
                                 const char *name, const char *proto);
@@ -160,8 +170,8 @@ int sss_ncache_reset_groups(struct sss_nc_ctx *ctx);
 
 struct resp_ctx;
 
-/* Set up the negative cache with values from filter_users and
- * filter_groups in the sssd.conf
+/* Set up the negative cache with values from filter_users, filter_groups,
+ * filter_uids and filter_gids in the sssd.conf
  */
 errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                struct confdb_ctx *cdb,
