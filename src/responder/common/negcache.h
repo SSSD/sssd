@@ -160,8 +160,8 @@ int sss_ncache_reset_groups(struct sss_nc_ctx *ctx);
 
 struct resp_ctx;
 
-/* Set up the negative cache with values from filter_users and
- * filter_groups in the sssd.conf
+/* Set up the negative cache with values from filter_users, filter_groups,
+ * filter_uids and filter_gids in the sssd.conf
  */
 errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                                struct confdb_ctx *cdb,

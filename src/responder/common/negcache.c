@@ -19,10 +19,12 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <ctype.h>
 #include <fcntl.h>
 #include <time.h>
 #include "tdb.h"
 #include "util/util.h"
+#include "util/strtonum.h"
 #include "util/nss_dl_load.h"
 #include "confdb/confdb.h"
 #include "responder/common/responder.h"
@@ -41,9 +43,24 @@
 #define NC_DOMAIN_ACCT_LOCATE_PREFIX NC_ENTRY_PREFIX"DOM_LOCATE"
 #define NC_DOMAIN_ACCT_LOCATE_TYPE_PREFIX NC_ENTRY_PREFIX"DOM_LOCATE_TYPE"
 
+/* Permanently filtered out ID range, as configured by filter_uids and
+ * filter_gids. Ranges are kept in a plain list instead of being expanded into
+ * one tdb entry per ID, so that a range as wide as "1000-60000" costs a single
+ * entry. A range holding a single ID is not kept here at all: it is stored as
+ * a permanent tdb entry, exactly like a name coming from filter_users. */
+struct sss_nc_id_range {
+    struct sss_nc_id_range *prev;
+    struct sss_nc_id_range *next;
+    const char *dom_name; /* NULL for the domain independent entries */
+    uint32_t min;
+    uint32_t max;
+};
+
 struct sss_nc_ctx {
     struct tdb_context *tdb;
     uint32_t timeout;
+    struct sss_nc_id_range *uid_ranges;
+    struct sss_nc_id_range *gid_ranges;
 };
 
 typedef int (*ncache_set_byname_fn_t)(struct sss_nc_ctx *, bool,
@@ -399,11 +416,113 @@ int sss_ncache_check_service_port(struct sss_nc_ctx *ctx,
 
 
 
+/* Check the permanently filtered out ranges. The domain scoping mirrors the
+ * one of the tdb keys: a range set for a specific domain only matches a lookup
+ * in that very domain, a domain independent range only matches a domain
+ * independent lookup. Callers interested in both do the two calls, the same
+ * way they already do for the single-ID entries. */
+static bool sss_ncache_check_id_range(const struct sss_nc_id_range *ranges,
+                                      const struct sss_domain_info *dom,
+                                      uint32_t id)
+{
+    struct sss_nc_id_range *range;
+
+    DLIST_FOR_EACH(range, discard_const(ranges)) {
+        if ((dom == NULL) != (range->dom_name == NULL)) {
+            continue;
+        }
+
+        if (id < range->min || id > range->max) {
+            continue;
+        }
+
+        if (dom == NULL || strcmp(dom->name, range->dom_name) == 0) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static int sss_ncache_set_id_range(TALLOC_CTX *memctx,
+                                   struct sss_nc_id_range **ranges,
+                                   struct sss_domain_info *dom,
+                                   uint32_t min, uint32_t max)
+{
+    struct sss_nc_id_range *range;
+
+    if (min > max) {
+        return EINVAL;
+    }
+
+    range = talloc_zero(memctx, struct sss_nc_id_range);
+    if (range == NULL) {
+        return ENOMEM;
+    }
+
+    if (dom != NULL) {
+        range->dom_name = talloc_strdup(range, dom->name);
+        if (range->dom_name == NULL) {
+            talloc_free(range);
+            return ENOMEM;
+        }
+    }
+
+    range->min = min;
+    range->max = max;
+
+    DLIST_ADD(*ranges, range);
+
+    return EOK;
+}
+
+static void sss_ncache_free_id_ranges(struct sss_nc_id_range **ranges)
+{
+    struct sss_nc_id_range *range;
+
+    while (*ranges != NULL) {
+        range = *ranges;
+        DLIST_REMOVE(*ranges, range);
+        talloc_free(range);
+    }
+}
+
+static int sss_ncache_set_uid_range(struct sss_nc_ctx *ctx,
+                             struct sss_domain_info *dom,
+                             uid_t min, uid_t max)
+{
+    if (min == max) {
+        /* A single ID is stored as a plain permanent entry, the same way a
+         * name coming from filter_users is. The hash lookup is cheaper than
+         * walking the range list and sss_ncache_reset_permanent() flushes
+         * the entry for free. */
+        return sss_ncache_set_uid(ctx, true, dom, min);
+    }
+
+    return sss_ncache_set_id_range(ctx, &ctx->uid_ranges, dom, min, max);
+}
+
+static int sss_ncache_set_gid_range(struct sss_nc_ctx *ctx,
+                             struct sss_domain_info *dom,
+                             gid_t min, gid_t max)
+{
+    if (min == max) {
+        /* see sss_ncache_set_uid_range() */
+        return sss_ncache_set_gid(ctx, true, dom, min);
+    }
+
+    return sss_ncache_set_id_range(ctx, &ctx->gid_ranges, dom, min, max);
+}
+
 int sss_ncache_check_uid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
                          uid_t uid)
 {
     char *str;
     int ret;
+
+    if (sss_ncache_check_id_range(ctx->uid_ranges, dom, uid)) {
+        return EEXIST;
+    }
 
     if (dom != NULL) {
         str = talloc_asprintf(ctx, "%s/%s/%"SPRIuid, NC_UID_PREFIX, dom->name,
@@ -424,6 +543,10 @@ int sss_ncache_check_gid(struct sss_nc_ctx *ctx, struct sss_domain_info *dom,
 {
     char *str;
     int ret;
+
+    if (sss_ncache_check_id_range(ctx->gid_ranges, dom, gid)) {
+        return EEXIST;
+    }
 
     if (dom != NULL) {
         str = talloc_asprintf(ctx, "%s/%s/%"SPRIgid, NC_GID_PREFIX, dom->name,
@@ -903,6 +1026,9 @@ int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx)
     if (ret < 0)
         return EIO;
 
+    sss_ncache_free_id_ranges(&ctx->uid_ranges);
+    sss_ncache_free_id_ranges(&ctx->gid_ranges);
+
     return EOK;
 }
 
@@ -969,6 +1095,192 @@ int sss_ncache_reset_groups(struct sss_nc_ctx *ctx)
     };
 
     return sss_ncache_reset_pfx(ctx, prefixes);
+}
+
+/* Parse a single filter_uids/filter_gids value, either a plain "ID" or an
+ * inclusive "MIN-MAX" range. */
+static errno_t sss_ncache_parse_id_filter(const char *value,
+                                          uint32_t *_min, uint32_t *_max)
+{
+    uint32_t min;
+    uint32_t max;
+    char *endptr;
+
+    /* strtouint32() would silently accept a sign, and a leading separator
+     * would make an empty boundary look like a valid 0. */
+    if (!isdigit((unsigned char)value[0])) {
+        return EINVAL;
+    }
+
+    min = strtouint32(value, &endptr, 10);
+    if (errno != 0) {
+        return EINVAL;
+    }
+
+    if (*endptr == '\0') {
+        max = min;
+    } else if (*endptr == '-') {
+        value = endptr + 1;
+        if (!isdigit((unsigned char)value[0])) {
+            return EINVAL;
+        }
+
+        max = strtouint32(value, &endptr, 10);
+        if (errno != 0 || *endptr != '\0') {
+            return EINVAL;
+        }
+
+        if (max < min) {
+            return EINVAL;
+        }
+    } else {
+        return EINVAL;
+    }
+
+    *_min = min;
+    *_max = max;
+
+    return EOK;
+}
+
+typedef int (*ncache_set_id_range_fn_t)(struct sss_nc_ctx *ctx,
+                                        struct sss_domain_info *dom,
+                                        uint32_t min, uint32_t max);
+
+/* Read one filter_uids/filter_gids list and hand every entry to the setter.
+ * A malformed entry is reported and skipped, the same way filter_users deals
+ * with an unparsable name. */
+static errno_t sss_ncache_prepopulate_id_list(struct sss_nc_ctx *ncache,
+                                              struct confdb_ctx *cdb,
+                                              const char *conf_path,
+                                              const char *option,
+                                              struct sss_domain_info *dom,
+                                              ncache_set_id_range_fn_t setter)
+{
+    TALLOC_CTX *tmp_ctx;
+    char **filter_list = NULL;
+    uint32_t min;
+    uint32_t max;
+    errno_t ret;
+    int i;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    ret = confdb_get_string_as_list(cdb, tmp_ctx, conf_path, option,
+                                    &filter_list);
+    if (ret == ENOENT) {
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
+        goto done;
+    }
+
+    for (i = 0; filter_list[i] != NULL; i++) {
+        ret = sss_ncache_parse_id_filter(filter_list[i], &min, &max);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Invalid value in %s list: [%s], expecting an ID or an "
+                  "ID range such as [1-999], skipping\n",
+                  option, filter_list[i]);
+            continue;
+        }
+
+        ret = setter(ncache, dom, min, max);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to store permanent %s filter for [%s] (%d [%s])\n",
+                  option, filter_list[i], ret, sss_strerror(ret));
+            continue;
+        }
+
+        if (min != max) {
+            /* If min == max, the entry was not created as a range and
+             * is already logged. */
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "Added %s range [%"PRIu32"-%"PRIu32"] to the negative cache "
+                  "of [%s]\n", option, min, max,
+                  dom == NULL ? "all domains" : dom->name);
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
+}
+
+/* Populate the negative cache from filter_uids/filter_gids, both from the
+ * domain sections and from the domain independent [nss] one. */
+static errno_t sss_ncache_prepopulate_ids(struct sss_nc_ctx *ncache,
+                                          struct confdb_ctx *cdb,
+                                          struct sss_domain_info *domain_list,
+                                          const char *option,
+                                          ncache_set_id_range_fn_t setter)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct sss_domain_info *dom;
+    struct sss_domain_info *ddom;
+    char *conf_path;
+    errno_t ret;
+
+    tmp_ctx = talloc_new(NULL);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    for (dom = domain_list; dom != NULL; dom = get_next_domain(dom, 0)) {
+        conf_path = talloc_asprintf(tmp_ctx, CONFDB_DOMAIN_PATH_TMPL,
+                                    dom->name);
+        if (conf_path == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+
+        /* An ID filter set on a domain covers its sub-domains as well, just
+         * like filter_users and filter_groups do. */
+        for (ddom = dom; ddom != NULL;
+                    ddom = get_next_domain(ddom, SSS_GND_ALL_SUBDOMAINS)) {
+            ret = sss_ncache_prepopulate_id_list(ncache, cdb, conf_path,
+                                                 option, ddom, setter);
+            if (ret != EOK) {
+                goto done;
+            }
+        }
+
+        talloc_free(conf_path);
+    }
+
+    /* The domain independent list is registered both as a domain independent
+     * entry and once per domain, the same way filter_users and filter_groups
+     * fan their [nss] list out over every domain. A domain independent entry
+     * on its own would not be enough: while the ID requests do fall back to a
+     * lookup with a NULL domain, is_group_filtered(), which drops filtered
+     * groups from the initgroups reply, only ever asks for a given domain. */
+    ret = sss_ncache_prepopulate_id_list(ncache, cdb, CONFDB_NSS_CONF_ENTRY,
+                                         option, NULL, setter);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    for (dom = domain_list; dom != NULL;
+                dom = get_next_domain(dom, SSS_GND_ALL_DOMAINS)) {
+        ret = sss_ncache_prepopulate_id_list(ncache, cdb,
+                                             CONFDB_NSS_CONF_ENTRY, option,
+                                             dom, setter);
+        if (ret != EOK) {
+            goto done;
+        }
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }
 
 errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
@@ -1273,6 +1585,21 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
                 }
             }
         }
+    }
+
+    /* Populate the negative cache UID and GID ranges */
+    ret = sss_ncache_prepopulate_ids(ncache, cdb, domain_list,
+                                     CONFDB_NSS_FILTER_UIDS,
+                                     sss_ncache_set_uid_range);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = sss_ncache_prepopulate_ids(ncache, cdb, domain_list,
+                                     CONFDB_NSS_FILTER_GIDS,
+                                     sss_ncache_set_gid_range);
+    if (ret != EOK) {
+        goto done;
     }
 
     /* SSSD doesn't handle "root", thus it'll be added to the negative cache
