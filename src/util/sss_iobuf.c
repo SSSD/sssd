@@ -434,6 +434,7 @@ errno_t sss_iobuf_read_stringz(struct sss_iobuf *iobuf,
 {
     uint8_t *end;
     size_t len;
+    size_t remaining;
 
     if (iobuf == NULL) {
         return EINVAL;
@@ -445,15 +446,14 @@ errno_t sss_iobuf_read_stringz(struct sss_iobuf *iobuf,
 
     *_out = NULL;
 
-    end = memchr(iobuf_ptr(iobuf), '\0', sss_iobuf_get_size(iobuf));
+    remaining = iobuf_get_len(iobuf);
+
+    end = memchr(iobuf_ptr(iobuf), '\0', remaining);
     if (end == NULL) {
         return EINVAL;
     }
 
     len = end + 1 - iobuf_ptr(iobuf);
-    if (sss_iobuf_get_size(iobuf) < len) {
-        return EINVAL;
-    }
 
     *_out = (const char *) iobuf_ptr(iobuf);
     iobuf->dp += len;
