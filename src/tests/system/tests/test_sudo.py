@@ -694,9 +694,13 @@ def test_sudo__ldap_sudo_provider_disabled_not_emits_warning(client: Client, lda
     assert (
         "SSSD will search the entire directory tree" not in log
     ), "Domain log must not contain directory tree warning when sudo provider is disabled"
-    assert not client.journald.is_match(
-        r"`ldap_sudo_search_base` is not set.*SSSD will search the entire directory tree",
+    # Avoid journald.is_match(): journalctl exits 0 on "-- No entries --", which is_match treats as a hit.
+    journal = client.journald.journalctl(
+        grep=r"`ldap_sudo_search_base` is not set.*SSSD will search the entire directory tree",
         unit="sssd",
+    )
+    assert (
+        "`ldap_sudo_search_base` is not set" not in journal.stdout
     ), "Journal must not contain alert when sudo_provider is disabled"
 
 
