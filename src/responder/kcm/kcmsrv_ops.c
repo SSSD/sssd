@@ -503,6 +503,8 @@ static void kcm_op_initialize_cc_delete_done(struct tevent_req *subreq)
 {
     struct tevent_req *req = tevent_req_callback_data(subreq,
                                                       struct tevent_req);
+    struct kcm_op_initialize_state *state = tevent_req_data(req,
+                                            struct kcm_op_initialize_state);
     errno_t ret;
 
     ret = kcm_ccdb_delete_cc_recv(subreq);
@@ -514,6 +516,11 @@ static void kcm_op_initialize_cc_delete_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+
+    /* Free existing credentials cache table so this ccache data is removed.
+     * This may remove uuids from other ccaches as well, but this is fine as
+     * they will be looked up again when needed. */
+    talloc_zfree(state->op_ctx->conn_data->creds);
 
     kcm_op_initialize_create_step(req);
 }
@@ -831,6 +838,11 @@ static void kcm_op_destroy_delete_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
+
+    /* Free existing credentials cache table so this ccache data is removed.
+     * This may remove uuids from other ccaches as well, but this is fine as
+     * they will be looked up again when needed. */
+    talloc_zfree(state->op_ctx->conn_data->creds);
 
     state->op_ret = EOK;
     tevent_req_done(req);
