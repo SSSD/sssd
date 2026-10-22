@@ -323,51 +323,73 @@ def test_ldap__search_base_is_discovered_and_defaults_to_root_dse_users_groups_a
                 assert doc in str(log), f"String '{doc}, not found in logs!"
 
 
+@pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
-def test_ldap__lookup_user_with_search_bases(client: Client, ldap: LDAP):
+@pytest.mark.parametrize("use_extra_nc", [False, True], ids=["default-nc", "extra-nc"])
+def test_ldap__lookup_user_with_search_bases(client: Client, ldap: LDAP, use_extra_nc: bool):
     """
-    :title: Looking up with no search base configured
+    :title: Looking up users, groups, and netgroups with only ldap_search_base (or rootDSE discovery)
     :setup:
-        1. Create People OU
-        2. Create user and put the user object into the OU
-        3. Start SSSD
+        1. Optionally create an extra naming context
+        2. Create People/Groups/Netgroups OUs and objects under the chosen NC
+        3. For the extra NC, set ldap_search_base only; otherwise leave search bases unset
+        4. Start SSSD
     :steps:
-        1. Lookup user
-        2. Look at logs
+        1. Look up user, group, and netgroup
+        2. For the default NC, check rootDSE discovery logs
     :expectedresults:
-        1. User is found
-        2. Strings pertaining to rootdse search base discovery are found
+        1. User, group, and netgroup are found
+        2. Default NC logs show rootDSE-based search base discovery
     :customerscenario: False
     """
-    base = ldap.ldap.naming_context
+    ctx = ldap.extra_naming_context() if use_extra_nc else nullcontext(ldap.ldap.naming_context)
+    with ctx as base:
+        ou_users = ldap.ou("People", basedn=base).add()
+        ou_groups = ldap.ou("Groups", basedn=base).add()
+        ou_netgroups = ldap.ou("Netgroups", basedn=base).add()
 
-    ou_users = ldap.ou("People").add()
-    user = ldap.user("puser1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
+        user = ldap.user("puser1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
+        ldap.group("pgroup1", basedn=ou_groups).add(gid=10001)
+        ldap.netgroup("pnetgroup1", basedn=ou_netgroups).add()
 
-    client.sssd.start()
+        if use_extra_nc:
+            # Multi-NC: discovery cannot pick a single NC, so set ldap_search_base alone.
+            client.sssd.dom("test")["ldap_search_base"] = base
 
-    result = client.tools.getent.passwd(user.name)
-    assert result is not None, "User not found!"
-    assert result.name == user.name, "Username is not correct!"
-    time.sleep(3)
+        client.sssd.start()
 
-    log = client.fs.read(client.sssd.logs.domain())
-    assert "Got rootdse" in log, "Unable to find rootDSE!"
-    assert "Using value from [defaultNamingContext] as naming context" in log, "Unable to find naming context!"
-    assert f"Setting option [ldap_search_base] to [{base}]" in log, "Unable to set ldap_search_base!"
+        passwd = client.tools.getent.passwd(user.name)
+        assert passwd is not None, "User not found!"
+        assert passwd.name == user.name, "Username is not correct!"
+
+        group = client.tools.getent.group("pgroup1")
+        assert group is not None, "Group not found!"
+        assert group.name == "pgroup1"
+
+        netgroup = client.tools.getent.netgroup("pnetgroup1")
+        assert netgroup is not None, "Netgroup not found!"
+
+        if not use_extra_nc:
+            time.sleep(3)
+            log = client.fs.read(client.sssd.logs.domain())
+            assert "Got rootdse" in log, "Unable to find rootDSE!"
+            assert "Using value from [defaultNamingContext] as naming context" in log, (
+                "Unable to find naming context!"
+            )
+            assert f"Setting option [ldap_search_base] to [{base}]" in log, "Unable to set ldap_search_base!"
 
 
 @pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopology.LDAP)
-@pytest.mark.parametrize("ldap_search_base", ["dc=ldap,dc=test", "dc=other,dc=test"])
+@pytest.mark.parametrize("use_extra_nc", [False, True], ids=["default-nc", "extra-nc"])
 def test_ldap__lookup_and_authenticate_as_user_with_different_object_search_bases(
-    client: Client, ldap: LDAP, ldap_search_base
+    client: Client, ldap: LDAP, use_extra_nc: bool
 ):
     """
     :title: Explicit per-object search bases resolve users, groups, netgroups, and authentication
     :setup:
-        1. Create OUs for users, groups, and netgroups
-        2. Create a user, group, and netgroup in the respective OUs
+        1. Optionally create an extra naming context
+        2. Create OUs for users, groups, and netgroups under the chosen NC
         3. Configure ldap_search_base plus ldap_user/group/netgroup_search_base and start SSSD
     :steps:
         1. Look up user by name
@@ -381,23 +403,19 @@ def test_ldap__lookup_and_authenticate_as_user_with_different_object_search_base
         4. Authentication succeeds
     :customerscenario: False
     """
-    ctx = (
-        nullcontext()
-        if ldap_search_base == ldap.ldap.naming_context
-        else ldap.extra_naming_context(ldap_search_base)
-    )
-    with ctx:
-        base = ldap.ldap.naming_context
-
-        ou_users = ldap.ou("People").add()
-        ou_groups = ldap.ou("Groups").add()
-        ou_netgroups = ldap.ou("Netgroups").add()
+    ctx = ldap.extra_naming_context() if use_extra_nc else nullcontext(ldap.ldap.naming_context)
+    with ctx as base:
+        ou_users = ldap.ou("People", basedn=base).add()
+        ou_groups = ldap.ou("Groups", basedn=base).add()
+        ou_netgroups = ldap.ou("Netgroups", basedn=base).add()
 
         user = ldap.user("puser1", basedn=ou_users).add(uid=10001, gid=10001, password="Secret123")
         ldap.group("pgroup1", basedn=ou_groups).add(gid=10001)
         ldap.netgroup("pnetgroup1", basedn=ou_netgroups).add()
 
-        client.sssd.dom("test")["ldap_search_base"] = ldap_search_base
+        # Default NC keeps the original "ldap_search_base differs from object bases"
+        # coverage; extra NC mirrors the bash multi-NC success path with all bases set.
+        client.sssd.dom("test")["ldap_search_base"] = base if use_extra_nc else "dc=shanks,dc=com"
         client.sssd.dom("test")["ldap_user_search_base"] = f"ou=People,{base}"
         client.sssd.dom("test")["ldap_group_search_base"] = f"ou=Groups,{base}"
         client.sssd.dom("test")["ldap_netgroup_search_base"] = f"ou=Netgroups,{base}"
