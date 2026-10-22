@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.12.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-01-14 15:00+0000\n"
-"PO-Revision-Date: 2026-10-06 11:53+0000\n"
+"PO-Revision-Date: 2026-10-15 15:08+0000\n"
 "Last-Translator: Petru Rebeja <petru@rebeja.eu>\n"
 "Language-Team: Romanian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ro/>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n==1 ? 0 : (n==0 || (n%100 > 0 && n%100 < "
 "20)) ? 1 : 2;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.10.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -15175,6 +15175,10 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> manual page."
 msgstr ""
+"Serviciul KCM este configurat în <quote>kcm</quote>. Pentru o referință "
+"detaliată privind sintaxa, consultați secțiunea <quote>FORMATUL FIȘIERULUI</"
+"quote> din pagina de manual <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:223
@@ -15185,21 +15189,26 @@ msgid ""
 "<manvolnum>5</manvolnum> </citerefentry> manual page for a complete list. In "
 "addition, there are some KCM-specific options as well."
 msgstr ""
+"Opțiunile generice ale serviciului SSSD, precum <quote>debug_level</quote> "
+"sau <quote>fd_limit</quote>, sunt acceptate de serviciul KCM.  Pentru o "
+"listă completă, consultați pagina de manual <citerefentry> <refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>. În plus, "
+"există și câteva opțiuni specifice serviciului KCM."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-kcm.8.xml:234
 msgid "socket_path (string)"
-msgstr ""
+msgstr "socket_path (string)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:237
 msgid "The socket the KCM service will listen on."
-msgstr ""
+msgstr "Socketul la care va asculta serviciul KCM."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:240
 msgid "Default: <replaceable>/var/run/.heim_org.h5l.kcm-socket</replaceable>"
-msgstr ""
+msgstr "Implicit: <replaceable>/var/run/.heim_org.h5l.kcm-socket</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:243
@@ -15208,6 +15217,9 @@ msgid ""
 "supported, the socket path is overwritten by the one defined in the "
 "sssd-kcm.socket unit file.  </phrase>"
 msgstr ""
+"<phrase condition=\"have_systemd\"> Notă: pe platformele care acceptă "
+"systemd, calea către socket este înlocuită cu cea definită în fișierul de "
+"unitate sssd-kcm.socket.  </phrase>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-kcm.8.xml:252
@@ -15252,6 +15264,8 @@ msgid ""
 "How big can a credential cache be per ccache. Each service ticket accounts "
 "into this quota."
 msgstr ""
+"Care este capacitatea maximă a unui cache de acreditări? Fiecare incident de "
+"serviciu se ia în calcul la această cotă."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:284
@@ -15261,7 +15275,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-kcm.8.xml:289
 msgid "tgt_renewal (bool)"
-msgstr ""
+msgstr "tgt_renewal (boolean)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:292
@@ -16197,7 +16211,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:381 sssd-ldap-attributes.5.xml:395
 msgid "Default: loginDisabled"
-msgstr ""
+msgstr "Implicit: loginDisabled"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:387
@@ -16226,7 +16240,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:409
 msgid "Default: loginAllowedTimeMap"
-msgstr ""
+msgstr "Implicit: loginAllowedTimeMap"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:415
@@ -17291,6 +17305,10 @@ msgid ""
 "  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
 " }\n"
 msgstr ""
+"[plugins]\n"
+" localauth = {\n"
+"  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
+" }\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:48
@@ -18165,7 +18183,7 @@ msgstr ""
 #. type: Content of: <refsect1><title>
 #: include/local.xml:2
 msgid "THE LOCAL DOMAIN"
-msgstr ""
+msgstr "DOMENIUL LOCAL"
 
 #. type: Content of: <refsect1><para>
 #: include/local.xml:4
@@ -18174,6 +18192,8 @@ msgid ""
 "<quote>id_provider=local</quote> must be created and the SSSD must be "
 "running."
 msgstr ""
+"Pentru a funcționa corect, trebuie creat un domeniu cu <quote>"
+"id_provider=local</quote> și SSSD trebuie să fie în funcțiune."
 
 #. type: Content of: <refsect1><para>
 #: include/local.xml:9
@@ -18186,6 +18206,15 @@ msgid ""
 "<command>sss_user*</command> and <command>sss_group*</command> tools use a "
 "local LDB storage to store users and groups."
 msgstr ""
+"Administratorul ar putea dori să utilizeze utilizatorii locali SSSD în locul "
+"utilizatorilor tradiționali UNIX în cazurile în care este necesară "
+"imbricarea grupurilor (a se vedea <citerefentry> <refentrytitle>"
+"sss_groupadd</refentrytitle> <manvolnum>8</manvolnum> </citerefentry>). "
+"Utilizatorii locali sunt, de asemenea, utili pentru testarea și dezvoltarea "
+"SSSD fără a fi necesară implementarea unui server la distanță complet. "
+"Instrumentele <command>sss_user*</command> și <command>sss_group*</command> "
+"utilizează un spațiu de stocare LDB local pentru a stoca utilizatori și "
+"grupuri."
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4

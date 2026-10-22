@@ -10,13 +10,14 @@
 # Ali Ciloqlu <ali.ciloqlu@murena.io>, 2026.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2026.
 # Ali Ciloglu <ali.ciloqlu@murena.io>, 2026.
+# Emanuele Petriglia <inbox@emanuelepetriglia.com>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-02 15:57+0000\n"
-"PO-Revision-Date: 2026-10-06 10:56+0000\n"
-"Last-Translator: Milo Casagrande <milo@milo.name>\n"
+"PO-Revision-Date: 2026-10-18 17:18+0000\n"
+"Last-Translator: Emanuele Petriglia <inbox@emanuelepetriglia.com>\n"
 "Language-Team: Italian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/it/>\n"
 "Language: it\n"
@@ -24,7 +25,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -398,14 +399,14 @@ msgstr ""
 "essere applicate per l'accesso PAM con autenticazione GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
-#, fuzzy
 msgid ""
 "List of triples <type>:<value>:<authentication indicator> that assigns "
 "additional information from the Kerberos ticket to an authentication "
 "indicator."
 msgstr ""
-"Elenco di coppie <servizio PAM>:<indicatore di autenticazione> che devono "
-"essere applicate per l'accesso PAM con autenticazione GSSAPI"
+"Elenco di triple nel formato <type>:<value>:<authentication indicator> che "
+"associano informazioni aggiuntive del ticket Kerberos a un indicatore di "
+"autenticazione."
 
 #: src/config/SSSDConfig/sssdoptions.py:112
 msgid "Allow passkey device authentication."
@@ -672,7 +673,7 @@ msgstr "Tratta i nomi utente come sensibili alle maiuscole/minuscole"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Lookups by ID are expensive or do not work at all"
-msgstr ""
+msgstr "Le ricerche tramite ID sono onerose o non funzionano affatto"
 
 #: src/config/SSSDConfig/sssdoptions.py:197
 msgid "How often should expired entries be refreshed in background"
@@ -1659,33 +1660,28 @@ msgid "A list of extra attributes to download along with the user entry"
 msgstr "Un elenco di attributi extra da scaricare insieme alla voce utente"
 
 #: src/config/SSSDConfig/sssdoptions.py:456
-#, fuzzy
 msgid "The object class of an subid entry in LDAP."
-msgstr "La classe oggetto di una voce host in LDAP."
+msgstr "La classe dell'oggetto di una voce subid in LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:457
-#, fuzzy
 msgid "Subordinate user ID count attribute"
-msgstr "Attributo utente regola sudo"
+msgstr "Attributo del numero di ID utente subordinati"
 
 #: src/config/SSSDConfig/sssdoptions.py:458
-#, fuzzy
 msgid "Subordinate group ID count attribute"
-msgstr "Attributo opzione regola sudo"
+msgstr "Attributo del numero di ID gruppo subordinati"
 
 #: src/config/SSSDConfig/sssdoptions.py:459
-#, fuzzy
 msgid "User ID range start value attribute"
-msgstr "Attributo del nome utente"
+msgstr "Attributo del valore iniziale dell'intervallo di ID utente"
 
 #: src/config/SSSDConfig/sssdoptions.py:460
-#, fuzzy
 msgid "Group ID range start value attribute"
-msgstr "Attributo UUID gruppo"
+msgstr "Attributo del valore iniziale dell'intervallo di ID gruppo"
 
 #: src/config/SSSDConfig/sssdoptions.py:461
 msgid "Owner of an entry"
-msgstr ""
+msgstr "Proprietario di una voce"
 
 #: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Base DN for group lookups"
@@ -2128,9 +2124,9 @@ msgid "Can't read config: '%s'\n"
 msgstr "Impossibile leggere la configurazione: '%s'\n"
 
 #: src/monitor/monitor.c:1878
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to bootstrap SSSD 'monitor' process: %s"
-msgstr "Fallito il bootstrap del processo 'monitor' di SSSD: %s"
+msgstr "Impossibile avviare il processo 'monitor' di SSSD: %s"
 
 #: src/monitor/monitor.c:1973
 msgid "Out of memory\n"
@@ -2174,7 +2170,7 @@ msgstr "Controlla flag PAC"
 
 #: src/providers/krb5/krb5_child.c:4335
 msgid "Set environment variable (KEY=VALUE)"
-msgstr ""
+msgstr "Imposta la variabile d'ambiente (CHIAVE=VALORE)"
 
 #: src/providers/data_provider_be.c:786
 msgid "Domain of the information provider (mandatory)"
@@ -2294,14 +2290,14 @@ msgid "Password change failed. "
 msgstr "Cambio password fallito."
 
 #: src/sss_client/pam_sss.c:2028
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate at \"%1$s\"."
-msgstr "Autenticati su %1$s e premi INVIO."
+msgstr "Autenticarsi su %1$s."
 
 #: src/sss_client/pam_sss.c:2031
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
-msgstr "Autenticati con il PIN %1$s su %2$s e premi INVIO."
+msgstr "Autenticarsi con il PIN %1$s su %2$s."
 
 #: src/sss_client/pam_sss.c:2470
 msgid "Please (re)insert (different) Smartcard"
@@ -2317,7 +2313,7 @@ msgstr "Conferma nuova password: "
 
 #: src/sss_client/pam_sss.c:2890
 msgid "Press ENTER to continue."
-msgstr ""
+msgstr "Premere INVIO per continuare."
 
 #: src/sss_client/pam_sss.c:2913 src/sss_client/pam_sss.c:2916
 msgid "First Factor: "
@@ -3006,9 +3002,8 @@ msgid "Run with high debug level to see details.\n"
 msgstr "Esegui con un livello di debug elevato per visualizzare i dettagli\n"
 
 #: src/tools/sssctl/sssctl_config.c:142
-#, fuzzy
 msgid "Failed to run validators\n"
-msgstr "Fallita l'esecuzione dei validatori"
+msgstr "Impossibile eseguire i validatori\n"
 
 #: src/tools/sssctl/sssctl_config.c:146
 #, c-format
