@@ -221,11 +221,11 @@ def test_logging__dns_resolution_issue_in_logs(client: Client):
         3. Start SSSD with default debug level
 
     :steps:
-        1. Check logs
-        2. Check default domain status
+        1. Check default domain status until LDAP is not connected
+        2. Check logs
     :expectedresults:
-        1. Logs contain the DNS name resolution error message
-        2. SSSD is not connected
+        1. SSSD is not connected
+        2. Logs contain the DNS name resolution error message
     :customerscenario: False
     """
     client.sssd.domain["ldap_uri"] = "ldap://typo.invalid"
@@ -234,12 +234,22 @@ def test_logging__dns_resolution_issue_in_logs(client: Client):
     if not client.sssd.default_domain:
         client.sssd.default_domain = "ldap.test"
 
+    # domain_status triggers the async LDAP connect/DNS resolve; wait until it
+    # completes so the failure is present in the domain log (startup alone is racy).
+    # Default dns_resolver_timeout is 6s, so ~10s is enough (10 × 1s).
+    result = None
+    for _ in range(10):
+        result = client.sssctl.domain_status(client.sssd.default_domain)
+        if result is not None and "LDAP: not connected" in result.stdout:
+            break
+        time.sleep(1)
+    else:
+        pytest.fail("Could not get domain status or LDAP is still connected!")
+
     logs = client.fs.read(client.sssd.logs.domain())
     assert (
         "Failed to resolve server 'typo.invalid': Domain name not found" in logs
     ), "'Domain name not found' error message is not in logs!"
-    result = client.sssctl.domain_status(client.sssd.default_domain)
-    assert result is not None
     assert "LDAP: not connected" in result.stdout, "LDAP is connected!"
 
 
