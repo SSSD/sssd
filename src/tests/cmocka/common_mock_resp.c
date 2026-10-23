@@ -36,7 +36,9 @@ mock_rctx(TALLOC_CTX *mem_ctx,
     rctx = talloc_zero(mem_ctx, struct resp_ctx);
     if (!rctx) return NULL;
 
-    ret = sss_ncache_init(rctx, 10, &rctx->ncache);
+    ret = sss_ncache_init(rctx, NULL, 10,
+                          CONFDB_DEFAULT_NSS_NEGCACHE_MAX_ENTRIES, 0,
+                          &rctx->ncache);
     if (ret != EOK) {
         talloc_free(rctx);
         return NULL;
