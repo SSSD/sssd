@@ -764,6 +764,163 @@ static void test_sss_ncache_prepopulate(void **state)
     assert_int_equal(ret, ENOENT);
 }
 
+static void test_sss_ncache_prepopulate_filter_ids(void **state)
+{
+    int ret;
+    struct test_state *ts;
+    struct tevent_context *ev;
+    struct sss_nc_ctx *ncache;
+    struct sss_test_ctx *tc;
+    const char *const testdom[4] = { TEST_SUBDOM_NAME, "TEST.SUB", "test", "S-3" };
+    struct sss_domain_info *subdomain;
+
+    struct sss_test_conf_param nss_params[] = {
+        { "filter_uids", "0-999, 65534" },
+        { "filter_gids", "60000-60010" },
+        { NULL, NULL },
+    };
+    /* Along with the valid entries, every malformed shape should be reported
+     * and skipped without making the whole prepopulation fail. */
+    struct sss_test_conf_param dom_params[] = {
+        { "filter_uids", "1234, bogus, 5000-4000, -7000, 8000-, 9000-9100x" },
+        { "filter_gids", "4321" },
+        { NULL, NULL },
+    };
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    ts->nctx = mock_nctx(ts);
+    assert_non_null(ts->nctx);
+
+    tc = create_dom_test_ctx(ts, TESTS_PATH, TEST_CONF_DB,
+                             TEST_DOM_NAME, TEST_ID_PROVIDER, dom_params);
+    assert_non_null(tc);
+
+    ret = add_nss_params(nss_params, tc->confdb);
+    assert_int_equal(ret, EOK);
+
+    subdomain = new_subdomain(tc, tc->dom,
+                              testdom[0], testdom[1], testdom[2], testdom[0],
+                              testdom[3], MPG_DISABLED, NULL, NULL, 0,
+                              IPA_TRUST_UNKNOWN, tc->confdb, true);
+    assert_non_null(subdomain);
+
+    ret = sysdb_subdomain_store(tc->sysdb,
+                                testdom[0], testdom[1], testdom[2], testdom[0],
+                                testdom[3], MPG_DISABLED, NULL, 0,
+                                IPA_TRUST_UNKNOWN, NULL);
+    assert_int_equal(ret, EOK);
+
+    ret = sysdb_update_subdomains(tc->dom, tc->confdb);
+    assert_int_equal(ret, EOK);
+
+    ncache = ts->ctx;
+    ts->rctx = mock_rctx(ts, ev, tc->dom, ts->nctx);
+    assert_non_null(ts->rctx);
+
+    ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &tc->dom->names);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_prepopulate(ncache, tc->confdb, ts->rctx);
+    assert_int_equal(ret, EOK);
+
+    /* The [nss] ranges apply to every domain, boundaries included */
+    ret = check_uid_in_ncache(ncache, 0);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_uid_in_ncache(ncache, 500);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_uid_in_ncache(ncache, 999);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_uid_in_ncache(ncache, 1000);
+    assert_int_equal(ret, ENOENT);
+
+    /* A single ID is a range of one */
+    ret = check_uid_in_ncache(ncache, 65534);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_uid_in_ncache(ncache, 65535);
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_gid_in_ncache(ncache, 60000);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_gid_in_ncache(ncache, 60010);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_gid_in_ncache(ncache, 60011);
+    assert_int_equal(ret, ENOENT);
+
+    /* The domain entries are scoped to that domain and its sub-domains */
+    ret = sss_ncache_check_uid(ncache, tc->dom, 1234);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_uid(ncache, tc->dom->subdomains, 1234);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_uid_in_ncache(ncache, 1234);
+    assert_int_equal(ret, ENOENT);
+
+    ret = sss_ncache_check_gid(ncache, tc->dom, 4321);
+    assert_int_equal(ret, EEXIST);
+
+    ret = check_gid_in_ncache(ncache, 4321);
+    assert_int_equal(ret, ENOENT);
+
+    /* The [nss] ranges are also registered per domain, because the consumers
+     * that drop filtered groups from the initgroups reply only ever do a
+     * domain scoped check */
+    ret = sss_ncache_check_uid(ncache, tc->dom, 500);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_uid(ncache, tc->dom->subdomains, 500);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_gid(ncache, tc->dom, 60005);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_gid(ncache, tc->dom->subdomains, 60005);
+    assert_int_equal(ret, EEXIST);
+
+    /* None of the malformed entries left anything behind */
+    const uid_t not_filtered[] = { 4000, 4500, 5000, 7000, 8000, 9000, 9100 };
+    for (size_t j = 0; j < sizeof(not_filtered) / sizeof(*not_filtered); j++) {
+        ret = sss_ncache_check_uid(ncache, tc->dom, not_filtered[j]);
+        assert_int_equal(ret, ENOENT);
+
+        ret = check_uid_in_ncache(ncache, not_filtered[j]);
+        assert_int_equal(ret, ENOENT);
+    }
+
+    /* Permanent reset drops the ranges along with the single entries */
+    ret = sss_ncache_reset_permanent(ncache);
+    assert_int_equal(ret, EOK);
+
+    ret = check_uid_in_ncache(ncache, 500);
+    assert_int_equal(ret, ENOENT);
+
+    ret = check_gid_in_ncache(ncache, 60000);
+    assert_int_equal(ret, ENOENT);
+
+    ret = sss_ncache_check_uid(ncache, tc->dom, 1234);
+    assert_int_equal(ret, ENOENT);
+
+    /* ... and a repopulation brings them back */
+    ret = sss_ncache_prepopulate(ncache, tc->confdb, ts->rctx);
+    assert_int_equal(ret, EOK);
+
+    ret = check_uid_in_ncache(ncache, 500);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_gid(ncache, tc->dom, 4321);
+    assert_int_equal(ret, EEXIST);
+}
+
 static void test_sss_ncache_default_domain_suffix(void **state)
 {
     int ret;
@@ -1349,6 +1506,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset_permanent, setup,
                                         teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_prepopulate,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_prepopulate_filter_ids,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_default_domain_suffix,
                                         setup, teardown),

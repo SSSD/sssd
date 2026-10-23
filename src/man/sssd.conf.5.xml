@@ -922,6 +922,44 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>filter_uids, filter_gids (string)</term>
+                    <listitem>
+                        <para>
+                            Exclude certain UIDs or GIDs from being fetched
+                            from the sss NSS database. Requests for a filtered
+                            ID are answered immediately with "not found",
+                            without querying the back end at all, which avoids
+                            the latency and the directory server load caused
+                            by lookups for IDs known never to exist there,
+                            such as the ones of local system accounts.
+                        </para>
+                        <para>
+                            Each value is either a single ID or an inclusive
+                            range written as <quote>MIN-MAX</quote>. This
+                            option can also be set per-domain, in which case
+                            it applies to that domain and its sub-domains
+                            only.
+                        </para>
+                        <para>
+                            NOTE: as with filter_groups, filtering a GID
+                            doesn't affect inheritance of nested group
+                            members, since filtering happens after they are
+                            propagated for returning via NSS.
+                        </para>
+                        <para>
+                            Example:
+                            <programlisting>
+filter_uids = 0-999, 65534
+filter_gids = 0-999, 65534
+                            </programlisting>
+                        </para>
+                        <para>
+                            Default: 0 (the root user and group are always
+                            filtered out)
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>filter_users_in_groups (boolean)</term>
                     <listitem>
                         <para>
