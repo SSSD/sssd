@@ -144,7 +144,7 @@ BuildRequires: openssh
 BuildRequires: softhsm >= 2.1.0
 # gpgverify was part of redhat-rpm-config prior to Fedora 43 and RHEL 11
 %if %{verify_signature} && (0%{?fedora} >= 43 || 0%{?rhel} >= 11)
-BuildRequires: gpgverify
+BuildRequires: openpgpverify
 %endif
 
 
@@ -492,7 +492,7 @@ enable authentication with passkey token.
 
 %prep
 %if %{verify_signature}
-%{gpgverify} --keyring='%{SOURCE3}' --signature='%{SOURCE2}' --data='%{SOURCE0}'
+%{openpgpverify} --keyring='%{SOURCE3}' --signature='%{SOURCE2}' --data='%{SOURCE0}'
 %endif
 %autosetup -n %{name}-%{version_no_tilde} -p1
 
