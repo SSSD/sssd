@@ -7,12 +7,86 @@ SSSD LDAP provider tests
 from __future__ import annotations
 
 import time
-from contextlib import nullcontext
+import types
+from contextlib import contextmanager, nullcontext
+from typing import Generator
 
+import ldap as pyldap
 import pytest
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.ldap import LDAP
 from sssd_test_framework.topology import KnownTopology
+
+
+@contextmanager
+def _extra_naming_context(
+    ldap: LDAP, suffix: str = "dc=other,dc=test", be_name: str = "otherRoot"
+) -> Generator[str, None, None]:
+    """
+    Create an extra 389-ds naming context for the duration of the block.
+
+    Prefers :meth:`LDAP.extra_naming_context` from sssd-test-framework when
+    available; otherwise falls back to ``dsconf backend create`` so multi-NC
+    coverage works before that helper is released.
+    """
+    if hasattr(ldap, "extra_naming_context"):
+        with ldap.extra_naming_context(suffix=suffix, be_name=be_name) as extra:
+            yield extra
+        return
+
+    binddn = ldap.host.binddn
+    bindpw = ldap.host.bindpw
+    bind = f'-D "{binddn}" -w "{bindpw}"'
+    mapping_dn = f'cn="{suffix}",cn=mapping tree,cn=config'
+    backend_dn = f"cn={be_name},cn=ldbm database,cn=plugins,cn=config"
+
+    def _dsconf(*args: str, raise_on_error: bool = True, json: bool = False):
+        jflag = "-j " if json else ""
+        cmd = f'dsconf {jflag}-D "{binddn}" -w "{bindpw}" ldap://localhost ' + " ".join(args)
+        return ldap.host.conn.run(cmd, raise_on_error=raise_on_error)
+
+    def _cleanup() -> None:
+        ldap.host.conn.run(
+            f"ldapdelete -x {bind} -H ldap://localhost -r '{suffix}' || true\n"
+            f"ldapdelete -x {bind} -H ldap://localhost '{mapping_dn}' || true\n"
+            f"ldapdelete -x {bind} -H ldap://localhost '{backend_dn}' || true\n",
+            raise_on_error=False,
+        )
+        _dsconf("backend", "delete", f'"{be_name}"', "--do-it", json=True, raise_on_error=False)
+        _dsconf("mappingtree", "delete", f'"{suffix}"', raise_on_error=False)
+
+    # Stock LDAPUtils.dn() appends naming_context to every basedn string, which
+    # breaks absolute DNs under the extra suffix. Patch for the duration.
+    utils = ldap.ldap
+    original_dn = utils.dn
+
+    def _dn(self, rdn: str, basedn: str | None = None) -> str:
+        if not basedn:
+            return f"{rdn},{self.naming_context}"
+        naming_contexts = {self.naming_context, suffix}
+        if basedn in naming_contexts or any(
+            basedn == nc or basedn.endswith(f",{nc}") for nc in naming_contexts
+        ):
+            return f"{rdn},{basedn}"
+        return f"{rdn},{basedn},{self.naming_context}"
+
+    _cleanup()
+    _dsconf("backend", "create", f'--suffix "{suffix}"', f'--be-name "{be_name}"', "--create-suffix")
+    aci = (
+        '(targetattr=*)(version 3.0; acl "Enable anyone read"; '
+        'allow (read, search, compare)(userdn="ldap:///anyone");)'
+    )
+    try:
+        utils.modify(suffix, add={"aci": aci})
+    except pyldap.TYPE_OR_VALUE_EXISTS:
+        pass
+
+    utils.dn = types.MethodType(_dn, utils)
+    try:
+        yield suffix
+    finally:
+        utils.dn = original_dn
+        _cleanup()
 
 
 @pytest.mark.topology(KnownTopology.LDAP)
@@ -352,7 +426,7 @@ def test_ldap__lookup_user_with_search_bases(client: Client, ldap: LDAP, use_ext
         2. Default NC logs show rootDSE-based search base discovery
     :customerscenario: False
     """
-    ctx = ldap.extra_naming_context() if use_extra_nc else nullcontext(None)
+    ctx = _extra_naming_context(ldap) if use_extra_nc else nullcontext(None)
     with ctx as base:
         ou_users, ou_groups, ou_netgroups = _ldap_ous_under(ldap, base)
         nc = base or ldap.ldap.naming_context
@@ -412,7 +486,7 @@ def test_ldap__lookup_and_authenticate_as_user_with_different_object_search_base
         4. Authentication succeeds
     :customerscenario: False
     """
-    ctx = ldap.extra_naming_context() if use_extra_nc else nullcontext(None)
+    ctx = _extra_naming_context(ldap) if use_extra_nc else nullcontext(None)
     with ctx as base:
         ou_users, ou_groups, ou_netgroups = _ldap_ous_under(ldap, base)
         nc = base or ldap.ldap.naming_context
@@ -464,7 +538,7 @@ def test_ldap__partial_search_base_config_fails_gracefully_for_missing_subtrees(
         3. User lookup fails with log warning; group/netgroup/service lookups succeed
     :customerscenario: False
     """
-    with ldap.extra_naming_context() as extra:
+    with _extra_naming_context(ldap) as extra:
         ou_users = ldap.ou("Users", basedn=extra).add()
         ou_groups = ldap.ou("Groups", basedn=extra).add()
         ou_netgroups = ldap.ou("Netgroups", basedn=extra).add()
