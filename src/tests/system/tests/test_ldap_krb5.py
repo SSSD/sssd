@@ -5,7 +5,8 @@ Tests where the ``id_provider`` is set to ``ldap`` and the ``auth_provider``
 is set to ``krb5``. They use ``KnownTopology.LDAP_KRB5`` (client + LDAP + KDC,
 host keytab provisioned by the topology controller).
 
-Misc krb cases ported from sssd-qe krb_misc are included in this module.
+Misc krb cases ported from sssd-qe krb_misc and the credential cache location
+cases from sssd-qe krb_credential_cache are included in this module.
 
 :requirement: SSSD - Kerberos
 """
@@ -28,6 +29,34 @@ NOBODY_C_SOURCE = (
     "    return 0;\n"
     "}\n"
 )
+
+
+def with_ccachedir(ccachedir: str, cases: list[tuple[str, str]]) -> list[tuple[str, str, str]]:
+    """
+    Build credential cache parameters that all share one krb5_ccachedir.
+
+    :param ccachedir: Value of krb5_ccachedir used by every case.
+    :type ccachedir: str
+    :param cases: Pairs of krb5_ccname_template and the credential cache it expands to.
+    :type cases: list[tuple[str, str]]
+    :return: Parameters for the credential cache location test.
+    :rtype: list[tuple[str, str, str]]
+    """
+    return [(ccachedir, template, expected) for template, expected in cases]
+
+
+def with_ccname_template(template: str, cases: list[tuple[str, str]]) -> list[tuple[str, str, str]]:
+    """
+    Build credential cache parameters that all share one krb5_ccname_template.
+
+    :param template: Value of krb5_ccname_template used by every case.
+    :type template: str
+    :param cases: Pairs of krb5_ccachedir and the credential cache it expands to.
+    :type cases: list[tuple[str, str]]
+    :return: Parameters for the credential cache location test.
+    :rtype: list[tuple[str, str, str]]
+    """
+    return [(ccachedir, template, expected) for ccachedir, expected in cases]
 
 
 @pytest.mark.importance("high")
@@ -382,3 +411,224 @@ def test_ldap_krb5__password_change_via_ssh(client: Client, provider: GenericPro
     ), f"krb5_child initial auth message not found: {log_content[:500]}!"
 
     assert client.auth.ssh.password("puser1", new_password), "Auth with new password failed after password change!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.authentication
+@pytest.mark.parametrize(
+    "ccachedir, ccname_template, expected_ccache",
+    [
+        # Credential cache types accepted by krb5_ccname_template.
+        ("/tmp/krb5_cache", "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5_cache/krb5cc_{user}"),
+        (None, "FILE:/tmp/krb5cc_%U", "FILE:/tmp/krb5cc_{uid}"),
+        (None, "/tmp/krb5cc_%U", "FILE:/tmp/krb5cc_{uid}"),
+        ("/tmp/krb5_cache", "%d/krb5cc_%u", "FILE:/tmp/krb5_cache/krb5cc_{user}"),
+        (None, "%h/krb5cc_%u", "FILE:{home}/krb5cc_{user}"),
+        ("/tmp/krb5_cache", "FILE:%d/krb5cc_%u_XXXXXX", "FILE:/tmp/krb5_cache/krb5cc_{user}_??????"),
+        ("/tmp/krb5_cache", "DIR:%d/krb5cc_%u", "DIR:/tmp/krb5_cache/krb5cc_{user}"),
+        (None, "KEYRING:persistent:%U", "KEYRING:persistent:{uid}"),
+        # Substitution sequences inside krb5_ccname_template, %u is already covered above.
+        # The last four are libkrb5 default_ccache_name sequences that SSSD expands itself.
+        *with_ccachedir(
+            "/tmp/krb5_cache",
+            [
+                ("FILE:%d/cc_%U", "FILE:/tmp/krb5_cache/cc_{uid}"),
+                ("FILE:%d/cc_%p", "FILE:/tmp/krb5_cache/cc_{user}@{realm}"),
+                ("FILE:%d/cc_%r", "FILE:/tmp/krb5_cache/cc_{realm}"),
+                ("FILE:%d/cc_%P", "FILE:/tmp/krb5_cache/cc_[0-9]*"),
+                ("FILE:%d/my_%%_cc", "FILE:/tmp/krb5_cache/my_%_cc"),
+                ("FILE:%d/cc_%u_%u", "FILE:/tmp/krb5_cache/cc_{user}_{user}"),
+                ("FILE:%d/cc_%{uid}", "FILE:/tmp/krb5_cache/cc_{uid}"),
+                ("FILE:%d/cc_%{USERID}", "FILE:/tmp/krb5_cache/cc_{uid}"),
+                ("FILE:%d/cc_%{euid}", "FILE:/tmp/krb5_cache/cc_{uid}"),
+                ("FILE:%d/cc_%{username}", "FILE:/tmp/krb5_cache/cc_{user}"),
+            ],
+        ),
+        # Substitution sequences inside krb5_ccachedir.
+        *with_ccname_template(
+            "FILE:%d/krb5cc_%u",
+            [
+                ("/tmp/krb5_cache_%u", "FILE:/tmp/krb5_cache_{user}/krb5cc_{user}"),
+                ("/tmp/krb5_cache_%U", "FILE:/tmp/krb5_cache_{uid}/krb5cc_{user}"),
+                ("/tmp/krb5_cache_%p", "FILE:/tmp/krb5_cache_{user}@{realm}/krb5cc_{user}"),
+                ("/tmp/krb5_cache_%r", "FILE:/tmp/krb5_cache_{realm}/krb5cc_{user}"),
+                ("/tmp/krb5_cache_%h", "FILE:/tmp/krb5_cache_{home}/krb5cc_{user}"),
+                ("/tmp/my_%%_krb5", "FILE:/tmp/my_%_krb5/krb5cc_{user}"),
+                ("/tmp/krb5_cache_%{uid}", "FILE:/tmp/krb5_cache_{uid}/krb5cc_{user}"),
+                ("/tmp/krb5_cache_%{username}", "FILE:/tmp/krb5_cache_{user}/krb5cc_{user}"),
+            ],
+        ),
+        # krb5_ccachedir paths: default, nested levels and a directory below the home.
+        (None, "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5cc_{user}"),
+        ("/tmp/ccaches/%r/%u", "FILE:%d/krb5cc_%u", "FILE:/tmp/ccaches/{realm}/{user}/krb5cc_{user}"),
+        ("%h/.ccaches", "FILE:%d/krb5cc_%u", "FILE:{home}/.ccaches/krb5cc_{user}"),
+        # krb5_ccachedir is only consulted when the template references %d.
+        ("/tmp/unused_ccachedir", "FILE:/tmp/krb5cc_%U", "FILE:/tmp/krb5cc_{uid}"),
+    ],
+)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__krb5_ccachedir_substitutions_store_ccache_in_expected_directory(
+    client: Client,
+    provider: GenericProvider,
+    kdc: KDC,
+    ccachedir: str | None,
+    ccname_template: str,
+    expected_ccache: str,
+):
+    """
+    :title: Credential cache is stored where krb5_ccachedir and krb5_ccname_template expand to
+
+    The templates are parametrized here over the three cache types documented in sssd-krb5(5)
+    ("FILE", "DIR" and "KEYRING:persistent"), every substitution sequence allowed in each of
+    the two options, and the krb5_ccachedir path shapes.
+
+    ``expected_ccache`` is the full TYPE:RESIDUAL name the two options expand to; the
+    residual may contain a shell glob for the templates whose result is not predictable
+    (``XXXXXX`` is replaced by mkstemp(3) and ``%P`` by the SSSD client PID).
+
+    :setup:
+        1. Create user "puser1" with uid 10001 and its kerberos principal
+        2. Configure SSSD with LDAP id provider and krb5 auth provider
+        3. Set krb5_ccachedir, unless the case exercises the /tmp default
+        4. Set krb5_ccname_template
+        5. Start SSSD
+        6. Create the parent directory owned by puser1 when it is missing, SSSD no longer
+           creates missing path components of a FILE credential cache
+    :steps:
+        1. Resolve puser1
+        2. Authenticate puser1 over SSH
+        3. Check that the credential cache exists where the templates expand to
+        4. Check credential cache permissions
+        5. Check that the credential cache holds a TGT
+        6. Check that krb5_ccachedir is left alone when the template has no %d
+    :expectedresults:
+        1. User is resolvable
+        2. Authentication is successful
+        3. Credential cache is created in the location the templates expand to
+        4. Permissions are 0600 for a FILE cache and 0700 for a DIR collection
+        5. Credential cache holds a TGT for puser1
+        6. An unreferenced krb5_ccachedir is not created
+    :customerscenario: False
+    """
+    username = "puser1"
+    password = "12345678"
+    uid = 10001
+    home = f"/home/{username}"
+
+    expected_ccache = expected_ccache.format(realm=kdc.realm, user=username, uid=uid, home=home)
+    cctype, _, residual = expected_ccache.partition(":")
+
+    provider.user(username).add(uid=uid, gid=uid, password=password, home=home)
+    kdc.principal(username).add(password=password)
+
+    client.sssd.common.krb5_auth(kdc)
+    if ccachedir is not None:
+        client.sssd.domain["krb5_ccachedir"] = ccachedir
+    client.sssd.domain["krb5_ccname_template"] = ccname_template
+    client.sssd.start()
+
+    assert client.tools.id(username), f"User {username} is not resolvable!"
+
+    if cctype in ("FILE", "DIR"):
+        parent = residual.rsplit("/", 1)[0]
+        if not client.fs.exists(parent):
+            client.fs.mkdir_p(parent, mode="0700", user=username)
+
+    assert client.auth.ssh.password(username, password), f"Authentication failed for {username}!"
+
+    if cctype in ("FILE", "DIR"):
+        if any(char in residual for char in "?*["):
+            matches = client.host.conn.run(f"ls -1d {residual}", raise_on_error=False).stdout.splitlines()
+            assert len(matches) == 1, f"Expected exactly one credential cache matching {residual}, found {matches}!"
+            residual = matches[0]
+
+        assert client.fs.exists(residual), f"Credential cache {residual} was not created!"
+
+        expected_mode = "0600" if cctype == "FILE" else "0700"
+        stat = client.fs.stat(residual)
+        assert (
+            stat.access == expected_mode
+        ), f"Credential cache {residual} has permissions {stat.access}, expected {expected_mode}!"
+        assert stat.user == username, f"Credential cache {residual} is owned by {stat.user}, expected {username}!"
+
+        if cctype == "DIR":
+            assert client.fs.exists(f"{residual}/primary"), f"Collection {residual} has no primary cache!"
+
+    ccname = f"{cctype}:{residual}"
+    klist = client.host.conn.run(f"runuser -u {username} -- klist -s -c '{ccname}'", raise_on_error=False)
+    assert klist.rc == 0, f"Credential cache {ccname} does not hold a TGT for {username}!"
+
+    # krb5_ccachedir was set to a literal path that the template never references.
+    if ccachedir is not None and "%" not in ccachedir and "%d" not in ccname_template:
+        assert not client.fs.exists(ccachedir), f"Unreferenced krb5_ccachedir {ccachedir} was created!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.authentication
+@pytest.mark.parametrize(
+    "ccachedir, expected_error",
+    [
+        # %d and %P are valid in krb5_ccname_template only, both as the first
+        # substitution and once an earlier one has already expanded.
+        ("/tmp/krb5_cache_%d", "'%d' is not allowed in this template."),
+        ("/tmp/krb5_cache_%P", "'%P' is not allowed in this template."),
+        ("/tmp/%u_%d", "'%d' is not allowed in this template."),
+        ("/tmp/%u_%P", "'%P' is not allowed in this template."),
+        # Sequences that are not part of the substitution syntax at all.
+        ("/tmp/krb5_cache_%x", "format error, unknown template [%x]."),
+        ("/tmp/krb5_cache_%", "format error, single % at the end of the template."),
+        (
+            "/tmp/krb5_cache_%{uid",
+            "Missing closing '}' in [/tmp/krb5_cache_%{uid]",
+        ),
+    ],
+)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__krb5_ccachedir_invalid_substitution_rejects_authentication(
+    client: Client, provider: GenericProvider, kdc: KDC, ccachedir: str, expected_error: str
+):
+    """
+    :title: Authentication fails when krb5_ccachedir uses a substitution that is not allowed
+
+    ``%d`` and ``%P`` are only valid in krb5_ccname_template, not in krb5_ccachedir,
+    both when they are the first substitution in the value and when an earlier one has
+    already expanded successfully. An unknown sequence, a trailing single ``%`` and
+    an unterminated ``%{...}`` are malformed in either template. krb5_ccachedir is only
+    expanded when krb5_ccname_template references ``%d``, so the template keeps that
+    reference in every case.
+
+    :setup:
+        1. Create user "puser1" and its kerberos principal
+        2. Configure SSSD with LDAP id provider and krb5 auth provider
+        3. Set krb5_ccachedir to a path containing the rejected sequence
+        4. Set krb5_ccname_template to FILE:%d/krb5cc_%u so krb5_ccachedir is expanded
+        5. Start SSSD
+    :steps:
+        1. Resolve puser1
+        2. Authenticate puser1 over SSH
+        3. Check the domain log
+    :expectedresults:
+        1. User is resolvable
+        2. Authentication fails
+        3. Domain log reports why the template was rejected
+    :customerscenario: False
+    """
+    username = "puser1"
+    password = "12345678"
+
+    provider.user(username).add(uid=10001, gid=10001, password=password)
+    kdc.principal(username).add(password=password)
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["krb5_ccachedir"] = ccachedir
+    client.sssd.domain["krb5_ccname_template"] = "FILE:%d/krb5cc_%u"
+    client.sssd.start()
+
+    assert client.tools.id(username), f"User {username} is not resolvable!"
+
+    assert not client.auth.ssh.password(
+        username, password
+    ), f"Authentication succeeded with krb5_ccachedir set to {ccachedir}!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert expected_error in log, f"Domain log does not report {expected_error!r} for krb5_ccachedir {ccachedir}!"
