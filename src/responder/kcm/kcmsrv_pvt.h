@@ -71,6 +71,7 @@ enum kcm_ccdb_be {
 struct kcm_ctx {
     struct resp_ctx *rctx;
     int fd_limit;
+    int recv_timeout;
     char *socket_path;
     enum kcm_ccdb_be cc_be;
     struct kcm_ops_queue_ctx *qctx;
