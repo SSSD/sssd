@@ -34,6 +34,23 @@ jobs:
           echo "::error::This pull request does not have the 'Accepted' label and cannot be merged."
           exit 1
 
+      - name: Require a backport decision before merging
+        # Enforce that a conscious backport decision was made: either the PR is
+        # targeted at one or more stable branches (one or more 'backport-to-*'
+        # labels) or it is explicitly flagged as not to be backported
+        # ('no-backport'). Matching is case-insensitive to stay consistent with
+        # GitHub's expression comparisons used elsewhere in this workflow.
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          if echo "$LABELS" | jq -e \
+               'any(ascii_downcase | startswith("backport-to-"))
+                or any(ascii_downcase == "no-backport")' >/dev/null; then
+            exit 0
+          fi
+          echo "::error::This pull request must have at least one 'backport-to-*' label or the 'no-backport' label before it can be merged."
+          exit 1
+
       - name: Checkout Repository
         if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
         uses: actions/checkout@v7
