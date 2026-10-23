@@ -34,6 +34,7 @@
 
 #define DEFAULT_KCM_FD_LIMIT 2048
 #define DEFAULT_KCM_CLI_IDLE_TIMEOUT 300
+#define DEFAULT_KCM_RECV_TIMEOUT 5
 
 #ifndef SSS_KCM_SOCKET_NAME
 #define SSS_KCM_SOCKET_NAME DEFAULT_KCM_SOCKET_PATH
@@ -149,6 +150,18 @@ static int kcm_get_config(struct kcm_ctx *kctx)
     /* Ensure that the client timeout is at least ten seconds */
     if (kctx->rctx->client_idle_timeout < 10) {
         kctx->rctx->client_idle_timeout = 10;
+    }
+
+    ret = confdb_get_int(kctx->rctx->cdb,
+                         kctx->rctx->confdb_service_path,
+                         CONFDB_KCM_RECV_TIMEOUT,
+                         DEFAULT_KCM_RECV_TIMEOUT,
+                         &kctx->recv_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Cannot get the kcm recv timeout [%s] [%d]: %s\n",
+               CONFDB_KCM_RECV_TIMEOUT, ret, sss_strerror(ret));
+        goto done;
     }
 
     ret = confdb_get_string(kctx->rctx->cdb,
