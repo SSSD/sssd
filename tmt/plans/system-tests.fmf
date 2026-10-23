@@ -90,7 +90,18 @@ prepare:
 
   - name: Restart SSSD on the IPA server
     how: shell
-    script: ci-exec --where ipa --user root -- systemctl restart sssd
+    script: |
+      ci-exec.sh --where ipa --user root <<'EOF'
+        systemctl restart sssd
+        rc=$?
+
+        if [ "$rc" -ne 0 ]; then
+            systemctl status sssd.service --no-pager
+            journalctl -xeu sssd.service --no-pager -n 50
+        fi
+
+        exit "$rc"
+      EOF
 
   - name: Select tests and store the selection in SELECTED_TESTS
     how: shell
