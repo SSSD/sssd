@@ -1195,21 +1195,12 @@ static errno_t pack_cert_data(TALLOC_CTX *mem_ctx, const char *sysdb_username,
     return EOK;
 }
 
-/* The PKCS11_LOGIN_TOKEN_NAME environment variable is e.g. used by the Gnome
- * Settings Daemon to determine the name of the token used for login but it
- * should be only set if SSSD is called by gdm-smartcard. Otherwise desktop
- * components might assume that gdm-smartcard PAM stack is configured
- * correctly which might not be the case e.g. if Smartcard authentication was
- * used when running gdm-password. */
-#define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
-
 errno_t add_pam_cert_response(struct pam_data *pd, struct sss_domain_info *dom,
                               const char *sysdb_username,
                               struct cert_auth_info *cert_info,
                               enum response_type type)
 {
     uint8_t *msg = NULL;
-    char *env = NULL;
     size_t msg_len;
     int ret;
     char *short_name = NULL;
@@ -1281,24 +1272,6 @@ errno_t add_pam_cert_response(struct pam_data *pd, struct sss_domain_info *dom,
         DEBUG(SSSDBG_OP_FAILURE,
               "pam_add_response failed to add certificate info.\n");
         return ret;
-    }
-
-    if (strcmp(pd->service, "gdm-smartcard") == 0) {
-        env = talloc_asprintf(pd, "%s=%s", PKCS11_LOGIN_TOKEN_ENV_NAME,
-                              sss_cai_get_token_name(cert_info));
-        if (env == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
-            return ENOMEM;
-        }
-
-        ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(env) + 1,
-                               (uint8_t *)env);
-        talloc_free(env);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_OP_FAILURE,
-                  "pam_add_response failed to add environment variable.\n");
-            return ret;
-        }
     }
 
     return ret;
