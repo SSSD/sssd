@@ -34,6 +34,10 @@
 /* The return code is 32bits */
 #define KCM_RETCODE_SIZE 4
 
+/* A valid request body carries at least the protocol header:
+ * major (uint8) + minor (uint8) + opcode (uint16). */
+#define KCM_MSG_HEADER_SIZE (2 * sizeof(uint8_t) + sizeof(uint16_t))
+
 /* KCM operation, its raw input and raw output and result */
 struct kcm_op_io {
     struct kcm_op *op;
@@ -59,34 +63,35 @@ static errno_t kcm_iovec_op(int fd, struct kcm_iovec *kiov, bool do_read)
     ssize_t len;
     struct iovec iov[1];
 
-    iov[0].iov_base = kiov->kiov_base + kiov->nprocessed;
-    iov[0].iov_len = kiov->kiov_len - kiov->nprocessed;
-    if (iov[0].iov_len == 0) {
-        /* This iovec is full (read) or depleted (write), proceed to the next one */
-        return EOK;
-    }
+    while (kiov->nprocessed < kiov->kiov_len) {
+        iov[0].iov_base = kiov->kiov_base + kiov->nprocessed;
+        iov[0].iov_len = kiov->kiov_len - kiov->nprocessed;
 
-    if (do_read) {
-        len = readv(fd, iov, 1);
-    } else {
-        len = writev(fd, iov, 1);
-    }
-
-    if (len == -1) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR) {
-            return EAGAIN;
+        if (do_read) {
+            len = readv(fd, iov, 1);
         } else {
-            return errno;
+            len = writev(fd, iov, 1);
         }
+
+        if (len == -1) {
+            if (errno == EINTR) {
+                /* Op was interupted but data may still be available. */
+                continue;
+            } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return EAGAIN;
+            } else {
+                return errno;
+            }
+        }
+
+        if (len == 0) {
+            /* Peer closed the connection (read side); nothing more to do. */
+            return ENODATA;
+        }
+
+        kiov->nprocessed += len;
     }
 
-    if (len == 0) {
-        /* Read event on fd that doesn't yield data? error */
-        return ENODATA;
-    }
-
-    /* Decrease the amount of available free space in the iovec */
-    kiov->nprocessed += len;
     return EOK;
 }
 
@@ -339,6 +344,9 @@ struct kcm_req_ctx {
     struct kcm_ctx *kctx;
 
     struct kcm_op_io op_io;
+
+    /* cancel kcm_recv id data is not received in time */
+    struct tevent_timer *recv_timeout;
 };
 
 static void kcm_send_reply(struct kcm_req_ctx *req_ctx)
@@ -422,32 +430,39 @@ static errno_t kcm_recv_data(TALLOC_CTX *mem_ctx,
     uint32_t msglen;
     errno_t ret;
 
-    ret = kcm_read_iovec(fd, &reqbuf->v_len);
-    if (ret != EOK) {
-        /* Not all errors are fatal, hence we don't print DEBUG messages
-         * here, but in the caller
-         */
-        return ret;
-    }
+    if (reqbuf->v_msg.kiov_base == NULL) {
+        ret = kcm_read_iovec(fd, &reqbuf->v_len);
+        if (ret != EOK) {
+            /* Not all errors are fatal, hence we don't print DEBUG messages
+            * here, but in the caller
+            */
+            return ret;
+        }
 
-    msglen = kcm_input_get_payload_len(&reqbuf->v_len);
-    if (msglen > KCM_PACKET_MAX_SIZE) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Request exceeds the KCM protocol limit, aborting\n");
-        return E2BIG;
-    }
+        msglen = kcm_input_get_payload_len(&reqbuf->v_len);
+        if (msglen < KCM_MSG_HEADER_SIZE) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Request body is too short, aborting\n");
+            return EBADMSG;
+        }
 
-    msg = talloc_array(mem_ctx, uint8_t, msglen);
-    if (msg == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Failed to allocate memory for the message\n");
-        return ENOMEM;
-    }
-    talloc_set_destructor((void *) msg, sss_erase_talloc_mem_securely);
+        if (msglen > KCM_PACKET_MAX_SIZE) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                "Request exceeds the KCM protocol limit, aborting\n");
+            return E2BIG;
+        }
 
-    /* Set the buffer and its expected len to receive the data */
-    reqbuf->v_msg.kiov_base = msg;
-    reqbuf->v_msg.kiov_len = msglen;
+        msg = talloc_array(mem_ctx, uint8_t, msglen);
+        if (msg == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to allocate memory for the message\n");
+            return ENOMEM;
+        }
+        talloc_set_destructor((void *) msg, sss_erase_talloc_mem_securely);
+
+        /* Set the buffer and its expected len to receive the data */
+        reqbuf->v_msg.kiov_base = msg;
+        reqbuf->v_msg.kiov_len = msglen;
+    }
 
     ret = kcm_read_iovec(fd, &reqbuf->v_msg);
     if (ret != EOK) {
@@ -460,6 +475,21 @@ static errno_t kcm_recv_data(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static void
+kcm_recv_timeout(struct tevent_context *ev,
+                 struct tevent_timer *te,
+                 struct timeval current_time,
+                 void *ptr)
+{
+    struct kcm_req_ctx *req = talloc_get_type(ptr, struct kcm_req_ctx);
+
+    DEBUG(SSSDBG_OP_FAILURE,
+          "Client %p did not send data in time, killing it\n", req->cctx);
+
+    talloc_free(req->cctx);
+}
+
+
 /* Mind that kcm_new_req() does not take a mem_ctx argument on purpose as we
  * really want the cctx to be the memory context here so that if the client
  * disconnects, the request goes away. */
@@ -467,6 +497,7 @@ static struct kcm_req_ctx *kcm_new_req(struct cli_ctx *cctx,
                                        struct kcm_ctx *kctx)
 {
     struct kcm_req_ctx *req;
+    struct timeval tv;
 
     req = talloc_zero(cctx, struct kcm_req_ctx);
     if (req == NULL) {
@@ -484,6 +515,18 @@ static struct kcm_req_ctx *kcm_new_req(struct cli_ctx *cctx,
 
     req->cctx = cctx;
     req->kctx = kctx;
+
+    if (kctx->recv_timeout > 0) {
+        tv = tevent_timeval_current_ofs(kctx->recv_timeout, 0);
+        req->recv_timeout = tevent_add_timer(cctx->ev, req, tv, kcm_recv_timeout,
+                                            req);
+        if (req->recv_timeout == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot setup kcm_recv timeout\n");
+            talloc_free(req);
+            return NULL;
+        }
+    }
+
 
     return req;
 }
@@ -529,7 +572,8 @@ static void kcm_recv(struct cli_ctx *cctx)
         DEBUG(SSSDBG_TRACE_ALL, "Retry later\n");
         return;
     case EOK:
-        /* all fine */
+        /* all data have been received */
+        talloc_zfree(req->recv_timeout);
         break;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE,
@@ -629,6 +673,21 @@ static void kcm_fd_handler(struct tevent_context *ev,
 
 int kcm_connection_setup(struct cli_ctx *cctx)
 {
+    errno_t ret;
+
+    /* KCM reads the length header and then the message body, and writes
+     * the reply length, retcode and payload, all within a single tevent
+     * callback. A tevent event only guarantees the first I/O will make
+     * progress without blocking; the later ones must be non-blocking, or
+     * a client that withholds the body (or does not drain the reply)
+     * would block the entire responder event loop. */
+    ret = sss_fd_nonblocking(cctx->cfd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Failed to set the KCM client fd non-blocking\n");
+        return ret;
+    }
+
     cctx->cfd_handler = kcm_fd_handler;
     return EOK;
 }
