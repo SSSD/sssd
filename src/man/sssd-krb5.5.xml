@@ -137,9 +137,19 @@
                         <para>
                             Directory to store credential caches. All the
                             substitution sequences of krb5_ccname_template can
-                            be used here, too, except %d and %P.
-                            The directory is created as private and owned
-                            by the user, with permissions set to 0700.
+                            be used here, too, except %d and %P. This option is
+                            only consulted when krb5_ccname_template refers to
+                            it with %d; otherwise it is ignored.
+                        </para>
+                        <para>
+                            SSSD does not create this directory. It must
+                            already exist and the user logging in must have
+                            'rwx' access to it, which matches the behaviour of
+                            <citerefentry>
+                                <refentrytitle>kinit</refentrytitle>
+                                <manvolnum>1</manvolnum>
+                            </citerefentry>.
+                            Authentication fails if the directory is missing.
                         </para>
                         <para>
                             Default: /tmp
