@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-10-06 17:40+0000\n"
-"PO-Revision-Date: 2026-10-06 11:21+0000\n"
+"PO-Revision-Date: 2026-10-06 22:29+0000\n"
 "Last-Translator: Américo Monteiro <a_monteiro@gmx.com>\n"
 "Language-Team: Portuguese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/pt/>\n"
@@ -102,6 +102,11 @@ msgid ""
 "quote> are all equivalent and valid; the same applies to <quote>FALSE</"
 "quote>."
 msgstr ""
+"Os tipos de dados usados são string (sem aspas necessárias), inteiro e "
+"booleano (com valores de <quote>TRUE/FALSE</quote>).  Valores booleanos são "
+"insensíveis a maiúsculas e minúsculas; por exemplo, <quote>TRUE</quote>, "
+"<quote>True</quote> e <quote>true</quote> são todos equivalentes e válidos; "
+"o mesmo aplica-se a <quote>FALSE</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:49
@@ -201,10 +206,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:108
-#, fuzzy
-#| msgid "TRUSTED DOMAINS CONFIGURATION"
 msgid "VENDOR PROVIDED CONFIGURATION"
-msgstr "CONFIGURAÇÃO DE DOMÍNIOS DE CONFIANÇA"
+msgstr "CONFIGURAÇÃO FORNECIDA PELO FORNECEDOR"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:111
@@ -216,13 +219,17 @@ msgid ""
 "overriden by creating config snippets in <filename>&sssd_conf_dir;/conf.d</"
 "filename> directory."
 msgstr ""
+"O ficheiro de configuração fornecido pelo fornecedor está instalado em "
+"<filename>&sssd_vendor_dir;/sssd.conf</filename>, mas este ficheiro não pode "
+"ser editado diretamente. Ele pode ser completamente mascarado ao se criar o "
+"ficheiro de configuração específico do sistema <filename>&sssd_conf_dir;/"
+"sssd.conf</filename>, ou parcialmente sobreposto ao criar trechos de "
+"configuração no directório <filename>&sssd_conf_dir;/conf.d</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:120
-#, fuzzy
-#| msgid "CONFIGURATION FILE"
 msgid "CONFIGURATION FILE HIERARCHY"
-msgstr "FICHEIRO DE CONFIGURAÇÃO"
+msgstr "HIERARQUIA DO FICHEIRO DE CONFIGURAÇÃO"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:122
@@ -234,6 +241,12 @@ msgid ""
 "<filename>&sssd_vendor_dir;/sssd.conf</filename> is completely ignored in "
 "this case."
 msgstr ""
+"Quando o sssd lê a configuração primeiro tenta abrir o ficheiro de "
+"configuração específico do sistema em <filename>&sssd_conf_dir;/sssd.conf</"
+"filename>. Se existir, é carregado e são aplicados os trechos de <filename>"
+"&sssd_conf_dir;/conf.d</filename>. O ficheiro de configuração do fornecedor "
+"em <filename>&sssd_vendor_dir;/sssd.conf</filename> é completamente ignorado "
+"neste caso."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:131
@@ -243,6 +256,11 @@ msgid ""
 "<filename>&sssd_vendor_dir;/sssd.conf</filename> is loaded and snippets from "
 "<filename>&sssd_conf_dir;/conf.d</filename> are applied."
 msgstr ""
+"Se o ficheiro de configuração específico do sistema <filename>"
+"&sssd_conf_dir;/sssd.conf</filename> não existir, então o ficheiro de "
+"configuração do fornecedor <filename>&sssd_vendor_dir;/sssd.conf</filename> "
+"é carregado e são aplicados os trechos de <filename>&sssd_conf_dir;/conf.d</"
+"filename>."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:141
@@ -267,6 +285,9 @@ msgid ""
 "section, see <quote>Session recording configuration options</quote> section "
 "for more details."
 msgstr ""
+"Nota: As opções em baixo são ignoradas na secção <quote>[session_recording]</"
+"quote>, veja a secção <quote>Opções de configuração de gravação de sessão</"
+"quote> para mais detalhes."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:156
@@ -293,8 +314,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:173
-#, fuzzy
-#| msgid "debug_timestamps (bool)"
 msgid "debug_timestamps (boolean)"
 msgstr "debug_timestamps (booleano)"
 
@@ -320,8 +339,6 @@ msgstr "Predefinição: true"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:186
-#, fuzzy
-#| msgid "debug_microseconds (bool)"
 msgid "debug_microseconds (boolean)"
 msgstr "debug_microseconds (booleano)"
 
@@ -346,10 +363,8 @@ msgstr "Predefinição: false"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:199
-#, fuzzy
-#| msgid "debug_backtrace_enabled (bool)"
 msgid "debug_backtrace_enabled (boolean)"
-msgstr "debug_microseconds (booleano)"
+msgstr "debug_backtrace_enabled (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:202
@@ -438,10 +453,8 @@ msgstr "Parâmetros de secção"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:265
-#, fuzzy
-#| msgid "users (string)"
 msgid "services (string)"
-msgstr "users (string)"
+msgstr "services (string)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:268
@@ -1011,10 +1024,8 @@ msgstr "Predefinição: false (alterações netlink são detetadas)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:634
-#, fuzzy
-#| msgid "domain_resolution_order"
 msgid "domain_resolution_order (string)"
-msgstr "domain_resolution_order"
+msgstr "domain_resolution_order (string)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:637
@@ -1206,20 +1217,11 @@ msgstr "Estas opções podem ser usadas para configurar qualquer serviço."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:766
-#, fuzzy
-#| msgid "wildcard_limit (integer)"
 msgid "fd_limit (integer)"
-msgstr "wildcard_limit (inteiro)"
+msgstr "fd_limit (inteiro)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:769
-#, fuzzy
-#| msgid ""
-#| "This option specifies the maximum number of file descriptors that may be "
-#| "opened at one time by this SSSD process. On systems where SSSD is granted "
-#| "the CAP_SYS_RESOURCE capability, this will be an absolute setting. On "
-#| "systems without this capability, the resulting value will be the lower "
-#| "value of this or the limits.conf \"hard\" limit."
 msgid ""
 "This option specifies the maximum number of file descriptors that may be "
 "opened at one time by this SSSD process. Note this value will be capped by "
@@ -1227,10 +1229,9 @@ msgid ""
 "details."
 msgstr ""
 "Esta opção especifica o número máximo de descritores de ficheiro que podem "
-"ser abertos de uma vez por estes processos do SSSD. Em sistemas onde o SSSD "
-"tem garantida a capacidade CAP_SYS_RESOURCE, isto será uma definição "
-"absoluta. Em sistema sem esta capacidade, o valor resultante irá ser o menor "
-"valor disto ou limite \"hard\" do limits.conf."
+"ser abertos de uma vez por estes processos do SSSD. Note que este valor vai "
+"ser limitado pelo sistema de iniciação no arranque do SSSD, veja por ex, o "
+"manual 'man systemd.exec' para detalhes."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:776
@@ -1239,10 +1240,8 @@ msgstr "Predefinição: 8192 (ou limite \"hard\" de limits.conf)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:781
-#, fuzzy
-#| msgid "offline_timeout (integer)"
 msgid "client_idle_timeout (integer)"
-msgstr "offline_timeout (inteiro)"
+msgstr "client_idle_timeout (inteiro)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:784
@@ -1266,10 +1265,8 @@ msgstr "Predefinição: 60, KCM: 300"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:798
-#, fuzzy
-#| msgid "responder_idle_timeout"
 msgid "responder_idle_timeout (integer)"
-msgstr "responder_idle_timeout"
+msgstr "responder_idle_timeout (inteiro)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:801
@@ -1283,12 +1280,12 @@ msgid ""
 "activated."
 msgstr ""
 "Esta opção especifica o número de segundos que um processo respondedor do "
-"SSSD pode estar activo sem ser usado. Este valor é limitado para evitar a "
+"SSSD pode estar ativo sem ser usado. Este valor é limitado para evitar a "
 "exaustão de recursos do sistema.   O valor mínimo aceitável para esta opção "
 "é 60 segundos.   Definir esta opção para 0 (zero) significa que nenhum tempo "
 "limite será definido para o respondedor.   Esta opção apenas tem efeito "
 "quando o SSSD é compilado com suporte a systemd e quando os serviços são "
-"activados ou em socket ou em D-Bus."
+"ativados ou em socket ou em D-Bus."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:815 sssd.conf.5.xml:1079 sssd.conf.5.xml:2285
@@ -1298,10 +1295,8 @@ msgstr "Predefinição: 300"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:820
-#, fuzzy
-#| msgid "cache_first"
 msgid "cache_first (boolean)"
-msgstr "cache_first"
+msgstr "cache_first (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:823
@@ -1319,16 +1314,12 @@ msgstr "Opções de configuração do NSS"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:837
-#, fuzzy
-#| msgid ""
-#| "These options can be used to configure the Name Service Switch (NSS) "
-#| "service."
 msgid ""
 "These options can be used to configure the Name Service Switch (NSS) service "
 "and should be specified under the <quote>[nss]</quote> section."
 msgstr ""
 "Estas opções podem ser usadas para configurar o serviço Name Service Switch "
-"(NSS)."
+"(NSS) e devem ser especificadas sob a secção <quote>[nss]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:843
@@ -1448,7 +1439,7 @@ msgid ""
 "member users of the latter listed."
 msgstr ""
 "NOTA: A opção filter_groups não afeta a herança de membros de grupo "
-"aninhados, pois a filtragem acontece apos eles serem propagados para "
+"aninhados, pois a filtragem acontece após eles serem propagados para "
 "retornar via NSS. Ex. um grupo a ter um membro do grupo filtrado irão ainda "
 "ter os utilizadores membros na listagem posterior."
 
@@ -1459,21 +1450,16 @@ msgstr "Predefinição: root"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:925
-#, fuzzy
-#| msgid "filter_users_in_groups (bool)"
 msgid "filter_users_in_groups (boolean)"
 msgstr "filter_users_in_groups (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:928
-#, fuzzy
-#| msgid ""
-#| "If you want filtered user still be group members set this option to false."
 msgid ""
 "If you want filtered users to remain group members set this option to false"
 msgstr ""
-"Se você deseja que o utilizador filtrado ainda seja membro de grupo defina "
-"esta opção para false."
+"Se você deseja que os utilizadores filtrados permaneçam membros de grupo "
+"defina esta opção para false"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:939
@@ -1748,7 +1734,7 @@ msgid ""
 "WARNING: Disabled or too small in-memory cache can have significant negative "
 "impact on SSSD's performance."
 msgstr ""
-"AVISO: A cache em-memória desactivada ou muito pequena pode ter impacto "
+"AVISO: A cache em-memória desativada ou muito pequena pode ter impacto "
 "negativo significante na performance do SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
@@ -1870,6 +1856,14 @@ msgid ""
 "as locked. Setting <option>pwfield = x</option> in the domain section "
 "restores the expected behavior."
 msgstr ""
+"Esta opção pode também ser definida por-domínio, o que sobrepõe o valor na "
+"secção <quote>[nss]</quote> para esse domínio. Isto é particularmente útil "
+"quando se usa um domínio proxy com <option>proxy_lib_name=files</option> e "
+"uma <option>proxy_pam_target</option> diferente de <quote>sssd-shadowutils</"
+"quote>. Neste caso, o SSSD retorna <quote>*</quote> para o campo da palavra "
+"passe por predefinição, o que causa que <command>pam_unix</command> trate "
+"todas as contas como bloqueadas. Definir <option>pwfield = x</option> na "
+"secção de domínio restaura o comportamento esperado."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1246
@@ -1878,16 +1872,12 @@ msgstr "Predefinição: <quote>*</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1249
-#, fuzzy
-#| msgid ""
-#| "Default: <quote>not set</quote> (remote domains), <quote>x</quote> (proxy "
-#| "domain with nss_files and sssd-shadowutils target)"
 msgid ""
 "Default (per-domain): <quote>not set</quote> (remote domains), <quote>x</"
 "quote> (proxy domain with nss_files and sssd-shadowutils target)"
 msgstr ""
-"Predefinição: <quote>não definida</quote> (domínios remotos), <quote>x</"
-"quote> (domínios proxy com nss_files e alvo sssd-shadowutils)"
+"Predefinição (por-domínio): <quote>não definida</quote> (domínios remotos), "
+"<quote>x</quote> (domínios proxy com nss_files e alvo sssd-shadowutils)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:1258
@@ -1896,16 +1886,13 @@ msgstr "Opções de configuração do PAM"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:1260
-#, fuzzy
-#| msgid ""
-#| "These options can be used to configure the Pluggable Authentication "
-#| "Module (PAM) service."
 msgid ""
 "These options can be used to configure the Pluggable Authentication Module "
 "(PAM) service and should be specified under the <quote>[pam]</quote> section."
 msgstr ""
 "Estas opções podem ser usadas para configurar o serviço Pluggable "
-"Authentication Module (PAM)."
+"Authentication Module (PAM) e deve ser especificado sob a secção <quote>"
+"[pam]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1266
@@ -1964,7 +1951,7 @@ msgid ""
 msgstr ""
 "Se definido para 0 o utilizador não se pode autenticar offline se for "
 "atingido offline_failed_login_attempts. Apenas uma autenticação online com "
-"sucesso pode activar a autenticação offline outra vez."
+"sucesso pode ativar a autenticação offline outra vez."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1307 sssd.conf.5.xml:1417
@@ -2325,15 +2312,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1554
-#, fuzzy
-#| msgid "pam_passkey_auth (bool)"
 msgid "pam_passkey_auth (boolean)"
 msgstr "pam_passkey_auth (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1557
 msgid "Enable passkey device based authentication."
-msgstr "Activar autenticação baseada em dispositivo passkey."
+msgstr "Ativar autenticação baseada em dispositivo passkey."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1560 sssd.conf.5.xml:1907 sssd-ad.5.xml:1279
@@ -2343,8 +2328,6 @@ msgstr "Predefinição: True"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1565
-#, fuzzy
-#| msgid "passkey_debug_libfido2 (bool)"
 msgid "passkey_debug_libfido2 (boolean)"
 msgstr "passkey_debug_libfido2 (booleano)"
 
@@ -2363,8 +2346,6 @@ msgstr "Predefinição: False"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1576
-#, fuzzy
-#| msgid "pam_cert_auth (bool)"
 msgid "pam_cert_auth (boolean)"
 msgstr "pam_cert_auth (booleano)"
 
@@ -2377,7 +2358,7 @@ msgid ""
 msgstr ""
 "Activa a certificação baseada em autenticação Smartcard.  Como isto requer "
 "comunicação adicional com a Smartcard o que vai atrasar o processo de "
-"autenticação, esta opção vem desactivada por predefinição."
+"autenticação, esta opção vem desativada por predefinição."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1588
@@ -2387,6 +2368,11 @@ msgid ""
 "are located in a common <quote>opensc</quote> directory in SSSD's state "
 "directory.  The behaviour can be changed in opensc.conf"
 msgstr ""
+"Nota: No caso do OpenSC ser usado para acesso a Smartcard, o SSSD suporta "
+"fazer cache de sistema de ficheiros em OpenSC quando ativo no opensc.conf. "
+"Os ficheiros em cache estão localizados num directório <quote>opensc</quote> "
+"comum no directório de estado do SSSD.  O comportamento pode ser alterado em "
+"opensc.conf"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1597
@@ -2404,14 +2390,24 @@ msgid ""
 "}\n"
 "                            "
 msgstr ""
+"app /usr/libexec/sssd/p11_child {\n"
+"        framework pkcs15 {\n"
+"                use_file_caching = no;\n"
+"        }\n"
+"}\n"
+"app /usr/libexec/sssd/krb5_child {\n"
+"        framework pkcs15 {\n"
+"                use_file_caching = no;\n"
+"        }\n"
+"}\n"
+"                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1595
-#, fuzzy
-#| msgid "Example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgid ""
 "Example opensc.conf (*): <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr "Exemplo: <placeholder type=\"programlisting\" id=\"0\"/>"
+msgstr ""
+"Exemplo de opensc.conf (*): <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1610
@@ -2419,6 +2415,8 @@ msgid ""
 "(*) The actual <quote>libexec</quote> directory for p11_child and krb5_child "
 "depends on the distribution."
 msgstr ""
+"(*) O directório <quote>libexec</quote> real para p11_child e krb5_child "
+"depende da distribuição."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1615
@@ -2607,10 +2605,8 @@ msgstr "kdm"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1756 sssd-ad.5.xml:694
-#, fuzzy
-#| msgid "login"
 msgid "plasmalogin"
-msgstr "login"
+msgstr "plasmalogin"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1761 sssd-ad.5.xml:962
@@ -2702,10 +2698,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1826
-#, fuzzy
-#| msgid "pam_initgroups_scheme"
 msgid "pam_initgroups_scheme (string)"
-msgstr "pam_initgroups_scheme"
+msgstr "pam_initgroups_scheme (string)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1834
@@ -2731,7 +2725,7 @@ msgid ""
 "Only do an online lookup if there is no active session of the user, i.e. if "
 "the user is currently not logged in"
 msgstr ""
-"Apenas faz uma busca online se não existir uma sessão activa do utilizador, "
+"Apenas faz uma busca online se não existir uma sessão ativa do utilizador, "
 "isto é, se o utilizador presentemente não está \"logged in\""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
@@ -2768,10 +2762,8 @@ msgstr "Predefinição: no_session"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1858
-#, fuzzy
-#| msgid "pam_app_services (string)"
 msgid "pam_gssapi_services (string)"
-msgstr "pam_app_services (string)"
+msgstr "pam_gssapi_services (string)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1861
@@ -2819,14 +2811,12 @@ msgstr "Exemplo: <placeholder type=\"programlisting\" id=\"0\"/>"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1882
 msgid "Default: - (GSSAPI authentication is disabled)"
-msgstr "Predefinição: - (a autenticação GSSAPI é desactivada)"
+msgstr "Predefinição: - (a autenticação GSSAPI é desativada)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1887
-#, fuzzy
-#| msgid "pam_gssapi_check_upn"
 msgid "pam_gssapi_check_upn (boolean)"
-msgstr "pam_gssapi_check_upn"
+msgstr "pam_gssapi_check_upn (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1890
@@ -2841,10 +2831,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1897
-#, fuzzy
-#| msgid ""
-#| "If False, every user that is able to obtained required service ticket "
-#| "will be authenticated."
 msgid ""
 "If False, every user that is able to obtain a required service ticket will "
 "be authenticated."
@@ -2854,10 +2840,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1912
-#, fuzzy
-#| msgid "pam_gssapi_indicators_map"
 msgid "pam_gssapi_indicators_map (string)"
-msgstr "pam_gssapi_indicators_map"
+msgstr "pam_gssapi_indicators_map (string)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1915
@@ -2984,10 +2968,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1979
-#, fuzzy
-#| msgid "pam_gssapi_indicators_map"
 msgid "pam_gssapi_indicators_apply (string)"
-msgstr "pam_gssapi_indicators_map"
+msgstr "pam_gssapi_indicators_apply (string)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1982
@@ -2995,30 +2977,28 @@ msgid ""
 "Comma separated list of triples to assign additional information from the "
 "Kerberos ticket, e.g. a SID from the PAC, to authentication indicators."
 msgstr ""
+"Lista de triplos separados por vírgulas para atribuir informação adicional "
+"do bilhete Kerberos, ex. um SID a partir do PAC, para indicadores de "
+"autenticação."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1988
-#, fuzzy
-#| msgid "Currently supported debug levels:"
 msgid "Currently supported is:"
-msgstr "Níveis de depuração actualmente suportados:"
+msgstr "Actualmente suportado é:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1991
 msgid "SID:S-1-5-[domain]-[RID]:[authentication indicator]"
-msgstr ""
+msgstr "SID:S-1-5-[domínio]-[RID]:[indicador de autenticação]"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:2002
-#, fuzzy, no-wrap
-#| msgid ""
-#| "pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "pam_gssapi_indicators_apply = SID:S-1-5-12345-23456-34567-4321:pkinit\n"
 "                            "
 msgstr ""
-"pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit\n"
+"pam_gssapi_indicators_apply = SID:S-1-5-12345-23456-34567-4321:pkinit\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -3029,6 +3009,10 @@ msgid ""
 "authentication, to the 'pkinit' authentication indicator use: <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 msgstr ""
+"Exemplo: Para atribuir um SID, o qual é por ex, definido pelo Authentication "
+"Mechanism Assurance (AMA) do Active Directory se o utilizador de AD usou um "
+"Smartcard para autenticação, para o indicador de autenticação 'pkinit' use: "
+"<placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2011
@@ -3082,24 +3066,15 @@ msgstr "Opções de configuração do SUDO"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2044
-#, fuzzy
-#| msgid "These options can be used to configure the session recording."
 msgid ""
 "These options can be used to configure the sudo service and should be "
 "specified under the <quote>[sudo]</quote> section."
-msgstr "Estas opções podem ser usadas para configurar o registo de sessão."
+msgstr ""
+"Estas opções podem ser usadas para configurar o serviço sudo e devem ser "
+"especificadas sob a secção <quote>[sudo]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2048
-#, fuzzy
-#| msgid ""
-#| "These options can be used to configure the sudo service.  The detailed "
-#| "instructions for configuration of <citerefentry> <refentrytitle>sudo</"
-#| "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> to work with "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry> are in the manual page <citerefentry> "
-#| "<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry>."
 msgid ""
 "The detailed instructions for configuration of <citerefentry> "
 "<refentrytitle>sudo</refentrytitle> <manvolnum>8</manvolnum> </citerefentry> "
@@ -3108,18 +3083,14 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry>."
 msgstr ""
-"Estas opções podem ser usadas para configurar o serviço sudo.   As "
-"instruções detalhadas para configuração do <citerefentry> "
-"<refentrytitle>sudo</refentrytitle> <manvolnum>8</manvolnum> </citerefentry> "
-"para trabalhar com <citerefentry> <refentrytitle>sssd</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry> estão no manual <citerefentry> "
-"<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>."
+"As instruções detalhadas para configuração do <citerefentry> <refentrytitle>"
+"sudo</refentrytitle> <manvolnum>8</manvolnum> </citerefentry> para trabalhar "
+"com <citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry> estão no manual <citerefentry> <refentrytitle>"
+"sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2064
-#, fuzzy
-#| msgid "sudo_timed (bool)"
 msgid "sudo_timed (boolean)"
 msgstr "sudo_timed (booleano)"
 
@@ -3160,12 +3131,12 @@ msgstr "Opções de configuração do AUTOFS"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2103
-#, fuzzy
-#| msgid "These options can be used to configure the autofs service."
 msgid ""
 "These options can be used to configure the autofs service and should be "
 "specified under the <quote>[autofs]</quote> section."
-msgstr "Estas opções podem ser usadas para configurar o serviço autofs."
+msgstr ""
+"Estas opções podem ser usadas para configurar o serviço autofs e devem ser "
+"especificadas sob a secção <quote>[autofs]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2109
@@ -3190,17 +3161,15 @@ msgstr "Opções de configuração do SSH"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2130
-#, fuzzy
-#| msgid "These options can be used to configure the SSH service."
 msgid ""
 "These options can be used to configure the SSH service and should be "
 "specified under the <quote>[ssh]</quote> section."
-msgstr "Estas opções podem ser usadas para configurar o serviço SSH."
+msgstr ""
+"Estas opções podem ser usadas para configurar o serviço SSH e devem ser "
+"especificadas sob a secção <quote>[ssh]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2136
-#, fuzzy
-#| msgid "ssh_use_certificate_keys (bool)"
 msgid "ssh_use_certificate_keys (boolean)"
 msgstr "ssh_use_certificate_keys (booleano)"
 
@@ -3247,7 +3216,7 @@ msgid ""
 "filtered out and ssh keys will be generated from all valid certificates."
 msgstr ""
 "Existem duas palavras chave especiais 'all_rules' e 'no_rules' as quais irão "
-"activar todas ou nenhuma regra, respetivamente. A posterior significa que "
+"ativar todas ou nenhuma regra, respetivamente. A posterior significa que "
 "nenhum certificado será filtrado a as chaves ssh serão geradas a partir de "
 "todos os certificados válidos."
 
@@ -3259,10 +3228,10 @@ msgid ""
 "the same behavior as for the PAM responder if certificate authentication is "
 "enabled."
 msgstr ""
-"Se nenhuma regra estiver configurada usar 'all_rules' irá activar uma regra "
-"predefinida que activa todos os certificados apropriados para autenticação "
-"de cliente.   Este é o mesmo comportamento que para o respondedor PAM se a "
-"autenticação de certificados estiver activa."
+"Se nenhuma regra estiver configurada usar 'all_rules' irá ativar uma regra "
+"predefinida que ativa todos os certificados apropriados para autenticação de "
+"cliente.   Este é o mesmo comportamento que para o respondedor PAM se a "
+"autenticação de certificados estiver ativa."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2180
@@ -3348,12 +3317,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2239
-#, fuzzy
-#| msgid "These options can be used to configure the PAC responder."
 msgid ""
 "These options can be used to configure the PAC responder and should be "
 "specified under the <quote>[pac]</quote> section."
-msgstr "Estas opções podem ser usadas para configurar o respondedor PAC."
+msgstr ""
+"Estas opções podem ser usadas para configurar o respondedor PAC e devem ser "
+"especificadas sob a secção <quote>[pac]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2244 sssd-ifp.5.xml:66
@@ -3444,7 +3413,7 @@ msgid ""
 msgstr ""
 "Aplica verificações adicionais no PAC do bilhete Kerberos o qual está "
 "disponível nos domínios Active Directory e FreeIPA, se configurado. Por "
-"favor note que a validação de bilhete Kerberos tem de estar activa para ser "
+"favor note que a validação de bilhete Kerberos tem de estar ativa para ser "
 "capaz de verificar o PAC, isto é, a opção krb5_validate tem de estar "
 "definida para 'True' o que é a predefinição para o provedor IPA e AD. Se "
 "krb5_validate estiver definida para 'False' as verificações do PAC serão "
@@ -3626,12 +3595,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2420
-#, fuzzy
-#| msgid "These options can be used to configure the session recording."
 msgid ""
 "These options can be used to configure session recording and should be "
 "specified under the <quote>[session_recording]</quote> section."
-msgstr "Estas opções podem ser usadas para configurar o registo de sessão."
+msgstr ""
+"Estas opções podem ser usadas para configurar o registo de sessão e devem "
+"ser especificadas sob a secção <quote>[session_recording]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2425
@@ -3642,6 +3611,11 @@ msgid ""
 "quote>, <quote>[nss]</quote> and <quote>[domain/<replaceable>NAME</"
 "replaceable>]</quote> sections."
 msgstr ""
+"Nota: Ao contrário das outras secções, a secção <quote>[session_recording]</"
+"quote> ignora as opções <replaceable>debug*</replaceable> e as opções "
+"<replaceable>debug*</replaceable> apropriadas têm de ser definidas nas "
+"secções <quote>[pam]</quote>, <quote>[nss]</quote> e <quote>[domínio/"
+"<replaceable>NOME</replaceable>]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2433 sssd-session-recording.5.xml:64
@@ -3709,7 +3683,7 @@ msgid ""
 "replacement, case changes, etc."
 msgstr ""
 "Uma lista separada por vírgulas de utilizadores que deverão ter registo de "
-"sessão activo. Corresponde a nomes de utilizadores como retornados pelo NSS, "
+"sessão ativo. Corresponde a nomes de utilizadores como retornados pelo NSS, "
 "isto é, após a possível substituição de espaços, alterações de minúscula/"
 "maiúscula, etc."
 
@@ -3731,7 +3705,7 @@ msgid ""
 "possible space replacement, case changes, etc."
 msgstr ""
 "Uma lista separada por vírgulas de grupos, cujos membros deverão ter registo "
-"de sessão activo. Corresponde a nomes de grupos como retornados pelo NSS, "
+"de sessão ativo. Corresponde a nomes de grupos como retornados pelo NSS, "
 "isto é, após a possível substituição de espaços, alterações de minúscula/"
 "maiúscula, etc."
 
@@ -3797,10 +3771,8 @@ msgstr "SECÇÕES DE DOMÍNIO"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2554
-#, fuzzy
-#| msgid "ad_enable_gc (boolean)"
 msgid "enabled (boolean)"
-msgstr "ad_enable_gc (booleano)"
+msgstr "enabled (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2557
@@ -3811,10 +3783,10 @@ msgid ""
 "enabled only if it is listed in the domains option in the <quote>[sssd]</"
 "quote> section."
 msgstr ""
-"Explicitamente activa ou desactiva o domínio. Se <quote>true</quote>, o "
-"domínio está sempre <quote>activo</quote>. Se <quote>false</quote>, o "
-"domínio está sempre <quote>inactivo</quote>. Se esta opção não for definida, "
-"o domínio é activado apenas se estiver listado na opção domains na secção "
+"Explicitamente ativa ou desactiva o domínio. Se <quote>true</quote>, o "
+"domínio está sempre <quote>ativo</quote>. Se <quote>false</quote>, o domínio "
+"está sempre <quote>inativo</quote>. Se esta opção não for definida, o "
+"domínio é activado apenas se estiver listado na opção domains na secção "
 "<quote>[sssd]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -3924,8 +3896,6 @@ msgstr "Predefinição: 1 para min_id, 0 (sem limite) para max_id"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2631
-#, fuzzy
-#| msgid "enumerate (bool)"
 msgid "enumerate (boolean)"
 msgstr "enumerate (booleano)"
 
@@ -3939,7 +3909,7 @@ msgid ""
 msgstr ""
 "Determina se um domínio pode ser enumerado, isto é, se o domínio consegue "
 "listar todos os utilizadores e grupos que contém. Note que não é necessário "
-"activar a enumeração para que grupos secundários sejam mostrados. Este "
+"ativar a enumeração para que grupos secundários sejam mostrados. Este "
 "parâmetro pode ter um dos seguintes valores:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -3988,7 +3958,7 @@ msgid ""
 "quote> process becoming unresponsive or even restarted by the internal "
 "watchdog."
 msgstr ""
-"Nota: Activar a enumeração tem um impacto de performance moderado no SSSD "
+"Nota: Ativar a enumeração tem um impacto de performance moderado no SSSD "
 "enquanto a enumeração está a correr. Pode demorar até vários minutos após o "
 "SSSD arrancar para completar totalmente as enumerações.   Durante este "
 "tempo, os pedidos individuais por informação vão diretamente para o LDAP, "
@@ -4016,8 +3986,8 @@ msgid ""
 "enumeration lookups are completed successfully.  For more information, refer "
 "to the man pages for the specific id_provider in use."
 msgstr ""
-"Mais ainda, activar a enumeração pode aumentar o tempo necessário para "
-"detectar o desligar da rede, desde que sejam requeridos tempos limite para "
+"Mais ainda, ativar a enumeração pode aumentar o tempo necessário para "
+"detetar o desligar da rede, desde que sejam requeridos tempos limite para "
 "assegurar que as buscas da enumeração sejam completadas com sucesso.   Para "
 "mais informação, consulte o manual específico do provedor de id em uso."
 
@@ -4027,7 +3997,7 @@ msgid ""
 "For the reasons cited above, enabling enumeration is not recommended, "
 "especially in large environments."
 msgstr ""
-"Pelas razões citadas em cima, activar a enumeração não é recomendado, "
+"Pelas razões citadas em cima, ativar a enumeração não é recomendado, "
 "especialmente em grandes ambientes."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -4067,7 +4037,7 @@ msgid ""
 "been cached."
 msgstr ""
 "As marcas temporais de expiração da cache são guardadas como atributos de "
-"objectos individuais na cache. Assim, alterar o tempo limite da cache apenas "
+"objetos individuais na cache. Assim, alterar o tempo limite da cache apenas "
 "tem efeito em entradas recentemente adicionadas ou expiradas.   Você deve "
 "correr a ferramenta <citerefentry> <refentrytitle>sss_cache</refentrytitle> "
 "<manvolnum>8</manvolnum> </citerefentry> de modo a forçar o refrescamento "
@@ -4230,11 +4200,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2852
-#, fuzzy
-#| msgid ""
-#| "The offline_timeout default value is 60.  The offline_timeout_max default "
-#| "value is 3600.  The offline_timeout_random_offset default value is 30.  "
-#| "The end result is amount of seconds before next retry."
 msgid ""
 "The offline_timeout default value is 60.  The offline_timeout_max default "
 "value is 3600.  The offline_timeout_random_offset default value is 30.  The "
@@ -4242,21 +4207,17 @@ msgid ""
 msgstr ""
 "O valor predefinido de offline_timeout é 60.  O valor predefinido de "
 "offline_timeout_max é 3600. O valor predefinido de "
-"offline_timeout_random_offset é 30.   O resultado final é a quantidade de "
+"offline_timeout_random_offset é 30.  O resultado final é o número de "
 "segundos antes da próxima tentativa."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2858
-#, fuzzy
-#| msgid ""
-#| "Note that the maximum length of each interval is defined by "
-#| "offline_timeout_max (apart of random part)."
 msgid ""
 "Note that the maximum length of each interval is defined by "
 "offline_timeout_max (apart from the random part)."
 msgstr ""
 "Note que a duração máxima de cada intervalo é definida por "
-"offline_timeout_max (à parte da parte aleatória)."
+"offline_timeout_max (separada da parte aleatória)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2868
@@ -4288,12 +4249,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2883
-#, fuzzy
-#| msgid ""
-#| "With offline_timeout set to 60 (default value) there is no point in "
-#| "setting offlinet_timeout_max to less than 120 as it will saturate "
-#| "instantly. General rule here should be to set offline_timeout_max to at "
-#| "least 4 times offline_timeout."
 msgid ""
 "With offline_timeout set to 60 (default value) there is no point in setting "
 "offline_timeout_max to less than 120 as it will saturate instantly. General "
@@ -4384,7 +4339,7 @@ msgstr ""
 "netgroups na cache. Para utilizadores que tenham executado a operação "
 "initgroups (obter membros de grupo para utilizador, tipicamente corrido no "
 "login) no passado, ambas as entradas de utilizador e membros do grupo são "
-"actualizadas."
+"atualizadas."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2943
@@ -4423,12 +4378,10 @@ msgstr ""
 #: sssd.conf.5.xml:2964 sssd-ldap.5.xml:406 sssd-ldap.5.xml:1834
 #: sssd-ipa.5.xml:250
 msgid "Default: 0 (disabled)"
-msgstr "Predefinição: 0 (desactivado)"
+msgstr "Predefinição: 0 (desativado)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2970
-#, fuzzy
-#| msgid "cache_credentials (bool)"
 msgid "cache_credentials (boolean)"
 msgstr "cache_credentials (booleano)"
 
@@ -4607,11 +4560,11 @@ msgid ""
 "Default: Not set (This is a mandatory setting that must be explicitly "
 "defined for each configured domain)."
 msgstr ""
+"Predefinição: Não definida (Esta é uma definição obrigatória que tem de ser "
+"definida explicitamente para cada domínio configurado)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3109
-#, fuzzy
-#| msgid "use_fully_qualified_names (bool)"
 msgid "use_fully_qualified_names (boolean)"
 msgstr "use_fully_qualified_names (booleano)"
 
@@ -4660,8 +4613,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3139
-#, fuzzy
-#| msgid "ignore_group_members (bool)"
 msgid "ignore_group_members (boolean)"
 msgstr "ignore_group_members (booleano)"
 
@@ -4697,7 +4648,7 @@ msgid ""
 "membership significantly faster, especially for groups containing many "
 "members."
 msgstr ""
-"Activar esta opção pode também tornar as verificações de provedor de acesso "
+"Ativar esta opção pode também tornar as verificações de provedor de acesso "
 "para membros de grupo significativamente mais rápidas, especialmente para "
 "grupos que contenham muitos membros."
 
@@ -4982,7 +4933,7 @@ msgid ""
 "activity in SSSD if you do not want to use sudo with SSSD at all."
 msgstr ""
 "<emphasis>NOTA:</emphasis> Regras sudo são descarregadas periodicamente em "
-"segundo plano a menos que o provedor sudo esteja explicitamente desactivado. "
+"segundo plano a menos que o provedor sudo esteja explicitamente desativado. "
 "Defina <emphasis>sudo_provider = None</emphasis> para desactivar toda a "
 "atividade relacionada com sudo no SSSD se você não quiser de todo usar o "
 "sudo com SSSD."
@@ -5023,17 +4974,14 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3428
-#, fuzzy
-#| msgid ""
-#| "Default: The value of <quote>id_provider</quote> is used if it is set and "
-#| "can handle subdomain requests."
 msgid ""
 "Default: the value of <quote>id_provider</quote> is used if it is set and "
 "can handle selinux loading requests. Otherwise the result is the same as if "
 "the selinux_provider is set to none."
 msgstr ""
-"Predefinição: O valor de <quote>id_provider</quote> é usado se estiver "
-"definido e puder lidar com pedidos de sub-domínio."
+"Predefinição: o valor de <quote>id_provider</quote> é usado se estiver "
+"definido e puder lidar com pedidos de carregar do selinux. Caso contrário o "
+"resultado é o mesmo como se selinux_provider estiver definido para nenhum."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3435
@@ -5422,16 +5370,12 @@ msgstr "dns_resolver_server_timeout (inteiro)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3732
-#, fuzzy
-#| msgid ""
-#| "Defines the amount of time (in milliseconds)  SSSD would try to talk to "
-#| "DNS server before trying next DNS server."
 msgid ""
 "Defines the timeout duration (in milliseconds)  SSSD waits for a DNS server "
 "to respond before moving to the next one."
 msgstr ""
-"Define a quantidade de tempo (em milissegundos) que o SSSD deve tentar falar "
-"com o servidor DNS antes de tentar o próximo servidor DNS."
+"Define a duração de tempo limite (em milissegundos) que o SSSD espera que um "
+"servidor DNS responda antes de mover para o próximo."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3737
@@ -5442,14 +5386,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3741 sssd.conf.5.xml:3777 sssd.conf.5.xml:3814
-#, fuzzy
-#| msgid ""
-#| "Specifies the timeout (in seconds) after which the <citerefentry> "
-#| "<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry>/<citerefentry> <refentrytitle>select</refentrytitle> "
-#| "<manvolnum>2</manvolnum> </citerefentry> following a <citerefentry> "
-#| "<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry> returns in case of no activity."
 msgid ""
 "Please see the section <quote>FAILOVER</quote> in <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -5459,12 +5395,13 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information about the service resolution."
 msgstr ""
-"Especifica o tempo limite (em segundos) após o qual o <citerefentry> "
-"<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </citerefentry>/"
-"<citerefentry> <refentrytitle>select</refentrytitle> <manvolnum>2</"
-"manvolnum> </citerefentry> seguindo de um <citerefentry> "
-"<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-"citerefentry> retorna em caso de nenhuma atividade."
+"Por favor veja a sessão <quote>FAILOVER</quote> em <citerefentry> "
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"ipa</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> ou "
+"<citerefentry> <refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry> para mais informação sobre a resolução de serviço."
 
 #. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3762 sssd-ldap.5.xml:700 include/failover.xml:84
@@ -5512,8 +5449,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3841
-#, fuzzy
-#| msgid "dns_resolver_use_search_list (bool)"
 msgid "dns_resolver_use_search_list (boolean)"
 msgstr "dns_resolver_use_search_list (booleano)"
 
@@ -5596,21 +5531,21 @@ msgstr "override_gid (inteiro)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3897
-#, fuzzy
-#| msgid "Override the primary GID value with the one specified."
 msgid ""
 "Override the primary GID value for all users in the domain with specified "
 "value."
-msgstr "Sobrepõe o valor GID principal com o que é especificado."
+msgstr ""
+"Sobrepõe o valor GID principal para todos os utilizadores no domínio pelo "
+"valor especificado."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3901
-#, fuzzy
-#| msgid "Default: not set (SSSD will use the value retrieved from LDAP)"
 msgid ""
 "Default: not set (Use the primary GID value retrieved from the identity "
 "provider)"
-msgstr "Predefinição: não definida (o SSSD irá usar o valor obtido de LDAP)"
+msgstr ""
+"Predefinição: não definida (Usa o valor GID primário recuperado do provedor "
+"de identidade)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3908
@@ -5680,10 +5615,8 @@ msgstr "Predefinição: True (False para provedor AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3962
-#, fuzzy
-#| msgid "ad_enable_dns_sites (boolean)"
 msgid "avoid_by_id_lookups (boolean)"
-msgstr "ad_enable_dns_sites (booleano)"
+msgstr "avoid_by_id_lookups (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3965
@@ -5692,6 +5625,9 @@ msgid ""
 "to the backend and will switch to a lookup by name if a cached object with a "
 "matching ID can be found."
 msgstr ""
+"Se esta opção for definida para 'true' o SSSD vai tentar evitar enviar "
+"procuras pelo ID para o backend e vai comutar para procura por nome se poder "
+"ser encontrado um objeto em cache com um ID correspondente."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3971
@@ -5700,13 +5636,14 @@ msgid ""
 "the server side because of missing indexes or are not even possible, e.g. "
 "due to non-reversible POSIX id-mapping."
 msgstr ""
+"Esta opção pode por ex. ser usada em casos onde buscas pelo ID são "
+"dispendiosas no lado do servidor devido a índices em falta ou não serem "
+"mesmo possíveis, por ex. devido a mapeamento de id POSIX não reversível."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3978
-#, fuzzy
-#| msgid "Default: True (False for AD provider)"
 msgid "Default: False (True for IdP provider)"
-msgstr "Predefinição: True (False para provedor AD)"
+msgstr "Predefinição: False (True para provedor IdP)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3984
@@ -5885,22 +5822,16 @@ msgstr "cached_auth_timeout (inteiro)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4096
-#, fuzzy
-#| msgid ""
-#| "Specifies time in seconds since last successful online authentication for "
-#| "which user will be authenticated using cached credentials while SSSD is "
-#| "in the online mode. If the credentials are incorrect, SSSD falls back to "
-#| "online authentication."
 msgid ""
 "Specifies the number of seconds since the last successful online "
 "authentication during which SSSD will authenticate users via cached "
 "credentials, even while online.  If the cached authentication fails, SSSD "
 "immediately falls back to online authentication."
 msgstr ""
-"Especifica o tempo em segundos desde a última autenticação online com "
-"sucesso para qual o utilizador será autenticado usando credenciais em cache "
-"enquanto o SSSD está em modo online. Se as credenciais estiverem incorretas, "
-"o SSSD regressa à autenticação online."
+"Especifica o número de segundos desde a última autenticação online com "
+"sucesso e durante o qual o SSSD vai autenticar utilizadores via credenciais "
+"em cache, mesmo estando online.  Se a autenticação em cache falhar, o SSSD "
+"regressa imediatamente à autenticação online."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4103
@@ -5914,7 +5845,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4108
 msgid "Special value 0 implies that this feature is disabled."
-msgstr "O valor especial 0 implica que esta funcionalidade é desactivada."
+msgstr "O valor especial 0 implica que esta funcionalidade é desativada."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4112
@@ -6016,7 +5947,7 @@ msgstr "AD"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd.conf.5.xml:4172 sssd.conf.5.xml:4175 sssd.conf.5.xml:4176
 msgid "disabled"
-msgstr "desactivado"
+msgstr "desativado"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry>
 #: sssd.conf.5.xml:4175
@@ -6097,7 +6028,7 @@ msgid ""
 msgstr ""
 "NOTA: Porque o número GID, e o grupo privado do utilizador são herdados a "
 "partir do número UID, não é suportado ter múltiplas entradas com o mesmo "
-"número UID ou GID nesta opção. Por outras palavras, activar esta opção "
+"número UID ou GID nesta opção. Por outras palavras, ativar esta opção "
 "reforça a singularidade entre o espaço de ID."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
@@ -6112,7 +6043,7 @@ msgid ""
 "group object in the LDAP database."
 msgstr ""
 "Usa sempre o número GID principal do utilizador. O número GID tem de se "
-"referir a um objecto grupo na base de dados do LDAP."
+"referir a um objeto grupo na base de dados do LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4236
@@ -6130,9 +6061,9 @@ msgid ""
 msgstr ""
 "Um grupo primário é auto-gerado para entradas de utilizador cujos números "
 "UID e GID têm o mesmo valor e ao mesmo tempo o número GID não corresponde a "
-"um objecto grupo real no LDAP.  Se os valores forem iguais, mas o GID "
-"primário na entrada no utilizador for também usado por um objecto grupo, o "
-"GID primário do utilizador resolve para esse objecto grupo."
+"um objeto grupo real no LDAP.  Se os valores forem iguais, mas o GID "
+"primário na entrada no utilizador for também usado por um objeto grupo, o "
+"GID primário do utilizador resolve para esse objeto grupo."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4252
@@ -6254,7 +6185,7 @@ msgid ""
 msgstr ""
 "Predefinição: não definida por predefinição, você tem de tomar uma "
 "configuração pam existente ou criar uma nova e adicionar o nome do serviço "
-"aqui. Como alternativa você pode activar autenticação local com a opção "
+"aqui. Como alternativa você pode ativar autenticação local com a opção "
 "local_auth_policy."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -6561,7 +6492,7 @@ msgid ""
 msgstr ""
 "Para permitir a autenticação com Smartcards e certificados o SSSD deve ser "
 "capaz de mapear certificados para utilizadores. Isto pode ser feito ao "
-"adicionar o certificado completo ao objecto LDAP do utilizador ou a uma "
+"adicionar o certificado completo ao objeto LDAP do utilizador ou a uma "
 "sobreposição global. Apesar de se usar o certificado completo seja requerido "
 "para se usar a funcionalidade de autenticação Smartcard do SSH (veja "
 "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
@@ -6844,7 +6775,7 @@ msgstr "interactive_prompt"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4687 sssd.conf.5.xml:4737
 msgid "to change the message of the interactive prompt."
-msgstr "para alterar a mensagem da incitação interactiva."
+msgstr "para alterar a mensagem da incitação interativa."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4692
@@ -6881,23 +6812,17 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4713
-#, fuzzy
-#| msgid "[prompting/2fa]"
 msgid "[prompting/oauth2]"
-msgstr "[prompting/2fa]"
+msgstr "[prompting/oauth2]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4721
-#, fuzzy
-#| msgid ""
-#| "boolean value, if True prompt a message to remind the user to touch the "
-#| "device."
 msgid ""
 "boolean value, if True prompt a message after asking the user to "
 "authenticate, and wait before requesting the access token."
 msgstr ""
-"valor booleano, se True incita uma mensagem a lembrar o utilizador a tocar "
-"no dispositivo."
+"valor booleano, se True incita uma mensagem após perguntar ao utilizador "
+"para autenticar, e espera antes de requisitar o testemunho de acesso."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4725
@@ -6905,33 +6830,27 @@ msgid ""
 "If False, make sure to set the <quote>idp_request_timeout</quote> "
 "sufficiently high, to give the user time to authenticate."
 msgstr ""
+"Se False, certifique de definir o <quote>idp_request_timeout</quote> "
+"suficientemente alto, para dar tempo ao utilizador de se autenticar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4715
-#, fuzzy
-#| msgid ""
-#| "to configure passkey authentication prompting, allowed options are: "
-#| "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "to configure OAuth2 authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"para configura a incitação a autenticação passkey, as opções permitidas são: "
+"para configurar a incitação a autenticação OAuth2, as opções permitidas são: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4748
-#, fuzzy
-#| msgid "[prompting/2fa]"
 msgid "[prompting/cert_auth]"
-msgstr "[prompting/2fa]"
+msgstr "[prompting/cert_auth]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4754
-#, fuzzy
-#| msgid "single_prompt"
 msgid "pin_prompt"
-msgstr "single_prompt"
+msgstr "pin_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4756
@@ -6939,13 +6858,13 @@ msgid ""
 "to change the message which asks the user to enter the PIN at the computer "
 "keyboard. At the end of the message the token name is printed."
 msgstr ""
+"para mudar a mensagem que pede ao utilizador para inserir o PIN no teclado "
+"do computador. No final da mensagem é escrito o nome do testemunho."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4764
-#, fuzzy
-#| msgid "password_prompt"
 msgid "keypad_prompt"
-msgstr "password_prompt"
+msgstr "keypad_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4766
@@ -6953,13 +6872,13 @@ msgid ""
 "to change the message which asks the user to enter the PIN at keypad of the "
 "Smartcard reader. At the end of the message the token name is printed."
 msgstr ""
+"para mudar a mensagem que pede ao utilizador para inserir o PIN no teclado "
+"do leitor de Smartcard. No final da mensagem é escrito o nome do testemunho."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4774
-#, fuzzy
-#| msgid "username"
 msgid "user_name_hint"
-msgstr "nome de utilizador"
+msgstr "user_name_hint"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4776
@@ -6967,28 +6886,21 @@ msgid ""
 "boolean value, if True ask for a user name if no name was given before and "
 "the found certificate can be mapped to more than one user."
 msgstr ""
+"valor booleano, se True pergunta um nome de utilizador se nenhum nome foi "
+"dado antes e o certificado encontrado poder ser mapeado a mais do que um "
+"utilizador."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4750
-#, fuzzy
-#| msgid ""
-#| "to configure passkey authentication prompting, allowed options are: "
-#| "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "to configure Smartcard authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"para configura a incitação a autenticação passkey, as opções permitidas são: "
-"<placeholder type=\"variablelist\" id=\"0\"/>"
+"para configurar a incitação a autenticação Smartcard, as opções permitidas "
+"são: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4611
-#, fuzzy
-#| msgid ""
-#| "Each supported authentication method has its own configuration subsection "
-#| "under <quote>[prompting/...]</quote>. Currently there are: <placeholder "
-#| "type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" "
-#| "id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/>"
 msgid ""
 "Each supported authentication method has its own configuration subsection "
 "under <quote>[prompting/...]</quote>. Currently there are: <placeholder "
@@ -6999,8 +6911,10 @@ msgid ""
 msgstr ""
 "Cada método de autenticação suportado tem a sua sub-secção de configuração "
 "sub <quote>[prompting/...]</quote>. Actualmente existem: <placeholder "
-"type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" id=\"1\"/"
-"> <placeholder type=\"variablelist\" id=\"2\"/>"
+"type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" "
+"id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/> <placeholder "
+"type=\"variablelist\" id=\"3\"/> <placeholder type=\"variablelist\" "
+"id=\"4\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4792
@@ -7106,7 +7020,7 @@ msgstr ""
 "2. O seguinte exemplo mostra a configuração de confiança IPA AD onde a "
 "floresta AD consiste de dois domínios numa estrutura pai filho.  É suposto o "
 "domínio IPA (ipa.com) ter confiança com domínio AD (ad.com).  ad.com tem "
-"domínio filho (child.ad.com). Para activar os nomes curtos no domínio filho "
+"domínio filho (child.ad.com). Para ativar os nomes curtos no domínio filho "
 "deve ser usada a seguinte configuração.  <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 
@@ -7225,9 +7139,9 @@ msgid ""
 "information, refer to the <quote>SERVICE DISCOVERY</quote> section."
 msgstr ""
 "Especifica uma lista de URIs separados por vírgulas dos servidores LDAP aos "
-"quais o SSSD deve ligar pela ordem de preferência. Consulte a secção "
-"<quote>FAILOVER</quote> para mais informação sobre failover e redundância de "
-"servidor.  Se nenhuma das opções for especificada, é activa a descoberta de "
+"quais o SSSD deve ligar pela ordem de preferência. Consulte a secção <quote>"
+"FAILOVER</quote> para mais informação sobre failover e redundância de "
+"servidor.  Se nenhuma das opções for especificada, é ativa a descoberta de "
 "serviço. Para mais informação consulte a secção <quote>DESCOBERTA DE "
 "SERVIÇO</quote>."
 
@@ -7276,8 +7190,8 @@ msgstr ""
 #: sssd-ldap.5.xml:102
 msgid "To enable service discovery ldap_chpass_dns_service_name must be set."
 msgstr ""
-"Para activar a descoberta de serviços ldap_chpass_dns_service_name tem de "
-"ser definido."
+"Para ativar a descoberta de serviços ldap_chpass_dns_service_name tem de ser "
+"definido."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:106
@@ -7362,14 +7276,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:151
-#, fuzzy
-#| msgid ""
-#| "Default: If not set, the value of the defaultNamingContext or "
-#| "namingContexts attribute from the RootDSE of the LDAP server is used. If "
-#| "defaultNamingContext does not exist or has an empty value namingContexts "
-#| "is used.  The namingContexts attribute must have a single value with the "
-#| "DN of the search base of the LDAP server to make this work. Multiple "
-#| "values are are not supported."
 msgid ""
 "Default: If not set, the value of the defaultNamingContext or namingContexts "
 "attribute from the RootDSE of the LDAP server is used. If "
@@ -7424,7 +7330,7 @@ msgid ""
 "anonymously. If this fails SSSD retries the attempt with authentication."
 msgstr ""
 "Por predefinição, usando a opção \"anonymous\", o SSSD tenta ler o RootDSE "
-"anônimo. Se isto falhar o SSSD repete a tentativa com autenticação."
+"anónimo. Se isto falhar o SSSD repete a tentativa com autenticação."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:198
@@ -7661,10 +7567,10 @@ msgid ""
 "the cleanup task will run every 3 hours with enumeration enabled."
 msgstr ""
 "Definir esta opção para zero irá desactivar a operação de limpeza da cache. "
-"Por favor note que se a enumeração estiver activa, a tarefa de limpeza é "
-"necessária de modo a se detectar entradas removidas do servidor e que não "
-"podem ser desactivadas. Por predefinição, a tarefa de limpeza irá correr a "
-"cada 3 horas com a enumeração activa."
+"Por favor note que se a enumeração estiver ativa, a tarefa de limpeza é "
+"necessária de modo a se detetar entradas removidas do servidor e que não "
+"podem ser desativadas. Por predefinição, a tarefa de limpeza irá correr a "
+"cada 3 horas com a enumeração ativa."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:412
@@ -7742,7 +7648,7 @@ msgstr "ldap_host_search_base (string)"
 #: sssd-ldap.5.xml:468
 msgid "Optional. Use the given string as search base for host objects."
 msgstr ""
-"Opcional. Usa a string fornecida como base de busca para objectos de "
+"Opcional. Usa a string fornecida como base de busca para objetos de "
 "anfitrião."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -7771,8 +7677,8 @@ msgid ""
 "Optional. Use the given string as search base for subordinate ranges related "
 "objects."
 msgstr ""
-"Opcional. Usa a string dada como base de busca para objectos relacionados "
-"com alcances subordinados."
+"Opcional. Usa a string dada como base de busca para objetos relacionados com "
+"alcances subordinados."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:491
@@ -7903,14 +7809,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:621
-#, fuzzy
-#| msgid ""
-#| "If the connection is idle (not actively running an operation) within "
-#| "<emphasis>ldap_opt_timeout</emphasis> seconds of expiration, then it will "
-#| "be closed early to ensure that a new query cannot require the connection "
-#| "to remain open past its expiration.  This implies that connections will "
-#| "always be closed immediately and will never be reused if "
-#| "<emphasis>ldap_connection_expire_timeout &lt;= ldap_opt_timout</emphasis>"
 msgid ""
 "If the connection is idle (not actively running an operation) within "
 "<emphasis>ldap_opt_timeout</emphasis> seconds of expiration, then it will be "
@@ -7924,7 +7822,7 @@ msgstr ""
 "fechada mais cedo para assegurar que uma nova consulta não possa requerer "
 "que a ligação permaneça aberta após a sua validade.  Isto implica que as "
 "ligações serão sempre fechadas imediatamente e nunca serão reutilizadas se "
-"<emphasis>ldap_connection_expire_timeout &lt;= ldap_opt_timout</emphasis>"
+"<emphasis>ldap_connection_expire_timeout &lt;= ldap_opt_timeout</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:633
@@ -8003,7 +7901,7 @@ msgid ""
 msgstr ""
 "Desactiva o controle de paginamento do LDAP. Esta opção deve ser usada se o "
 "servidor LDAP reportar que suporta o controle de paginamento LDAP no seu "
-"RootDSE não está activo ou não se comporta de modo apropriado."
+"RootDSE não está ativo ou não se comporta de modo apropriado."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:715
@@ -8125,9 +8023,9 @@ msgstr ""
 "Você pode desligar completamente as procuras de-referência ao definir o "
 "valor para 0. Por favor note que existem alguns codepaths no SSSD, como o "
 "provedor IPA HBAC, que são apenas implementados usando a chamada de de-"
-"referência, assim mesmo com a de-referência explicitamente desactivada, "
-"essas partes ainda irão usar a de-referência se o servidor a suportar e "
-"publicitar o controle de de-referência no objecto rootDSE."
+"referência, assim mesmo com a de-referência explicitamente desativada, essas "
+"partes ainda irão usar a de-referência se o servidor a suportar e publicitar "
+"o controle de de-referência no objeto rootDSE."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:810
@@ -8151,12 +8049,10 @@ msgid ""
 msgstr ""
 "<emphasis>Nota:</emphasis> Se qualquer uma das bases de busca especificar um "
 "filtro de busca, então a melhoria de performance da procura de de-referência "
-"será desactivada independentemente desta definição."
+"será desativada independentemente desta definição."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:831
-#, fuzzy
-#| msgid "ldap_ignore_unreadable_references (bool)"
 msgid "ldap_ignore_unreadable_references (boolean)"
 msgstr "ldap_ignore_unreadable_references (booleano)"
 
@@ -8591,8 +8487,8 @@ msgstr ""
 "preferência. Para mais informação sobre failover e redundância de "
 "servidores, veja a secção <quote>FAILOVER</quote>. Um número de porto "
 "opcional (com dois pontos a preceder) pode ser acrescentado aos endereços ou "
-"nomes de máquinas.  Se vazia, é activada a descoberta de serviços - para "
-"mais informação, consulte a secção <quote>DESCOBERTA DE SERVIÇOS</quote>."
+"nomes de máquinas.  Se vazia, é ativada a descoberta de serviços - para mais "
+"informação, consulte a secção <quote>DESCOBERTA DE SERVIÇOS</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1173 sssd-krb5.5.xml:89
@@ -8746,8 +8642,7 @@ msgstr "ldap_referrals (booleano)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1284
 msgid "Specifies whether automatic referral chasing should be enabled."
-msgstr ""
-"Especifica se a perseguição de referência automática deve ser activada."
+msgstr "Especifica se a perseguição de referência automática deve ser ativada."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1288
@@ -8789,7 +8684,7 @@ msgstr "ldap_dns_service_name (string)"
 msgid "Specifies the service name to use when service discovery is enabled."
 msgstr ""
 "Especifica o nome de serviço a usar quando a descoberta de serviços está "
-"activa."
+"ativa."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1319
@@ -8809,7 +8704,7 @@ msgid ""
 msgstr ""
 "Especifica o nome de serviço a usar para encontrar um servidor LDAP e qual "
 "permite alterações de palavra passe quando a descoberta de serviços está "
-"desactivada."
+"desativada."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1333
@@ -8819,8 +8714,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1339
-#, fuzzy
-#| msgid "ldap_chpass_update_last_change (bool)"
 msgid "ldap_chpass_update_last_change (boolean)"
 msgstr "ldap_chpass_update_last_change (booleano)"
 
@@ -8934,7 +8827,7 @@ msgid ""
 "With this option a client side evaluation of access control attributes can "
 "be enabled."
 msgstr ""
-"Com esta opção pode ser activada uma avaliação no lado do cliente dos "
+"Com esta opção pode ser ativada uma avaliação no lado do cliente dos "
 "atributos de controle de acesso."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -8946,7 +8839,7 @@ msgid ""
 msgstr ""
 "Por favor note que é sempre recomendado usar controle de acesso no lado do "
 "servidor, isto é, o servidor LDAP deve negar o pedido de união com um código "
-"de erro apropriado mesmo que a palavra passe esteja correcta."
+"de erro apropriado mesmo que a palavra passe esteja correta."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1425
@@ -9165,7 +9058,7 @@ msgid ""
 "what the application sends to pam, before enabling this access control option"
 msgstr ""
 "Por favor note, o campo rhost no pam é definido por aplicação, é melhor "
-"verificar que a aplicação envia para o pam, antes de activar esta opção de "
+"verificar que a aplicação envia para o pam, antes de ativar esta opção de "
 "controlo de acesso"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -9197,7 +9090,7 @@ msgid ""
 msgstr ""
 "Esta opção especifica o DN de entrada de política de palavra passe no "
 "servidor LDAP. Por favor note que a ausência desta opção no sssd.conf no "
-"caso de bloqueio de conta activa a verificação irá colher negação de acesso "
+"caso de bloqueio de conta ativa a verificação irá colher negação de acesso "
 "pois os atributos ppolicy no servidor LDAP não podem ser verificados "
 "apropriadamente."
 
@@ -9238,7 +9131,7 @@ msgid ""
 "the base object, but not in locating the base object of the search."
 msgstr ""
 "<emphasis>searching</emphasis>: Os nomes alternativos são diferenciados em "
-"subordinados do objecto base, mas não ao localizar o objecto base da busca."
+"subordinados do objeto base, mas não ao localizar o objeto base da busca."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1621
@@ -9247,7 +9140,7 @@ msgid ""
 "the base object of the search."
 msgstr ""
 "<emphasis>finding</emphasis>: Os nomes alternativos são apenas diferenciados "
-"quando se localiza o objecto base da busca."
+"quando se localiza o objeto base da busca."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1626
@@ -9256,7 +9149,7 @@ msgid ""
 "in locating the base object of the search."
 msgstr ""
 "<emphasis>always</emphasis>: Os nomes alternativos são diferenciados tanto "
-"na busca como ao localizar o objecto base da busca."
+"na busca como ao localizar o objeto base da busca."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1631
@@ -9353,13 +9246,13 @@ msgid ""
 "OpenLDAP uses a bitmap to enable debugging for specific components, -1 will "
 "enable full debug output."
 msgstr ""
-"OpenLDAP usa um mapa de bits para activar a depuração para componentes "
-"específicos. -1 irá activar a saída completa de depuração."
+"OpenLDAP usa um mapa de bits para ativar a depuração para componentes "
+"específicos. -1 irá ativar a saída completa de depuração."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1699
 msgid "Default: 0 (libldap debugging disabled)"
-msgstr "Predefinição: 0 (depuração libldap desactivada)"
+msgstr "Predefinição: 0 (depuração libldap desativada)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1705
@@ -9508,12 +9401,12 @@ msgid ""
 "found) and 3) by reconnecting to the server (by default every 15 minutes, "
 "see <emphasis>ldap_connection_expire_timeout</emphasis>)."
 msgstr ""
-"<emphasis>Nota:</emphasis> o valor USN mais alto pode ser actualizado por "
+"<emphasis>Nota:</emphasis> o valor USN mais alto pode ser atualizado por "
 "três tarefas: 1) Por refrescar total e inteligente do sudo (se forem "
-"encontradas regras actualizadas). 2) pela enumeração de utilizadores e "
-"grupos (se activa e se forem encontrados utilizadores e grupos actualizados) "
-"e 3) ao religar ao servidor (por predefinição a cada 15 minutos, veja "
-"<emphasis>ldap_connection_expire_timeout</emphasis>)."
+"encontradas regras atualizadas). 2) pela enumeração de utilizadores e grupos "
+"(se ativa e se forem encontrados utilizadores e grupos atualizados) e 3) ao "
+"religar ao servidor (por predefinição a cada 15 minutos, veja <emphasis>"
+"ldap_connection_expire_timeout</emphasis>)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1804
@@ -9743,7 +9636,7 @@ msgid ""
 "memberships, even with no GID mapping. It is recommended to disable this "
 "feature, if group names are not being displayed correctly."
 msgstr ""
-"Se a opção <quote>ldap_use_tokengroups</quote> estiver activa, as buscas "
+"Se a opção <quote>ldap_use_tokengroups</quote> estiver ativa, as buscas "
 "contra Active Directory não ficam restritas e retornam todos os membros dos "
 "grupos, mesmo sem mapeamento GID. É recomendado desactivar esta "
 "funcionalidade, se os nomes de grupos não forem mostrados corretamente."
@@ -10482,18 +10375,13 @@ msgstr "PAM_NO_MODULE_DATA"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:434
-#, fuzzy
-#| msgid ""
-#| "No authentication method was found by Kerberos.  This might happen if the "
-#| "user has a Smartcard assigned but the pkint plugin is not available on "
-#| "the client."
 msgid ""
 "No authentication method was found by Kerberos.  This might happen if the "
 "user has a Smartcard assigned but the pkinit plugin is not available on the "
 "client."
 msgstr ""
 "Nenhum método de autenticação encontrado pelo Kerberos.  Isto pode acontecer "
-"se o utilizador tiver uma Smartcard assinada mas o plugin pkint não está "
+"se o utilizador tiver uma Smartcard atribuída mas o plugin pkinit não está "
 "disponível no cliente."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
@@ -10680,11 +10568,11 @@ msgid ""
 "citerefentry> and <citerefentry> <refentrytitle>sssd-krb5</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> for more details on these options."
 msgstr ""
-"Para activar a autenticação GSSAPI no SSSD, defina a opção "
-"<option>pam_gssapi_services</option> em [pam] ou secção domain do sssd.conf. "
-"As credenciais de serviços precisam de ser guardadas na keytab do SSSD (já "
-"está presente se usar o provedor ipa ou ad). A localização da keytab pode "
-"ser definida com a opção <option>krb5_keytab</option>. Veja <citerefentry> "
+"Para ativar a autenticação GSSAPI no SSSD, defina a opção <option>"
+"pam_gssapi_services</option> em [pam] ou secção domain do sssd.conf. As "
+"credenciais de serviços precisam de ser guardadas na keytab do SSSD (já está "
+"presente se usar o provedor ipa ou ad). A localização da keytab pode ser "
+"definida com a opção <option>krb5_keytab</option>. Veja <citerefentry> "
 "<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> e <citerefentry> <refentrytitle>sssd-krb5</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> para mais detalhes sobre estas "
@@ -10756,7 +10644,7 @@ msgid ""
 msgstr ""
 "O principal caso de uso é fornecer autenticação sem palavra passe no sudo "
 "mas sem a necessidade de desactivar completamente a autenticação.  Para "
-"conseguir isto, primeiro active a autenticação GSSAPI para o sudo no "
+"conseguir isto, primeiro ative a autenticação GSSAPI para o sudo no "
 "sssd.conf:"
 
 #. type: Content of: <reference><refentry><refsect1><programlisting>
@@ -10777,7 +10665,7 @@ msgid ""
 "And then enable the module in desired PAM stack (e.g. /etc/pam.d/sudo and /"
 "etc/pam.d/sudo-i)."
 msgstr ""
-"E depois active o módulo na pilha PAM desejada (ex. /etc/pam.d/sudo e /etc/"
+"E depois ative o módulo na pilha PAM desejada (ex. /etc/pam.d/sudo e /etc/"
 "pam.d/sudo-i)."
 
 #. type: Content of: <reference><refentry><refsect1><programlisting>
@@ -10834,9 +10722,9 @@ msgid ""
 msgstr ""
 "2. Autenticação não funciona e o syslog contém \"Servidor não encontrado na "
 "base de dados do Kerberos\": Provavelmente o Kerberos não é capaz de "
-"resolver o reino correctamente para o bilhete de serviço baseado no nome de "
-"máquina. Tente adicionar o nome de máquina directamente a "
-"<option>[domain_realm]</option> em /etc/krb5.conf tal como:"
+"resolver o reino corretamente para o bilhete de serviço baseado no nome de "
+"máquina. Tente adicionar o nome de máquina directamente a <option>"
+"[domain_realm]</option> em /etc/krb5.conf tal como:"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss_gss.8.xml:200
@@ -10930,8 +10818,8 @@ msgstr ""
 "A libkrb5 irá procurar o plugin locador no sub-directório libkrb5 do "
 "directório plugin do Kerberos, veja plugin_base_dir em <citerefentry> "
 "<refentrytitle>krb5.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> para detalhes. O plugin só pode ser desactivado ao se remover "
-"o ficheiro do plugin. Não existe opção na configuração do Kerberos para o "
+"citerefentry> para detalhes. O plugin só pode ser desativado ao se remover o "
+"ficheiro do plugin. Não existe opção na configuração do Kerberos para o "
 "desactivar. Mas a variável de ambiente SSSD_KRB5_LOCATOR_DISABLE pode ser "
 "usada para desactivar o plugin para comandos individuais. Em alternativa a "
 "opção do SSSD krb5_use_kdcinfo=False pode ser usada para não gerar os dados "
@@ -10954,7 +10842,7 @@ msgstr ""
 "um ou mais nomes de DNS ou endereços IP seja em notação IPv4 decimal-"
 "pontuado ou a notação IPv6 hexadecimal.  Um numero de porto opcional pode "
 "ser adicionado ao final separado pelo caractere dois pontos, o endereço IPv6 "
-"tem de ficar dentro de parênteses rectos neste caso como usual. As entradas "
+"tem de ficar dentro de parênteses retos neste caso como usual. As entradas "
 "válidas são:"
 
 #. type: Content of: <reference><refentry><refsect1><para><itemizedlist><listitem><para>
@@ -11049,7 +10937,7 @@ msgid ""
 "caller."
 msgstr ""
 "Se a variável de ambiente SSSD_KRB5_LOCATOR_DISABLE estiver definida para "
-"qualquer valor o plugin é desactivado e irá apenas retornar "
+"qualquer valor o plugin é desativado e irá apenas retornar "
 "KRB5_PLUGIN_NO_HANDLE ao chamador."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -11072,6 +10960,10 @@ msgid ""
 "address the plugin will use this address instead of reading the kdcinfo "
 "file. The address format is the same as in the kdcinfo file (see above)."
 msgstr ""
+"Se a variável de ambiente SSSD_KRB5_LOCATOR_KDC_ADDRESS estiver definida "
+"para um endereço KDC, o plugin vai usar este endereço em vez de ler o "
+"ficheiro kdcinfo. O formato do endereço é o mesmo que no ficheiro kdcinfo "
+"(veja em cima)."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:112
@@ -11081,6 +10973,10 @@ msgid ""
 "the kpasswdinfo file. The address format is the same as in the kpasswdinfo "
 "file (see above)."
 msgstr ""
+"Se a variável de ambiente SSSD_KRB5_LOCATOR_KPASSWD_ADDRESS estiver definida "
+"para um endereço de servidor kpasswd, o plugin vai usar este endereço em vez "
+"de ler o ficheiro kpasswdinfo. O formato do endereço é o mesmo que no "
+"ficheiro kpasswdinfo (veja em cima)."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-simple.5.xml:10 sssd-simple.5.xml:16
@@ -11143,7 +11039,7 @@ msgid ""
 "you want to allow all users, do not specify any `simple_allow_users` or "
 "`simple_allow_groups`."
 msgstr ""
-"Não é recomendado deixar esta opção vazia, pode casuar erros. Se deseja "
+"Não é recomendado deixar esta opção vazia, pode causar erros. Se deseja "
 "permitir todos os utilizadores, não especifique nenhum `simple_allow_users` "
 "ou `simple_allow_groups`."
 
@@ -11278,7 +11174,7 @@ msgid ""
 "`simple_deny_users` or if they are a member of any group in "
 "`simple_deny_groups`."
 msgstr ""
-"Aplica-se Lógica OR: Um utilizador terá acesso engado s estiver listado em "
+"Aplica-se Lógica OR: Um utilizador terá acesso negado se estiver listado em "
 "`simple_deny_users` ou se for membro de qualquer grupo em "
 "`simple_deny_groups`."
 
@@ -12026,7 +11922,7 @@ msgid ""
 "for IPA can be used."
 msgstr ""
 "Em geral é recomendado usar atributos a partir do certificado e adiciona-los "
-"a atributos especiais ao objecto utilizador do LDAP. Ex. pode ser usado o "
+"a atributos especiais ao objeto utilizador do LDAP. Ex. pode ser usado o "
 "atributo 'altSecurityIdentities' em AD ou o atributo 'ipaCertMapData' para "
 "IPA."
 
@@ -12701,11 +12597,11 @@ msgid ""
 msgstr ""
 "O provedor IPA permite ao SSSD usar o provedor de identidade <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> e o provedor de autenticação <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> com optimizações para ambientes IPA. O provedor IPA aceita as "
-"mesmas opções usadas pelos provedores sssd-ldap e sssd-krb5 com algumas "
-"excepções. No entanto, não é necessário nem recomendado definir estas opções."
+"citerefentry> e o provedor de autenticação <citerefentry> <refentrytitle>"
+"sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> com "
+"otimizações para ambientes IPA. O provedor IPA aceita as mesmas opções "
+"usadas pelos provedores sssd-ldap e sssd-krb5 com algumas exceções. No "
+"entanto, não é necessário nem recomendado definir estas opções."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:57
@@ -12715,8 +12611,8 @@ msgid ""
 "<quote>MODIFIED DEFAULT OPTIONS</quote> section."
 msgstr ""
 "O provedor IPA primariamente copia as opções predefinidas dos provedores "
-"ldap e krb5 tradicionais com algumas excepções, as diferenças são listadas "
-"na secção <quote>OPÇÕES PREDEFINIDAS MODIFICADAS</quote>."
+"ldap e krb5 tradicionais com algumas exceções, as diferenças são listadas na "
+"secção <quote>OPÇÕES PREDEFINIDAS MODIFICADAS</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ipa.5.xml:62
@@ -12785,8 +12681,8 @@ msgstr ""
 "servidores IPA aos quais o SSSD deve ligar por ordem de preferência. Para "
 "mais informação sobre failover e redundância de servidores. veja a secção "
 "<quote>FAILOVER</quote>.  Isto é opcional se a auto-descoberta estiver "
-"activa.  Para mais informação sobre descoberta de serviços, consulte a "
-"secção <quote>DESCOBERTA DE SERVIÇOS</quote>."
+"ativa.  Para mais informação sobre descoberta de serviços, consulte a secção "
+"<quote>DESCOBERTA DE SERVIÇOS</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:117
@@ -12865,8 +12761,8 @@ msgstr ""
 "ou uma lista de interfaces cujos endereços IP devem ser usados para "
 "actualizações de dynamic DNS. O nome da interface pode ser um padrão "
 "wildcard prefixado com <emphasis>!</emphasis> para exclusão da interface. A "
-"primeira correspondência pára a avaliação. Por exemplo listar <emphasis>!"
-"eth1, *</emphasis> instrui o SSSD a usar todas as interfaces excepto "
+"primeira correspondência faz parar a avaliação. Por exemplo listar <emphasis>"
+"!eth1, *</emphasis> instruí o SSSD a usar todas as interfaces excepto "
 "<emphasis>eth1</emphasis>.  Veja <emphasis>man 7 glob</emphasis> para "
 "detalhes sobre padrões."
 
@@ -12977,8 +12873,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:256 sssd-ad.5.xml:1266
-#, fuzzy
-#| msgid "dyndns_update_ptr (bool)"
 msgid "dyndns_update_ptr (boolean)"
 msgstr "dyndns_update_ptr (booleano)"
 
@@ -12988,7 +12882,7 @@ msgid ""
 "Whether the PTR record should also be explicitly updated when updating the "
 "client's DNS records.  Applicable only when dyndns_update is true."
 msgstr ""
-"Se o registo PTR também deve ser explicitamente actualizado quando se "
+"Se o registo PTR também deve ser explicitamente atualizado quando se "
 "actualiza os registos de DNS dos clientes.  Aplicável apenas quando "
 "dyndns_update é true."
 
@@ -13015,12 +12909,10 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:275
 msgid "Default: False (disabled)"
-msgstr "Predefinição: False (desactivado)"
+msgstr "Predefinição: False (desativado)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:281 sssd-ad.5.xml:1285
-#, fuzzy
-#| msgid "dyndns_force_tcp (bool)"
 msgid "dyndns_force_tcp (boolean)"
 msgstr "dyndns_force_tcp (booleano)"
 
@@ -13080,7 +12972,7 @@ msgid ""
 "nsupdate utility must support DoT - check the <emphasis>man nsupdate</"
 "emphasis> before enabling it in SSSD."
 msgstr ""
-"O segundo exemplo ativa protocolo DNS-sobrer-TLS para atualizações de DNS. O "
+"O segundo exemplo ativa protocolo DNS-sobre-TLS para atualizações de DNS. O "
 "utilitário nsupdate tem de suportar DoT - verifique o <emphasis>manual do "
 "nsupdate</emphasis> antes de o ativar no SSSD."
 
@@ -13092,7 +12984,7 @@ msgid ""
 "enabled."
 msgstr ""
 "Por favor note que esta opção só será usada em tentativas de recurso quando "
-"a tentativa anterior que usa definições se auto-detecção falhe ou quando DNS-"
+"a tentativa anterior que usa definições se auto-deteção falhe ou quando DNS-"
 "sobre-TLS estiver ativo."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -13215,8 +13107,8 @@ msgid ""
 "Optional. Use the given string as search base for Desktop Profile related "
 "objects."
 msgstr ""
-"Opcional. Usa a string dada como base de busca para objectos relacionados "
-"com Desktop Profile."
+"Opcional. Usa a string dada como base de busca para objetos relacionados com "
+"Desktop Profile."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:457 sssd-ipa.5.xml:479
@@ -13242,8 +13134,8 @@ msgstr "ipa_hbac_search_base (string)"
 #: sssd-ipa.5.xml:475
 msgid "Optional. Use the given string as search base for HBAC related objects."
 msgstr ""
-"Opcional. Usa a string dada como base de busca para objectos relacionados "
-"com HBAC."
+"Opcional. Usa a string dada como base de busca para objetos relacionados com "
+"HBAC."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:485
@@ -13293,7 +13185,7 @@ msgstr "ipa_master_domain_search_base (string)"
 #: sssd-ipa.5.xml:535
 msgid "Optional. Use the given string as search base for master domain object."
 msgstr ""
-"Opcional. Usa a string fornecida como base de busca para objecto de domínio "
+"Opcional. Usa a string fornecida como base de busca para objeto de domínio "
 "mestre."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -13426,10 +13318,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:649
-#, fuzzy
-#| msgid "ipa_hbac_refresh (integer)"
 msgid "ipa_selinux_refresh (integer)"
-msgstr "ipa_hbac_refresh (inteiro)"
+msgstr "ipa_selinux_refresh (inteiro)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:652
@@ -13556,7 +13446,7 @@ msgstr "ipa_override_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:758
 msgid "Objectclass of the override objects."
-msgstr "Objectclass dos objectos de sobreposição."
+msgstr "Objectclass dos objetos de sobreposição."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:761
@@ -13574,7 +13464,7 @@ msgid ""
 "Name of the attribute containing the reference to the original object in a "
 "remote domain."
 msgstr ""
-"Nome do atributo que contém a referência ao objecto original num domínio "
+"Nome do atributo que contém a referência ao objeto original num domínio "
 "remoto."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
@@ -13594,7 +13484,7 @@ msgid ""
 "found override object is related to a user or a group."
 msgstr ""
 "Nome do objectclass para sobreposições do utilizador. É usado para "
-"determinar se o objecto de sobreposição encontrado está relacionado com um "
+"determinar se o objeto de sobreposição encontrado está relacionado com um "
 "utilizador ou um grupo."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
@@ -13654,8 +13544,8 @@ msgid ""
 "found override object is related to a user or a group."
 msgstr ""
 "Nome do objectclass para sobreposições do grupo. É usado para determinar se "
-"o objecto de sobreposição encontrado está relacionado com um utilizador ou "
-"um grupo."
+"o objeto de sobreposição encontrado está relacionado com um utilizador ou um "
+"grupo."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:828
@@ -13735,7 +13625,7 @@ msgstr ""
 "domínios do IPA está configurado implicitamente. Neste caso, se um pedido de "
 "sub-domínio falhar e indicar que o servidor não suporta sub-domínios, isto "
 "é, não está configurado para confianças, o provedor de sub-domínios do IPA é "
-"desactivado. Após uma hora ou após o provedor IPA ir online, o provedor de "
+"desativado. Após uma hora ou após o provedor IPA ir online, o provedor de "
 "sub-domínios é activado de novo."
 
 #. type: Content of: <reference><refentry><refsect1><title>
@@ -13846,7 +13736,7 @@ msgid ""
 "subdomain type."
 msgstr ""
 "Opções prefixadas com 'ad_' ou 'ipa_' apenas se aplicam nos seus tipos de "
-"sub-domínio respectivos."
+"sub-domínio respetivos."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd-ipa.5.xml:939
@@ -13995,12 +13885,11 @@ msgid ""
 msgstr ""
 "O provedor AD permite ao SSSD usar o provedor de identidade <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> e o provedor de autenticação <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> com optimizações para ambientes Active Directory. O provedor "
-"AD aceita as mesmas opções usadas pelos provedores sssd-ldap e sssd-krb5 com "
-"algumas excepções. No entanto, não é necessário nem recomendado definir "
-"estas opções."
+"citerefentry> e o provedor de autenticação <citerefentry> <refentrytitle>"
+"sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> com "
+"otimizações para ambientes Active Directory. O provedor AD aceita as mesmas "
+"opções usadas pelos provedores sssd-ldap e sssd-krb5 com algumas exceções. "
+"No entanto, não é necessário nem recomendado definir estas opções."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:69
@@ -14010,7 +13899,7 @@ msgid ""
 "<quote>MODIFIED DEFAULT OPTIONS</quote> section."
 msgstr ""
 "O provedor AD primariamente copia as opções predefinidas dos provedores ldap "
-"e krb5 tradicionais com algumas excepções, as diferenças são listadas na "
+"e krb5 tradicionais com algumas exceções, as diferenças são listadas na "
 "secção <quote>OPÇÕES PREDEFINIDAS MODIFICADAS</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -14152,7 +14041,7 @@ msgid ""
 "autodetected by the SSSD."
 msgstr ""
 "O nome de domínio curto (também conhecido como NetBIOS ou nome liso) é auto-"
-"detectado pelo SSSD."
+"detetado pelo SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:158
@@ -14166,7 +14055,7 @@ msgid ""
 "SSSD will ignore any domains not listed in this option. If left unset, all "
 "discovered domains from the AD forest will be available."
 msgstr ""
-"Uma lista separada por vírgulas de domínios Active Directory activos. Se "
+"Uma lista separada por vírgulas de domínios Active Directory ativos. Se "
 "fornecida, o SSSD irá ignorar quaisquer domínios não listados nesta opção. "
 "Se deixada por definir, todos os domínios da floresta AD irão estar "
 "disponíveis."
@@ -14212,7 +14101,7 @@ msgid ""
 "autodetected by SSSD."
 msgstr ""
 "O nome de domínio curto (também conhecido como NetBIOS ou nome liso) será "
-"auto-detectado pelo SSSD."
+"auto-detetado pelo SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:193
@@ -14237,7 +14126,7 @@ msgid ""
 "This is optional if autodiscovery is enabled.  For more information on "
 "service discovery, refer to the <quote>SERVICE DISCOVERY</quote> section."
 msgstr ""
-"Isto é opcional se a auto-descoberta estiver activa.  Para mais informação "
+"Isto é opcional se a auto-descoberta estiver ativa.  Para mais informação "
 "sobre descoberta de serviços, consulte a secção <quote>DESCOBERTA DE "
 "SERVIÇOS</quote>."
 
@@ -14300,7 +14189,7 @@ msgid ""
 "discovery as well."
 msgstr ""
 "Se true e a descoberta de serviços (veja o parágrafo Descoberta de Serviços "
-"no fundo do manual) estiver activa, o SSSD irá primeiro tentar descobrir o "
+"no fundo do manual) estiver ativa, o SSSD irá primeiro tentar descobrir o "
 "servidor Active Directory onde ligar para usar o Active Directory Site "
 "Discovery e cair para os registos DNS SRV se nenhum sítio AD for encontrado. "
 "A configuração DNS SRV, incluindo o domínio de descoberta, é usada também "
@@ -14488,10 +14377,10 @@ msgid ""
 "an effect."
 msgstr ""
 "Esta opção especifica o modo de operação para a funcionalidade de controle "
-"de acesso baseado em GPO. Se vai operar em modo desactivado, modo forçado, "
-"ou modo permissivo. Por favor note que a opção <quote>access_provider</"
-"quote> tem de ser explicitamente definida para <quote>ad</quote> de modo a "
-"esta opção ter efeito."
+"de acesso baseado em GPO. Se vai operar em modo desativado, modo forçado, ou "
+"modo permissivo. Por favor note que a opção <quote>access_provider</quote> "
+"tem de ser explicitamente definida para <quote>ad</quote> de modo a esta "
+"opção ter efeito."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:385
@@ -14748,8 +14637,8 @@ msgid ""
 "policies if their attributes in group policy containers are not readable for "
 "SSSD."
 msgstr ""
-"Normalmente quando algum contentor de política de grupo (objecto AD) de "
-"objecto de política de grupo aplicável não pode ser lido pelo SSSD então os "
+"Normalmente quando algum contentor de política de grupo (objeto AD) de "
+"objeto de política de grupo aplicável não pode ser lido pelo SSSD então os "
 "utilizadores têm o acesso negado.  Esta opção permite ignorar os contentores "
 "de política de grupo e com eles as políticas associadas se os seus atributos "
 "nesses contentores não forem legíveis pelo SSSD."
@@ -14795,11 +14684,11 @@ msgstr ""
 "política InteractiveLogonRight e DenyInteractiveLogonRight.  Apenas esses "
 "GPOs são avaliados para os quais o utilizador tem permissão Read e Apply "
 "Group Policy (veja a opção <quote>ad_gpo_access_control</quote>).  Se um GPO "
-"avaliado conter a definição de logon interactivo deny para o utilizador ou "
+"avaliado conter a definição de logon interativo deny para o utilizador ou "
 "para um dos seus grupos, ao utilizador é negado acesso local. Se nenhum dos "
-"GPOs avaliados tiver um direito de logon interactivo definido, ao utilizador "
+"GPOs avaliados tiver um direito de logon interativo definido, ao utilizador "
 "é concedido acesso local. Se pelo menos um GPO avaliado conter definições de "
-"direito de logon interactivo, ao utilizador é concedido acesso local apenas, "
+"direito de logon interativo, ao utilizador é concedido acesso local apenas, "
 "se ele ou pelo menos um dos seus grupos fizer parte das definições de "
 "política."
 
@@ -14895,14 +14784,14 @@ msgstr ""
 "controle de acesso baseado em GPO é avaliado com base nas definições de "
 "política RemoteInteractiveLogonRight e DenyRemoteInteractiveLogonRight.  "
 "Apenas esses GPOs são avaliados para os quais o utilizador tem permissão "
-"Read e Apply Group Policy (veja a opção <quote>ad_gpo_access_control</"
-"quote>).  Se um GPO avaliado conter a definição de logon remoto interactivo "
-"deny para o utilizador ou para um dos seus grupos, ao utilizador é negado "
-"acesso remoto. Se nenhum dos GPOs avaliados tiver um direito de logon remoto "
-"interactivo definido, ao utilizador é concedido acesso remoto.  Se pelo "
-"menos um GPO avaliado conter definições de direito de logon remoto "
-"interactivo, ao utilizador é concedido acesso remoto apenas, se ele ou pelo "
-"menos um dos seus grupos fizer parte das definições de política."
+"Read e Apply Group Policy (veja a opção <quote>ad_gpo_access_control</quote>)"
+".  Se um GPO avaliado conter a definição de logon remoto interativo deny "
+"para o utilizador ou para um dos seus grupos, ao utilizador é negado acesso "
+"remoto. Se nenhum dos GPOs avaliados tiver um direito de logon remoto "
+"interativo definido, ao utilizador é concedido acesso remoto.  Se pelo menos "
+"um GPO avaliado conter definições de direito de logon remoto interativo, ao "
+"utilizador é concedido acesso remoto apenas, se ele ou pelo menos um dos "
+"seus grupos fizer parte das definições de política."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:740
@@ -14979,13 +14868,13 @@ msgstr ""
 "política NetworkLogonRight e DenyNetworkLogonRigh. Apenas esses GPOs são "
 "avaliados para os quais o utilizador tem permissão Read e Apply Group Policy "
 "(veja a opção <quote>ad_gpo_access_control</quote>). Se um GPO avaliado "
-"conter a definição de logon de rede interactivo deny para o utilizador ou "
+"conter a definição de logon de rede interativo deny para o utilizador ou "
 "para um dos seus grupos, ao utilizador é negado acesso de rede.  Se nenhum "
-"dos GPOs avaliados tiver um direito de logon de rede interactivo definido, "
-"ao utilizador é concedido acesso. Se pelo menos um GPO avaliado conter "
-"definições de direito de logon de rede interactivo, ao utilizador é "
-"concedido acesso apenas, se ele ou pelo menos um dos seus grupos fizer parte "
-"das definições de política."
+"dos GPOs avaliados tiver um direito de logon de rede interativo definido, ao "
+"utilizador é concedido acesso. Se pelo menos um GPO avaliado conter "
+"definições de direito de logon de rede interativo, ao utilizador é concedido "
+"acesso apenas, se ele ou pelo menos um dos seus grupos fizer parte das "
+"definições de política."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:798
@@ -15061,13 +14950,13 @@ msgstr ""
 "política BatchLogonRight e DenyBatchLogonRight.  Apenas esses GPOs são "
 "avaliados para os quais o utilizador tem permissão Read e Apply Group Policy "
 "(veja a opção <quote>ad_gpo_access_control</quote>).  Se um GPO avaliado "
-"conter a definição de logon em lote interactivo deny para o utilizador ou "
+"conter a definição de logon em lote interativo deny para o utilizador ou "
 "para um dos seus grupos, ao utilizador é negado acesso em lote.  Se nenhum "
-"dos GPOs avaliados tiver um direito de logon em lote interactivo definido, "
-"ao utilizador é concedido acesso. Se pelo menos um GPO avaliado conter "
-"definições de direito de logon em lote interactivo, ao utilizador é "
-"concedido acesso apenas, se ele ou pelo menos um dos seus grupos fizer parte "
-"das definições de política."
+"dos GPOs avaliados tiver um direito de logon em lote interativo definido, ao "
+"utilizador é concedido acesso. Se pelo menos um GPO avaliado conter "
+"definições de direito de logon em lote interativo, ao utilizador é concedido "
+"acesso apenas, se ele ou pelo menos um dos seus grupos fizer parte das "
+"definições de política."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:856
@@ -15385,16 +15274,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1101
-#, fuzzy
-#| msgid ""
-#| "The optional fourth string value identifies the helper binary which "
-#| "should be used for the renewal.  Currently <command>adcli</command> and "
-#| "<command>realm</command> are supported. If this value is missing or empty "
-#| "in the value string <command>realm</command> will be used. Since the "
-#| "helper is started as the user SSSD is running as there might be the "
-#| "chance that the renewal will fail if this user does not has permissions "
-#| "to modify the keytab file where the machine account credentials are "
-#| "stored. This will typically be the case for <command>adcli</command>."
 msgid ""
 "The optional fourth string value identifies the helper binary which should "
 "be used for the renewal.  Currently <command>adcli</command> and "
@@ -15448,28 +15327,18 @@ msgid ""
 "account password from getting out of date when it is set up to use AD for "
 "authentication."
 msgstr ""
-"Se activa, quando o SSSD renova a palavra passe da conta da máquina, será "
+"Se ativa, quando o SSSD renova a palavra passe da conta da máquina, será "
 "também actualizada na base de dados do Samba. Isto previne que a cópia do "
-"Samba da palavra passe da conta da máquina fique desactualizada quando é "
+"Samba da palavra passe da conta da máquina fique desatualizada quando é "
 "configurada para usar AD para autenticação."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:1146
-#, fuzzy
-#| msgid "ad_use_ldaps (bool)"
 msgid "ad_use_ldaps (boolean)"
 msgstr "ad_use_ldaps (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1149
-#, fuzzy
-#| msgid ""
-#| "By default SSSD uses the plain LDAP port 389 and the Global Catalog port "
-#| "3628. If this option is set to True SSSD will use the LDAPS port 636 and "
-#| "Global Catalog port 3629 with LDAPS protection. Since AD does not allow "
-#| "to have multiple encryption layers on a single connection and we still "
-#| "want to use SASL/GSSAPI or SASL/GSS-SPNEGO for authentication the SASL "
-#| "security property maxssf is set to 0 (zero)  for those connections."
 msgid ""
 "By default SSSD uses the plain LDAP port 389 and the Global Catalog port "
 "3268. If this option is set to True SSSD will use the LDAPS port 636 and "
@@ -15478,9 +15347,9 @@ msgid ""
 "use SASL/GSSAPI or SASL/GSS-SPNEGO for authentication the SASL security "
 "property maxssf is set to 0 (zero)  for those connections."
 msgstr ""
-"Por predefinição o SSSD usa o porto 389 do LDAP simples e o porto 3628 do "
+"Por predefinição o SSSD usa o porto 389 do LDAP simples e o porto 3268 do "
 "Global Catalog. Se esta opção estiver definida para True, o SSSD irá usar o "
-"porto 636 do LDAPS e o porto 3629 do Global Catalog com proteção LDAPS. Como "
+"porto 636 do LDAPS e o porto 3269 do Global Catalog com proteção LDAPS. Como "
 "o AD não permite ter múltiplas camadas de encriptação numa única ligação, e "
 "nós ainda queremos usar SASL/GSSAPI ou SASL/GSS-SPNEGO para autenticação a "
 "propriedade de segurança do SASL maxssf é definida para 0 (zero) para essas "
@@ -15518,13 +15387,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1252
-#, fuzzy
-#| msgid ""
-#| "How often should the back end perform periodic DNS update in addition to "
-#| "the automatic update performed when the back end goes online.  This "
-#| "option is optional and applicable only when dyndns_update is true. Note "
-#| "that the lowest possible value is 60 seconds in-case if value is provided "
-#| "less than 60, parameter will assume lowest value only."
 msgid ""
 "How often should the back end perform periodic DNS update in addition to the "
 "automatic update performed when the back end goes online.  This is optional "
@@ -15533,9 +15395,9 @@ msgid ""
 msgstr ""
 "Quão frequente deve o backend executar a actualização DNS periódica em "
 "adição à actualização automática executada quando o backend fica online.  "
-"Esta opção é opcional e aplicável apenas quando dyndns_update é true. Note "
-"que o valor mais baixo possível é 60 segundos, no caso de o valor fornecido "
-"ser inferior a 60, o parâmetro irá assumir apenas o menor valor."
+"Isto é opcional e aplicável apenas quando dyndns_update é true. Note que o "
+"valor mínimo é 60 segundos, qualquer valor especificado abaixo deste limiar "
+"vai predefinir para 60."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:1465
@@ -15658,7 +15520,7 @@ msgid ""
 "<refentrytitle>nsswitch.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry>."
 msgstr ""
-"Para activar SSSD como fonte para regras sudo, adicione <emphasis>sss</"
+"Para ativar SSSD como fonte para regras sudo, adicione <emphasis>sss</"
 "emphasis> à entrada <emphasis>sudoers</emphasis> em <citerefentry> "
 "<refentrytitle>nsswitch.conf</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry>."
@@ -15824,12 +15686,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:137
-#, fuzzy
-#| msgid ""
-#| "The <emphasis>smart refresh</emphasis> periodically downloads rules that "
-#| "are new or were modified after the last update. Its primary goal is to "
-#| "keep the database growing by fetching only small increments that do not "
-#| "generate large amounts of network traffic."
 msgid ""
 "The <emphasis>smart refresh</emphasis> periodically downloads rules that are "
 "new or were modified after the last update. Its primary goal is to grow the "
@@ -15838,8 +15694,9 @@ msgid ""
 msgstr ""
 "O <emphasis>smart refresh</emphasis> descarrega periodicamente regras que "
 "são novas ou foram modificadas após a última actualização. O seu objectivo "
-"primário é manter a base de dados a crescer ao obter apenas pequenos "
-"incrementos que não geram grandes quantidades de tráfego de rede."
+"primário é fazer crescer a base de dados de maneira incremental ao obter "
+"apenas pequenas atualizações, evitando grandes quantidades de tráfego de "
+"rede."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:143
@@ -15884,7 +15741,7 @@ msgid ""
 "This means rules that contain one of the following values in "
 "<emphasis>sudoHost</emphasis> attribute:"
 msgstr ""
-"Se activo, o SSSD irá guardar apenas regras que podem ser aplicadas a esta "
+"Se ativo, o SSSD irá guardar apenas regras que podem ser aplicadas a esta "
 "máquina. Isto significa regras que contêm um dos seguintes valores no "
 "atributo <emphasis>sudoHost</emphasis>:"
 
@@ -15949,7 +15806,7 @@ msgid ""
 "requirements."
 msgstr ""
 "O SSSD usa diferentes tipos de mecanismos com filtros LDAP mais ou menos "
-"complexos para manter as regras sudo em cache actualizadas. A configuração "
+"complexos para manter as regras sudo em cache atualizadas. A configuração "
 "predefinida é definida para valores que devem satisfazer a maioria dos "
 "utilizadores, mas os seguintes parágrafos contêm algumas dicas sobre como "
 "afinar a configuração aos seus requerimentos."
@@ -16055,7 +15912,7 @@ msgid ""
 "the first one requested via SSSD will be available."
 msgstr ""
 "IdPs tipicamente não fornecem atributos POSIX como ex.  Id de utilizador "
-"(UID) ou directório home. O provedor IdP do SSSD irá autogerar os atributos "
+"(UID) ou directório home. O provedor IdP do SSSD irá auto-gerar os atributos "
 "necessários. O algoritmo predefinido para gerar IDs de utilizador (UIDs) e "
 "IDs de grupo (GIDs) tem o objectivo de criar IDs reproduzíveis em diferentes "
 "sistemas. Um inconveniente que pode acontecer é que o algoritmo atribua o "
@@ -16078,12 +15935,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:70
-#, fuzzy
-#| msgid ""
-#| "Depending on the IdP product additional platform specific options might "
-#| "follow the name separated by a colon (:). E.g. for Keycloak the base URI "
-#| "for the user and group REST API must be given. For Entra ID this is not "
-#| "needed because there is a generic endpoint for all tenants."
 msgid ""
 "Depending on the IdP product additional platform specific options might "
 "follow the name separated by a colon (:). E.g. for Keycloak the base URI for "
@@ -16095,8 +15946,11 @@ msgid ""
 msgstr ""
 "Dependendo d produto IdP opções adicionais especificas da plataforma podem "
 "ter o nome separado por dois-pontos (:). Ex. para Keycloak o URI base para o "
-"utilizador e grupo REST API tem de ser fornecido. Para Entra ID isto não é "
-"necessário porque é um endpoint genérico para todos os tenants."
+"utilizador e grupo REST API tem de ser fornecido. Para ID Entra o URI base "
+"para a API Microsoft Graph pode ser dado para se usar terminais de cloud "
+"soberana ou governamental em vez da predefinição (https://"
+"graph.microsoft.com/v1.0). Ex.  <quote>entra_id:https://graph.microsoft.us/"
+"v1.0</quote> para a cloud do governo dos EUA (GCC Alta)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:82 sssd-idp.5.xml:98 sssd-idp.5.xml:123
@@ -16145,7 +15999,7 @@ msgstr "idp_token_endpoint (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:120
 msgid "IdP endpoint for requesting access tokens."
-msgstr "Endpoint IdP para requisitar testemunhos de acesso."
+msgstr "Terminal IdP para requisitar testemunhos de acesso."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:128
@@ -16158,7 +16012,7 @@ msgid ""
 "IdP endpoint for device authorization according to RFC-8628. This is "
 "required for user authentication."
 msgstr ""
-"Endpoint IdP para autorização de dispositivo de acordo com RFC-8628. Isto é "
+"Terminal IdP para autorização de dispositivo de acordo com RFC-8628. Isto é "
 "requerido para autenticação de utilizador."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -16172,7 +16026,7 @@ msgid ""
 "IdP userinfo endpoint to request user attributes after a successful "
 "authentication of the user.  Required for authentication."
 msgstr ""
-"Endpoint de informação de utilizador do IdP para requisitar atributos de "
+"Terminal de informação de utilizador do IdP para requisitar atributos de "
 "utilizador após autenticação com sucesso do utilizador.  Requerido para "
 "autenticação."
 
@@ -16198,6 +16052,8 @@ msgid ""
 "Note: In previous versions of SSSD, this option was expected to already be "
 "URL-encoded."
 msgstr ""
+"Nota: Em versões anteriores do SSSD, esta opção era esperada já estar "
+"codificada em URL."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:172
@@ -16229,10 +16085,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:193
-#, fuzzy
-#| msgid "ldap_user_extra_attrs (string)"
 msgid "idp_auth_user_identifier_attr (string)"
-msgstr "ldap_user_extra_attrs (string)"
+msgstr "idp_auth_user_identifier_attr (string)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:196
@@ -16240,6 +16094,8 @@ msgid ""
 "Attribute used to identify the authenticated user in userinfo data or token "
 "claims."
 msgstr ""
+"Atributo usado para identificar o utilizador autenticado em dados de "
+"informação de utilizador ou alegações do testemunho."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:200
@@ -16251,6 +16107,12 @@ msgid ""
 "on-premises counterpart and only the administrator knows which one the "
 "directory synchronization is configured to use."
 msgstr ""
+"Para desenvolvimentos Active Directory híbrido e Entra ID onde <quote>"
+"id_provider = ad</quote> e <quote>auth_provider = idp</quote>, esta opção "
+"tem de ser definida explicitamente. Nenhum valor é derivado do provedor de "
+"identidade, porque mais do que um atributo pode ligar um objeto Entra ID à "
+"sua equivalência local e apenas o administrador conhece qual das "
+"sincronizações de directório está configurada para usar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:211
@@ -16263,6 +16125,13 @@ msgid ""
 "for AD objectGUID attributes, so the result matches the UUID stored in the "
 "SSSD cache for the AD user."
 msgstr ""
+"Definir esta opção para <quote>onPremisesImmutableId</quote> é a escolha "
+"usual para tais desenvolvimentos. O Microsoft Entra Connect povoa esse "
+"atributo com o formato de base64 do <quote>objectGUID</quote> de 16-byte do "
+"Active Directory quando o objectGUID é usado como Âncora-fonte: o SSSD "
+"descodifica o valor e converte os bytes em bruto com a mesma conversão usada "
+"para atributos objectGUID do AD, assim o resultado corresponde ao UUID "
+"guardado na cache do SSSD para o utilizador AD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:224
@@ -16278,6 +16147,17 @@ msgid ""
 "plan-connect-design-concepts\"> Microsoft Entra Connect: Design concepts</"
 "ulink> for details on sourceAnchor selection."
 msgstr ""
+"Note que o Microsoft Entra Connect 1.1.524.0 e posterior usa <quote>ms-DS-"
+"ConsistencyGuid</quote> como a sourceAnchor para objetos utilizador em vez "
+"de <quote>objectGUID</quote>. O valor é normalmente copiado de objectGUID "
+"para objetos que ainda não o têm definido, e nesse caso o identificador "
+"descodificado ainda corresponde. Não corresponde se a ms-DS-ConsistencyGuid "
+"foi povoada independentemente, se os utilizadores foram movidos entre "
+"florestas e domínios, ou se um atributo diferente tal como employeeID foi "
+"selecionado como a sourceAnchor. Veja <ulink url=\"https://"
+"learn.microsoft.com/en-us/entra/identity/hybrid/connect/plan-connect-design-"
+"concepts\"> Microsoft Entra Connect: Conceitos de Conceção</ulink> para "
+"detalhes sobre a seleção da Âncora-fonte (sourceAnchor)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:241
@@ -16288,6 +16168,11 @@ msgid ""
 "learn.microsoft.com/en-us/graph/api/resources/user\"> the Microsoft Graph "
 "user resource type</ulink>."
 msgstr ""
+"O Microsoft Graph não retorna <quote>onPremisesImmutableId</quote> por "
+"predefinição.  O <quote>idp_userinfo_endpoint</quote> tem de o requisitar "
+"com <quote>$select</quote>, veja o exemplo em baixo e <ulink url=\"https://"
+"learn.microsoft.com/en-us/graph/api/resources/user\"> o tipo de recurso de "
+"utilizador do Microsoft Graph</ulink>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:251
@@ -16297,6 +16182,10 @@ msgid ""
 "authentication fails. SSSD does not fall back to another attribute when this "
 "option is set."
 msgstr ""
+"Se o atributo configurado estiver em falta ou não poder ser descodificado "
+"(por exemplo utilizadores Entra ID apenas-cloud sem <quote>"
+"onPremisesImmutableId</quote>), a autenticação falha. O SSSD não recorre a "
+"outro atributo quando esta opção está definida."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:258
@@ -16304,6 +16193,8 @@ msgid ""
 "Default: not set, <quote>sub</quote> for Keycloak and <quote>id</quote> for "
 "other IdP types"
 msgstr ""
+"Predefinição: não definido, <quote>sub</quote> para Keycloak e <quote>id</"
+"quote> para outros tipos de IdP"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:264
@@ -16317,10 +16208,8 @@ msgstr "Tempo limite em segundos para um pedido individual ao IdP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:276
-#, fuzzy
-#| msgid "ldap_referrals (boolean)"
 msgid "idp_auto_refresh (boolean)"
-msgstr "ldap_referrals (booleano)"
+msgstr "idp_auto_refresh (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:279
@@ -16328,12 +16217,16 @@ msgid ""
 "Refresh tokens automatically, after they have reached about half their "
 "lifetime."
 msgstr ""
+"Refresca testemunhos automaticamente, após eles terem alcançado cerca de "
+"metade do seu tempo de vida."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:283
 msgid ""
 "Note: Scheduled token refreshes are not preserved across restarts of SSSD."
 msgstr ""
+"Nota: O refrescar de testemunhos agendado não é preservado por entre "
+"reiniciares do SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:292
@@ -16403,18 +16296,7 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-idp.5.xml:346
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[domain/entra_id]\n"
-#| "id_provider = idp\n"
-#| "idp_type = entra_id\n"
-#| "idp_client_id = 12345678-abcd-0101-efef-ba9876543210\n"
-#| "idp_client_secret = YOUR-CLIENT-SCERET\n"
-#| "idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token\n"
-#| "idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me\n"
-#| "idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode\n"
-#| "idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default\n"
-#| "idp_auth_scope = openid profile email\n"
+#, no-wrap
 msgid ""
 "[domain/entra_id]\n"
 "id_provider = idp\n"
@@ -16431,27 +16313,18 @@ msgstr ""
 "id_provider = idp\n"
 "idp_type = entra_id\n"
 "idp_client_id = 12345678-abcd-0101-efef-ba9876543210\n"
-"idp_client_secret = YOUR-CLIENT-SCERET\n"
-"idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token\n"
+"idp_client_secret = SEGREDO-DO-SEU-CLIENTE\n"
+"idp_token_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/"
+"token\n"
 "idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me\n"
-"idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode\n"
-"idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default\n"
+"idp_device_auth_endpoint = https://login.microsoftonline.com/TENANT-ID/"
+"oauth2/v2.0/devicecode\n"
+"idp_id_scope = https://graph.microsoft.com/.default\n"
 "idp_auth_scope = openid profile email\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-idp.5.xml:358
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[domain/entra_id]\n"
-#| "id_provider = idp\n"
-#| "idp_type = entra_id\n"
-#| "idp_client_id = 12345678-abcd-0101-efef-ba9876543210\n"
-#| "idp_client_secret = YOUR-CLIENT-SCERET\n"
-#| "idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token\n"
-#| "idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me\n"
-#| "idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode\n"
-#| "idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default\n"
-#| "idp_auth_scope = openid profile email\n"
+#, no-wrap
 msgid ""
 "[domain/ad.example.com]\n"
 "id_provider = ad\n"
@@ -16471,31 +16344,30 @@ msgid ""
 "idp_auth_scope = openid profile email\n"
 "idp_auth_user_identifier_attr = onPremisesImmutableId\n"
 msgstr ""
-"[domain/entra_id]\n"
-"id_provider = idp\n"
+"[domain/ad.example.com]\n"
+"id_provider = ad\n"
+"auth_provider = idp\n"
+"access_provider = permit\n"
+"\n"
+"ad_domain = ad.example.com\n"
+"krb5_realm = AD.EXAMPLE.COM\n"
+"\n"
 "idp_type = entra_id\n"
 "idp_client_id = 12345678-abcd-0101-efef-ba9876543210\n"
-"idp_client_secret = YOUR-CLIENT-SCERET\n"
-"idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token\n"
-"idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me\n"
-"idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode\n"
-"idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default\n"
+"idp_client_secret = SEGREDO-DO-SEU-CLIENTE\n"
+"idp_token_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/"
+"token\n"
+"idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/"
+"me?$select=id,userPrincipalName,onPremisesImmutableId\n"
+"idp_device_auth_endpoint = https://login.microsoftonline.com/TENANT-ID/"
+"oauth2/v2.0/devicecode\n"
+"idp_id_scope = https://graph.microsoft.com/.default\n"
 "idp_auth_scope = openid profile email\n"
+"idp_auth_user_identifier_attr = onPremisesImmutableId\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-idp.5.xml:377
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[domain/keycloak]\n"
-#| "idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/\n"
-#| "id_provider = idp\n"
-#| "idp_client_id = myclient\n"
-#| "idp_client_secret = YOUR-CLIENT-SCERET\n"
-#| "idp_token_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/token\n"
-#| "idp_userinfo_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/userinfo\n"
-#| "idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/auth/device\n"
-#| "idp_id_scope = profile\n"
-#| "idp_auth_scope = openid profile email\n"
+#, no-wrap
 msgid ""
 "[domain/keycloak]\n"
 "idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/\n"
@@ -16509,29 +16381,30 @@ msgid ""
 "idp_auth_scope = openid profile email\n"
 msgstr ""
 "[domain/keycloak]\n"
-"idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/\n"
+"idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/"
+"master/\n"
 "id_provider = idp\n"
 "idp_client_id = myclient\n"
-"idp_client_secret = YOUR-CLIENT-SCERET\n"
-"idp_token_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/token\n"
-"idp_userinfo_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/userinfo\n"
-"idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/auth/device\n"
+"idp_client_secret = SEGREDO-DO-SEU-CLIENTE\n"
+"idp_token_endpoint = https://master.keycloak.test:8443/auth/realms/master/"
+"protocol/openid-connect/token\n"
+"idp_userinfo_endpoint = https://master.keycloak.test:8443/auth/realms/master/"
+"protocol/openid-connect/userinfo\n"
+"idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/"
+"master/protocol/openid-connect/auth/device\n"
 "idp_id_scope = profile\n"
 "idp_auth_scope = openid profile email\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-idp.5.xml:345
-#, fuzzy
-#| msgid ""
-#| "<placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
-#| "type=\"programlisting\" id=\"1\"/>"
 msgid ""
 "<placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
 "type=\"programlisting\" id=\"1\"/> <placeholder type=\"programlisting\" "
 "id=\"2\"/>"
 msgstr ""
 "<placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
-"type=\"programlisting\" id=\"1\"/>"
+"type=\"programlisting\" id=\"1\"/> <placeholder type=\"programlisting\" "
+"id=\"2\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-idp.5.xml:390
@@ -16543,6 +16416,13 @@ msgid ""
 "endpoint and is only populated for users synchronized from Active Directory "
 "with objectGUID as the sourceAnchor."
 msgstr ""
+"No exemplo de cima Active Directory híbrido e Entra ID, <quote>"
+"onPremisesImmutableId</quote> é usado durante a autenticação para que o "
+"resultado de IdP corresponda ao UUID de objectGUID AD guardado na cache do "
+"SSSD. O atributo tem de ser requisitado via <quote>$select</quote> no "
+"terminal de informação de utilizador do Graph e só é povoado para "
+"utilizadores sincronizados de Active Directory com objectGUID como a "
+"sourceAnchor."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.8.xml:10 sssd.8.xml:15
@@ -16770,10 +16650,9 @@ msgid ""
 "signal can be sent to either the sssd process or any sssd_be process "
 "directly."
 msgstr ""
-"Diz ao SSSD para simular a operação offline na duração do parâmetro "
-"<quote>offline_timeout</quote>. Isto é útil para testes. O sinal pode ser "
-"enviado seja para o processo sssd ou para qualquer processo sou_sssd "
-"directamente."
+"Diz ao SSSD para simular a operação offline na duração do parâmetro <quote>"
+"offline_timeout</quote>. Isto é útil para testes. O sinal pode ser enviado "
+"seja para o processo sssd ou para qualquer processo sou_sssd diretamente."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.8.xml:198
@@ -16929,12 +16808,12 @@ msgid ""
 "citerefentry> for more details on these parameters."
 msgstr ""
 "A palavra passe em texto simples é lida a partir da entrada standard ou "
-"inserida interactivamente.  A palavra passe ofuscada é colocada no parâmetro "
+"inserida interativamente.  A palavra passe ofuscada é colocada no parâmetro "
 "<quote>ldap_default_authtok</quote> de um dado domínio SSSD e o parâmetro "
-"<quote>ldap_default_authtok_type</quote> é definido para "
-"<quote>obfuscated_password</quote>. Consulte <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> para mais detalhes sobre estes parâmetros."
+"<quote>ldap_default_authtok_type</quote> é definido para <quote>"
+"obfuscated_password</quote>. Consulte <citerefentry> <refentrytitle>sssd-"
+"ldap</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> para mais "
+"detalhes sobre estes parâmetros."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:49
@@ -17072,9 +16951,9 @@ msgid ""
 "commands. It is not possible to override <emphasis>uid</emphasis> or "
 "<emphasis>gid</emphasis> to 0."
 msgstr ""
-"O argumento <emphasis>NOME</emphasis> é o nome do objecto original em todos "
-"os comandos. Não é possível sobrepor <emphasis>uid</emphasis> ou "
-"<emphasis>gid</emphasis> para 0."
+"O argumento <emphasis>NOME</emphasis> é o nome do objeto original em todos "
+"os comandos. Não é possível sobrepor <emphasis>uid</emphasis> ou <emphasis>"
+"gid</emphasis> para 0."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_override.8.xml:65
@@ -17381,7 +17260,7 @@ msgid ""
 "this."
 msgstr ""
 "O backend de autenticação Kerberos 5 contém provedores auth e chpass. Tem de "
-"ser pareado com um provedor de identidade de modo a funcionar correctamente "
+"ser pareado com um provedor de identidade de modo a funcionar corretamente "
 "(por exemplo, id_provider = ldap). Alguma informação requerida pelo backend "
 "de autenticação Kerberos 5 tem de ser fornecida pelo provedor de identidade, "
 "tal como o Kerberos Principal Name (UPN) do utilizador. A configuração do "
@@ -17400,11 +17279,11 @@ msgid ""
 "configuration."
 msgstr ""
 "Este backend também fornece controle de acesso baseado no ficheiro .k5login "
-"no directório home do utilizador. Veja <citerefentry> "
-"<refentrytitle>k5login</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry> para mais detalhes. Por favor note que um ficheiro .k5login "
-"vazio irá negar todo o acesso a este utilizador. Para activar esta "
-"funcionalidade, use 'access_provider = krb5' na sua configuração do SSSD."
+"no directório home do utilizador. Veja <citerefentry> <refentrytitle>"
+"k5login</refentrytitle><manvolnum>5</manvolnum> </citerefentry> para mais "
+"detalhes. Por favor note que um ficheiro .k5login vazio irá negar todo o "
+"acesso a este utilizador. Para ativar esta funcionalidade, use "
+"'access_provider = krb5' na sua configuração do SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-krb5.5.xml:55
@@ -17434,7 +17313,7 @@ msgstr ""
 "preferência. Para mais informação sobre failover e redundância de "
 "servidores, veja a secção <quote>FAILOVER</quote>. Um número de porto "
 "adicional (com dois pontos a preceder) pode ser acrescentado aos endereços "
-"ou nomes de máquinas.  Se vazia, é activada a descoberta de serviços; para "
+"ou nomes de máquinas.  Se vazia, é ativada a descoberta de serviços; para "
 "mais informação, consulte a secção <quote>DESCOBERTA DE SERVIÇOS</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -17725,16 +17604,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:291
-#, fuzzy
-#| msgid ""
-#| "<emphasis>demand</emphasis> to use FAST. The authentication fails if the "
-#| "server does not require fast."
 msgid ""
 "<emphasis>demand</emphasis> to use FAST. The authentication fails if the "
 "server does not support FAST."
 msgstr ""
 "<emphasis>demand</emphasis> (obriga) a usar FAST. A autenticação falha se o "
-"servidor não requerer fast."
+"servidor não suportar FAST."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:296
@@ -17745,7 +17620,7 @@ msgstr "Predefinição: não definida, isto é, FAST não é usado."
 #: sssd-krb5.5.xml:299
 msgid "NOTE: a keytab or support for anonymous PKINIT is required to use FAST."
 msgstr ""
-"NOTA: é requerido uma keytab ou suporte a PKINIT anônimo para se usar FAST."
+"NOTA: é requerido uma keytab ou suporte a PKINIT anónimo para se usar FAST."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:303
@@ -17780,7 +17655,7 @@ msgid ""
 "required credential for FAST. The krb5_fast_principal options is ignored in "
 "this case."
 msgstr ""
-"Se definido para true tenta usar PKINIT anônimo em vez de uma keytab para "
+"Se definido para true tenta usar PKINIT anónimo em vez de uma keytab para "
 "obter a credencial requerida para FAST. A opção krb5_fast_principal é "
 "ignorada neste caso."
 
@@ -17859,7 +17734,7 @@ msgid ""
 "is capable of handling enterprise principals and the option is not set "
 "explicitly in the config file."
 msgstr ""
-"O provedor IPA irá definir a opção para 'true' se detectar que o servidor é "
+"O provedor IPA irá definir a opção para 'true' se detetar que o servidor é "
 "capaz de lidar principais de empresa e a opção não está definida "
 "explicitamente no ficheiro de configuração."
 
@@ -18000,8 +17875,8 @@ msgid ""
 msgstr ""
 "O <command>sss_cache</command> invalida registos na cache do SSSD.  Os "
 "registos invalidados são forçados a ser recarregados a partir do servidor "
-"assim que o backend SSSD relacionado esteja online. AS opções que invalidam "
-"um único objecto apenas aceitam um único argumento fornecido."
+"assim que o backend SSSD relacionado esteja online. As opções que invalidam "
+"um único objeto apenas aceitam um único argumento fornecido."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_cache.8.xml:43
@@ -18270,12 +18145,12 @@ msgstr ""
 "utilizadores ou grupos apenas no arranque, ex, para determinar o nome do "
 "utilizador com que o processo corre como. Para essas procuras o ficheiro de "
 "cache de memória é mapeado para a memória do processo. Mas como não irão "
-"existir mais procuras este processo nunca vai detectar se o ficheiro de "
-"cache de memória foi invalidado e assim vai ser mentido em memória e vai "
-"ocupar espaço no disco até que o processo pare. Como resultado chamar o "
-"<command>sss_cache</command> pode aumentar a utilização do disco porque os "
-"ficheiros de cache de memória antigos não podem ser removidos do disco "
-"porque ainda estão mapeados por processos de execução longa."
+"existir mais procuras este processo nunca vai detetar se o ficheiro de cache "
+"de memória foi invalidado e assim vai ser mentido em memória e vai ocupar "
+"espaço no disco até que o processo pare. Como resultado chamar o <command>"
+"sss_cache</command> pode aumentar a utilização do disco porque os ficheiros "
+"de cache de memória antigos não podem ser removidos do disco porque ainda "
+"estão mapeados por processos de execução longa."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_cache.8.xml:252
@@ -18484,8 +18359,8 @@ msgid ""
 "Interactive mode for entering user information. This option will only prompt "
 "for information not provided in the options or retrieved from the domain."
 msgstr ""
-"Modo interactivo para inserir informação do utilizador. Esta opção apenas "
-"irá pedir informação não fornecida nas opções ou obtida a partir do domínio."
+"Modo interativo para inserir informação do utilizador. Esta opção apenas irá "
+"pedir informação não fornecida nas opções ou obtida a partir do domínio."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_seed.8.xml:148
@@ -18815,7 +18690,7 @@ msgstr "EXTENSÃO DE CONFIGURAÇÃO DO SSS"
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sss_rpcidmapd.5.xml:51
 msgid "Enable SSS plugin"
-msgstr "Activar o plugin SSS"
+msgstr "Ativar o plugin SSS"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sss_rpcidmapd.5.xml:53
@@ -18849,15 +18724,13 @@ msgstr "Atributos de configuração"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sss_rpcidmapd.5.xml:69
-#, fuzzy
-#| msgid "memcache (bool)"
 msgid "memcache (boolean)"
 msgstr "memcache (booleano)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sss_rpcidmapd.5.xml:72
 msgid "Indicates whether or not to use memcache optimisation technique."
-msgstr "Indica se deve-se ou não usar a técnica de optimização memcache."
+msgstr "Indica se deve-se ou não usar a técnica de otimização memcache."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sss_rpcidmapd.5.xml:85
@@ -18870,7 +18743,7 @@ msgid ""
 "The sss plugin requires the <emphasis>NSS Responder</emphasis> to be enabled "
 "in sssd."
 msgstr ""
-"O plugin sss requer o <emphasis>NSS Responder</emphasis> para ser activo em "
+"O plugin sss requer o <emphasis>NSS Responder</emphasis> para ser ativo em "
 "sssd."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -19052,16 +18925,16 @@ msgid ""
 "certificate is valid SSSD will extract the public key from the certificate "
 "and convert it into the format expected by sshd."
 msgstr ""
-"Para activar isto a opção <quote>ssh_use_certificate_keys</quote> tem de ser "
+"Para ativar isto a opção <quote>ssh_use_certificate_keys</quote> tem de ser "
 "definida para true (predefinição) na secção [ssh] do <filename>sssd.conf</"
-"filename>. Se a entrada do utilizador conter certificados (veja "
-"<quote>ldap_user_certificate</quote> em <citerefentry><refentrytitle>sssd-"
-"ldap</refentrytitle> <manvolnum>5</manvolnum></citerefentry> para detalhes) "
-"ou existir um certificado numa entrada de sobreposição para o utilizador "
-"(veja <citerefentry><refentrytitle>sss_override</refentrytitle> "
-"<manvolnum>8</manvolnum></citerefentry> ou <citerefentry><refentrytitle>sssd-"
-"ipa</refentrytitle> <manvolnum>5</manvolnum></citerefentry> para detalhes) e "
-"o certificado for válido, o SSSD irá extrair a chave pública a partir do "
+"filename>. Se a entrada do utilizador conter certificados (veja <quote>"
+"ldap_user_certificate</quote> em <citerefentry><refentrytitle>sssd-ldap</"
+"refentrytitle> <manvolnum>5</manvolnum></citerefentry> para detalhes) ou "
+"existir um certificado numa entrada de sobreposição para o utilizador (veja "
+"<citerefentry><refentrytitle>sss_override</refentrytitle> <manvolnum>8</"
+"manvolnum></citerefentry> ou <citerefentry><refentrytitle>sssd-ipa</"
+"refentrytitle> <manvolnum>5</manvolnum></citerefentry> para detalhes) e o "
+"certificado for válido, o SSSD irá extrair a chave pública a partir do "
 "certificado e converte-lo num formato esperado pelo sshd."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
@@ -19235,17 +19108,6 @@ msgstr "OBTENÇÃO DE CHAVE"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:93
-#, fuzzy
-#| msgid ""
-#| "The key lines retrieved from the backend are expected to respect the key "
-#| "format as decribed in the <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> "
-#| "section of <citerefentry><refentrytitle>sshd</refentrytitle> "
-#| "<manvolnum>8</manvolnum></citerefentry>. However, returning only the "
-#| "keytype and the key itself is tolerated, in which case, the hostname "
-#| "received as parameter will be added before the keytype to output a "
-#| "correctly formatted line. The hostname will be added unmodified or just "
-#| "the hostname (no port number), depending on whether the <option>-o</"
-#| "option>,<option>--only-host-name</option> option was provided."
 msgid ""
 "The key lines retrieved from the backend are expected to respect the key "
 "format as described in the <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> "
@@ -19264,8 +19126,8 @@ msgstr ""
 "de chave e a própria chave é tolerado, que no caso, o nome de máquina "
 "recebido como parâmetro será adicionado antes do tipo de chave para resultar "
 "numa linha formatada corretamente. O nome de máquina será adicionado não "
-"modificado apenas o nome de máquina (nenhum número de porto), dependendo de "
-"se a opção <option>-o</option>,<option>--only-host-name</option> foi "
+"modificado ou apenas o nome de máquina (nenhum número de porto), dependendo "
+"de se a opção <option>-o</option>,<option>--only-host-name</option> foi "
 "fornecida."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
@@ -19429,8 +19291,8 @@ msgid ""
 "SSSD is running."
 msgstr ""
 "O <command>sssctl</command> fornece uma maneira simples e unificada de obter "
-"informação acerca do estado do SSSD, tal como o servidor activo, servidores "
-"auto-descobertos, domínios e objectos em cache. Adicionalmente, pode gerir "
+"informação acerca do estado do SSSD, tal como o servidor ativo, servidores "
+"auto-descobertos, domínios e objetos em cache. Adicionalmente, pode gerir "
 "ficheiros de dados do SSSD para resolução de problemas de tal maneira que é "
 "seguro manipula-los enquanto o SSSD está a correr."
 
@@ -19485,12 +19347,12 @@ msgid ""
 "tlog-rec-session is started upon user login, so it can record according to "
 "its configuration."
 msgstr ""
-"O SSSD pode ser configurado para activar o registo de tudo o que "
-"utilizadores específicos veem ou escrevem durante as suas sessões em "
-"terminais de texto. Ex, quando os utilizadores fazer login na consola, ou "
-"via SSH. O próprio SSSD não regista nada, mas garante que o tlog-rec-session "
-"é arrancado após o login do utilizador, para que possa registar de acordo "
-"com a sua configuração."
+"O SSSD pode ser configurado para ativar o registo de tudo o que utilizadores "
+"específicos veem ou escrevem durante as suas sessões em terminais de texto. "
+"Ex, quando os utilizadores fazer login na consola, ou via SSH. O próprio "
+"SSSD não regista nada, mas garante que o tlog-rec-session é arrancado após o "
+"login do utilizador, para que possa registar de acordo com a sua "
+"configuração."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-session-recording.5.xml:48
@@ -19501,7 +19363,7 @@ msgid ""
 "tlog-rec-session can be started in place of the user shell, and know which "
 "actual shell to start, once it set up the recording."
 msgstr ""
-"Para os utilizadores com registo de sessão activo, o SSSD substitui a shell "
+"Para os utilizadores com registo de sessão ativo, o SSSD substitui a shell "
 "do utilizador por tlog-rec-session em respostas NSS, e adiciona uma variável "
 "a especifica a shell original ao ambiente do utilizador, após a configuração "
 "da sessão PAM. Deste modo o tlog-rec-session pode ser arrancado no lugar da "
@@ -19519,7 +19381,7 @@ msgid ""
 "The following snippet of sssd.conf enables session recording for users "
 "\"contractor1\" and \"contractor2\", and group \"students\"."
 msgstr ""
-"O seguinte trecho de sssd.conf activa o registo de sessão para os "
+"O seguinte trecho de sssd.conf ativa o registo de sessão para os "
 "utilizadores \"contractor1\" e \"contractor2\", e grupo \"students\"."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
@@ -19722,10 +19584,9 @@ msgstr ""
 "serviço KCM é tipicamente activado por socket pelo <citerefentry> "
 "<refentrytitle>systemd</refentrytitle> <manvolnum>1</manvolnum> </"
 "citerefentry>. Ao contrário de outros serviços SSSD, este não pode ser "
-"arrancado ao adicionar a string <quote>kcm</quote> à directiva "
-"<quote>service</quote>. <placeholder type=\"programlisting\" id=\"0\"/> Por "
-"favor note que a sua distribuição pode já ter configurado as unidades para "
-"si."
+"arrancado ao adicionar a string <quote>kcm</quote> à diretiva <quote>"
+"service</quote>. <placeholder type=\"programlisting\" id=\"0\"/> Por favor "
+"note que a sua distribuição pode já ter configurado as unidades para si."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-kcm.8.xml:124
@@ -19908,21 +19769,14 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:215
-#, fuzzy
-#| msgid ""
-#| "The KCM service is configured in the <quote>kcm</quote> For a detailed "
-#| "syntax reference, refer to the <quote>FILE FORMAT</quote> section of the "
-#| "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry> manual page."
 msgid ""
 "For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> "
 "section of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> manual page."
 msgstr ""
-"O serviço KCM é configurado em <quote>kcm</quote> Para uma referência "
-"detalhada de sintaxe, consulte a secção <quote>FORMATO DE FICHEIRO</quote> "
-"do manual <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry>."
+"Para uma referência detalhada de sintaxe, consulte a secção <quote>FORMATO "
+"DE FICHEIRO</quote> do manual <citerefentry> <refentrytitle>sssd.conf</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:222
@@ -20009,10 +19863,6 @@ msgstr "max_ccache_size (inteiro)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:279
-#, fuzzy
-#| msgid ""
-#| "How big can a credential cache be per ccache. Each service ticket "
-#| "accounts into this quota."
 msgid ""
 "How big a credential cache be per ccache. Each service ticket counts toward "
 "this quota."
@@ -20027,8 +19877,6 @@ msgstr "Predefinição: 65536"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-kcm.8.xml:288
-#, fuzzy
-#| msgid "tgt_renewal (bool)"
 msgid "tgt_renewal (boolean)"
 msgstr "tgt_renewal (booleano)"
 
@@ -20040,7 +19888,7 @@ msgstr "Activa a funcionalidade de renovações TGT."
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:294
 msgid "Default: False (Automatic renewals disabled)"
-msgstr "Predefinição: False (Renovações automáticas desactivadas)"
+msgstr "Predefinição: False (Renovações automáticas desativadas)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-kcm.8.xml:299
@@ -20316,7 +20164,7 @@ msgid ""
 "Probes the sdap_parse_entry()  function. It is called when parsing of "
 "received object is finished."
 msgstr ""
-"Prova a função sdap_parse_entry(). É chamada quando a análise de objecto "
+"Prova a função sdap_parse_entry(). É chamada quando a análise de objeto "
 "recebido é concluída."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
@@ -20658,7 +20506,7 @@ msgstr "ldap_user_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:45
 msgid "The object class of a user entry in LDAP."
-msgstr "A classe de objecto de uma entrada de utilizador em LDAP."
+msgstr "A classe de objeto de uma entrada de utilizador em LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:48
@@ -20787,7 +20635,7 @@ msgstr "ldap_user_uuid (string)"
 #: sssd-ldap-attributes.5.xml:151
 msgid "The LDAP attribute that contains the UUID/GUID of an LDAP user object."
 msgstr ""
-"O atributo do LDAP que contém o UUID/GUID de um objecto utilizador de LDAP."
+"O atributo do LDAP que contém o UUID/GUID de um objeto utilizador de LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:155 sssd-ldap-attributes.5.xml:726
@@ -20809,8 +20657,8 @@ msgid ""
 "The LDAP attribute that contains the objectSID of an LDAP user object. This "
 "is usually only necessary for ActiveDirectory servers."
 msgstr ""
-"O atributo do LDAP que contém o objectSID de um objecto utilizador LDAP. "
-"Isto é geralmente apenas necessário para servidores ActiveDirectory."
+"O atributo do LDAP que contém o objectSID de um objeto utilizador LDAP. Isto "
+"é geralmente apenas necessário para servidores ActiveDirectory."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:170 sssd-ldap-attributes.5.xml:741
@@ -20832,7 +20680,7 @@ msgid ""
 "parent object."
 msgstr ""
 "O atributo do LDAP que contém a marca temporal da última modificação do "
-"objecto pai."
+"objeto pai."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:184 sssd-ldap-attributes.5.xml:755
@@ -20946,9 +20794,9 @@ msgid ""
 "(password inactivity period)."
 msgstr ""
 "Quando se usa ldap_pwd_policy=shadow, este parâmetro contém o nome de um "
-"atributo LDAP que corresponde ao seu duplicado <citerefentry> "
-"<refentrytitle>shadow</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> (período de inactividade da palavra passe)."
+"atributo LDAP que corresponde ao seu duplicado <citerefentry> <refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum> </citerefentry> (período de "
+"inatividade da palavra passe)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:277
@@ -21092,10 +20940,9 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:381
-#, fuzzy
-#| msgid "Default: uid (rfc2307, rfc2307bis and IPA), sAMAccountName (AD)"
 msgid "Default: loginDisabled (rfc2307, rfc2307bis and IPA), not set (AD)"
-msgstr "Predefinição: uid (rfc2307, rfc2307bis e IPA), sAMAccountName (AD)"
+msgstr ""
+"Predefinição: loginDisabled (rfc2307, rfc2307bis e IPA), não definida (AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:387
@@ -21113,11 +20960,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:395
-#, fuzzy
-#| msgid "Default: cn (rfc2307, rfc2307bis and IPA), sAMAccountName (AD)"
 msgid ""
 "Default: loginExpirationTime (rfc2307, rfc2307bis and IPA), not set (AD)"
-msgstr "Predefinição: cn (rfc2307, rfc2307bis e IPA), sAMAccountName (AD)"
+msgstr ""
+"Predefinição: loginExpirationTime (rfc2307, rfc2307bis e IPA), não definida "
+"(AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:401
@@ -21135,11 +20982,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:409
-#, fuzzy
-#| msgid "Default: uid (rfc2307, rfc2307bis and IPA), sAMAccountName (AD)"
 msgid ""
 "Default: loginAllowedTimeMap (rfc2307, rfc2307bis and IPA), not set (AD)"
-msgstr "Predefinição: uid (rfc2307, rfc2307bis e IPA), sAMAccountName (AD)"
+msgstr ""
+"Predefinição: loginAllowedTimeMap (rfc2307, rfc2307bis e IPA), não definida "
+"(AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:415
@@ -21488,7 +21335,7 @@ msgstr "ldap_group_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:666
 msgid "The object class of a group entry in LDAP."
-msgstr "A classe de objecto de uma entrada de grupo em LDAP."
+msgstr "A classe de objeto de uma entrada de grupo em LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:669
@@ -21551,7 +21398,7 @@ msgstr "ldap_group_uuid (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:722
 msgid "The LDAP attribute that contains the UUID/GUID of an LDAP group object."
-msgstr "O atributo do LDAP que contém o UUID/GUID de um objecto grupo de LDAP."
+msgstr "O atributo do LDAP que contém o UUID/GUID de um objeto grupo de LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:733
@@ -21564,7 +21411,7 @@ msgid ""
 "The LDAP attribute that contains the objectSID of an LDAP group object. This "
 "is usually only necessary for ActiveDirectory servers."
 msgstr ""
-"O atributo do LDAP que contém o objectSID de um objecto grupo LDAP. Isto é "
+"O atributo do LDAP que contém o objectSID de um objeto grupo LDAP. Isto é "
 "geralmente apenas necessário para servidores ActiveDirectory."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -21636,7 +21483,7 @@ msgstr "ldap_netgroup_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:808
 msgid "The object class of a netgroup entry in LDAP."
-msgstr "A classe de objecto de uma entrada netgroup em LDAP."
+msgstr "A classe de objeto de uma entrada netgroup em LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:811
@@ -21725,7 +21572,7 @@ msgstr "ldap_host_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:897
 msgid "The object class of a host entry in LDAP."
-msgstr "A classe de objecto de uma entrada de máquina em LDAP."
+msgstr "A classe de objeto de uma entrada de máquina em LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:900 sssd-ldap-attributes.5.xml:1213
@@ -21799,8 +21646,7 @@ msgstr "ldap_host_uuid (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:974
 msgid "The LDAP attribute that contains the UUID/GUID of an LDAP host object."
-msgstr ""
-"O atributo do LDAP que contém o UUID/GUID de um objecto máquina de LDAP."
+msgstr "O atributo do LDAP que contém o UUID/GUID de um objeto máquina de LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd-ldap-attributes.5.xml:987
@@ -21815,7 +21661,7 @@ msgstr "ldap_service_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:994
 msgid "The object class of a service entry in LDAP."
-msgstr "A classe de objecto de uma entrada de serviço em LDAP."
+msgstr "A classe de objeto de uma entrada de serviço em LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:997
@@ -21881,7 +21727,7 @@ msgstr "ldap_sudorule_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1052
 msgid "The object class of a sudo rule entry in LDAP."
-msgstr "A classe de objecto de uma entrada de regra sudo em LDAP."
+msgstr "A classe de objeto de uma entrada de regra sudo em LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1055
@@ -22075,7 +21921,7 @@ msgstr "ldap_iphost_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1210
 msgid "The object class of an iphost entry in LDAP."
-msgstr "A classe de objecto de uma entrada iphost no LDAP."
+msgstr "A classe de objeto de uma entrada iphost no LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:1219
@@ -22119,7 +21965,7 @@ msgstr "ldap_ipnetwork_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1255
 msgid "The object class of an ipnetwork entry in LDAP."
-msgstr "A classe de objecto de uma entrada ipnetwork no LDAP."
+msgstr "A classe de objeto de uma entrada ipnetwork no LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1258
@@ -22168,7 +22014,7 @@ msgstr "ldap_subuid_object_class (string)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1300
 msgid "The object class of an subid entry in LDAP."
-msgstr "A classe de objecto de uma entrada de subid em LDAP."
+msgstr "A classe de objeto de uma entrada de subid em LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1303
@@ -22311,12 +22157,7 @@ msgstr "CONFIGURAÇÃO"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd_krb5_localauth_plugin.8.xml:56
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[plugins]\n"
-#| " localauth = {\n"
-#| "  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
-#| " }\n"
+#, no-wrap
 msgid ""
 "[plugins]\n"
 " localauth = {\n"
@@ -22326,6 +22167,7 @@ msgid ""
 msgstr ""
 "[plugins]\n"
 " localauth = {\n"
+"  disable = an2ln\n"
 "  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
 " }\n"
 
@@ -22362,6 +22204,15 @@ msgid ""
 "modules provided by MIT Kerberos, e.g.  <command>k5login</command> are not "
 "affected."
 msgstr ""
+"Este trecho de configuração também desativa o módulo <command>an2ln</"
+"command> fornecido pelo MIT Kerberos se o SSSD estiver configurado para usar "
+"o provedor AD ou IPA. Nesses ambientes <command>sssd_krb5_localauth_plugin</"
+"command> pode mapear  de forma fiável os nomes de utilizador do sistema para "
+"principais do Kerberos. Um recorrer ao <command>an2ln</command> pode causar "
+"problemas em ambientes onde os utilizadores têm o privilégio de criar "
+"principais de Kerberos por si próprios o que pode colidir com nomes de "
+"outros utilizadores usados no sistema. Outros módulos fornecidos pelo MIT "
+"Kerberos, ex.  <command>k5login</command> não são afetados."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:79
@@ -22370,6 +22221,9 @@ msgid ""
 "<command>sssd_krb5_localauth_plugin</command> is not used, therefore the "
 "above text is not applicable."
 msgstr ""
+"Nota: Se usar <quote>auth_provider = krb5</quote> então <command>"
+"sssd_krb5_localauth_plugin</command> não é usado, assim o texto de cima não "
+"é aplicado."
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: include/autofs_attributes.xml:3
@@ -22379,7 +22233,7 @@ msgstr "ldap_autofs_map_object_class (string)"
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/autofs_attributes.xml:6
 msgid "The object class of an automount map entry in LDAP."
-msgstr "A classe de objecto de uma entrada automount map no LDAP."
+msgstr "A classe de objeto de uma entrada automount map no LDAP."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/autofs_attributes.xml:9
@@ -22417,7 +22271,7 @@ msgid ""
 "The object class of an automount entry in LDAP. The entry usually "
 "corresponds to a mount point."
 msgstr ""
-"A classe objecto de uma entrada automount no LDAP.. A entrada geralmente "
+"A classe objeto de uma entrada automount no LDAP. A entrada geralmente "
 "corresponde a um ponto de montagem."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
@@ -22530,8 +22384,8 @@ msgid ""
 "The queries usually specify _tcp as the protocol. Exceptions are documented "
 "in respective option description."
 msgstr ""
-"As consultas geralmente especificam _tcp como o protocolo. As excepções "
-"estão documentadas na descrição da opção respectiva."
+"As consultas geralmente especificam _tcp como o protocolo. As exceções estão "
+"documentadas na descrição da opção respetiva."
 
 #. type: Content of: <refsect1><refsect2><title>
 #: include/service_discovery.xml:42
@@ -22602,14 +22456,14 @@ msgid ""
 "periodically try to reconnect to one of the primary servers. If it succeeds, "
 "it will replace the current active (backup) server."
 msgstr ""
-"Para cada opção de configuração activa-failover, existem duas variantes: "
+"Para cada opção de configuração ativa-failover, existem duas variantes: "
 "<emphasis>primary</emphasis> e <emphasis>backup</emphasis>.  A ideia é que "
 "os servidores na lista primária são preferidos e os servidores backup são "
 "apenas procurados se os servidores primários não puderem ser alcançados. Se "
 "um servidor backup for selecionado, é definido um tempo limite de 31 "
 "segundos. Após este tempo limite o SSSD irá periodicamente tentar re-ligar a "
 "um dos servidores primários. Se tiver sucesso, irá substituir o servidor "
-"actualmente activo (backup)."
+"actualmente ativo (backup)."
 
 #. type: Content of: <refsect1><refsect2><title>
 #: include/failover.xml:27
@@ -22789,7 +22643,7 @@ msgid ""
 "assigned and manually-assigned values. If you need to use manually-assigned "
 "values, ALL values must be manually-assigned."
 msgstr ""
-"NOTA: Quando o mapeamento de ID está activo, os atributos uidNumber e "
+"NOTA: Quando o mapeamento de ID está ativo, os atributos uidNumber e "
 "gidNumber são ignorados. Isto é para evitar a possibilidade de conflitos "
 "entre valores designados automaticamente e designados manualmente. Se você "
 "precisa usar valores designados manualmente, TODOS os valores têm de ser "
@@ -22865,10 +22719,10 @@ msgid ""
 "represent the Active Directory domain identity and the relative identifier "
 "(RID) of the user or group object."
 msgstr ""
-"Active Directory fornece um objectSID para cada objecto utilizador e grupo "
-"no directório. Este objectSID pode ser partido em componentes que "
-"representam a identidade de domínio Active Directory e o identificador "
-"relativo (RID) do objecto utilizador ou grupo."
+"Active Directory fornece um objectSID para cada objeto utilizador e grupo no "
+"directório. Este objectSID pode ser partido em componentes que representam a "
+"identidade de domínio Active Directory e o identificador relativo (RID) do "
+"objeto utilizador ou grupo."
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:67
@@ -22919,12 +22773,12 @@ msgid ""
 "configure a default domain to guarantee that at least one is always "
 "consistent. See <quote>Configuration</quote> for details."
 msgstr ""
-"NOTA: É possível de se encontrar colisões na cinza e modulus subsequentes. "
+"NOTA: É possível de se encontrar colisões na cinza e módulos subsequentes. "
 "Nestas situações, iremos selecionar a próxima fatia disponível, mas pode não "
 "ser possível de reproduzir o mesmo conjunto exacto de fatias em outras "
 "máquinas (pois a ordem com que são encontradas irá determinar a sua fatia). "
 "Nesta situação, é recomendado ou mudar para usar atributos POSIX explícitos "
-"em Active Directory (desactivando o mapeamento de ID) ou configurar um "
+"em Active Directory (desativando o mapeamento de ID) ou configurar um "
 "domínio predefinido para garantir que pelo menos um é sempre consistente. "
 "Veja <quote>Configuração</quote> para detalhes."
 
@@ -23124,7 +22978,7 @@ msgid ""
 "slice zero and increasing monotonically with each additional domain."
 msgstr ""
 "Quando esta opção está configurada, os domínios serão alocados começando da "
-"fatia zero e aumentando monotonicamente com cada domínio adicional."
+"fatia zero e aumentando monotonamente com cada domínio adicional."
 
 #. type: Content of: <refsect1><refsect2><refsect3><variablelist><varlistentry><listitem><para>
 #: include/ldap_id_mapping.xml:240
@@ -23185,7 +23039,7 @@ msgstr ""
 "SSSD suporta procurar nomes de SIDs Well-Known, isto é, SIDs com um "
 "significado especial codificado. Como os utilizadores e grupos genéricos "
 "relacionados a esses SIDs Well-Known não têm equivalente num ambiente Linux/"
-"UNIX, nenhuns IDs de POSIX estão disponíveis para esses objectos."
+"UNIX, nenhuns IDs de POSIX estão disponíveis para esses objetos."
 
 #. type: Content of: <refsect1><refsect2><para>
 #: include/ldap_id_mapping.xml:287
@@ -23295,8 +23149,8 @@ msgid ""
 msgstr ""
 "O SSSD suporta duas representações para especificar o nível de depuração. A "
 "mais simples é para especificar um valor decimal de 0-9, o que representa "
-"activar esse nível e todas as mensagens de depuração de baixo-nível. A opção "
-"mais compreensiva é especificar uma máscara de bits hexadecimal para activar "
+"ativar esse nível e todas as mensagens de depuração de baixo-nível. A opção "
+"mais compreensiva é especificar uma máscara de bits hexadecimal para ativar "
 "ou desactivar níveis específicos (tais como você desejar suprimir um nível)."
 
 #. type: Content of: <listitem><para>
@@ -23309,8 +23163,8 @@ msgid ""
 "should be added to all sections that you wish to produce debug logs from."
 msgstr ""
 "Por favor note que cada serviço SSSD regista para o seu próprio ficheiro de "
-"registo. E também por favor note que activar <quote>debug_level</quote> na "
-"secção <quote>[sssd]</quote> apenas activa a depuração só para o próprio "
+"registo. E também por favor note que ativar <quote>debug_level</quote> na "
+"secção <quote>[sssd]</quote> apenas ativa a depuração só para o próprio "
 "processo sssd, não para os processos do respondedor ou provedor. O parâmetro "
 "<quote>debug_level</quote> deve ser adicionado a todas as secções que você "
 "deseje que produzam registos de depuração."
@@ -23810,7 +23664,7 @@ msgid ""
 "below:"
 msgstr ""
 "Certas predefinições de opções não correspondem às suas predefinições de "
-"backend respectivos, estes nomes de opção e predefinições específicas de "
+"backend respetivos, estes nomes de opção e predefinições específicas de "
 "provedor AD estão listadas em baixo:"
 
 #. type: Content of: <refsect1><refsect2><title>
@@ -23888,7 +23742,7 @@ msgstr ""
 "provedor LDAP, porque num ambiente Active Directory os principais são "
 "divididos em dois grupos - Principais de Utilizador e Principais de Serviço. "
 "Apenas o Principal de Utilizador pode ser usado para obter um TGT e por "
-"predefinição, o principal de objecto de computador é constituído pelo seu "
+"predefinição, o principal de objeto de computador é constituído pelo seu "
 "sAMAccountName e o reino AD, O principal host/hostname@REALM well-known é um "
 "Principal de Serviço e assim não pode ser usado para se obter TGT com ele."
 
@@ -23947,7 +23801,7 @@ msgid ""
 "below:"
 msgstr ""
 "Certas predefinições de opções não correspondem às suas predefinições de "
-"backend respectivos, estes nomes de opção e predefinições específicas de "
+"backend respetivos, estes nomes de opção e predefinições específicas de "
 "provedor IPA estão listadas em baixo:"
 
 #. type: Content of: <refsect1><refsect2><itemizedlist><listitem><para>
@@ -24218,7 +24072,7 @@ msgstr ""
 #: include/krb5_options.xml:144
 msgid "If this option is not set or is 0 the automatic renewal is disabled."
 msgstr ""
-"Se esta opção não for definida ou for 0 a renovação automática é desactivada."
+"Se esta opção não for definida ou for 0 a renovação automática é desativada."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:157
