@@ -8,22 +8,28 @@ on:
 jobs:
 
   accepted-label-set:
-    # Make the job appear as skipped if Accepted label is missing
-    if: >
-      (
-        github.event.action == 'labeled'
-        && github.event.label.name == 'Accepted'
-      ) || (
-        github.event.action == 'synchronize'
-        && contains(github.event.pull_request.labels.*.name, 'Accepted')
-      )
+    # This job is a required status check that gates merging: it must only be
+    # green when the 'Accepted' label is present.
+    #
+    # The job MUST always run (no job-level `if`). A job that is skipped via a
+    # job-level `if` is reported to branch protection as a *successful* required
+    # check, which would enable the merge button even though the label is not
+    # set. Instead, the job always runs and the first step fails the check when
+    # the label is missing (red -> merge blocked), and succeeds when present.
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
 
     steps:
+      - name: Require the 'Accepted' label before merging
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'Accepted') }}
+        run: |
+          echo "::error::This pull request does not have the 'Accepted' label and cannot be merged."
+          exit 1
+
       - name: Checkout Repository
+        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
         uses: actions/checkout@v7
         with:
           # Fetch the entire history of the repository
@@ -35,20 +41,14 @@ jobs:
           persist-credentials: false
           allow-unsafe-pr-checkout: true
 
-      - name: Reviewed-by trailer was already added and pull request is accepted
-        if: github.event.action == 'synchronize'
-        run: |
-          # Just succeed, as the pull request was updated by this job
-          exit 0
-
       - name: Set git user identity
-        if: github.event.action == 'labeled'
+        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
         run: |
           git config --global user.name "sssd-bot"
           git config --global user.email "sssd-maintainers@lists.fedoraproject.org"
 
       - name: Add 'Reviewed-by' trailer
-        if: github.event.action == 'labeled'
+        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
           PR_ID: ${{ github.event.pull_request.number }}
@@ -94,7 +94,7 @@ jobs:
           fi
 
       - name: Add comment to print current CI status
-        if: github.event.action == 'labeled'
+        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
           PR_ID: ${{ github.event.pull_request.number }}
@@ -161,7 +161,7 @@ jobs:
           gh pr comment "$PR_ID" --body-file "$COMMENT_FILE"
 
       - name: Push changes
-        if: github.event.action == 'labeled'
+        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
         env:
           PUSH_TOKEN: ${{ secrets.BOT_TOKEN }}
           FORK_REPO: ${{ github.event.pull_request.head.repo.full_name }}
