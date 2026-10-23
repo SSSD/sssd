@@ -1738,11 +1738,6 @@ pam_p11_allowed_services = +my_pam_service, -login
                                 </listitem>
                                 <listitem>
                                     <para>
-                                        gdm-password
-                                    </para>
-                                </listitem>
-                                <listitem>
-                                    <para>
                                         gdm-switchable-auth
                                     </para>
                                 </listitem>
@@ -1769,6 +1764,16 @@ pam_p11_allowed_services = +my_pam_service, -login
                                 <listitem>
                                     <para>
                                         gnome-screensaver
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        polkit-1
+                                    </para>
+                                </listitem>
+                                <listitem>
+                                    <para>
+                                        vlock
                                     </para>
                                 </listitem>
                             </itemizedlist>
