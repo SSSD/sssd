@@ -284,6 +284,7 @@
 #define CONFDB_KCM_KRB5_VALIDATE "krb5_validate"
 #define CONFDB_KCM_KRB5_CANONICALIZE "krb5_canonicalize"
 #define CONFDB_KCM_KRB5_AUTH_TIMEOUT "krb5_auth_timeout"
+#define CONFDB_KCM_RECV_TIMEOUT "recv_timeout" /* Undocumented on purpose */
 
 /* Certificate mapping rules */
 #define CONFDB_CERTMAP_BASEDN "cn=certmap,cn=config"
