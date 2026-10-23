@@ -344,6 +344,9 @@ struct kcm_req_ctx {
     struct kcm_ctx *kctx;
 
     struct kcm_op_io op_io;
+
+    /* cancel kcm_recv if data is not received in time */
+    struct tevent_timer *recv_timeout;
 };
 
 static void kcm_send_reply(struct kcm_req_ctx *req_ctx)
@@ -472,6 +475,20 @@ static errno_t kcm_recv_data(TALLOC_CTX *mem_ctx,
     return EOK;
 }
 
+static void
+kcm_recv_timeout(struct tevent_context *ev,
+                 struct tevent_timer *te,
+                 struct timeval current_time,
+                 void *ptr)
+{
+    struct kcm_req_ctx *req = talloc_get_type(ptr, struct kcm_req_ctx);
+
+    DEBUG(SSSDBG_OP_FAILURE,
+          "Client %p did not send data in time, killing it\n", req->cctx);
+
+    talloc_free(req->cctx);
+}
+
 /* Mind that kcm_new_req() does not take a mem_ctx argument on purpose as we
  * really want the cctx to be the memory context here so that if the client
  * disconnects, the request goes away. */
@@ -479,6 +496,7 @@ static struct kcm_req_ctx *kcm_new_req(struct cli_ctx *cctx,
                                        struct kcm_ctx *kctx)
 {
     struct kcm_req_ctx *req;
+    struct timeval tv;
 
     req = talloc_zero(cctx, struct kcm_req_ctx);
     if (req == NULL) {
@@ -496,6 +514,18 @@ static struct kcm_req_ctx *kcm_new_req(struct cli_ctx *cctx,
 
     req->cctx = cctx;
     req->kctx = kctx;
+
+    if (kctx->recv_timeout > 0) {
+        tv = tevent_timeval_current_ofs(kctx->recv_timeout, 0);
+        req->recv_timeout = tevent_add_timer(cctx->ev, req, tv, kcm_recv_timeout,
+                                             req);
+        if (req->recv_timeout == NULL) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "Cannot setup kcm_recv timeout\n");
+            talloc_free(req);
+            return NULL;
+        }
+    }
+
 
     return req;
 }
@@ -541,7 +571,8 @@ static void kcm_recv(struct cli_ctx *cctx)
         DEBUG(SSSDBG_TRACE_ALL, "Retry later\n");
         return;
     case EOK:
-        /* all fine */
+        /* all data have been received */
+        talloc_zfree(req->recv_timeout);
         break;
     default:
         DEBUG(SSSDBG_FATAL_FAILURE,
