@@ -1,0 +1,195 @@
+summary: SSSD System Tests
+description: Run SSSD system tests on sssd-ci-containers.
+tag: system
+
+environment:
+  # Repositories to use (defaults to upstream master)
+  SSSD_CI_CONTAINERS: SSSD/sssd-ci-containers@master
+  SSSD_TEST_FRAMEWORK: SSSD/sssd-test-framework@master
+  PYTEST_MH: next-actions/pytest-mh@master
+
+  # sssd-ci-containers image (defaults to automatically detect)
+  TAG: ""
+
+  # COPR project and packages to install on client and IPA (set by packit on PR CI)
+  PACKIT_COPR_PROJECT: ""
+  PACKIT_COPR_RPMS: ""
+
+  # pytest -k expression selecting which tests to run (defaults to auto detect)
+  SELECT_TESTS: ""
+
+  # Additional pytest arguments
+  PYTEST_ARGS: ""
+
+  # Enable pylibssh debugging
+  PYLIBSSH_DEBUG: "0"
+
+provision:
+  how: virtual
+  hardware:
+    memory: ">= 16 GB"
+
+prepare:
+  - name: Install and load kernel module for passkey testing
+    how: shell
+    script: |
+      set -ex -o pipefail
+
+      dnf install -y kernel-modules-extra-$(uname -r)
+      modprobe vhci_hcd
+
+  - name: Install system tests dependencies
+    how: shell
+    script: |
+      set -ex -o pipefail
+
+      # Build dependencies for python-ldap and the test framework.
+      dnf install -y \
+        ansifilter \
+        cyrus-sasl-devel \
+        gcc \
+        git \
+        jq \
+        libssh-devel \
+        openldap-devel \
+        openssl-devel \
+        python3-devel \
+        python3-pip \
+        yq
+
+      # Install the python test dependencies into a virtual environment.
+      # It must live outside $TMT_TREE to avoid clean up between steps.
+      python3 -m venv /tmp/venv
+      source /tmp/venv/bin/activate
+      pip3 install -r "$TMT_TREE/src/tests/system/requirements.txt"
+
+      # Force specific sssd-test-framework repo and branch
+      pip3 install --force-reinstall --no-deps \
+        "git+https://github.com/${SSSD_TEST_FRAMEWORK%@*}.git@${SSSD_TEST_FRAMEWORK##*@}"
+
+      # Force specific pytest-mh repo and branch
+      pip3 install --force-reinstall --no-deps \
+        "git+https://github.com/${PYTEST_MH%@*}.git@${PYTEST_MH##*@}"
+
+  - name: Setup containers and install ci-* commands
+    how: shell
+    script: |
+      set -ex -o pipefail
+
+      # Cloned outside $TMT_TREE to avoid clean up between steps.
+      git clone --depth 1 \
+        --branch "${SSSD_CI_CONTAINERS##*@}" \
+        "https://github.com/${SSSD_CI_CONTAINERS%@*}.git" \
+        /tmp/sssd-ci-containers
+
+      /tmp/sssd-ci-containers/tmt/setup.sh
+
+  - name: Install SSSD from the COPR build
+    how: shell
+    script: ci-install-copr --where "client ipa"
+
+  - name: Restart SSSD on the IPA server
+    how: shell
+    script: |
+      ci-exec.sh --where ipa --user root <<'EOF'
+        systemctl restart sssd
+        rc=$?
+
+        if [ "$rc" -ne 0 ]; then
+            systemctl status sssd.service --no-pager
+            journalctl -xeu sssd.service --no-pager -n 50
+        fi
+
+        exit "$rc"
+      EOF
+
+  - name: Select tests and store the selection in SELECTED_TESTS
+    how: shell
+    script: |
+      set -ex -o pipefail
+
+      ci-select-tests --repo SSSD/sssd
+
+discover:
+  how: shell
+  tests:
+    - name: /system
+      summary: Run the SSSD system test suite
+      duration: 6h
+      test: |
+        set -e -o pipefail
+
+        # Print the environment variables used by this test
+        echo "Environment variables:"
+        echo "  TAG=$SELECTED_TAG"
+        echo ""
+        echo "  SSSD_CI_CONTAINERS=$SSSD_CI_CONTAINERS"
+        echo "  SSSD_TEST_FRAMEWORK=$SSSD_TEST_FRAMEWORK"
+        echo "  PYTEST_MH=$PYTEST_MH"
+        echo "  PYTEST_ARGS=$PYTEST_ARGS"
+        echo "  PYLIBSSH_DEBUG=$PYLIBSSH_DEBUG"
+        echo ""
+        echo "  PACKIT_COPR_PROJECT=$PACKIT_COPR_PROJECT"
+        echo "  PACKIT_COPR_RPMS=$PACKIT_COPR_RPMS"
+        echo ""
+
+        artifacts_dir=$TMT_TEST_DATA/artifacts
+        sysartifacts_dir=$TMT_TEST_DATA/artifacts/system-info
+        mkdir -p "$artifacts_dir" "$sysartifacts_dir"
+
+        # Store system information in artifacts
+        cat /etc/os-release &> "$sysartifacts_dir/test-runner.txt"
+        podman images &> "$sysartifacts_dir/containers.txt"
+
+        # Collect rpms
+        for container in $(podman ps --format '{{.Names}}'); do
+            [ "$container" = "dns" ] && continue
+            sudo podman exec "$container" sh -c 'rpm -qa | sort' \
+                &> "$sysartifacts_dir/rpms-$container.log"
+        done
+
+        # Print the selected tests
+        echo ""
+        echo "Filtering tests:"
+        if [ -n "${SELECTED_TESTS:-}" ]; then
+          echo "$SELECTED_TESTS" | sed 's/ or /\n/g' | sort | sed 's/^/  - /'
+        else
+          echo "  - <all>"
+        fi
+        echo ""
+
+        # Set MH_PYLIBSSH_DEBUG if required
+        if [ "${PYLIBSSH_DEBUG:-0}" = "1" ]; then
+          export MH_PYLIBSSH_DEBUG="$artifacts_dir/libssh.log"
+        fi
+
+        # Remove AD from mhc.yaml
+        yq -i 'del(.domains[0].hosts[] | select(.role == "ad"))' "$TMT_TREE/src/tests/system/mhc.yaml"
+
+        # Run test
+        cd "$TMT_TREE/src/tests/system"
+        source /tmp/venv/bin/activate
+
+        pytest \
+          --durations=0 \
+          --color=yes \
+          --show-capture=no \
+          --mh-config=./mhc.yaml \
+          --mh-artifacts-dir="$artifacts_dir" \
+          -k "${SELECTED_TESTS:-}" \
+          ${PYTEST_ARGS:-} \
+          -vvv . |& tee "$artifacts_dir/pytest-colored.log" || rc=$?
+
+        # Strip color sequence from pytest log
+        ansifilter "$artifacts_dir/pytest-colored.log" -o "$artifacts_dir/pytest.log"
+
+        # Bundle artifacts into a single downloadable tarball, while
+        # keeping the individual files browsable in the TF web UI as well.
+        echo "Creating artifacts tarball..."
+        tar -czf /tmp/artifacts.tar.gz -C "$TMT_TEST_DATA" artifacts
+        mv /tmp/artifacts.tar.gz "$TMT_TEST_DATA/artifacts.tar.gz"
+
+        exit "${rc:-0}"
+
+execute:
+  how: tmt
