@@ -1115,31 +1115,10 @@ static void sdap_pam_auth_handler_done(struct tevent_req *subreq)
     case EOK:
         state->pd->pam_status = PAM_SUCCESS;
         break;
-    case ERR_AUTH_DENIED:
-        state->pd->pam_status = PAM_PERM_DENIED;
-        break;
-    case ERR_AUTH_FAILED:
-        state->pd->pam_status = PAM_AUTH_ERR;
-        break;
     case ERR_SERVER_FAILURE:
-        state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
         be_mark_offline(state->be_ctx);
         break;
-    case ERR_ACCOUNT_EXPIRED:
-        state->pd->pam_status = PAM_ACCT_EXPIRED;
-        break;
-    case ERR_PASSWORD_EXPIRED:
-        state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
-        break;
-    case ERR_ACCOUNT_LOCKED:
-        state->pd->account_locked = true;
-        state->pd->pam_status = PAM_PERM_DENIED;
-        break;
-    case ERR_SC_AUTH_NOT_SUPPORTED:
-        state->pd->pam_status = PAM_BAD_ITEM;
-        break;
     default:
-        state->pd->pam_status = PAM_SYSTEM_ERR;
         break;
     }
 
