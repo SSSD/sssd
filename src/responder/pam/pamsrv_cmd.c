@@ -1282,6 +1282,61 @@ done:
     return ret;
 }
 
+/*
+ * PKCS11_LOGIN_TOKEN_NAME is used by the Gnome Settings Daemon to determine
+ * which token was used to log in, so it can lock the screen (or log out) if
+ * that specific token is later removed. It must only be set once
+ * authentication has genuinely succeeded via the Smartcard, for PAM
+ * services where that is meaningful. In particular gdm-switchable-auth also
+ * allows password authentication, so merely detecting a matching
+ * certificate during pre-auth (handled in add_pam_cert_response()) is not
+ * sufficient here.
+ */
+#define PKCS11_LOGIN_TOKEN_ENV_NAME "PKCS11_LOGIN_TOKEN_NAME"
+
+static errno_t pam_reply_set_pkcs11_login_token_env(struct pam_data *pd)
+{
+    const char *token_name = NULL;
+    char *env;
+    errno_t ret;
+
+    if (pd->cmd != SSS_PAM_AUTHENTICATE
+            || pd->pam_status != PAM_SUCCESS
+            || !IS_SC_AUTHTOK(pd->authtok)
+            || (strcmp(pd->service, "gdm-smartcard") != 0
+                && strcmp(pd->service, "gdm-switchable-auth") != 0)) {
+        return EOK;
+    }
+
+    ret = sss_authtok_get_sc(pd->authtok, NULL, NULL, &token_name, NULL,
+                             NULL, NULL, NULL, NULL, NULL, NULL);
+    if (ret != EOK || token_name == NULL) {
+        DEBUG(SSSDBG_MINOR_FAILURE,
+              "Smartcard authentication succeeded but the token name could "
+              "not be read from the authtok [%d]: %s, cannot set "
+              PKCS11_LOGIN_TOKEN_ENV_NAME ".\n", ret, sss_strerror(ret));
+        return EOK;
+    }
+
+    env = talloc_asprintf(pd, "%s=%s", PKCS11_LOGIN_TOKEN_ENV_NAME,
+                          token_name);
+    if (env == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_asprintf failed.\n");
+        return ENOMEM;
+    }
+
+    ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, strlen(env) + 1,
+                           (uint8_t *)env);
+    talloc_free(env);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "pam_add_response failed to add "
+              PKCS11_LOGIN_TOKEN_ENV_NAME ".\n");
+    }
+
+    return ret;
+}
+
 void pam_reply(struct pam_auth_req *preq)
 {
     struct cli_ctx *cctx;
@@ -1634,6 +1689,12 @@ void pam_reply(struct pam_auth_req *preq)
                   "failed to export the shell to tlog-rec-session.\n");
             goto done;
         }
+    }
+
+    ret = pam_reply_set_pkcs11_login_token_env(pd);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "pam_reply_set_pkcs11_login_token_env failed, ignoring.\n");
     }
 
     resp_c = 0;
