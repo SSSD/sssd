@@ -744,7 +744,7 @@ proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
              * local Smartcard authentication is available. */
             pd->pam_status = PAM_SUCCESS;
         } else {
-            pd->pam_status = PAM_BAD_ITEM;
+            pd->pam_status = ERR_SC_AUTH_NOT_SUPPORTED;
         }
         goto immediately;
     }
@@ -778,7 +778,11 @@ proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
 
 immediately:
     if (pd->pam_status != PAM_SUCCESS) {
-        tevent_req_error(req, EINVAL);
+        if (pd->pam_status == ERR_SC_AUTH_NOT_SUPPORTED) {
+            tevent_req_error(req, ERR_SC_AUTH_NOT_SUPPORTED);
+        } else {
+            tevent_req_error(req, EINVAL);
+        }
     } else {
         tevent_req_done(req);
     }
