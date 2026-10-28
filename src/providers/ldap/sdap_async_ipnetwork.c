@@ -493,6 +493,7 @@ sdap_get_ipnetwork_recv(TALLOC_CTX *mem_ctx,
 struct enum_ipnetworks_state {
     struct tevent_context *ev;
     struct sdap_id_ctx *id_ctx;
+    struct sss_failover_ldap_connection *conn;
     struct sdap_id_op *op;
     struct sss_domain_info *domain;
     struct sysdb_ctx *sysdb;
@@ -508,7 +509,7 @@ struct tevent_req *
 enum_ipnetworks_send(TALLOC_CTX *memctx,
                      struct tevent_context *ev,
                      struct sdap_id_ctx *id_ctx,
-                     struct sdap_id_op *op,
+                     struct sss_failover_ldap_connection *conn,
                      bool purge)
 {
     errno_t ret;
@@ -523,9 +524,9 @@ enum_ipnetworks_send(TALLOC_CTX *memctx,
     state->id_ctx = id_ctx;
     state->domain = id_ctx->be->domain;
     state->sysdb = id_ctx->be->domain->sysdb;
-    state->op = op;
+    state->conn = conn;
 
-    if (id_ctx->srv_opts && id_ctx->srv_opts->max_ipnetwork_value && !purge) {
+    if (conn->srv_opts && conn->srv_opts->max_ipnetwork_value && !purge) {
         state->filter = talloc_asprintf(
                 state,
                 "(&(objectclass=%s)(%s=*)(%s=*)(%s>=%s)(!(%s=%s)))",
@@ -533,9 +534,9 @@ enum_ipnetworks_send(TALLOC_CTX *memctx,
                 id_ctx->opts->ipnetwork_map[SDAP_AT_IPNETWORK_NAME].name,
                 id_ctx->opts->ipnetwork_map[SDAP_AT_IPNETWORK_NUMBER].name,
                 id_ctx->opts->ipnetwork_map[SDAP_AT_IPNETWORK_USN].name,
-                id_ctx->srv_opts->max_ipnetwork_value,
+                conn->srv_opts->max_ipnetwork_value,
                 id_ctx->opts->ipnetwork_map[SDAP_AT_IPNETWORK_USN].name,
-                id_ctx->srv_opts->max_ipnetwork_value);
+                conn->srv_opts->max_ipnetwork_value);
     } else {
         state->filter = talloc_asprintf(
                 state,
@@ -560,7 +561,7 @@ enum_ipnetworks_send(TALLOC_CTX *memctx,
     subreq = sdap_get_ipnetwork_send(state, state->ev,
                             state->domain, state->sysdb, state->id_ctx->opts,
                             state->id_ctx->opts->sdom->ipnetwork_search_bases,
-                            sdap_id_op_handle(state->op),
+                            state->conn->sh,
                             state->attrs, state->filter,
                             dp_opt_get_int(state->id_ctx->opts->basic,
                                            SDAP_SEARCH_TIMEOUT),
@@ -599,19 +600,19 @@ enum_ipnetworks_op_done(struct tevent_req *subreq)
     }
 
     if (usn_value) {
-        talloc_zfree(state->id_ctx->srv_opts->max_ipnetwork_value);
-        state->id_ctx->srv_opts->max_ipnetwork_value =
+        talloc_zfree(state->conn->srv_opts->max_ipnetwork_value);
+        state->conn->srv_opts->max_ipnetwork_value =
                 talloc_steal(state->id_ctx, usn_value);
         errno = 0;
         usn_number = strtoul(usn_value, &endptr, 10);
         if (!errno && endptr && (*endptr == '\0') && (endptr != usn_value)
-            && (usn_number > state->id_ctx->srv_opts->last_usn)) {
-            state->id_ctx->srv_opts->last_usn = usn_number;
+            && (usn_number > state->conn->srv_opts->last_usn)) {
+            state->conn->srv_opts->last_usn = usn_number;
         }
     }
 
     DEBUG(SSSDBG_FUNC_DATA, "IP network higher USN value: [%s]\n",
-              state->id_ctx->srv_opts->max_ipnetwork_value);
+              state->conn->srv_opts->max_ipnetwork_value);
 
     tevent_req_done(req);
 }

@@ -50,7 +50,7 @@ struct tevent_req *
 sdap_ad_resolve_sids_send(TALLOC_CTX *mem_ctx,
                           struct tevent_context *ev,
                           struct sdap_id_ctx *id_ctx,
-                          struct sdap_id_conn_ctx *conn,
+                          struct sss_failover_ctx *fctx,
                           struct sdap_options *opts,
                           struct sss_domain_info *domain,
                           char **sids);

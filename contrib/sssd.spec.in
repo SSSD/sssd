@@ -50,7 +50,6 @@ Requires: sssd-common = %{version}-%{release}
 Requires: sssd-ipa = %{version}-%{release}
 Requires: sssd-krb5 = %{version}-%{release}
 Requires: sssd-ldap = %{version}-%{release}
-Requires: sssd-minimal = %{version}-%{release}
 Requires: sssd-proxy = %{version}-%{release}
 Suggests: logrotate
 Suggests: procps-ng
@@ -265,15 +264,6 @@ Requires: libsss_certmap = %{version}-%{release}
 %description ldap
 Provides the LDAP back end that the SSSD can utilize to fetch identity data
 from and authenticate against an LDAP server.
-
-%package minimal
-Summary: The minimal back end of the SSSD
-License: GPL-3.0-or-later
-Requires: sssd-common = %{version}-%{release}
-
-%description minimal
-Provides the minimal back end that the SSSD can utilize as a minimal
-identity provider.
 
 %package krb5-common
 Summary: SSSD helpers needed for Kerberos and GSSAPI authentication
@@ -785,10 +775,6 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_mandir}/man5/sssd-ldap.5*
 %{_mandir}/man5/sssd-ldap-attributes.5*
 
-%files minimal
-%license COPYING
-%{_libdir}/%{name}/libsss_minimal.so
-
 %files krb5-common
 %license COPYING
 %attr(775,sssd,sssd) %dir %{pubconfpath}/krb5.include.d
@@ -810,13 +796,13 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %files ipa -f sssd_ipa.lang
 %license COPYING
 %attr(770,sssd,sssd) %dir %{keytabdir}
-%{_libdir}/%{name}/libsss_ipa.so
+#%{_libdir}/%{name}/libsss_ipa.so
 %attr(0750,root,sssd) %caps(cap_setuid,cap_setgid=p) %{_libexecdir}/%{servicename}/selinux_child
 %{_mandir}/man5/sssd-ipa.5*
 
 %files ad -f sssd_ad.lang
 %license COPYING
-%{_libdir}/%{name}/libsss_ad.so
+#%{_libdir}/%{name}/libsss_ad.so
 %{_libexecdir}/%{servicename}/gpo_child
 %{_mandir}/man5/sssd-ad.5*
 
