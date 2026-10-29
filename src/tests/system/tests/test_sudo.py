@@ -11,6 +11,7 @@ import time
 from datetime import datetime, timedelta
 
 import pytest
+from sssd_test_framework.markers import require_sssd_version
 from sssd_test_framework.roles.ad import AD
 from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericADProvider, GenericProvider
@@ -660,6 +661,12 @@ def test_sudo__ldap_sudo_search_base_not_set_emits_warning(client: Client, ldap:
 @pytest.mark.importance("high")
 @pytest.mark.ticket(jira=["RHEL-192062"], gh=8897)
 @pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.require(
+    # RHEL only (downstream nightlies/gating/signoff); do not skip upstream CentOS PRCI.
+    require_sssd_version("2.13.1-4", distro_ids=("rhel",)),
+    "Needs sssd >= 2.13.1-4 on RHEL for sudo_provider=none warning suppression "
+    "(RHEL-192062 / gh-8897)",
+)
 def test_sudo__ldap_sudo_provider_disabled_not_emits_warning(client: Client, ldap: LDAP):
     """
     :title: Security warning is not emitted when sudo_provider is explicitly disabled
@@ -704,6 +711,12 @@ def test_sudo__ldap_sudo_provider_disabled_not_emits_warning(client: Client, lda
 @pytest.mark.ticket(gh=9030)
 @pytest.mark.topology(KnownTopology.IPA)
 @pytest.mark.topology(KnownTopology.LDAP)
+@pytest.mark.require(
+    # Same gate for every topology: RHEL nightlies/gating/signoff only; not CentOS PRCI.
+    require_sssd_version("2.13.1-3", distro_ids=("rhel",)),
+    "Needs sssd >= 2.13.1-3 on RHEL for ldap_sudo_search_base warning suppression "
+    "(RHEL-248164 / gh-9030)",
+)
 def test_sudo__search_base_set_by_provider_no_warning(client: Client, provider: GenericProvider):
     """
     :title: No spurious warning about ldap_sudo_search_base when it is set by the provider
@@ -716,10 +729,10 @@ def test_sudo__search_base_set_by_provider_no_warning(client: Client, provider: 
         2. Create sudorule to allow "user-1" run "/bin/ls" on all hosts
         3. Enable SSSD sudo responder
         4. Set ldap_sudo_search_base explicitly for LDAP provider (IPA sets it automatically)
-        5. Start SSSD
+        5. Clear the journal and start SSSD
     :steps:
         1. List sudo rules for "user-1" to trigger sudo operations
-        2. Read the SSSD domain debug log and check the system journal
+        2. Read the SSSD domain debug log and the sssd unit journal (since clear)
     :expectedresults:
         1. Sudo rules are retrieved successfully
         2. Neither the domain log nor the journal contains the search base warning
@@ -731,6 +744,7 @@ def test_sudo__search_base_set_by_provider_no_warning(client: Client, provider: 
     client.sssd.common.sudo()
     if isinstance(provider, LDAP):
         client.sssd.domain["ldap_sudo_search_base"] = provider.ldap.naming_context
+    client.journald.clear()
     client.sssd.start()
 
     assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed!"
@@ -740,9 +754,12 @@ def test_sudo__search_base_set_by_provider_no_warning(client: Client, provider: 
         "`ldap_sudo_search_base` is not set" not in log
     ), "Domain log must not contain search base warning when provider sets it!"
 
-    assert not client.journald.is_match(
-        r"`ldap_sudo_search_base` is not set",
-        unit="sssd",
+    # Avoid journald.is_match(..., unit="sssd"): journalctl --grep can ignore
+    # --since on some RHEL builds and return leftover alerts from earlier tests.
+    # Fetch with --since only (from clear()), then match in Python.
+    journal = client.journald.journalctl(unit="sssd").stdout
+    assert (
+        "`ldap_sudo_search_base` is not set" not in journal
     ), "Journal must not contain search base alert when provider sets it!"
 
 
