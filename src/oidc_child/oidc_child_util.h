@@ -77,6 +77,12 @@ struct devicecode_ctx {
     const char *jwks_uri;
     const char *scope;
 
+    /* DARC (Device Authorization with Return Confirmation) request
+     * parameters, NULL when not used. */
+    const char *login_hint;
+    const char *authorization_details;
+    const char *confirmation_input;
+
     char *user_code;
     char *device_code;
     char *verification_uri;
@@ -84,6 +90,14 @@ struct devicecode_ctx {
     char *message;
     int interval;
     int expires_in;
+
+    /* DARC: from the device authorization response. */
+    bool confirmation_required;
+    int confirmation_code_length;
+    char *confirmation_code_charset;
+    /* DARC: the code the user typed, sent with every token request. Read
+     * from the state JSON on stdin ("confirmation_code"). */
+    char *confirmation_code;
 
     struct token_data *td;
 };
@@ -147,6 +161,10 @@ const char *rest_ctx_get_pkcs12_client_creds(const struct rest_ctx *rest_ctx);
 
 const char *rest_ctx_get_key_passwd(const struct rest_ctx *rest_ctx);
 
+/* The PKCS#12 password when it is read from stdin after the context was
+ * created (--get-access-token, --refresh-access-token). */
+void rest_ctx_set_key_passwd(struct rest_ctx *rest_ctx, const char *key_passwd);
+
 /* oidc_child_json.c */
 errno_t parse_openid_configuration(struct devicecode_ctx *dc_ctx);
 
@@ -154,6 +172,14 @@ errno_t parse_result(struct devicecode_ctx *dc_ctx);
 
 errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
                            char **error_description);
+
+/* DARC: the PA-152 version 2 challenge for the KDC client plugin,
+ * "oauth2 {...}". */
+char *get_oauth2_v2_challenge(TALLOC_CTX *mem_ctx,
+                              struct devicecode_ctx *dc_ctx);
+
+/* {"acr": ..., "amr": [...], "auth_time": ...} from the ID token. */
+char *get_auth_context(TALLOC_CTX *mem_ctx, struct devicecode_ctx *dc_ctx);
 
 errno_t decode_token(struct devicecode_ctx *dc_ctx, bool verify);
 

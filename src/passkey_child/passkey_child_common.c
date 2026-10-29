@@ -36,23 +36,6 @@
 #include "passkey_child.h"
 
 
-errno_t
-cose_str_to_int(const char *type, int *out)
-{
-    if (strcasecmp(type, "es256") == 0) {
-        *out = COSE_ES256;
-    } else if (strcasecmp(type, "rs256") == 0) {
-        *out = COSE_RS256;
-    } else if (strcasecmp(type, "eddsa") == 0) {
-        *out = COSE_EDDSA;
-    } else {
-        *out = 0;
-        return ERR_INVALID_CRED_TYPE;
-    }
-
-    return EOK;
-}
-
 static errno_t
 cred_type_str_to_enum(const char *type, enum credential_type *out)
 {
@@ -173,7 +156,7 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
         {"signature", 0, POPT_ARG_STRING, &data->signature, 0,
          _("Signature"), NULL},
         {"type", 0, POPT_ARG_STRING, &type, 0,
-         _("COSE type to use"), "es256|rs256|eddsa"},
+         _("COSE type to use"), PASSKEY_COSE_TYPES},
         {"user-verification", 0, POPT_ARG_STRING, &user_verification, 0,
          _("Require user-verification"), "true|false"},
         {"cred-type", 0, POPT_ARG_STRING, &cred_type, 0,
@@ -271,8 +254,8 @@ parse_arguments(TALLOC_CTX *mem_ctx, int argc, const char *argv[],
     if (type != NULL) {
         ret = cose_str_to_int(type, &data->type);
         if (ret != EOK) {
-            ERROR("[%s] is not a valid COSE type (es256, rs256 or eddsa).\n",
-                  type);
+            ERROR("[%s] is not a valid COSE type (%s).\n",
+                  type, PASSKEY_COSE_TYPES);
             goto done;
         }
     }
@@ -479,22 +462,7 @@ public_key_to_base64(TALLOC_CTX *mem_ctx, const struct passkey_data *data,
         goto done;
     }
 
-    switch (data->type) {
-    case COSE_ES256:
-        ret = es256_pubkey_to_evp_pkey(mem_ctx, public_key, pk_len, &evp_pkey);
-        break;
-    case COSE_RS256:
-        ret = rs256_pubkey_to_evp_pkey(mem_ctx, public_key, pk_len, &evp_pkey);
-        break;
-    case COSE_EDDSA:
-        ret = eddsa_pubkey_to_evp_pkey(mem_ctx, public_key, pk_len, &evp_pkey);
-        break;
-    default:
-        DEBUG(SSSDBG_OP_FAILURE, "Invalid key type.\n");
-        ret = EINVAL;
-        break;
-    }
-
+    ret = cose_pubkey_to_evp_pkey(data->type, public_key, pk_len, &evp_pkey);
     if (ret != EOK) {
         goto done;
     }
@@ -607,7 +575,6 @@ public_key_to_libfido2(const char *pem_public_key, struct pk_data_t *_pk_data)
     const unsigned char *public_key = NULL;
     size_t pk_len;
     const EVP_PKEY *evp_pkey = NULL;
-    int base_id;
     unsigned long err;
     errno_t ret;
 
@@ -633,21 +600,7 @@ public_key_to_libfido2(const char *pem_public_key, struct pk_data_t *_pk_data)
         goto done;
     }
 
-    base_id = EVP_PKEY_get_base_id(evp_pkey);
-    if (base_id == EVP_PKEY_EC) {
-        _pk_data->type = COSE_ES256;
-        ret = evp_pkey_to_es256_pubkey(evp_pkey, _pk_data);
-    } else if (base_id == EVP_PKEY_RSA) {
-        _pk_data->type = COSE_RS256;
-        ret = evp_pkey_to_rs256_pubkey(evp_pkey, _pk_data);
-    } else if (base_id == EVP_PKEY_ED25519) {
-        _pk_data->type = COSE_EDDSA;
-        ret = evp_pkey_to_eddsa_pubkey(evp_pkey, _pk_data);
-    } else {
-        DEBUG(SSSDBG_OP_FAILURE,
-              "Unrecognized key type.\n");
-        ret = EINVAL;
-    }
+    ret = evp_pkey_to_cose_pubkey(evp_pkey, _pk_data);
     if (ret != EOK) {
         goto done;
     }

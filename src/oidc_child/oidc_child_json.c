@@ -419,6 +419,35 @@ errno_t parse_result(struct devicecode_ctx *dc_ctx)
     dc_ctx->interval = get_json_integer(root, "interval", true);
     dc_ctx->expires_in = get_json_integer(root, "expires_in", true);
 
+    /* DARC: in the device authorization response. */
+    dc_ctx->confirmation_required =
+                    json_is_true(json_object_get(root, "confirmation_required"));
+    if (dc_ctx->confirmation_required) {
+        dc_ctx->confirmation_code_length =
+                    get_json_integer(root, "confirmation_code_length", true);
+        dc_ctx->confirmation_code_charset =
+                    get_json_string(dc_ctx, root, "confirmation_code_charset");
+        if (dc_ctx->confirmation_code_length <= 0
+                || dc_ctx->confirmation_code_length > 32) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid confirmation_code_length.\n");
+            ret = EINVAL;
+            goto done;
+        }
+    }
+
+    /* DARC: in the state passed back on stdin for --get-access-token, the
+     * code the user typed. */
+    if (json_is_string(json_object_get(root, "confirmation_code"))) {
+        dc_ctx->confirmation_code = get_json_string(dc_ctx, root,
+                                                    "confirmation_code");
+        if (dc_ctx->confirmation_code == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        talloc_set_destructor((void *) dc_ctx->confirmation_code,
+                              sss_erase_talloc_mem_securely);
+    }
+
     ret = EOK;
 
 done:
@@ -470,6 +499,17 @@ errno_t parse_token_result(struct devicecode_ctx *dc_ctx,
             dc_ctx->interval += 5;
             json_decref(result);
             return EAGAIN;
+        } else if (strcmp(json_string_value(tmp), "confirmation_required") == 0
+                   || strcmp(json_string_value(tmp), "invalid_confirmation") == 0) {
+            /* DARC: the user approved, but the code we have (if any) is not
+             * the one the verification page showed. Polling again with the
+             * same input cannot succeed and would use up attempts. */
+            DEBUG(SSSDBG_OP_FAILURE, "Token request failed with [%s]: the "
+                  "confirmation code from the verification page is %s.\n",
+                  json_string_value(tmp),
+                  dc_ctx->confirmation_code == NULL ? "missing" : "wrong");
+            json_decref(result);
+            return EACCES;
         } else {
             *error_description = get_json_string(dc_ctx, result,
                                                  "error_description");
@@ -1329,4 +1369,84 @@ done:
     json_decref(payload);
 
     return jwt;
+}
+
+char *get_oauth2_v2_challenge(TALLOC_CTX *mem_ctx,
+                              struct devicecode_ctx *dc_ctx)
+{
+    json_t *jroot;
+    char *json_str;
+    char *out = NULL;
+
+    if (dc_ctx->verification_uri == NULL || dc_ctx->user_code == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Missing verification_uri or user_code.\n");
+        return NULL;
+    }
+
+    jroot = json_pack("{s:i, s:s, s:s, s:s*, s:s, s:{s:i, s:s}, s:i}",
+                      "v", 2,
+                      "delivery", "page",
+                      "verification_uri", dc_ctx->verification_uri,
+                      "verification_uri_complete",
+                                    dc_ctx->verification_uri_complete,
+                      "user_code", dc_ctx->user_code,
+                      "confirmation",
+                          "length", dc_ctx->confirmation_code_length,
+                          "charset", dc_ctx->confirmation_code_charset != NULL
+                                        ? dc_ctx->confirmation_code_charset
+                                        : "numeric",
+                      "expires_in", dc_ctx->expires_in);
+    if (jroot == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
+        return NULL;
+    }
+
+    json_str = json_dumps(jroot, JSON_COMPACT | JSON_PRESERVE_ORDER);
+    json_decref(jroot);
+    if (json_str == NULL) {
+        return NULL;
+    }
+
+    out = talloc_asprintf(mem_ctx, "oauth2 %s", json_str);
+    free(json_str);
+
+    return out;
+}
+
+char *get_auth_context(TALLOC_CTX *mem_ctx, struct devicecode_ctx *dc_ctx)
+{
+    json_t *payload;
+    json_t *jamr;
+    json_t *jroot;
+    char *json_str;
+    char *out;
+
+    payload = dc_ctx->td != NULL ? dc_ctx->td->id_token_payload : NULL;
+
+    jamr = payload != NULL ? json_object_get(payload, "amr") : NULL;
+    jamr = json_is_array(jamr) ? json_incref(jamr) : json_array();
+
+    /* "o" steals the reference to jamr, also on failure. */
+    jroot = json_pack("{s:O?, s:o, s:O?}",
+                      "acr", payload != NULL ? json_object_get(payload, "acr")
+                                             : NULL,
+                      "amr", jamr,
+                      "auth_time", payload != NULL
+                                        ? json_object_get(payload, "auth_time")
+                                        : NULL);
+    if (jroot == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
+        return NULL;
+    }
+
+    json_str = json_dumps(jroot, JSON_COMPACT | JSON_PRESERVE_ORDER);
+    json_decref(jroot);
+    if (json_str == NULL) {
+        return NULL;
+    }
+
+    out = talloc_strdup(mem_ctx, json_str);
+    free(json_str);
+
+    return out;
 }

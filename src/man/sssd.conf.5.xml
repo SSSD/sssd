@@ -4822,6 +4822,16 @@ ldap_user_extra_attrs = phone:telephoneNumber
                     </varlistentry>
                     </variablelist>
                     </para>
+                    <para>When the identity provider requires a return
+                    confirmation (Kerberos IdP pre-authentication with a
+                    FreeIPA integrated IdP that implements DARC, Device
+                    Authorization with Return Confirmation), the web page
+                    shows a short code after the user approved the sign-in.
+                    The user is then always asked for that code with the
+                    prompt <quote>Confirmation code:</quote>, regardless of
+                    the <quote>interactive</quote> option, and the code
+                    becomes the answer checked by the identity provider.
+                    </para>
                 </listitem>
             </varlistentry>
         </variablelist>

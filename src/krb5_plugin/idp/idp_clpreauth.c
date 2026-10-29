@@ -54,6 +54,70 @@ sss_idpcl_encode_padata(void)
     return padata;
 }
 
+/* DARC: show where to sign in, then ask for the code the verification page
+ * (or the authenticator app) shows after the user approved. */
+static krb5_error_code
+sss_idpcl_prompt_confirmation(krb5_context context,
+                              krb5_prompter_fct prompter,
+                              void *prompter_data,
+                              struct sss_idp_oauth2 *data,
+                              krb5_data *_reply)
+{
+    krb5_error_code ret;
+    krb5_prompt prompt;
+    char *banner;
+    char *prompt_str;
+    int aret;
+
+    /* No character count: the page shows the code in groups ("K7M 2QX"),
+     * which would not match it. Spaces and dashes are ignored anyway. */
+    if (data->delivery != NULL && strcmp(data->delivery, "authenticator") == 0) {
+        aret = asprintf(&banner,
+                        "A sign-in request was sent to your authenticator app.\n"
+                        "Check that it names this computer, approve it, and "
+                        "type the confirmation code it shows, exactly as "
+                        "shown.");
+    } else if (data->verification_uri_complete != NULL) {
+        aret = asprintf(&banner,
+                        "1. On your phone or another computer, open\n"
+                        "     %1$s\n"
+                        "   and check that it shows the code %2$s\n"
+                        "2. Sign in and approve.\n"
+                        "3. The page then shows a confirmation code. "
+                        "Type it here exactly as shown.",
+                        data->verification_uri_complete, data->user_code);
+    } else {
+        aret = asprintf(&banner,
+                        "1. On your phone or another computer, open\n"
+                        "     %1$s   and enter  %2$s\n"
+                        "2. Sign in and approve.\n"
+                        "3. The page then shows a confirmation code. "
+                        "Type it here exactly as shown.",
+                        data->verification_uri, data->user_code);
+    }
+    if (aret < 0) {
+        return ENOMEM;
+    }
+
+    prompt_str = strdup("Confirmation code");
+    if (prompt_str == NULL) {
+        free(banner);
+        return ENOMEM;
+    }
+
+    prompt.reply = _reply;
+    prompt.prompt = prompt_str;
+    /* The code is single-use and bound to this login; echo it so the user
+     * can see what they typed. */
+    prompt.hidden = 0;
+
+    ret = (*prompter)(context, prompter_data, NULL, banner, 1, &prompt);
+    free(banner);
+    free(prompt_str);
+
+    return ret;
+}
+
 static krb5_error_code
 sss_idpcl_prompt(krb5_context context,
                  krb5_prompter_fct prompter,
@@ -65,6 +129,11 @@ sss_idpcl_prompt(krb5_context context,
     krb5_prompt prompt;
     char *prompt_str;
     int aret;
+
+    if (sss_idp_oauth2_needs_confirmation(data)) {
+        return sss_idpcl_prompt_confirmation(context, prompter, prompter_data,
+                                             data, _reply);
+    }
 
     if (data->verification_uri_complete != NULL) {
         aret = asprintf(&prompt_str,
@@ -150,6 +219,7 @@ sss_idpcl_process(krb5_context context,
     struct sss_idp_oauth2 *data = NULL;
     char prompt_answer[255] = {0};
     const char *answer;
+    const char *code = NULL;
 
     data = sss_idp_oauth2_decode_padata(pa_data);
     if (data == NULL) {
@@ -177,6 +247,17 @@ sss_idpcl_process(krb5_context context,
         if (ret != 0) {
             goto done;
         }
+
+        if (reply.length >= sizeof(prompt_answer)) {
+            ret = EINVAL;
+            goto done;
+        }
+        prompt_answer[reply.length] = '\0';
+        code = prompt_answer;
+    } else {
+        /* The responder (SSSD krb5_child) answers with the code the user
+         * typed; version 1 answers are ignored. */
+        code = answer;
     }
 
     /* Use FAST armor key as response key. */
@@ -185,11 +266,27 @@ sss_idpcl_process(krb5_context context,
         goto done;
     }
 
-    /* Encode the request into the pa_data output. */
-    padata = sss_idpcl_encode_padata();
-    if (padata == NULL) {
-        ret = ENOMEM;
-        goto done;
+    /* Encode the request into the pa_data output. DARC (version 2 with
+     * confirmation): "oauth2-confirm <code>"; version 1: empty. */
+    if (sss_idp_oauth2_needs_confirmation(data)) {
+        padata = calloc(2, sizeof(krb5_pa_data *));
+        if (padata == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
+        padata[0] = sss_idp_oauth2_encode_confirm_padata(code);
+        if (padata[0] == NULL) {
+            free(padata);
+            /* Nothing usable was typed. */
+            ret = KRB5_PREAUTH_FAILED;
+            goto done;
+        }
+    } else {
+        padata = sss_idpcl_encode_padata();
+        if (padata == NULL) {
+            ret = ENOMEM;
+            goto done;
+        }
     }
 
     cb->disable_fallback(context, rock);
@@ -198,6 +295,7 @@ sss_idpcl_process(krb5_context context,
     ret = 0;
 
 done:
+    explicit_bzero(prompt_answer, sizeof(prompt_answer));
     sss_idp_oauth2_free(data);
     return ret;
 }

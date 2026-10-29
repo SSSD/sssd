@@ -58,6 +58,9 @@ struct oauth2_data {
     char *code;
     char *init_prompt;
     char *link_prompt;
+    /* DARC: "<charset>:<length>:<delivery>" when the user must type the
+     * confirmation code shown after approval, NULL otherwise. */
+    char *confirmation;
 };
 
 struct sc_data {

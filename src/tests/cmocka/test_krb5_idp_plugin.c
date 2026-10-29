@@ -140,6 +140,117 @@ void test_sss_idp_oauth2_decode_challenge__ok(void **state)
     sss_idp_oauth2_free(data);
 }
 
+void test_sss_idp_oauth2_decode_challenge__v2(void **state)
+{
+    struct sss_idp_oauth2 *data;
+    char *str;
+
+    /* DARC: page delivery with a confirmation code. */
+    data = sss_idp_oauth2_decode_challenge("oauth2 {\"v\":2,\"delivery\":\"page\",\"verification_uri\":\"https://id.example.com/device\",\"user_code\":\"WDJB-MJHT\",\"confirmation\":{\"length\":6,\"charset\":\"numeric\"},\"expires_in\":600}");
+    assert_non_null(data);
+    assert_int_equal(data->version, 2);
+    assert_string_equal(data->delivery, "page");
+    assert_string_equal(data->user_code, "WDJB-MJHT");
+    assert_int_equal(data->confirmation_length, 6);
+    assert_string_equal(data->confirmation_charset, "numeric");
+    assert_int_equal(data->expires_in, 600);
+    assert_true(sss_idp_oauth2_needs_confirmation(data));
+
+    /* Round trip. */
+    str = sss_idp_oauth2_encode_challenge(data);
+    assert_non_null(str);
+    assert_string_equal(str, "oauth2 {\"v\":2,\"delivery\":\"page\",\"verification_uri\":\"https://id.example.com/device\",\"user_code\":\"WDJB-MJHT\",\"confirmation\":{\"length\":6,\"charset\":\"numeric\"},\"expires_in\":600}");
+    free(str);
+    sss_idp_oauth2_free(data);
+
+    /* Version 2 without confirmation (policy "off"): behaves like v1. */
+    data = sss_idp_oauth2_decode_challenge("oauth2 {\"v\":2,\"delivery\":\"page\",\"verification_uri\":\"https://id.example.com/device\",\"user_code\":\"WDJB-MJHT\"}");
+    assert_non_null(data);
+    assert_false(sss_idp_oauth2_needs_confirmation(data));
+    sss_idp_oauth2_free(data);
+
+    /* Authenticator delivery needs no URI, but needs a code. */
+    data = sss_idp_oauth2_decode_challenge("oauth2 {\"v\":2,\"delivery\":\"authenticator\",\"confirmation\":{\"length\":6}}");
+    assert_non_null(data);
+    assert_null(data->verification_uri);
+    assert_true(sss_idp_oauth2_needs_confirmation(data));
+    sss_idp_oauth2_free(data);
+
+    data = sss_idp_oauth2_decode_challenge("oauth2 {\"v\":2,\"delivery\":\"authenticator\"}");
+    assert_null(data);
+
+    /* A v1 payload never asks for a code. */
+    data = sss_idp_oauth2_decode_challenge("oauth2 {\"verification_uri\":\"https://visit.me\",\"user_code\":\"123456\",\"confirmation\":{\"length\":6}}");
+    assert_non_null(data);
+    assert_int_equal(data->version, 1);
+    assert_false(sss_idp_oauth2_needs_confirmation(data));
+    sss_idp_oauth2_free(data);
+
+    /* Unreasonable lengths are rejected. */
+    data = sss_idp_oauth2_decode_challenge("oauth2 {\"v\":2,\"verification_uri\":\"https://x\",\"user_code\":\"A\",\"confirmation\":{\"length\":1000}}");
+    assert_null(data);
+}
+
+void test_sss_idp_oauth2_confirm_padata(void **state)
+{
+    krb5_pa_data *padata;
+    krb5_pa_data empty = {0};
+    char *code;
+
+    padata = sss_idp_oauth2_encode_confirm_padata(" 481 207 ");
+    assert_non_null(padata);
+    assert_int_equal(padata->pa_type, SSSD_IDP_OAUTH2_PADATA);
+    assert_string_equal((char *)padata->contents, "oauth2-confirm 481207");
+    assert_int_equal(padata->length, strlen("oauth2-confirm 481207") + 1);
+
+    code = sss_idp_oauth2_decode_confirm_padata(padata);
+    assert_non_null(code);
+    assert_string_equal(code, "481207");
+    free(code);
+    free(padata->contents);
+    free(padata);
+
+    /* Nothing typed, or garbage. */
+    assert_null(sss_idp_oauth2_encode_confirm_padata(""));
+    assert_null(sss_idp_oauth2_encode_confirm_padata(" - "));
+    assert_null(sss_idp_oauth2_encode_confirm_padata("48\x01" "1207"));
+    assert_null(sss_idp_oauth2_encode_confirm_padata("123456789012345678901234567890123"));
+
+    /* Version 1 empty PA-152 is not a confirmation. */
+    empty.pa_type = SSSD_IDP_OAUTH2_PADATA;
+    assert_null(sss_idp_oauth2_decode_confirm_padata(&empty));
+
+    /* Wrong prefix, missing terminator. */
+    padata = sss_idp_oauth2_encode_confirm_padata("123456");
+    assert_non_null(padata);
+    memcpy(padata->contents, "oauth2-nope", strlen("oauth2-nope"));
+    assert_null(sss_idp_oauth2_decode_confirm_padata(padata));
+    padata->length--;
+    assert_null(sss_idp_oauth2_decode_confirm_padata(padata));
+    free(padata->contents);
+    free(padata);
+}
+
+void test_sss_idp_oauth2_accept_indicators(void **state)
+{
+    char **ind;
+
+    ind = sss_idp_oauth2_decode_accept_indicators("oauth2 {\"v\":2,\"indicators\":[\"idp-confirmed\",\"otp\",\"idp-mfa\",7]}");
+    assert_non_null(ind);
+    assert_string_equal(ind[0], "idp-confirmed");
+    assert_string_equal(ind[1], "idp-mfa");
+    assert_null(ind[2]);
+    free(ind[0]);
+    free(ind[1]);
+    free(ind);
+
+    /* Only idp-* names may be added by the RADIUS server. */
+    assert_null(sss_idp_oauth2_decode_accept_indicators("oauth2 {\"indicators\":[\"hardened\"]}"));
+    assert_null(sss_idp_oauth2_decode_accept_indicators("oauth2 {}"));
+    assert_null(sss_idp_oauth2_decode_accept_indicators("not oauth2"));
+    assert_null(sss_idp_oauth2_decode_accept_indicators(NULL));
+}
+
 void test_sss_idp_config_init__invalid(void **state)
 {
     struct sss_idp_config *idpcfg;
@@ -221,6 +332,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_sss_idp_oauth2_encode_challenge__ok),
         cmocka_unit_test(test_sss_idp_oauth2_decode_challenge__invalid),
         cmocka_unit_test(test_sss_idp_oauth2_decode_challenge__ok),
+        cmocka_unit_test(test_sss_idp_oauth2_decode_challenge__v2),
+        cmocka_unit_test(test_sss_idp_oauth2_confirm_padata),
+        cmocka_unit_test(test_sss_idp_oauth2_accept_indicators),
         cmocka_unit_test(test_sss_idp_config_init__invalid),
         cmocka_unit_test(test_sss_idp_config_init__unsupported_type),
         cmocka_unit_test(test_sss_idp_config_init__oauth2),

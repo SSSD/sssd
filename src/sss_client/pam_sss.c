@@ -275,6 +275,18 @@ static void overwrite_and_free_pam_items(struct pam_items *pi)
     free(pi->otp_challenge);
     pi->otp_challenge = NULL;
 
+    free(pi->oauth2_url);
+    pi->oauth2_url = NULL;
+
+    free(pi->oauth2_url_complete);
+    pi->oauth2_url_complete = NULL;
+
+    free(pi->oauth2_pin);
+    pi->oauth2_pin = NULL;
+
+    free(pi->oauth2_confirmation);
+    pi->oauth2_confirmation = NULL;
+
     free(pi->passkey_key);
     pi->passkey_key = NULL;
 
@@ -1413,6 +1425,19 @@ static int eval_response(pam_handle_t *pamh, size_t buflen, uint8_t *buf,
                     break;
                 }
 
+                /* DARC: optional fourth string describing the confirmation
+                 * code the user must type. */
+                free(pi->oauth2_confirmation);
+                pi->oauth2_confirmation = NULL;
+                offset = offset + strlen(pi->oauth2_pin) + 1;
+                if (offset < len && buf[p + offset] != '\0') {
+                    pi->oauth2_confirmation = strdup((char *) &buf[p + offset]);
+                    if (pi->oauth2_confirmation == NULL) {
+                        D(("strdup failed"));
+                        break;
+                    }
+                }
+
                 break;
             case SSS_PAM_PASSKEY_KRB_INFO:
                 free(pi->passkey_prompt_pin);
@@ -2013,11 +2038,87 @@ static int prompt_2fa_single(pam_handle_t *pamh, struct pam_items *pi,
     return PAM_SUCCESS;
 }
 
+/* DARC: the user signs in on another device, approves, and types the code
+ * the verification page (or authenticator app) shows. That code is the
+ * OAuth2 authtok; the IdP checks it. */
+static int prompt_oauth2_confirmation(pam_handle_t *pamh, struct pam_items *pi)
+{
+    char charset[32] = { 0 };
+    char delivery[32] = { 0 };
+    int length = 0;
+    char *answer = NULL;
+    char *msg;
+    int ret;
+
+    if (sscanf(pi->oauth2_confirmation, "%31[^:]:%d:%31s",
+               charset, &length, delivery) < 2 || length <= 0) {
+        D(("Malformed oauth2 confirmation description."));
+        return PAM_SYSTEM_ERR;
+    }
+
+    /* No character count: the page shows the code in groups ("K7M 2QX"),
+     * which would not match it. Spaces and dashes are ignored anyway. */
+    if (strcmp(delivery, "authenticator") == 0) {
+        ret = asprintf(&msg, "%s", _("A sign-in request was sent to your "
+                                     "authenticator app. Check that it names "
+                                     "this computer, approve it, and type "
+                                     "the confirmation code it shows, "
+                                     "exactly as shown."));
+    } else if (pi->oauth2_url_complete != NULL) {
+        ret = asprintf(&msg, _("1. On your phone or another computer, open "
+                               "\"%1$s\" and check that it shows the code "
+                               "\"%2$s\".\n"
+                               "2. Sign in and approve.\n"
+                               "3. The page then shows a confirmation code. "
+                               "Type it here exactly as shown."),
+                       pi->oauth2_url_complete, pi->oauth2_pin);
+    } else {
+        ret = asprintf(&msg, _("1. On your phone or another computer, open "
+                               "\"%1$s\" and enter the code \"%2$s\".\n"
+                               "2. Sign in and approve.\n"
+                               "3. The page then shows a confirmation code. "
+                               "Type it here exactly as shown."),
+                       pi->oauth2_url, pi->oauth2_pin);
+    }
+    if (ret == -1) {
+        return PAM_SYSTEM_ERR;
+    }
+
+    ret = do_pam_conversation(pamh, PAM_TEXT_INFO, msg, NULL, NULL);
+    free(msg);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return ret;
+    }
+
+    ret = do_pam_conversation(pamh, PAM_PROMPT_ECHO_ON,
+                              _("Confirmation code: "), NULL, &answer);
+    if (ret != PAM_SUCCESS) {
+        D(("do_pam_conversation failed."));
+        return ret;
+    }
+
+    if (answer == NULL || answer[0] == '\0') {
+        free(answer);
+        return PAM_AUTHTOK_ERR;
+    }
+
+    pi->pam_authtok = answer;
+    pi->pam_authtok_type = SSS_AUTHTOK_TYPE_OAUTH2;
+    pi->pam_authtok_size = strlen(pi->pam_authtok);
+
+    return PAM_SUCCESS;
+}
+
 static int prompt_oauth2(pam_handle_t *pamh, struct pam_items *pi,
                          const char *prompt)
 {
     char *msg;
     int ret;
+
+    if (pi->oauth2_confirmation != NULL) {
+        return prompt_oauth2_confirmation(pamh, pi);
+    }
 
     if (pi->oauth2_pin == NULL) {
         D(("Missing oauth2_pin."));
