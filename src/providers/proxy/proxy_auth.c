@@ -592,7 +592,6 @@ static void proxy_pam_conv_done(struct tevent_req *subreq)
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to get reply from child [%d]: %s\n",
               ret, sss_strerror(ret));
-        state->pd->pam_status = PAM_SYSTEM_ERR;
         tevent_req_error(req, ret);
         return;
     }
@@ -725,6 +724,7 @@ proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
     struct proxy_pam_handler_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
+    errno_t ret = EINVAL;
 
     req = tevent_req_create(mem_ctx, &state, struct proxy_pam_handler_state);
     if (req == NULL) {
@@ -742,9 +742,9 @@ proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
         if (pd->cmd == SSS_PAM_PREAUTH) {
             /* just return success and let the PAM responder figure out if
              * local Smartcard authentication is available. */
-            pd->pam_status = PAM_SUCCESS;
+            ret = EOK;
         } else {
-            pd->pam_status = ERR_SC_AUTH_NOT_SUPPORTED;
+            ret = ERR_SC_AUTH_NOT_SUPPORTED;
         }
         goto immediately;
     }
@@ -758,7 +758,7 @@ proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
         /* Queue the request and spawn a child if there is an available slot. */
         subreq = proxy_child_send(state, proxy_auth_ctx, state->pd);
         if (subreq == NULL) {
-            pd->pam_status = PAM_SYSTEM_ERR;
+            ret = ENOMEM;
             goto immediately;
         }
         tevent_req_set_callback(subreq, proxy_pam_handler_done, req);
@@ -766,26 +766,18 @@ proxy_pam_handler_send(TALLOC_CTX *mem_ctx,
     case SSS_PAM_SETCRED:
     case SSS_PAM_OPEN_SESSION:
     case SSS_PAM_CLOSE_SESSION:
-        pd->pam_status = PAM_SUCCESS;
+        ret = EOK;
         goto immediately;
     default:
         DEBUG(SSSDBG_CRIT_FAILURE, "Unsupported PAM task %d\n", pd->cmd);
-        pd->pam_status = PAM_MODULE_UNKNOWN;
+        ret = ERR_INVALID_DATA_TYPE;
         goto immediately;
     }
 
     return req;
 
 immediately:
-    if (pd->pam_status != PAM_SUCCESS) {
-        if (pd->pam_status == ERR_SC_AUTH_NOT_SUPPORTED) {
-            tevent_req_error(req, ERR_SC_AUTH_NOT_SUPPORTED);
-        } else {
-            tevent_req_error(req, EINVAL);
-        }
-    } else {
-        tevent_req_done(req);
-    }
+    tevent_req_done_or_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;
@@ -811,7 +803,6 @@ static void proxy_pam_handler_done(struct tevent_req *subreq)
 
     talloc_zfree(subreq);
     if (ret != EOK) {
-        state->pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
 

@@ -1022,6 +1022,7 @@ sdap_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
     struct sdap_pam_auth_handler_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
+    errno_t ret;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_pam_auth_handler_state);
@@ -1033,14 +1034,13 @@ sdap_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
     state->pd = pd;
     state->be_ctx = params->be_ctx;
     state->auth_ctx = auth_ctx;
-    pd->pam_status = PAM_SYSTEM_ERR;
+    ret = EINVAL;
 
     switch (pd->cmd) {
     case SSS_PAM_AUTHENTICATE:
         subreq = auth_send(state, params->ev, auth_ctx,
                            pd->user, pd->authtok, false);
         if (subreq == NULL) {
-            pd->pam_status = PAM_SYSTEM_ERR;
             goto immediately;
         }
 
@@ -1050,35 +1050,29 @@ sdap_pam_auth_handler_send(TALLOC_CTX *mem_ctx,
         subreq = auth_send(state, params->ev, auth_ctx,
                            pd->user, pd->authtok, true);
         if (subreq == NULL) {
-            pd->pam_status = PAM_SYSTEM_ERR;
             goto immediately;
         }
 
         tevent_req_set_callback(subreq, sdap_pam_auth_handler_done, req);
         break;
     case SSS_PAM_CHAUTHTOK:
-        pd->pam_status = PAM_SYSTEM_ERR;
         goto immediately;
 
     case SSS_PAM_ACCT_MGMT:
     case SSS_PAM_SETCRED:
     case SSS_PAM_OPEN_SESSION:
     case SSS_PAM_CLOSE_SESSION:
-        pd->pam_status = PAM_SUCCESS;
+        ret = EOK;
         goto immediately;
     default:
-        pd->pam_status = PAM_MODULE_UNKNOWN;
+        ret = ERR_INVALID_DATA_TYPE;
         goto immediately;
     }
 
     return req;
 
 immediately:
-    if (pd->pam_status != PAM_SUCCESS) {
-        tevent_req_error(req, EINVAL);
-    } else {
-        tevent_req_done(req);
-    }
+    tevent_req_done_or_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;
@@ -1106,14 +1100,12 @@ static void sdap_pam_auth_handler_done(struct tevent_req *subreq)
                                 state->auth_ctx->opts);
         if (ret == EINVAL) {
             /* Unknown password expiration type. */
-            state->pd->pam_status = PAM_SYSTEM_ERR;
             goto done;
         }
     }
 
     switch (ret) {
     case EOK:
-        state->pd->pam_status = PAM_SUCCESS;
         break;
     case ERR_SERVER_FAILURE:
         be_mark_offline(state->be_ctx);
@@ -1321,6 +1313,7 @@ sdap_pam_chpass_handler_send(TALLOC_CTX *mem_ctx,
     struct sdap_pam_chpass_handler_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
+    errno_t ret = EOK;
 
     req = tevent_req_create(mem_ctx, &state,
                             struct sdap_pam_chpass_handler_state);
@@ -1335,7 +1328,7 @@ sdap_pam_chpass_handler_send(TALLOC_CTX *mem_ctx,
     state->ev = params->ev;
 
     if (be_is_offline(state->be_ctx)) {
-        pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+        ret = ERR_SERVER_FAILURE;
         goto immediately;
     }
 
@@ -1343,14 +1336,14 @@ sdap_pam_chpass_handler_send(TALLOC_CTX *mem_ctx,
         (sss_authtok_get_type(pd->authtok) != SSS_AUTHTOK_TYPE_PASSWORD)) {
         DEBUG(SSSDBG_CONF_SETTINGS,
               "Password reset by root is not supported.\n");
-        pd->pam_status = PAM_PERM_DENIED;
+        ret = ERR_ACCOUNT_LOCKED;
         goto immediately;
     }
 
     DEBUG(SSSDBG_OP_FAILURE,
           "starting password change request for user [%s].\n", pd->user);
 
-    pd->pam_status = PAM_SYSTEM_ERR;
+    ret = EINVAL;
 
     if (pd->cmd != SSS_PAM_CHAUTHTOK && pd->cmd != SSS_PAM_CHAUTHTOK_PRELIM) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -1361,7 +1354,6 @@ sdap_pam_chpass_handler_send(TALLOC_CTX *mem_ctx,
     subreq = auth_send(state, params->ev, auth_ctx,
                        pd->user, pd->authtok, true);
     if (subreq == NULL) {
-        pd->pam_status = PAM_SYSTEM_ERR;
         goto immediately;
     }
 
@@ -1370,11 +1362,7 @@ sdap_pam_chpass_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    if (pd->pam_status != PAM_SUCCESS) {
-        tevent_req_error(req, EINVAL);
-    } else {
-        tevent_req_done(req);
-    }
+    tevent_req_done_or_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;
@@ -1420,7 +1408,6 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
         state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
         DEBUG(SSSDBG_TRACE_ALL, "Initial authentication for change "
               "password operation successful.\n");
-        state->pd->pam_status = PAM_SUCCESS;
         goto done;
     }
 
@@ -1436,7 +1423,6 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
             if (ret == ERR_PASSWORD_EXPIRED) {
                 DEBUG(SSSDBG_CRIT_FAILURE, "LDAP provider cannot change "
                       "kerberos passwords.\n");
-                state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
             break;
@@ -1447,7 +1433,6 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
             DEBUG(SSSDBG_CRIT_FAILURE,
                   "Unknown password expiration type %d.\n",
                   state->pw_expire_type);
-            state->pd->pam_status = PAM_SYSTEM_ERR;
             goto done;
         }
     }
@@ -1468,7 +1453,6 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
             break;
         case ERR_AUTH_DENIED:
         case ERR_AUTH_FAILED:
-            state->pd->pam_status = PAM_AUTH_ERR;
             ret = pack_user_info_chpass_error(state->pd, "Old password not "
                                               "accepted.", &msg_len, &msg);
             if (ret != EOK) {
@@ -1483,20 +1467,14 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
             }
             break;
         case ERR_SERVER_FAILURE:
-            state->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
             be_mark_offline(state->be_ctx);
             break;
         default:
-            state->pd->pam_status = PAM_SYSTEM_ERR;
             break;
         }
 
 done:
-    if (state->pd->pam_status != PAM_SUCCESS) {
-        tevent_req_error(req, ret);
-    } else {
-        tevent_req_done(req);
-    }
+    tevent_req_done_or_error(req, ret);
 }
 
 static int
@@ -1546,7 +1524,6 @@ sdap_pam_chpass_handler_change_step(struct sdap_pam_chpass_handler_state *state,
     if (subreq == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to change password for "
               "%s\n", state->pd->user);
-        state->pd->pam_status = PAM_SYSTEM_ERR;
         return ENOMEM;
     }
 
@@ -1578,25 +1555,20 @@ static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
             ret = sysdb_update_user_shadow_last_change(state->be_ctx->domain,
                     state->pd->user, SYSDB_SHADOWPW_LASTCHANGE);
             if (ret != EOK) {
-                state->pd->pam_status = PAM_SYSTEM_ERR;
                 goto done;
             }
         }
 
-        state->pd->pam_status = PAM_SUCCESS;
         break;
     case ERR_CHPASS_DENIED:
-        state->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
         break;
     case ERR_SERVER_FAILURE:
-        state->pd->pam_status = PAM_AUTHTOK_ERR;
         break;
     default:
-        state->pd->pam_status = PAM_SYSTEM_ERR;
         break;
     }
 
-    if (state->pd->pam_status != PAM_SUCCESS && user_error_message != NULL) {
+    if (ret != EOK && user_error_message != NULL) {
         ret = pack_user_info_chpass_error(state->pd, user_error_message,
                                           &msg_len, &msg);
         if (ret != EOK) {
@@ -1609,7 +1581,7 @@ static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
         }
     }
 
-    if (state->pd->pam_status == PAM_SUCCESS &&
+    if (ret == EOK &&
         dp_opt_get_bool(state->auth_ctx->opts->basic,
                         SDAP_CHPASS_UPDATE_LAST_CHANGE)) {
         lastchanged_name = state->auth_ctx->opts->user_map[SDAP_AT_SP_LSTCHG].name;
@@ -1618,7 +1590,7 @@ static void sdap_pam_chpass_handler_chpass_done(struct tevent_req *subreq)
                                                     state->sh, state->dn,
                                                     lastchanged_name);
         if (subreq == NULL) {
-            state->pd->pam_status = PAM_SYSTEM_ERR;
+            ret = EINVAL;
             goto done;
         }
 
@@ -1632,22 +1604,17 @@ done:
 
 static void sdap_pam_chpass_handler_last_done(struct tevent_req *subreq)
 {
-    struct sdap_pam_chpass_handler_state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sdap_pam_chpass_handler_state);
 
     ret = sdap_modify_shadow_lastchange_recv(subreq);
     talloc_free(subreq);
 
     if (ret != EOK) {
-        state->pd->pam_status = PAM_SYSTEM_ERR;
         goto done;
     }
-
-    state->pd->pam_status = PAM_SUCCESS;
 
 done:
 
@@ -1659,13 +1626,7 @@ sdap_pam_chpass_handler_recv(TALLOC_CTX *mem_ctx,
                              struct tevent_req *req,
                              struct pam_data **_data)
 {
-    struct sdap_pam_chpass_handler_state *state = NULL;
-
-    state = tevent_req_data(req, struct sdap_pam_chpass_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *_data = talloc_steal(mem_ctx, state->pd);
 
     return EOK;
 }
