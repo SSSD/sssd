@@ -3,10 +3,12 @@ description: Run SSSD system tests on sssd-ci-containers.
 tag: system
 
 environment:
-  # Repositories to use (defaults to upstream master)
+  # Containers always come from this pin (not from requirements.txt).
   SSSD_CI_CONTAINERS: SSSD/sssd-ci-containers@master
-  SSSD_TEST_FRAMEWORK: SSSD/sssd-test-framework@master
-  PYTEST_MH: next-actions/pytest-mh@master
+  # Optional overrides for packages already installed from requirements.txt.
+  # Leave empty to keep whatever src/tests/system/requirements.txt installed.
+  SSSD_TEST_FRAMEWORK: ""
+  PYTEST_MH: ""
 
   # sssd-ci-containers image (defaults to automatically detect)
   TAG: ""
@@ -63,13 +65,17 @@ prepare:
       source /tmp/venv/bin/activate
       pip3 install -r "$TMT_TREE/src/tests/system/requirements.txt"
 
-      # Force specific sssd-test-framework repo and branch
-      pip3 install --force-reinstall --no-deps \
-        "git+https://github.com/${SSSD_TEST_FRAMEWORK%@*}.git@${SSSD_TEST_FRAMEWORK##*@}"
+      # Optional: replace packages from requirements.txt when env is set
+      # (e.g. /packit test --env SSSD_TEST_FRAMEWORK=owner/repo@branch).
+      if [ -n "${SSSD_TEST_FRAMEWORK:-}" ]; then
+        pip3 install --force-reinstall --no-deps \
+          "git+https://github.com/${SSSD_TEST_FRAMEWORK%@*}.git@${SSSD_TEST_FRAMEWORK##*@}"
+      fi
 
-      # Force specific pytest-mh repo and branch
-      pip3 install --force-reinstall --no-deps \
-        "git+https://github.com/${PYTEST_MH%@*}.git@${PYTEST_MH##*@}"
+      if [ -n "${PYTEST_MH:-}" ]; then
+        pip3 install --force-reinstall --no-deps \
+          "git+https://github.com/${PYTEST_MH%@*}.git@${PYTEST_MH##*@}"
+      fi
 
   - name: Setup containers and install ci-* commands
     how: shell
