@@ -29,7 +29,7 @@ def test_ldap__ppolicy_user_login_then_changes_password(client: Client, ldap: LD
          covers  LDAP. This test is an edited copy that only tests LDAP with the ppolicy overlay.
     :setup:
         1. Create user 'user'
-        2. Configure SSSD with 'ldap_pwmodify_mode = exop | ldap_modify | exop_force' and 'ldap_user_ppolicy = true
+        2. Configure SSSD with 'ldap_pwmodify_mode = exop | ldap_modify | exop_force' and 'ldap_user_ppolicy = true'
         3. Start SSSD
     :steps:
         1. Login as user
