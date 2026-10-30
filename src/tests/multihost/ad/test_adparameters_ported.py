@@ -2942,44 +2942,6 @@ class TestADParamsPorted:
                                 f" stable:{stable}, final: {final}."
 
     @staticmethod
-    @pytest.mark.tier1_2
-    @pytest.mark.converted('test_ldap_extra_attrs.py', 'test_ldap_extra_attrs__filled')
-    def test_0037_ad_parameters_extra_attrs_mail(multihost, adjoin):
-        """
-        :title: IDM-SSSD-TC: ad_provider: ad_parameters: SSSD fails to start
-         when ldap user extra attrs contains mail bz1362023
-        :id: c250bf95-6bc8-44bb-a91c-705a142d6350
-        :setup:
-          1. Add mail to ldap_user_extra_attrs
-        :steps:
-          1. Clear cache and restart sssd.
-        :expectedresults:
-          1. SSSD starts.
-        :customerscenario: False
-        :bugzilla: https://bugzilla.redhat.com/show_bug.cgi?id=1362023
-        """
-        adjoin(membersw='adcli')
-        client = sssdTools(multihost.client[0], multihost.ad[0])
-        ad_realm = multihost.ad[0].domainname.upper()
-        ad_realm_short = ad_realm.rsplit('.', 1)[0]
-        # Configure sssd to enable logging
-        dom_section = f'domain/{client.get_domain_section_name()}'
-        sssd_params = {
-            'ldap_id_mapping': 'True',
-            'krb5_realm': f'{ad_realm_short}',
-            'ad_domain': multihost.ad[0].domainname,
-            'debug_level': '9',
-            'use_fully_qualified_names': 'True',
-            'cache_credentials': 'True',
-            'krb5_store_password_if_offline': 'True',
-            'ldap_user_extra_attrs': 'mail, firstname:givenname, lastname:sn',
-        }
-        client.sssd_conf(dom_section, sssd_params)
-
-        # Clear cache and restart SSSD
-        client.clear_sssd_cache()
-
-    @staticmethod
     @pytest.mark.tier2
     def test_0038_ad_parameters_authentication_failure_invalid_keytab(
             multihost, adjoin, create_aduser_group):
