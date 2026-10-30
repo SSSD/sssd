@@ -26,34 +26,6 @@
 #include "providers/data_provider/dp_private.h"
 #include "sss_iface/sss_iface_async.h"
 
-void dp_sbus_reset_users_ncache(struct data_provider *provider,
-                                struct sss_domain_info *dom)
-{
-    if (provider == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No provider pointer\n");
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Ordering responders to reset user negative cache\n");
-
-    sbus_emit_resp_negcache_ResetUsers(provider->sbus_conn, SSS_BUS_PATH);
-}
-
-void dp_sbus_reset_groups_ncache(struct data_provider *provider,
-                                 struct sss_domain_info *dom)
-{
-    if (provider == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "No provider pointer\n");
-        return;
-    }
-
-    DEBUG(SSSDBG_TRACE_FUNC,
-          "Ordering responders to reset group negative cache\n");
-
-    sbus_emit_resp_negcache_ResetGroups(provider->sbus_conn, SSS_BUS_PATH);
-}
-
 void dp_sbus_reset_users_memcache(struct data_provider *provider)
 {
     if (provider == NULL) {

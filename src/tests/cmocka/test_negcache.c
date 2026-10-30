@@ -117,7 +117,7 @@ static int setup(void **state)
     ts = talloc(NULL, struct test_state);
     assert_non_null(ts);
 
-    ret = sss_ncache_init(ts, SHORTSPAN, &ts->ctx);
+    ret = sss_ncache_init(ts, SHORTSPAN, 0, NULL, &ts->ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(ts->ctx);
 
@@ -142,7 +142,7 @@ static void test_sss_ncache_init(void **state)
     memctx = talloc_new(NULL);
     assert_non_null(memctx);
 
-    ret = sss_ncache_init(memctx, SHORTSPAN, &ctx);
+    ret = sss_ncache_init(memctx, SHORTSPAN, 0, NULL, &ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(ctx);
 
@@ -170,9 +170,6 @@ static void test_sss_ncache_uid(void **state)
 
     /* test when uid is present in database */
     permanent = true;
-
-    ret = sss_ncache_reset_permanent(ts->ctx);
-    assert_int_equal(ret, EOK);
 
     ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, uid);
     assert_int_equal(ret, EOK);
@@ -532,27 +529,6 @@ static void test_sss_ncache_service_port(void **state)
 }
 
 
-static void test_sss_ncache_reset_permanent(void **state)
-{
-    int ret;
-    struct test_state *ts;
-    const bool permanent = true;
-
-    ts = talloc_get_type_abort(*state, struct test_state);
-
-    ret = sss_ncache_set_uid(ts->ctx, permanent, NULL, 0);
-    assert_int_equal(ret, EOK);
-
-    ret = sss_ncache_check_uid(ts->ctx, NULL, 0);
-    assert_int_equal(ret, EEXIST);
-
-    ret = sss_ncache_reset_permanent(ts->ctx);
-    assert_int_equal(ret, EOK);
-
-    ret = sss_ncache_check_uid(ts->ctx, NULL, 0);
-    assert_int_equal(ret, ENOENT);
-}
-
 static int check_user_in_ncache(struct sss_nc_ctx *ctx,
                                 struct sss_domain_info *dom,
                                 const char *name)
@@ -670,14 +646,17 @@ static void test_sss_ncache_prepopulate(void **state)
     ret = sysdb_update_subdomains(tc->dom, tc->confdb);
     assert_int_equal(ret, EOK);
 
-    ncache = ts->ctx;
     ts->rctx = mock_rctx(ts, ev, tc->dom, ts->nctx);
     assert_non_null(ts->rctx);
+    ts->rctx->cdb = tc->confdb;
+
+    ret = sss_ncache_init(ts, SHORTSPAN, 0, ts->rctx, &ncache);
+    assert_int_equal(ret, EOK);
 
     ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &tc->dom->names);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_prepopulate(ncache, tc->confdb, ts->rctx);
+    ret = sss_ncache_prepopulate(ncache);
     assert_int_equal(ret, EOK);
 
     sleep(SHORTSPAN);
@@ -817,14 +796,17 @@ static void test_sss_ncache_prepopulate_filter_ids(void **state)
     ret = sysdb_update_subdomains(tc->dom, tc->confdb);
     assert_int_equal(ret, EOK);
 
-    ncache = ts->ctx;
     ts->rctx = mock_rctx(ts, ev, tc->dom, ts->nctx);
     assert_non_null(ts->rctx);
+    ts->rctx->cdb = tc->confdb;
+
+    ret = sss_ncache_init(ts, SHORTSPAN, 0, ts->rctx, &ncache);
+    assert_int_equal(ret, EOK);
 
     ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &tc->dom->names);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_prepopulate(ncache, tc->confdb, ts->rctx);
+    ret = sss_ncache_prepopulate(ncache);
     assert_int_equal(ret, EOK);
 
     /* The [nss] ranges apply to every domain, boundaries included */
@@ -896,67 +878,6 @@ static void test_sss_ncache_prepopulate_filter_ids(void **state)
         ret = check_uid_in_ncache(ncache, not_filtered[j]);
         assert_int_equal(ret, ENOENT);
     }
-
-    /* A range holding a single ID is stored as a permanent entry, just like
-     * a name coming from filter_users, so flushing the users and the groups
-     * must leave it alone. An ordinary, non permanent ID entry is dropped. */
-    ret = sss_ncache_set_uid(ncache, false, tc->dom, 2222);
-    assert_int_equal(ret, EOK);
-
-    ret = sss_ncache_set_gid(ncache, false, tc->dom, 3333);
-    assert_int_equal(ret, EOK);
-
-    ret = sss_ncache_reset_users(ncache);
-    assert_int_equal(ret, EOK);
-
-    ret = sss_ncache_reset_groups(ncache);
-    assert_int_equal(ret, EOK);
-
-    ret = sss_ncache_check_uid(ncache, tc->dom, 2222);
-    assert_int_equal(ret, ENOENT);
-
-    ret = sss_ncache_check_gid(ncache, tc->dom, 3333);
-    assert_int_equal(ret, ENOENT);
-
-    /* the single ID filters are still there */
-    ret = sss_ncache_check_uid(ncache, tc->dom, 1234);
-    assert_int_equal(ret, EEXIST);
-
-    ret = check_uid_in_ncache(ncache, 65534);
-    assert_int_equal(ret, EEXIST);
-
-    ret = sss_ncache_check_gid(ncache, tc->dom, 4321);
-    assert_int_equal(ret, EEXIST);
-
-    /* and so are the real ranges */
-    ret = check_uid_in_ncache(ncache, 500);
-    assert_int_equal(ret, EEXIST);
-
-    ret = check_gid_in_ncache(ncache, 60005);
-    assert_int_equal(ret, EEXIST);
-
-    /* Permanent reset drops the ranges along with the single entries */
-    ret = sss_ncache_reset_permanent(ncache);
-    assert_int_equal(ret, EOK);
-
-    ret = check_uid_in_ncache(ncache, 500);
-    assert_int_equal(ret, ENOENT);
-
-    ret = check_gid_in_ncache(ncache, 60000);
-    assert_int_equal(ret, ENOENT);
-
-    ret = sss_ncache_check_uid(ncache, tc->dom, 1234);
-    assert_int_equal(ret, ENOENT);
-
-    /* ... and a repopulation brings them back */
-    ret = sss_ncache_prepopulate(ncache, tc->confdb, ts->rctx);
-    assert_int_equal(ret, EOK);
-
-    ret = check_uid_in_ncache(ncache, 500);
-    assert_int_equal(ret, EEXIST);
-
-    ret = sss_ncache_check_gid(ncache, tc->dom, 4321);
-    assert_int_equal(ret, EEXIST);
 }
 
 static void test_sss_ncache_default_domain_suffix(void **state)
@@ -990,15 +911,18 @@ static void test_sss_ncache_default_domain_suffix(void **state)
                              TEST_DOM_NAME, TEST_ID_PROVIDER, params);
     assert_non_null(tc);
 
-    ncache = ts->ctx;
     ts->rctx = mock_rctx(ts, ev, dom, ts->nctx);
     assert_non_null(ts->rctx);
     ts->rctx->default_domain = discard_const(TEST_DOM_NAME);
+    ts->rctx->cdb = tc->confdb;
+
+    ret = sss_ncache_init(ts, SHORTSPAN, 0, ts->rctx, &ncache);
+    assert_int_equal(ret, EOK);
 
     ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &dom->names);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_prepopulate(ncache, tc->confdb, ts->rctx);
+    ret = sss_ncache_prepopulate(ncache);
     assert_int_equal(ret, EOK);
 
     ret = check_user_in_ncache(ncache, dom, "testuser1");
@@ -1064,16 +988,18 @@ static void test_sss_ncache_reset_prepopulate(void **state)
                            "filter_groups", sss_nss_filter_groups);
     assert_int_equal(ret, EOK);
 
-    ncache = ts->ctx;
     ts->rctx = mock_rctx(ts, ev, dom, ts->nctx);
     assert_non_null(ts->rctx);
     ts->rctx->default_domain = discard_const(TEST_DOM_NAME);
     ts->rctx->cdb = tc->confdb;
 
+    ret = sss_ncache_init(ts, SHORTSPAN, 0, ts->rctx, &ncache);
+    assert_int_equal(ret, EOK);
+
     ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &dom->names);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    ret = sss_ncache_reset(ncache);
     assert_int_equal(ret, EOK);
 
     /* Add another domain */
@@ -1096,7 +1022,7 @@ static void test_sss_ncache_reset_prepopulate(void **state)
     ret = check_group_in_ncache(ncache, dom2, "testgroup2");
     assert_int_equal(ret, ENOENT);
 
-    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    ret = sss_ncache_reset(ncache);
     assert_int_equal(ret, EOK);
 
     /* First domain should not be known, the second not */
@@ -1320,7 +1246,6 @@ static void run_sss_ncache_short_name_in_domain(void **state,
                            "filter_groups", sss_nss_filter_groups);
     assert_int_equal(ret, EOK);
 
-    ncache = ts->ctx;
     ts->rctx = mock_rctx(ts, ev, dom, ts->nctx);
     assert_non_null(ts->rctx);
     if (use_default_domain_prefix) {
@@ -1328,10 +1253,13 @@ static void run_sss_ncache_short_name_in_domain(void **state,
     }
     ts->rctx->cdb = tc->confdb;
 
+    ret = sss_ncache_init(ts, SHORTSPAN, 0, ts->rctx, &ncache);
+    assert_int_equal(ret, EOK);
+
     ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &dom->names);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    ret = sss_ncache_reset(ncache);
     assert_int_equal(ret, EOK);
 
     /* Add another domain */
@@ -1345,7 +1273,7 @@ static void run_sss_ncache_short_name_in_domain(void **state,
     expect_in_parent(ncache, dom);
     expect_no_entries_in_dom(ncache, dom2);
 
-    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    ret = sss_ncache_reset(ncache);
     assert_int_equal(ret, EOK);
 
     expect_in_parent(ncache, dom);
@@ -1360,7 +1288,7 @@ static void run_sss_ncache_short_name_in_domain(void **state,
     dom->subdomains = sub_dom;
     sub_dom->names = dom->names;
 
-    ret = sss_ncache_reset_repopulate_permanent(ts->rctx, ncache);
+    ret = sss_ncache_reset(ncache);
     assert_int_equal(ret, EOK);
 
     expect_in_parent(ncache, dom);
@@ -1382,67 +1310,141 @@ static void test_sss_ncache_reset(void **state)
 {
     errno_t ret;
     struct test_state *ts;
+    struct tevent_context *ev;
+    struct sss_nc_ctx *ncache;
+    struct sss_test_ctx *tc;
     struct sss_domain_info *dom;
+    struct sss_test_conf_param params[] = {
+        { NULL, NULL },
+    };
 
     ts = talloc_get_type_abort(*state, struct test_state);
-    dom = talloc(ts, struct sss_domain_info);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    dom = talloc_zero(ts, struct sss_domain_info);
     assert_non_null(dom);
+    dom->name = discard_const_p(char, TEST_DOM_NAME);
     dom->case_sensitive = true;
 
+    ts->nctx = mock_nctx(ts);
+    assert_non_null(ts->nctx);
+
+    tc = create_dom_test_ctx(ts, TESTS_PATH, TEST_CONF_DB,
+                             TEST_DOM_NAME, TEST_ID_PROVIDER, params);
+    assert_non_null(tc);
+
+    ts->rctx = mock_rctx(ts, ev, dom, ts->nctx);
+    assert_non_null(ts->rctx);
+    ts->rctx->cdb = tc->confdb;
+
+    ret = sss_ncache_init(ts, SHORTSPAN, 0, ts->rctx, &ncache);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &dom->names);
+    assert_int_equal(ret, EOK);
+
+    /* Populate non-permanent entries of several kinds */
+    ret = sss_ncache_set_uid(ncache, false, NULL, 123);
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_set_user(ncache, false, dom, "foo");
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_set_gid(ncache, false, NULL, 456);
+    assert_int_equal(ret, EOK);
+    ret = sss_ncache_set_group(ncache, false, dom, "bar");
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_uid(ncache, NULL, 123);
+    assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_user(ncache, dom, "foo");
+    assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_gid(ncache, NULL, 456);
+    assert_int_equal(ret, EEXIST);
+    ret = sss_ncache_check_group(ncache, dom, "bar");
+    assert_int_equal(ret, EEXIST);
+
+    /* A reset recreates the cache from scratch: every non-permanent entry,
+     * regardless of kind, is dropped at once. */
+    ret = sss_ncache_reset(ncache);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_uid(ncache, NULL, 123);
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_user(ncache, dom, "foo");
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_gid(ncache, NULL, 456);
+    assert_int_equal(ret, ENOENT);
+    ret = sss_ncache_check_group(ncache, dom, "bar");
+    assert_int_equal(ret, ENOENT);
+}
+
+static void test_sss_ncache_max_entries(void **state)
+{
+    errno_t ret;
+    struct test_state *ts;
+    struct tevent_context *ev;
+    struct sss_nc_ctx *ncache;
+    struct sss_test_ctx *tc;
+    struct sss_domain_info *dom;
+    const uint32_t max_entries = 5;
+    uint32_t i;
+    struct sss_test_conf_param params[] = {
+        { NULL, NULL },
+    };
+
+    ts = talloc_get_type_abort(*state, struct test_state);
+
+    ev = tevent_context_init(ts);
+    assert_non_null(ev);
+
+    dom = talloc_zero(ts, struct sss_domain_info);
+    assert_non_null(dom);
     dom->name = discard_const_p(char, TEST_DOM_NAME);
+    dom->case_sensitive = true;
 
-    /* Set users */
-    ret = sss_ncache_check_uid(ts->ctx, NULL, 123);
-    assert_int_equal(ret, ENOENT);
-    ret = sss_ncache_set_uid(ts->ctx, false, NULL, 123);
-    assert_int_equal(ret, EOK);
-    ret = sss_ncache_check_uid(ts->ctx, NULL, 123);
-    assert_int_equal(ret, EEXIST);
+    ts->nctx = mock_nctx(ts);
+    assert_non_null(ts->nctx);
 
-    ret = sss_ncache_check_user(ts->ctx, dom, "foo");
-    assert_int_equal(ret, ENOENT);
-    ret = sss_ncache_set_user(ts->ctx, false, dom, "foo");
-    assert_int_equal(ret, EOK);
-    ret = sss_ncache_check_user(ts->ctx, dom, "foo");
-    assert_int_equal(ret, EEXIST);
+    tc = create_dom_test_ctx(ts, TESTS_PATH, TEST_CONF_DB,
+                             TEST_DOM_NAME, TEST_ID_PROVIDER, params);
+    assert_non_null(tc);
 
-    /* Set groups */
-    ret = sss_ncache_check_gid(ts->ctx, NULL, 456);
-    assert_int_equal(ret, ENOENT);
-    ret = sss_ncache_set_gid(ts->ctx, false, NULL, 456);
-    assert_int_equal(ret, EOK);
-    ret = sss_ncache_check_gid(ts->ctx, NULL, 456);
-    assert_int_equal(ret, EEXIST);
+    ts->rctx = mock_rctx(ts, ev, dom, ts->nctx);
+    assert_non_null(ts->rctx);
+    ts->rctx->cdb = tc->confdb;
 
-    ret = sss_ncache_check_group(ts->ctx, dom, "bar");
-    assert_int_equal(ret, ENOENT);
-    ret = sss_ncache_set_group(ts->ctx, false, dom, "bar");
-    assert_int_equal(ret, EOK);
-    ret = sss_ncache_check_group(ts->ctx, dom, "bar");
-    assert_int_equal(ret, EEXIST);
-
-    ret = sss_ncache_reset_users(ts->ctx);
+    ret = sss_names_init(ts, tc->confdb, TEST_DOM_NAME, &dom->names);
     assert_int_equal(ret, EOK);
 
-    /* Users are no longer negatively cached */
-    ret = sss_ncache_check_user(ts->ctx, dom, "foo");
-    assert_int_equal(ret, ENOENT);
-    ret = sss_ncache_check_uid(ts->ctx, NULL, 123);
-    assert_int_equal(ret, ENOENT);
-
-    /* Groups still are */
-    ret = sss_ncache_check_gid(ts->ctx, NULL, 456);
-    assert_int_equal(ret, EEXIST);
-    ret = sss_ncache_check_group(ts->ctx, dom, "bar");
-    assert_int_equal(ret, EEXIST);
-
-    ret = sss_ncache_reset_groups(ts->ctx);
+    /* Use a long timeout so entries can only disappear through a cache
+     * recreate, not through expiration. */
+    ret = sss_ncache_init(ts, 1000, max_entries, ts->rctx, &ncache);
     assert_int_equal(ret, EOK);
 
-    ret = sss_ncache_check_gid(ts->ctx, NULL, 456);
-    assert_int_equal(ret, ENOENT);
-    ret = sss_ncache_check_group(ts->ctx, dom, "bar");
-    assert_int_equal(ret, ENOENT);
+    /* Fill the cache right up to the limit with distinct entries */
+    for (i = 0; i < max_entries; i++) {
+        ret = sss_ncache_set_uid(ncache, false, NULL, 1000 + i);
+        assert_int_equal(ret, EOK);
+    }
+    for (i = 0; i < max_entries; i++) {
+        ret = sss_ncache_check_uid(ncache, NULL, 1000 + i);
+        assert_int_equal(ret, EEXIST);
+    }
+
+    /* One more entry trips the limit and recreates the cache from scratch:
+     * all the earlier entries are flushed at once, while the triggering
+     * entry is stored in the fresh cache. */
+    ret = sss_ncache_set_uid(ncache, false, NULL, 2000);
+    assert_int_equal(ret, EOK);
+
+    for (i = 0; i < max_entries; i++) {
+        ret = sss_ncache_check_uid(ncache, NULL, 1000 + i);
+        assert_int_equal(ret, ENOENT);
+    }
+
+    ret = sss_ncache_check_uid(ncache, NULL, 2000);
+    assert_int_equal(ret, EEXIST);
 }
 
 static void test_sss_ncache_locate_uid_gid_sid(void **state)
@@ -1541,8 +1543,6 @@ int main(void)
                                         teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_service_port,
                                         setup, teardown),
-        cmocka_unit_test_setup_teardown(test_sss_ncache_reset_permanent, setup,
-                                        teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_prepopulate,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_prepopulate_filter_ids,
@@ -1556,6 +1556,8 @@ int main(void)
         cmocka_unit_test_setup_teardown(test_sss_ncache_short_name_in_domain_with_prefix,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_reset,
+                                        setup, teardown),
+        cmocka_unit_test_setup_teardown(test_sss_ncache_max_entries,
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_locate_uid_gid_sid,
                                         setup, teardown),

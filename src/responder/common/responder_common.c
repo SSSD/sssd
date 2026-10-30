@@ -994,16 +994,16 @@ static int sss_responder_ctx_destructor(void *ptr)
     return 0;
 }
 
-static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
-                                     struct confdb_ctx *cdb,
+static errno_t responder_init_ncache(struct resp_ctx *rctx,
                                      struct sss_nc_ctx **ncache)
 {
     uint32_t neg_timeout;
+    uint32_t max_entries;
     int tmp_value;
     int ret;
 
     /* neg_timeout */
-    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+    ret = confdb_get_int(rctx->cdb, CONFDB_NSS_CONF_ENTRY,
                          CONFDB_NSS_ENTRY_NEG_TIMEOUT,
                          15, &tmp_value);
     if (ret != EOK) {
@@ -1021,8 +1021,27 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
 
     neg_timeout = tmp_value;
 
+    /* max number of entries */
+    ret = confdb_get_int(rctx->cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_NEG_CACHE_MAX_ENTRIES,
+                         10000, &tmp_value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal failure of setup negative cache limit [%s].\n",
+              CONFDB_NSS_ENTRY_NEG_CACHE_MAX_ENTRIES);
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (tmp_value < 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    max_entries = tmp_value;
+
     /* negative cache init */
-    ret = sss_ncache_init(mem_ctx, neg_timeout, ncache);
+    ret = sss_ncache_init(rctx, neg_timeout, max_entries, rctx, ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Fatal failure of initializing negative cache.\n");
@@ -1303,7 +1322,7 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = responder_init_ncache(rctx, rctx->cdb, &rctx->ncache);
+    ret = responder_init_ncache(rctx, &rctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "fatal error initializing negcache\n");
         goto fail;
@@ -1319,13 +1338,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
                            &rctx->last_request_time, &rctx->sbus_conn);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to connect to SSSD D-Bus server "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto fail;
-    }
-
-    ret = sss_resp_register_sbus_iface(rctx->sbus_conn, rctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register D-Bus interface "
               "[%d]: %s\n", ret, sss_strerror(ret));
         goto fail;
     }

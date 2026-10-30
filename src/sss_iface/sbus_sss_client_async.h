@@ -397,16 +397,6 @@ sbus_emit_resp_domain_SetInconsistent
      const char * arg_name);
 
 void
-sbus_emit_resp_negcache_ResetGroups
-    (struct sbus_connection *conn,
-     const char *object_path);
-
-void
-sbus_emit_resp_negcache_ResetUsers
-    (struct sbus_connection *conn,
-     const char *object_path);
-
-void
 sbus_emit_nss_memcache_InvalidateAllGroups
     (struct sbus_connection *conn,
      const char *object_path);

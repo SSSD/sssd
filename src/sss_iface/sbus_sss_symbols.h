@@ -70,12 +70,6 @@ _sbus_sss_args_sssd_Responder_Domain_SetActive[];
 extern const struct sbus_argument
 _sbus_sss_args_sssd_Responder_Domain_SetInconsistent[];
 
-extern const struct sbus_argument
-_sbus_sss_args_sssd_Responder_NegativeCache_ResetGroups[];
-
-extern const struct sbus_argument
-_sbus_sss_args_sssd_Responder_NegativeCache_ResetUsers[];
-
 extern const struct sbus_method_arguments
 _sbus_sss_args_sssd_dataprovider_getAccountDomain;
 

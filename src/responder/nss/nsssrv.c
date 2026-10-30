@@ -138,23 +138,13 @@ sss_nss_clear_negcache(TALLOC_CTX *mem_ctx,
 {
     errno_t ret;
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Clearing negative cache non-permament entries\n");
+    DEBUG(SSSDBG_TRACE_FUNC, "Clearing negative cache\n");
 
-    ret = sss_ncache_reset_users(nctx->rctx->ncache);
+    ret = sss_ncache_reset(nctx->rctx->ncache);
     if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Negative cache clearing users failed\n");
-        goto done;
+        DEBUG(SSSDBG_CRIT_FAILURE, "Negative cache clearing failed\n");
     }
 
-    ret = sss_ncache_reset_groups(nctx->rctx->ncache);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Negative cache clearing groups failed\n");
-        goto done;
-    }
-
-done:
     return ret;
 }
 
@@ -215,7 +205,7 @@ static int sss_nss_get_config(struct sss_nss_ctx *nctx,
         nctx->cache_refresh_percent = 0;
     }
 
-    ret = sss_ncache_prepopulate(nctx->rctx->ncache, cdb, nctx->rctx);
+    ret = sss_ncache_prepopulate(nctx->rctx->ncache);
     if (ret != EOK) {
         goto done;
     }

@@ -103,6 +103,7 @@
 #define CONFDB_NSS_ENUM_CACHE_TIMEOUT "enum_cache_timeout"
 #define CONFDB_NSS_ENTRY_CACHE_NOWAIT_PERCENTAGE "entry_cache_nowait_percentage"
 #define CONFDB_NSS_ENTRY_NEG_TIMEOUT "entry_negative_timeout"
+#define CONFDB_NSS_ENTRY_NEG_CACHE_MAX_ENTRIES "entry_negative_cache_max_entries"
 #define CONFDB_NSS_FILTER_USERS_IN_GROUPS "filter_users_in_groups"
 #define CONFDB_NSS_FILTER_USERS "filter_users"
 #define CONFDB_NSS_FILTER_GROUPS "filter_groups"
