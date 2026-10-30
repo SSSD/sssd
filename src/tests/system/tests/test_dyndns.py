@@ -226,8 +226,7 @@ def test_dyndns__update_with_address_filtering(
 
     client.sssd.domain["dyndns_update"] = "True"
     client.sssd.domain["dyndns_update_ptr"] = "True"
-    client.sssd.domain["dyndns_refresh_interval"] = "1"
-    client.sssd.domain["dyndns_refresh_interval_offset"] = "5"
+    client.sssd.domain["dyndns_refresh_interval_offset"] = "0"
     client.sssd.domain["dyndns_address"] = f"{'.'.join(ip.split('.')[:-1] + ['0'])}/24"
     client.sssd.domain["dyndns_iface"] = interfaces[0]
     client.sssd.start()
