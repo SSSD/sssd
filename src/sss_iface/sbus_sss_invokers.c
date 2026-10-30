@@ -380,15 +380,14 @@ static void _sbus_sss_invoke_in__out_u_done(struct tevent_req *subreq)
     return;
 }
 
-struct _sbus_sss_invoke_in_pam_data_out_pam_response_state {
+struct _sbus_sss_invoke_in_pam_data_out__state {
     struct _sbus_sss_invoker_args_pam_data *in;
-    struct _sbus_sss_invoker_args_pam_response out;
     struct {
         enum sbus_handler_type type;
         void *data;
-        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, struct pam_data *, struct pam_data **);
+        errno_t (*sync)(TALLOC_CTX *, struct sbus_request *, void *, struct pam_data *);
         struct tevent_req * (*send)(TALLOC_CTX *, struct tevent_context *, struct sbus_request *, void *, struct pam_data *);
-        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *, struct pam_data **);
+        errno_t (*recv)(TALLOC_CTX *, struct tevent_req *);
     } handler;
 
     struct sbus_request *sbus_req;
@@ -397,18 +396,18 @@ struct _sbus_sss_invoke_in_pam_data_out_pam_response_state {
 };
 
 static void
-_sbus_sss_invoke_in_pam_data_out_pam_response_step
+_sbus_sss_invoke_in_pam_data_out__step
     (struct tevent_context *ev,
      struct tevent_timer *te,
      struct timeval tv,
      void *private_data);
 
 static void
-_sbus_sss_invoke_in_pam_data_out_pam_response_done
+_sbus_sss_invoke_in_pam_data_out__done
    (struct tevent_req *subreq);
 
 struct tevent_req *
-_sbus_sss_invoke_in_pam_data_out_pam_response_send
+_sbus_sss_invoke_in_pam_data_out__send
    (TALLOC_CTX *mem_ctx,
     struct tevent_context *ev,
     struct sbus_request *sbus_req,
@@ -418,12 +417,12 @@ _sbus_sss_invoke_in_pam_data_out_pam_response_send
     DBusMessageIter *write_iterator,
     const char **_key)
 {
-    struct _sbus_sss_invoke_in_pam_data_out_pam_response_state *state;
+    struct _sbus_sss_invoke_in_pam_data_out__state *state;
     struct tevent_req *req;
     const char *key;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_pam_data_out_pam_response_state);
+    req = tevent_req_create(mem_ctx, &state, struct _sbus_sss_invoke_in_pam_data_out__state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
@@ -452,7 +451,7 @@ _sbus_sss_invoke_in_pam_data_out_pam_response_send
         goto done;
     }
 
-    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_pam_data_out_pam_response_step, req);
+    ret = sbus_invoker_schedule(state, ev, _sbus_sss_invoke_in_pam_data_out__step, req);
     if (ret != EOK) {
         goto done;
     }
@@ -477,19 +476,19 @@ done:
     return req;
 }
 
-static void _sbus_sss_invoke_in_pam_data_out_pam_response_step
+static void _sbus_sss_invoke_in_pam_data_out__step
    (struct tevent_context *ev,
     struct tevent_timer *te,
     struct timeval tv,
     void *private_data)
 {
-    struct _sbus_sss_invoke_in_pam_data_out_pam_response_state *state;
+    struct _sbus_sss_invoke_in_pam_data_out__state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
     req = talloc_get_type(private_data, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_pam_data_out_pam_response_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_pam_data_out__state);
 
     switch (state->handler.type) {
     case SBUS_HANDLER_SYNC:
@@ -499,12 +498,11 @@ static void _sbus_sss_invoke_in_pam_data_out_pam_response_step
             goto done;
         }
 
-        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0, &state->out.arg0);
+        ret = state->handler.sync(state, state->sbus_req, state->handler.data, state->in->arg0);
         if (ret != EOK) {
             goto done;
         }
 
-        ret = _sbus_sss_invoker_write_pam_response(state->write_iterator, &state->out);
         goto done;
     case SBUS_HANDLER_ASYNC:
         if (state->handler.send == NULL || state->handler.recv == NULL) {
@@ -520,7 +518,7 @@ static void _sbus_sss_invoke_in_pam_data_out_pam_response_step
             goto done;
         }
 
-        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_pam_data_out_pam_response_done, req);
+        tevent_req_set_callback(subreq, _sbus_sss_invoke_in_pam_data_out__done, req);
         ret = EAGAIN;
         goto done;
     }
@@ -535,23 +533,17 @@ done:
     }
 }
 
-static void _sbus_sss_invoke_in_pam_data_out_pam_response_done(struct tevent_req *subreq)
+static void _sbus_sss_invoke_in_pam_data_out__done(struct tevent_req *subreq)
 {
-    struct _sbus_sss_invoke_in_pam_data_out_pam_response_state *state;
+    struct _sbus_sss_invoke_in_pam_data_out__state *state;
     struct tevent_req *req;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct _sbus_sss_invoke_in_pam_data_out_pam_response_state);
+    state = tevent_req_data(req, struct _sbus_sss_invoke_in_pam_data_out__state);
 
-    ret = state->handler.recv(state, subreq, &state->out.arg0);
+    ret = state->handler.recv(state, subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = _sbus_sss_invoker_write_pam_response(state->write_iterator, &state->out);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;

@@ -177,7 +177,6 @@ _sbus_sss_args_sssd_ProxyChild_Auth_PAM = {
         {NULL}
     },
     .output = (const struct sbus_argument[]){
-        {.type = "uua(uay)", .name = "pam_response"},
         {NULL}
     }
 };
@@ -278,7 +277,6 @@ _sbus_sss_args_sssd_dataprovider_pamHandler = {
         {NULL}
     },
     .output = (const struct sbus_argument[]){
-        {.type = "uua(uay)", .name = "pam_response"},
         {NULL}
     }
 };
