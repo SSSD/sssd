@@ -54,6 +54,7 @@ class SSSDOptions(object):
         'enum_cache_timeout': _('Enumeration cache timeout length (seconds)'),
         'entry_cache_no_wait_timeout': _('Entry cache background update timeout length (seconds)'),
         'entry_negative_timeout': _('Negative cache timeout length (seconds)'),
+        'entry_negative_cache_max_entries': _('Maximum number of entries in the negative cache'),
         'filter_uids': _('UIDs or UID ranges that SSSD should explicitly ignore'),
         'filter_gids': _('GIDs or GID ranges that SSSD should explicitly ignore'),
         'filter_users': _('Users that SSSD should explicitly ignore'),

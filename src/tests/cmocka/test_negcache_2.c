@@ -364,7 +364,7 @@ void test_ncache_nocache_user(void **state)
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
-    ret = sss_ncache_init(test_ctx, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 0, 0, NULL, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     set_users(test_ctx);
@@ -384,7 +384,7 @@ void test_ncache_domain_user(void **state)
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
-    ret = sss_ncache_init(test_ctx, TIMEOUT, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, TIMEOUT, 0, NULL, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     set_users(test_ctx);
@@ -441,7 +441,7 @@ void test_ncache_nocache_uid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
-    ret = sss_ncache_init(test_ctx, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 0, 0, NULL, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     set_uids(test_ctx);
@@ -461,7 +461,7 @@ void test_ncache_domain_uid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
-    ret = sss_ncache_init(test_ctx, TIMEOUT, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, TIMEOUT, 0, NULL, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     set_uids(test_ctx);
@@ -520,7 +520,7 @@ void test_ncache_nocache_group(void **state)
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
-    ret = sss_ncache_init(test_ctx, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 0, 0, NULL, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     set_groups(test_ctx);
@@ -540,7 +540,7 @@ void test_ncache_domain_group(void **state)
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
-    ret = sss_ncache_init(test_ctx, TIMEOUT, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, TIMEOUT, 0, NULL, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     set_groups(test_ctx);
@@ -597,7 +597,7 @@ void test_ncache_nocache_gid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
-    ret = sss_ncache_init(test_ctx, 0, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, 0, 0, NULL, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     set_gids(test_ctx);
@@ -617,7 +617,7 @@ void test_ncache_domain_gid(void **state)
     test_ctx = talloc_get_type_abort(*state, struct ncache_test_ctx);
     assert_non_null(test_ctx);
 
-    ret = sss_ncache_init(test_ctx, TIMEOUT, &test_ctx->ncache);
+    ret = sss_ncache_init(test_ctx, TIMEOUT, 0, NULL, &test_ctx->ncache);
     assert_int_equal(ret, EOK);
 
     set_gids(test_ctx);

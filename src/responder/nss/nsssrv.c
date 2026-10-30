@@ -140,7 +140,7 @@ sss_nss_clear_negcache(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_TRACE_FUNC, "Clearing negative cache\n");
 
-    ret = sss_ncache_reset(nctx->rctx, nctx->rctx->ncache);
+    ret = sss_ncache_reset(nctx->rctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Negative cache clearing failed\n");
     }
@@ -205,7 +205,7 @@ static int sss_nss_get_config(struct sss_nss_ctx *nctx,
         nctx->cache_refresh_percent = 0;
     }
 
-    ret = sss_ncache_prepopulate(nctx->rctx->ncache, cdb, nctx->rctx);
+    ret = sss_ncache_prepopulate(nctx->rctx->ncache);
     if (ret != EOK) {
         goto done;
     }

@@ -60,7 +60,7 @@ int sudo_process_init(TALLOC_CTX *mem_ctx,
     sudo_ctx->rctx = rctx;
     sudo_ctx->rctx->pvt_ctx = sudo_ctx;
 
-    sss_ncache_prepopulate(sudo_ctx->rctx->ncache, sudo_ctx->rctx->cdb, rctx);
+    sss_ncache_prepopulate(sudo_ctx->rctx->ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "failed to set ncache for sudo's filter_users\n");

@@ -242,7 +242,7 @@ sss_dp_get_domains_process(struct tevent_req *subreq)
 
         sss_resp_update_certmaps(state->rctx);
 
-        ret = sss_ncache_reset(state->rctx, state->rctx->ncache);
+        ret = sss_ncache_reset(state->rctx->ncache);
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE,
                   "sss_ncache_reset failed, ignored.\n");
@@ -381,7 +381,7 @@ static void get_domains_at_startup_done(struct tevent_req *req)
     }
 
     if (state->optional_ncache != NULL) {
-        ret = sss_ncache_reset(state->rctx, state->optional_ncache);
+        ret = sss_ncache_reset(state->optional_ncache);
         if (ret != EOK) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "sss_ncache_reset failed.\n");
