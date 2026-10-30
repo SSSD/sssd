@@ -435,60 +435,6 @@
         (handler_send), (handler_recv), (data)); \
 })
 
-/* Interface: sssd.Responder.NegativeCache */
-#define SBUS_IFACE_sssd_Responder_NegativeCache(methods, signals, properties) ({ \
-    sbus_interface("sssd.Responder.NegativeCache", NULL, \
-        (methods), (signals), (properties)); \
-})
-
-/* Signal: sssd.Responder.NegativeCache.ResetGroups */
-#define SBUS_SIGNAL_EMITS_sssd_Responder_NegativeCache_ResetGroups() ({ \
-    sbus_signal("ResetGroups", \
-        _sbus_sss_args_sssd_Responder_NegativeCache_ResetGroups, \
-        NULL); \
-})
-
-#define SBUS_SIGNAL_SYNC_sssd_Responder_NegativeCache_ResetGroups(path, handler, data) ({ \
-    SBUS_CHECK_SYNC((handler), (data)); \
-    sbus_listener_sync("sssd.Responder.NegativeCache", "ResetGroups", (path), \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler), (data)); \
-})
-
-#define SBUS_SIGNAL_ASYNC_sssd_Responder_NegativeCache_ResetGroups(path, handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data)); \
-    SBUS_CHECK_RECV((handler_recv)); \
-    sbus_listener_async("sssd.Responder.NegativeCache", "ResetGroups", (path), \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler_send), (handler_recv), (data)); \
-})
-
-/* Signal: sssd.Responder.NegativeCache.ResetUsers */
-#define SBUS_SIGNAL_EMITS_sssd_Responder_NegativeCache_ResetUsers() ({ \
-    sbus_signal("ResetUsers", \
-        _sbus_sss_args_sssd_Responder_NegativeCache_ResetUsers, \
-        NULL); \
-})
-
-#define SBUS_SIGNAL_SYNC_sssd_Responder_NegativeCache_ResetUsers(path, handler, data) ({ \
-    SBUS_CHECK_SYNC((handler), (data)); \
-    sbus_listener_sync("sssd.Responder.NegativeCache", "ResetUsers", (path), \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler), (data)); \
-})
-
-#define SBUS_SIGNAL_ASYNC_sssd_Responder_NegativeCache_ResetUsers(path, handler_send, handler_recv, data) ({ \
-    SBUS_CHECK_SEND((handler_send), (data)); \
-    SBUS_CHECK_RECV((handler_recv)); \
-    sbus_listener_async("sssd.Responder.NegativeCache", "ResetUsers", (path), \
-        _sbus_sss_invoke_in__out__send, \
-        _sbus_sss_key_, \
-        (handler_send), (handler_recv), (data)); \
-})
-
 /* Interface: sssd.dataprovider */
 #define SBUS_IFACE_sssd_dataprovider(methods, signals, properties) ({ \
     sbus_interface("sssd.dataprovider", NULL, \

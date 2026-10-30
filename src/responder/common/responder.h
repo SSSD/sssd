@@ -402,13 +402,6 @@ int resp_resolve_group_names_recv(TALLOC_CTX *mem_ctx,
                                   struct ldb_result **_initgr_named_res);
 
 /**
- * Register common responder sbus interface on connection.
- */
-errno_t
-sss_resp_register_sbus_iface(struct sbus_connection *conn,
-                             struct resp_ctx *rctx);
-
-/**
  * Register common service sbus interface on monitor connection.
  */
 errno_t

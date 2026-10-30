@@ -1323,13 +1323,6 @@ int sss_process_init(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    ret = sss_resp_register_sbus_iface(rctx->sbus_conn, rctx);
-    if (ret != EOK) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to register D-Bus interface "
-              "[%d]: %s\n", ret, sss_strerror(ret));
-        goto fail;
-    }
-
     DEBUG(SSSDBG_TRACE_FUNC, "Responder initialization complete (%s)\n",
           rctx->socket_activated  ? "socket-activated" : "explicitly configured");
 

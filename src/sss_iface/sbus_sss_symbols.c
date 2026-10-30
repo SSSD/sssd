@@ -205,16 +205,6 @@ _sbus_sss_args_sssd_Responder_Domain_SetInconsistent[] = {
     {NULL}
 };
 
-const struct sbus_argument
-_sbus_sss_args_sssd_Responder_NegativeCache_ResetGroups[] = {
-    {NULL}
-};
-
-const struct sbus_argument
-_sbus_sss_args_sssd_Responder_NegativeCache_ResetUsers[] = {
-    {NULL}
-};
-
 const struct sbus_method_arguments
 _sbus_sss_args_sssd_dataprovider_getAccountDomain = {
     .input = (const struct sbus_argument[]){
