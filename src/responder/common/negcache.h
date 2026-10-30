@@ -23,9 +23,17 @@
 #define _NSS_NEG_CACHE_H_
 
 struct sss_nc_ctx;
+struct resp_ctx;
 
-/* init the in memory negative cache */
+/* Init the in memory negative cache.
+ *
+ * When the cache holds max_entries entries, adding a new one recreates it
+ * from scratch; max_entries == 0 disables the limit. rctx is the responder
+ * context used to restore the permanent entries on such a recreate (and by
+ * sss_ncache_reset()); it may be NULL only when the limit is disabled and
+ * the cache is never reset (e.g. in unit tests). */
 int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
+                    uint32_t max_entries, struct resp_ctx *rctx,
                     struct sss_nc_ctx **_ctx);
 
 /* check if the user is expired according to the passed in time to live */
@@ -151,18 +159,15 @@ int sss_ncache_set_locate_sid(struct sss_nc_ctx *ctx,
                               struct sss_domain_info *dom,
                               const char *sid);
 
-struct resp_ctx;
-
 /* Set up the negative cache with values from filter_users, filter_groups,
- * filter_uids and filter_gids in the sssd.conf
+ * filter_uids and filter_gids in the sssd.conf. The confdb and the domain
+ * list are taken from the responder context passed to sss_ncache_init().
  */
-errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
-                               struct confdb_ctx *cdb,
-                               struct resp_ctx *rctx);
+errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache);
 
 /* Recreate the negcache from scratch, dropping all non-permanent entries,
- * and repopulate the permanent entries. */
-errno_t sss_ncache_reset(struct resp_ctx *rctx,
-                         struct sss_nc_ctx *ncache);
+ * and repopulate the permanent entries. The responder context used for the
+ * repopulation is the one passed to sss_ncache_init(). */
+errno_t sss_ncache_reset(struct sss_nc_ctx *ncache);
 
 #endif /* _NSS_NEG_CACHE_H_ */

@@ -59,6 +59,9 @@ struct sss_nc_id_range {
 struct sss_nc_ctx {
     struct tdb_context *tdb;
     uint32_t timeout;
+    uint32_t max_entries;
+    uint32_t count;
+    struct resp_ctx *rctx;
     struct sss_nc_id_range *uid_ranges;
     struct sss_nc_id_range *gid_ranges;
 };
@@ -88,6 +91,7 @@ static struct tdb_context *sss_ncache_open_tdb(void)
 }
 
 int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
+                    uint32_t max_entries, struct resp_ctx *rctx,
                     struct sss_nc_ctx **_ctx)
 {
     struct sss_nc_ctx *ctx;
@@ -99,6 +103,8 @@ int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
     if (!ctx->tdb) return errno;
 
     ctx->timeout = timeout;
+    ctx->max_entries = max_entries;
+    ctx->rctx = rctx;
 
     *_ctx = ctx;
     return EOK;
@@ -109,7 +115,6 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
     TDB_DATA key;
     TDB_DATA data;
     unsigned long long int timestamp;
-    bool expired = false;
     char *ep;
     int ret;
 
@@ -130,8 +135,10 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
     errno = 0;
     timestamp = strtoull((const char *)data.dptr, &ep, 10);
     if (errno != 0 || *ep != '\0') {
-        /* Malformed entry, remove it and return no entry */
-        expired = true;
+        /* Malformed entry, treat it as absent. Expired and malformed entries
+         * are not removed individually, they are flushed when the cache is
+         * recreated. */
+        ret = ENOENT;
         goto done;
     }
 
@@ -147,15 +154,10 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
         goto done;
     }
 
-    expired = true;
+    /* expired, report as absent but leave it in place */
+    ret = ENOENT;
 
 done:
-    if (expired) {
-        /* expired, remove and return no entry */
-        tdb_delete(ctx->tdb, key);
-        ret = ENOENT;
-    }
-
     free(data.dptr);
     return ret;
 }
@@ -166,6 +168,7 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
     TDB_DATA data;
     char *timest;
     unsigned long long int timell;
+    bool is_new;
     int ret;
 
     ret = string_to_tdb_data(str, &key);
@@ -186,6 +189,27 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
     ret = string_to_tdb_data(timest, &data);
     if (ret != EOK) goto done;
 
+    is_new = (tdb_exists(ctx->tdb, key) == 0);
+
+    /* Expired entries are never removed one by one, so a steady stream of
+     * unique negative lookups would grow the cache without bound. Once the
+     * configured limit is reached, recreate the cache from scratch (which
+     * also restores the permanent entries) before adding a new one. Permanent
+     * entries are re-added by the recreate itself, so they never trigger it. */
+    if (is_new && !permanent && ctx->max_entries != 0
+            && ctx->count >= ctx->max_entries) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Negative cache reached the limit of %u entries, recreating it\n",
+              ctx->max_entries);
+        ret = sss_ncache_reset(ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to recreate the negative cache [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Adding [%s] to negative cache%s\n",
               str, permanent?" permanently":"");
 
@@ -194,6 +218,11 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
         DEBUG(SSSDBG_CRIT_FAILURE, "Negative cache failed to set entry: [%s]\n",
                   tdb_errorstr(ctx->tdb));
         ret = EFAULT;
+        goto done;
+    }
+
+    if (is_new) {
+        ctx->count++;
     }
 
 done:
@@ -1170,16 +1199,16 @@ done:
     return ret;
 }
 
-errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
-                               struct confdb_ctx *cdb,
-                               struct resp_ctx *rctx)
+errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache)
 {
     errno_t ret;
+    struct resp_ctx *rctx = ncache->rctx;
+    struct confdb_ctx *cdb;
     char **filter_list = NULL;
     char **default_list = NULL;
     char *name = NULL;
     struct sss_domain_info *dom = NULL;
-    struct sss_domain_info *domain_list = rctx->domains;
+    struct sss_domain_info *domain_list;
     struct sss_domain_info *ddom;
     char *domainname = NULL;
     char *conf_path = NULL;
@@ -1190,6 +1219,17 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
     if (tmpctx == NULL) {
         return ENOMEM;
     }
+
+    if (rctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot prepopulate the negative cache without a responder "
+              "context\n");
+        talloc_free(tmpctx);
+        return EINVAL;
+    }
+
+    cdb = rctx->cdb;
+    domain_list = rctx->domains;
 
     /* Populate domain-specific negative cache user entries */
     for (dom = domain_list; dom; dom = get_next_domain(dom, 0)) {
@@ -1563,11 +1603,17 @@ done:
 }
 
 /* Recreate the negcache from scratch and repopulate permanent entries.
- * All non-permanent entries are dropped. */
-errno_t sss_ncache_reset(struct resp_ctx *rctx,
-                         struct sss_nc_ctx *ncache)
+ * All non-permanent entries are dropped. The responder context needed to
+ * repopulate is the one passed to sss_ncache_init(). */
+errno_t sss_ncache_reset(struct sss_nc_ctx *ncache)
 {
     struct tdb_context *tdb;
+
+    if (ncache->rctx == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Cannot reset the negative cache without a responder context\n");
+        return EINVAL;
+    }
 
     /* Open the replacement before dropping the old one so a failure leaves
      * the existing cache usable. */
@@ -1578,9 +1624,10 @@ errno_t sss_ncache_reset(struct resp_ctx *rctx,
 
     tdb_close(ncache->tdb);
     ncache->tdb = tdb;
+    ncache->count = 0;
 
     sss_ncache_free_id_ranges(&ncache->uid_ranges);
     sss_ncache_free_id_ranges(&ncache->gid_ranges);
 
-    return sss_ncache_prepopulate(ncache, rctx->cdb, rctx);
+    return sss_ncache_prepopulate(ncache);
 }

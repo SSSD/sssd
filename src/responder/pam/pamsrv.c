@@ -230,7 +230,7 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
     pctx->id_timeout = (size_t)id_timeout;
 
-    ret = sss_ncache_prepopulate(pctx->rctx->ncache, cdb, pctx->rctx);
+    ret = sss_ncache_prepopulate(pctx->rctx->ncache);
     if (ret != EOK) {
         goto done;
     }

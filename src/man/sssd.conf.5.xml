@@ -898,6 +898,37 @@
                     </listitem>
                 </varlistentry>
                 <varlistentry>
+                    <term>entry_negative_cache_max_entries (integer)</term>
+                    <listitem>
+                        <para>
+                            Specifies the maximum number of entries that can be
+                            stored in the in-memory negative cache. Expired
+                            entries are not evicted individually, so the cache
+                            can keep growing as long as new negative lookups
+                            occur. When this limit is reached, storing a new
+                            entry flushes the whole negative cache (the
+                            permanent entries derived from
+                            <quote>filter_users</quote>,
+                            <quote>filter_groups</quote>,
+                            <quote>filter_uids</quote> and
+                            <quote>filter_gids</quote> are restored
+                            immediately).
+                        </para>
+                        <para>
+                            The value should be larger than the number of
+                            permanent (filtered) entries, otherwise the cache
+                            is recreated on almost every insertion.
+                        </para>
+                        <para>
+                            A value of 0 means the number of entries is
+                            unlimited.
+                        </para>
+                        <para>
+                            Default: 10000
+                        </para>
+                    </listitem>
+                </varlistentry>
+                <varlistentry>
                     <term>filter_users, filter_groups (string)</term>
                     <listitem>
                         <para>
