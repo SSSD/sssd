@@ -24,9 +24,17 @@
 
 struct sss_nc_ctx;
 
-/* init the in memory negative cache */
+/* init the in memory negative cache
+ *
+ * Entries are never removed from the cache, not even when they expire: an
+ * expired entry simply stops being reported by the lookups. When
+ * max_entries is not 0 and that many entries have been stored, the whole
+ * cache is dropped and replaced by a new one holding only the permanent
+ * entries, so that there is room again. A max_entries of 0 lets the cache
+ * grow without any limit.
+ */
 int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
-                    struct sss_nc_ctx **_ctx);
+                    uint32_t max_entries, struct sss_nc_ctx **_ctx);
 
 uint32_t sss_ncache_get_timeout(struct sss_nc_ctx *ctx);
 

@@ -58,6 +58,8 @@ void test_ncache_domain_gid(void **state);
 #define CERT "MIIECTCCAvGgAwIBAgIBCTANBgkqhkiG9w0BAQsFADA0MRIwEAYDVQQKDAlJUEEuREVWRUwxHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAeFw0xNTA0MjgxMDIxMTFaFw0xNzA0MjgxMDIxMTFaMDIxEjAQBgNVBAoMCUlQQS5ERVZFTDEcMBoGA1UEAwwTaXBhLWRldmVsLmlwYS5kZXZlbDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALIykqtHuAwTVEofHikG/9BQy/dfeZFlsTkBg2qtnnc78w3XufbcnkpJp9Bmcsy/d9beqf5nlsxJ8TcjLsRQ9Ou6YtQjTfM3OILuOz8s0ICbF6qb66bd9hX/BrLO/9+KnpWFSR+E/YEmzgYyDTbKfBWBaGuPPrOi/K6vwkRYFZVA/FYZkYDtQhFmBO884HYzS4P6frRH3PvtRqWNCmaHpe97dGKsvnM2ybT+IMSB8/54GajQr3+BciRh2XaT4wvSTxkXM1fUgrDxqAP2AZmpuIyDyboZh+rWOwbrTPfx5SipELZG3uHhP8HMcr4qQ8b20LWgxCRuT73sIooHET350xUCAwEAAaOCASYwggEiMB8GA1UdIwQYMBaAFPKdQk4PxEglWC8czg+hPyLIVciRMDsGCCsGAQUFBwEBBC8wLTArBggrBgEFBQcwAYYfaHR0cDovL2lwYS1jYS5pcGEuZGV2ZWwvY2Evb2NzcDAOBgNVHQ8BAf8EBAMCBPAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUFBwMCMHQGA1UdHwRtMGswaaAxoC+GLWh0dHA6Ly9pcGEtY2EuaXBhLmRldmVsL2lwYS9jcmwvTWFzdGVyQ1JMLmJpbqI0pDIwMDEOMAwGA1UECgwFaXBhY2ExHjAcBgNVBAMMFUNlcnRpZmljYXRlIEF1dGhvcml0eTAdBgNVHQ4EFgQULSs/y/Wy/zIsqMIc3b2MgB7dMYIwDQYJKoZIhvcNAQELBQADggEBAJpHLlCnTR1TD8lxQgzl2n1JZOeryN/fAsGH0Vve2m8r5PC+ugnfAoULiuabBn1pOGxy/0x7Kg0/Iy8WRv8Fk7DqJCjXEqFXuFkZJfNDCtP9DzeNuMoV50iKoMfHS38BPFjXN+X/fSsBrA2fUWrlQCTmXlUN97gvQqxt5Slrxgukvxm9OSfu/sWz22LUvtJHupYwWv1iALgnXS86lAuVNYVALLxn34r58XsZlj5CSBMjBJWpaxEzgUdag3L2IPqOQXuPd0d8x11G9E/9gQquOSe2aiZjsdO/VYOCmzZsM2QPUMBVlBPDhfTVcWXQwN385uycW/ARtSzzSME2jKKWSIQ="
 #define PROTO "TCP"
 #define SHORTSPAN 1
+#define LONGSPAN 10000
+#define NCACHE_MAX_ENTRIES 100
 #define NAME "foo_name"
 #define TESTS_PATH "tp_" BASE_FILE_STEM
 #define TEST_CONF_DB "test_nss_conf.ldb"
@@ -117,7 +119,9 @@ static int setup(void **state)
     ts = talloc(NULL, struct test_state);
     assert_non_null(ts);
 
-    ret = sss_ncache_init(ts, SHORTSPAN, &ts->ctx);
+    ret = sss_ncache_init(ts, SHORTSPAN,
+                          CONFDB_DEFAULT_NSS_NEGCACHE_MAX_ENTRIES,
+                          &ts->ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(ts->ctx);
 
@@ -142,7 +146,9 @@ static void test_sss_ncache_init(void **state)
     memctx = talloc_new(NULL);
     assert_non_null(memctx);
 
-    ret = sss_ncache_init(memctx, SHORTSPAN, &ctx);
+    ret = sss_ncache_init(memctx, SHORTSPAN,
+                          CONFDB_DEFAULT_NSS_NEGCACHE_MAX_ENTRIES,
+                          &ctx);
     assert_int_equal(ret, EOK);
     assert_non_null(ctx);
 
@@ -1525,6 +1531,207 @@ static void test_sss_ncache_domain_locate_type(void **state)
     assert_int_equal(ret, ENOENT);
 }
 
+/* @test_sss_ncache_max_entries : the negative cache does not grow beyond
+ * the number of entries configured with 'negcache_max_entries'. Entries
+ * are never removed one by one, so the entry that would cross the limit
+ * makes the whole cache be thrown away and replaced by a new one holding
+ * only the permanent entries.
+ */
+static void test_sss_ncache_max_entries(void **state)
+{
+    TALLOC_CTX *memctx;
+    struct sss_nc_ctx *ctx;
+    int ret;
+
+    memctx = talloc_new(NULL);
+    assert_non_null(memctx);
+
+    /* a long timeout makes sure that nothing expires while the cache is
+     * being filled */
+    ret = sss_ncache_init(memctx, LONGSPAN, NCACHE_MAX_ENTRIES, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+
+    /* permanent entries come from the configuration and are never dropped,
+     * otherwise filtering out e.g. the root user would stop working */
+    ret = sss_ncache_set_uid(ctx, true, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    /* fill the cache up to the limit, the permanent entry above already
+     * takes one of the slots */
+    for (uid_t uid = 1; uid < NCACHE_MAX_ENTRIES; uid++) {
+        ret = sss_ncache_set_uid(ctx, false, NULL, uid);
+        assert_int_equal(ret, EOK);
+    }
+
+    ret = sss_ncache_check_uid(ctx, NULL, 1);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_uid(ctx, NULL, NCACHE_MAX_ENTRIES - 1);
+    assert_int_equal(ret, EEXIST);
+
+    /* refreshing an entry that is already cached does not make the cache
+     * grow, so the cache is left alone */
+    ret = sss_ncache_set_uid(ctx, false, NULL, 1);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_uid(ctx, NULL, 2);
+    assert_int_equal(ret, EEXIST);
+
+    /* the cache is full, so this entry makes it start over */
+    ret = sss_ncache_set_uid(ctx, false, NULL, NCACHE_MAX_ENTRIES);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_uid(ctx, NULL, NCACHE_MAX_ENTRIES);
+    assert_int_equal(ret, EEXIST);
+
+    /* the entries that were cached before are gone... */
+    ret = sss_ncache_check_uid(ctx, NULL, 1);
+    assert_int_equal(ret, ENOENT);
+
+    ret = sss_ncache_check_uid(ctx, NULL, NCACHE_MAX_ENTRIES - 1);
+    assert_int_equal(ret, ENOENT);
+
+    /* ...but the permanent one survived */
+    ret = sss_ncache_check_uid(ctx, NULL, 0);
+    assert_int_equal(ret, EEXIST);
+
+    /* new entries are accepted for as long as they keep coming, no matter
+     * how many times the cache has to start over */
+    for (uid_t uid = 1; uid <= 10 * NCACHE_MAX_ENTRIES; uid++) {
+        ret = sss_ncache_set_uid(ctx, false, NULL, uid);
+        assert_int_equal(ret, EOK);
+    }
+
+    ret = sss_ncache_check_uid(ctx, NULL, 10 * NCACHE_MAX_ENTRIES);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_uid(ctx, NULL, 0);
+    assert_int_equal(ret, EEXIST);
+
+    talloc_free(memctx);
+}
+
+/* @test_sss_ncache_expired_entries : an expired entry is not removed from
+ * the cache, it just stops being reported until it is either refreshed or
+ * thrown away along with the rest of the cache.
+ */
+static void test_sss_ncache_expired_entries(void **state)
+{
+    TALLOC_CTX *memctx;
+    struct sss_nc_ctx *ctx;
+    int ret;
+
+    memctx = talloc_new(NULL);
+    assert_non_null(memctx);
+
+    ret = sss_ncache_init(memctx, SHORTSPAN, NCACHE_MAX_ENTRIES, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+
+    ret = sss_ncache_set_uid(ctx, false, NULL, 1);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_set_uid(ctx, true, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    sleep(SHORTSPAN + 1);
+
+    /* the entry is expired, it is no longer reported... */
+    ret = sss_ncache_check_uid(ctx, NULL, 1);
+    assert_int_equal(ret, ENOENT);
+
+    /* ...while the permanent one never expires */
+    ret = sss_ncache_check_uid(ctx, NULL, 0);
+    assert_int_equal(ret, EEXIST);
+
+    /* an expired entry is still there, so refreshing it does not count as
+     * a new entry and the cache keeps accepting entries until it is full */
+    ret = sss_ncache_set_uid(ctx, false, NULL, 1);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_uid(ctx, NULL, 1);
+    assert_int_equal(ret, EEXIST);
+
+    talloc_free(memctx);
+}
+
+/* @test_sss_ncache_max_entries_permanent : permanent entries are never
+ * dropped, so once they fill the cache on their own there is no room left
+ * for anything else.
+ */
+static void test_sss_ncache_max_entries_permanent(void **state)
+{
+    TALLOC_CTX *memctx;
+    struct sss_nc_ctx *ctx;
+    int ret;
+
+    memctx = talloc_new(NULL);
+    assert_non_null(memctx);
+
+    ret = sss_ncache_init(memctx, LONGSPAN, 2, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+
+    ret = sss_ncache_set_uid(ctx, true, NULL, 0);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_set_uid(ctx, true, NULL, 1);
+    assert_int_equal(ret, EOK);
+
+    /* dropping the cache would not free anything, so the entry is refused */
+    ret = sss_ncache_set_uid(ctx, false, NULL, 2);
+    assert_int_equal(ret, ENOSPC);
+
+    ret = sss_ncache_check_uid(ctx, NULL, 2);
+    assert_int_equal(ret, ENOENT);
+
+    ret = sss_ncache_check_uid(ctx, NULL, 0);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_uid(ctx, NULL, 1);
+    assert_int_equal(ret, EEXIST);
+
+    /* the limit does not apply to the permanent entries themselves */
+    ret = sss_ncache_set_uid(ctx, true, NULL, 3);
+    assert_int_equal(ret, EOK);
+
+    ret = sss_ncache_check_uid(ctx, NULL, 3);
+    assert_int_equal(ret, EEXIST);
+
+    talloc_free(memctx);
+}
+
+/* @test_sss_ncache_max_entries_unlimited : 'negcache_max_entries = 0'
+ * disables the limit altogether.
+ */
+static void test_sss_ncache_max_entries_unlimited(void **state)
+{
+    TALLOC_CTX *memctx;
+    struct sss_nc_ctx *ctx;
+    int ret;
+
+    memctx = talloc_new(NULL);
+    assert_non_null(memctx);
+
+    ret = sss_ncache_init(memctx, LONGSPAN, 0, &ctx);
+    assert_int_equal(ret, EOK);
+    assert_non_null(ctx);
+
+    for (uid_t uid = 1; uid <= 2 * NCACHE_MAX_ENTRIES; uid++) {
+        ret = sss_ncache_set_uid(ctx, false, NULL, uid);
+        assert_int_equal(ret, EOK);
+    }
+
+    ret = sss_ncache_check_uid(ctx, NULL, 1);
+    assert_int_equal(ret, EEXIST);
+
+    ret = sss_ncache_check_uid(ctx, NULL, 2 * NCACHE_MAX_ENTRIES);
+    assert_int_equal(ret, EEXIST);
+
+    talloc_free(memctx);
+}
+
 int main(void)
 {
     int rv;
@@ -1561,6 +1768,10 @@ int main(void)
                                         setup, teardown),
         cmocka_unit_test_setup_teardown(test_sss_ncache_domain_locate_type,
                                         setup, teardown),
+        cmocka_unit_test(test_sss_ncache_max_entries),
+        cmocka_unit_test(test_sss_ncache_expired_entries),
+        cmocka_unit_test(test_sss_ncache_max_entries_permanent),
+        cmocka_unit_test(test_sss_ncache_max_entries_unlimited),
 
         /* user */
         cmocka_unit_test_setup_teardown(test_ncache_nocache_user,
