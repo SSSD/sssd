@@ -2116,24 +2116,6 @@ sbus_emit_resp_domain_SetInconsistent
 }
 
 void
-sbus_emit_resp_negcache_ResetGroups
-    (struct sbus_connection *conn,
-     const char *object_path)
-{
-    sbus_emit_signal_(conn, object_path,
-        "sssd.Responder.NegativeCache", "ResetGroups");
-}
-
-void
-sbus_emit_resp_negcache_ResetUsers
-    (struct sbus_connection *conn,
-     const char *object_path)
-{
-    sbus_emit_signal_(conn, object_path,
-        "sssd.Responder.NegativeCache", "ResetUsers");
-}
-
-void
 sbus_emit_nss_memcache_InvalidateAllGroups
     (struct sbus_connection *conn,
      const char *object_path)
