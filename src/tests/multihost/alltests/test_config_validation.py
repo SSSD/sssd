@@ -39,4 +39,3 @@ class TestConfigValidation(object):
         log = re.compile(r'ldap_search_base.\sis\snot allowed\sin\ssection\s'
                          r'.sssd.*')
         assert log.search(cmd.stdout_text)
-
