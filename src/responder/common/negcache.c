@@ -80,6 +80,13 @@ static int string_to_tdb_data(char *str, TDB_DATA *ret)
     return EOK;
 }
 
+/* open a memory only tdb with default hash size */
+static struct tdb_context *sss_ncache_open_tdb(void)
+{
+    errno = 0;
+    return tdb_open("memcache", 0, TDB_INTERNAL, O_RDWR|O_CREAT, 0);
+}
+
 int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
                     struct sss_nc_ctx **_ctx)
 {
@@ -88,9 +95,7 @@ int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
     ctx = talloc_zero(memctx, struct sss_nc_ctx);
     if (!ctx) return ENOMEM;
 
-    errno = 0;
-    /* open a memory only tdb with default hash size */
-    ctx->tdb = tdb_open("memcache", 0, TDB_INTERNAL, O_RDWR|O_CREAT, 0);
+    ctx->tdb = sss_ncache_open_tdb();
     if (!ctx->tdb) return errno;
 
     ctx->timeout = timeout;
@@ -489,8 +494,8 @@ static int sss_ncache_set_uid_range(struct sss_nc_ctx *ctx,
     if (min == max) {
         /* A single ID is stored as a plain permanent entry, the same way a
          * name coming from filter_users is. The hash lookup is cheaper than
-         * walking the range list and sss_ncache_reset_permanent() flushes
-         * the entry for free. */
+         * walking the range list and a cache reset flushes the entry for
+         * free. */
         return sss_ncache_set_uid(ctx, true, dom, min);
     }
 
@@ -977,119 +982,6 @@ int sss_ncache_set_locate_sid(struct sss_nc_ctx *ctx,
     ret = sss_ncache_set_str(ctx, str, false);
     talloc_free(str);
     return ret;
-}
-
-static int delete_permanent(struct tdb_context *tdb,
-                            TDB_DATA key, TDB_DATA data, void *state)
-{
-    unsigned long long int timestamp;
-    bool remove_key = false;
-    char *ep;
-
-    if (strncmp((char *)key.dptr,
-                NC_ENTRY_PREFIX, sizeof(NC_ENTRY_PREFIX) - 1) != 0) {
-        /* not interested in this key */
-        return 0;
-    }
-
-    errno = 0;
-    timestamp = strtoull((const char *)data.dptr, &ep, 10);
-    if (errno != 0 || *ep != '\0') {
-        /* Malformed entry, remove it */
-        remove_key = true;
-        goto done;
-    }
-
-    if (timestamp == 0) {
-        /* a 0 timestamp means this is a permanent entry */
-        remove_key = true;
-    }
-
-done:
-    if (remove_key) {
-        return tdb_delete(tdb, key);
-    }
-
-    return 0;
-}
-
-int sss_ncache_reset_permanent(struct sss_nc_ctx *ctx)
-{
-    int ret;
-
-    ret = tdb_traverse(ctx->tdb, delete_permanent, NULL);
-    if (ret < 0)
-        return EIO;
-
-    sss_ncache_free_id_ranges(&ctx->uid_ranges);
-    sss_ncache_free_id_ranges(&ctx->gid_ranges);
-
-    return EOK;
-}
-
-static int delete_prefix(struct tdb_context *tdb,
-                         TDB_DATA key, TDB_DATA data, void *state)
-{
-    const char *prefix = (const char *) state;
-    unsigned long long int timestamp;
-    char *ep = NULL;
-
-    if (strncmp((char *)key.dptr, prefix, strlen(prefix) - 1) != 0) {
-        /* not interested in this key */
-        return 0;
-    }
-
-    errno = 0;
-    timestamp = strtoull((const char *)data.dptr, &ep, 10);
-    if ((errno == 0) && (*ep == '\0') && (timestamp == 0)) {
-        /* skip permanent entries */
-        return 0;
-    }
-
-    return tdb_delete(tdb, key);
-}
-
-static int sss_ncache_reset_pfx(struct sss_nc_ctx *ctx,
-                                const char **prefixes)
-{
-    int ret;
-
-    if (prefixes == NULL) {
-        return EOK;
-    }
-
-    for (int i = 0; prefixes[i] != NULL; i++) {
-        ret = tdb_traverse(ctx->tdb,
-                           delete_prefix,
-                           discard_const(prefixes[i]));
-        if (ret < 0) {
-            return EIO;
-        }
-    }
-
-    return EOK;
-}
-
-int sss_ncache_reset_users(struct sss_nc_ctx *ctx)
-{
-    const char *prefixes[] = {
-        NC_USER_PREFIX,
-        NC_UID_PREFIX,
-        NULL,
-    };
-
-    return sss_ncache_reset_pfx(ctx, prefixes);
-}
-
-int sss_ncache_reset_groups(struct sss_nc_ctx *ctx)
-{
-    const char *prefixes[] = {
-        NC_GROUP_PREFIX,
-        NC_GID_PREFIX,
-        NULL,
-    };
-
-    return sss_ncache_reset_pfx(ctx, prefixes);
 }
 
 /* Parse a single filter_uids/filter_gids value, either a plain "ID" or an
@@ -1670,16 +1562,25 @@ done:
     return ret;
 }
 
-/* Reset permanent negcache after checking the domains */
-errno_t sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
-                                              struct sss_nc_ctx *ncache)
+/* Recreate the negcache from scratch and repopulate permanent entries.
+ * All non-permanent entries are dropped. */
+errno_t sss_ncache_reset(struct resp_ctx *rctx,
+                         struct sss_nc_ctx *ncache)
 {
-    int ret;
+    struct tdb_context *tdb;
 
-    ret = sss_ncache_reset_permanent(ncache);
-    if (ret == EOK) {
-        ret = sss_ncache_prepopulate(ncache, rctx->cdb, rctx);
+    /* Open the replacement before dropping the old one so a failure leaves
+     * the existing cache usable. */
+    tdb = sss_ncache_open_tdb();
+    if (tdb == NULL) {
+        return errno ? errno : EIO;
     }
 
-    return ret;
+    tdb_close(ncache->tdb);
+    ncache->tdb = tdb;
+
+    sss_ncache_free_id_ranges(&ncache->uid_ranges);
+    sss_ncache_free_id_ranges(&ncache->gid_ranges);
+
+    return sss_ncache_prepopulate(ncache, rctx->cdb, rctx);
 }
