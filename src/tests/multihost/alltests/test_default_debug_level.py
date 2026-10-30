@@ -15,6 +15,7 @@ from sssd.testlib.common.utils import sssdTools, LdapOperations
 from sssd.testlib.common.ssh2_python import check_login_client_bool
 from constants import ds_instance_name, ds_suffix, ds_rootpw, ds_rootdn
 
+
 @pytest.mark.usefixtures('setup_sssd', 'create_posix_usersgroups')
 @pytest.mark.defaultdebuglevel
 class TestDefaultDebugLevel(object):
