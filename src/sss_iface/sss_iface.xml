@@ -152,13 +152,6 @@
         </signal>
     </interface>
 
-    <interface name="sssd.Responder.NegativeCache">
-        <annotation name="codegen.Name" value="resp_negcache" />
-        <annotation name="codegen.SyncCaller" value="false" />
-        <signal name="ResetUsers" key="True" />
-        <signal name="ResetGroups" key="True" />
-    </interface>
-
     <interface name="sssd.nss.MemoryCache">
         <annotation name="codegen.Name" value="nss_memcache" />
         <annotation name="codegen.SyncCaller" value="false" />

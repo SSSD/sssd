@@ -99,16 +99,6 @@ dp_init_interface(struct data_provider *provider)
         SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
     );
 
-    SBUS_INTERFACE(iface_responder_negativecache,
-        sssd_Responder_NegativeCache,
-        SBUS_METHODS(SBUS_NO_METHODS),
-        SBUS_SIGNALS(
-            SBUS_EMITS(sssd_Responder_NegativeCache, ResetUsers),
-            SBUS_EMITS(sssd_Responder_NegativeCache, ResetGroups)
-        ),
-        SBUS_PROPERTIES(SBUS_NO_PROPERTIES)
-    );
-
     SBUS_INTERFACE(iface_nss_memorycache,
         sssd_nss_MemoryCache,
         SBUS_METHODS(SBUS_NO_METHODS),
@@ -128,7 +118,6 @@ dp_init_interface(struct data_provider *provider)
         {SSS_BUS_PATH, &iface_dp},
         {SSS_BUS_PATH, &iface_autofs},
         {SSS_BUS_PATH, &iface_responder_domain},
-        {SSS_BUS_PATH, &iface_responder_negativecache},
         {SSS_BUS_PATH, &iface_nss_memorycache},
         {NULL, NULL}
     };
