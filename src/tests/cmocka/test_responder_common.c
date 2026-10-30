@@ -253,8 +253,8 @@ struct sss_nc_ctx {
  */
 static struct sss_nc_ctx *expected_ncache_ptr;
 
-errno_t __wrap_sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
-                                                     struct sss_nc_ctx *dummy_ncache_ptr)
+errno_t __wrap_sss_ncache_reset(struct resp_ctx *rctx,
+                                struct sss_nc_ctx *dummy_ncache_ptr)
 {
     if (dummy_ncache_ptr != expected_ncache_ptr) {
         return EOK;

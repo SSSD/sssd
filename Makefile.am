@@ -2733,7 +2733,7 @@ responder_get_domains_tests_CFLAGS = \
     $(CMOCKA_CFLAGS)
 responder_get_domains_tests_LDFLAGS = \
     -Wl,-wrap,sss_parse_name_for_domains \
-    -Wl,-wrap,sss_ncache_reset_repopulate_permanent
+    -Wl,-wrap,sss_ncache_reset
 responder_get_domains_tests_LDADD = \
     $(LIBADD_DL) \
     $(CMOCKA_LIBS) \
