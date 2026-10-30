@@ -176,11 +176,6 @@ bool dp_method_enabled(struct data_provider *provider,
 void dp_terminate_domain_requests(struct data_provider *provider,
                                   const char *domain);
 
-void dp_sbus_reset_users_ncache(struct data_provider *provider,
-                                struct sss_domain_info *dom);
-void dp_sbus_reset_groups_ncache(struct data_provider *provider,
-                                 struct sss_domain_info *dom);
-
 void dp_sbus_reset_users_memcache(struct data_provider *provider);
 void dp_sbus_reset_groups_memcache(struct data_provider *provider);
 void dp_sbus_reset_initgr_memcache(struct data_provider *provider);
