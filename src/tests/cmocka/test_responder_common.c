@@ -244,8 +244,8 @@ struct sss_nc_ctx {
     struct parse_inp_test_ctx *pctx;
 };
 
-errno_t __wrap_sss_ncache_reset_repopulate_permanent(struct resp_ctx *rctx,
-                                                     struct sss_nc_ctx *dummy_ncache_ptr)
+errno_t __wrap_sss_ncache_reset(struct resp_ctx *rctx,
+                                struct sss_nc_ctx *dummy_ncache_ptr)
 {
     test_ev_done(dummy_ncache_ptr->pctx->tctx, EOK);
     return EOK;
