@@ -572,8 +572,6 @@ done:
 
 static void proxy_pam_conv_done(struct tevent_req *subreq)
 {
-    struct pam_data *response;
-    struct response_data *resp;
     struct proxy_conv_ctx *state;
     struct tevent_req *req;
     errno_t ret;
@@ -583,7 +581,7 @@ static void proxy_pam_conv_done(struct tevent_req *subreq)
 
     state->sig_ctx->req = NULL;
 
-    ret = sbus_call_proxy_auth_PAM_recv(state, subreq, &response);
+    ret = sbus_call_proxy_auth_PAM_recv(subreq);
     talloc_zfree(subreq);
 
     /* Kill the child */
@@ -595,23 +593,6 @@ static void proxy_pam_conv_done(struct tevent_req *subreq)
         tevent_req_error(req, ret);
         return;
     }
-
-    state->pd->pam_status = response->pam_status;
-    state->pd->account_locked = response->account_locked;
-
-    for (resp = response->resp_list; resp != NULL; resp = resp->next) {
-        talloc_steal(state->pd, resp);
-
-        if (resp->next == NULL) {
-            resp->next = state->pd->resp_list;
-            state->pd->resp_list = response->resp_list;
-            break;
-        }
-    }
-
-    DEBUG(SSSDBG_CONF_SETTINGS, "received: [%d][%s]\n",
-          state->pd->pam_status,
-          state->pd->domain);
 
     tevent_req_done(req);
 }

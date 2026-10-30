@@ -1404,6 +1404,7 @@ static void sdap_pam_chpass_handler_auth_done(struct tevent_req *subreq)
                     &state->pw_expire_type, &pw_expire_data);
     talloc_free(subreq);
 
+    DEBUG(SSSDBG_TRACE_FUNC, "JS-ret is [%s]\n", sss_strerror(ret));
     if ((ret == EOK || ret == ERR_PASSWORD_EXPIRED) &&
         state->pd->cmd == SSS_PAM_CHAUTHTOK_PRELIM) {
         DEBUG(SSSDBG_TRACE_ALL, "Initial authentication for change "

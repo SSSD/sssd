@@ -161,9 +161,7 @@ sbus_call_proxy_auth_PAM_send
 
 errno_t
 sbus_call_proxy_auth_PAM_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     struct pam_data ** _pam_response);
+    (struct tevent_req *req);
 
 struct tevent_req *
 sbus_call_proxy_client_Register_send
@@ -248,9 +246,7 @@ sbus_call_dp_dp_pamHandler_send
 
 errno_t
 sbus_call_dp_dp_pamHandler_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     struct pam_data ** _pam_response);
+    (struct tevent_req *req);
 
 struct tevent_req *
 sbus_call_dp_dp_resolverHandler_send

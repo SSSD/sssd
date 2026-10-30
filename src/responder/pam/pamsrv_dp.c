@@ -57,17 +57,18 @@ pam_dp_send_req(struct pam_auth_req *preq)
 static void
 pam_dp_send_req_done(struct tevent_req *subreq)
 {
-    struct pam_data *pam_response;
     struct response_data *resp;
     struct pam_auth_req *preq;
     errno_t ret;
 
     preq = tevent_req_callback_data(subreq, struct pam_auth_req);
 
-    ret = sbus_call_dp_dp_pamHandler_recv(preq, subreq, &pam_response);
+    ret = sbus_call_dp_dp_pamHandler_recv(subreq);
     talloc_zfree(subreq);
+    DEBUG(SSSDBG_FUNC_DATA, "received: pamHandler ret: (%s)\n", ret);
+
     if (ret == EOK) {
-        pam_response->pam_status = PAM_SUCCESS;
+        preq->pd->pam_status = PAM_SUCCESS;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "PAM handler failed [%d]: %s\n",
               ret, sss_strerror(ret));
@@ -102,26 +103,6 @@ pam_dp_send_req_done(struct tevent_req *subreq)
 
             goto done;
     }
-
-    preq->pd->pam_status = pam_response->pam_status;
-    preq->pd->account_locked = pam_response->account_locked;
-
-    DEBUG(SSSDBG_FUNC_DATA, "received: [%d (%s)][%s]\n",
-          pam_response->pam_status,
-          pam_strerror(NULL, pam_response->pam_status),
-          preq->pd->domain);
-
-    for (resp = pam_response->resp_list; resp != NULL; resp = resp->next) {
-        talloc_steal(preq->pd, resp);
-
-        if (resp->next == NULL) {
-            resp->next = preq->pd->resp_list;
-            preq->pd->resp_list = pam_response->resp_list;
-            break;
-        }
-    }
-
-    talloc_zfree(pam_response);
 
 done:
     preq->callback(preq);

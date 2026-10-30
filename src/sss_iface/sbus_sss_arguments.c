@@ -143,35 +143,6 @@ errno_t _sbus_sss_invoker_write_pam_data
     return EOK;
 }
 
-errno_t _sbus_sss_invoker_read_pam_response
-   (TALLOC_CTX *mem_ctx,
-    DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_pam_response *args)
-{
-    errno_t ret;
-
-    ret = sbus_iterator_read_pam_response(mem_ctx, iter, &args->arg0);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    return EOK;
-}
-
-errno_t _sbus_sss_invoker_write_pam_response
-   (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_pam_response *args)
-{
-    errno_t ret;
-
-    ret = sbus_iterator_write_pam_response(iter, args->arg0);
-    if (ret != EOK) {
-        return ret;
-    }
-
-    return EOK;
-}
-
 errno_t _sbus_sss_invoker_read_q
    (TALLOC_CTX *mem_ctx,
     DBusMessageIter *iter,

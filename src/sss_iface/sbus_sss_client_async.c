@@ -108,15 +108,14 @@ sbus_method_in__out__recv
     return EOK;
 }
 
-struct sbus_method_in_pam_data_out_pam_response_state {
+struct sbus_method_in_pam_data_out__state {
     struct _sbus_sss_invoker_args_pam_data in;
-    struct _sbus_sss_invoker_args_pam_response *out;
 };
 
-static void sbus_method_in_pam_data_out_pam_response_done(struct tevent_req *subreq);
+static void sbus_method_in_pam_data_out__done(struct tevent_req *subreq);
 
 static struct tevent_req *
-sbus_method_in_pam_data_out_pam_response_send
+sbus_method_in_pam_data_out__send
     (TALLOC_CTX *mem_ctx,
      struct sbus_connection *conn,
      sbus_invoker_keygen keygen,
@@ -126,23 +125,15 @@ sbus_method_in_pam_data_out_pam_response_send
      const char *method,
      struct pam_data * arg0)
 {
-    struct sbus_method_in_pam_data_out_pam_response_state *state;
+    struct sbus_method_in_pam_data_out__state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
     errno_t ret;
 
-    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_pam_data_out_pam_response_state);
+    req = tevent_req_create(mem_ctx, &state, struct sbus_method_in_pam_data_out__state);
     if (req == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Unable to create tevent request!\n");
         return NULL;
-    }
-
-    state->out = talloc_zero(state, struct _sbus_sss_invoker_args_pam_response);
-    if (state->out == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE,
-              "Unable to allocate space for output parameters!\n");
-        ret = ENOMEM;
-        goto done;
     }
 
     state->in.arg0 = arg0;
@@ -156,7 +147,7 @@ sbus_method_in_pam_data_out_pam_response_send
         goto done;
     }
 
-    tevent_req_set_callback(subreq, sbus_method_in_pam_data_out_pam_response_done, req);
+    tevent_req_set_callback(subreq, sbus_method_in_pam_data_out__done, req);
 
     ret = EAGAIN;
 
@@ -169,24 +160,18 @@ done:
     return req;
 }
 
-static void sbus_method_in_pam_data_out_pam_response_done(struct tevent_req *subreq)
+static void sbus_method_in_pam_data_out__done(struct tevent_req *subreq)
 {
-    struct sbus_method_in_pam_data_out_pam_response_state *state;
+    struct sbus_method_in_pam_data_out__state *state;
     struct tevent_req *req;
     DBusMessage *reply;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
-    state = tevent_req_data(req, struct sbus_method_in_pam_data_out_pam_response_state);
+    state = tevent_req_data(req, struct sbus_method_in_pam_data_out__state);
 
     ret = sbus_call_method_recv(state, subreq, &reply);
     talloc_zfree(subreq);
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-        return;
-    }
-
-    ret = sbus_read_output(state->out, reply, (sbus_invoker_reader_fn)_sbus_sss_invoker_read_pam_response, state->out);
     if (ret != EOK) {
         tevent_req_error(req, ret);
         return;
@@ -197,17 +182,10 @@ static void sbus_method_in_pam_data_out_pam_response_done(struct tevent_req *sub
 }
 
 static errno_t
-sbus_method_in_pam_data_out_pam_response_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     struct pam_data ** _arg0)
+sbus_method_in_pam_data_out__recv
+    (struct tevent_req *req)
 {
-    struct sbus_method_in_pam_data_out_pam_response_state *state;
-    state = tevent_req_data(req, struct sbus_method_in_pam_data_out_pam_response_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *_arg0 = talloc_steal(mem_ctx, state->out->arg0);
 
     return EOK;
 }
@@ -1703,17 +1681,15 @@ sbus_call_proxy_auth_PAM_send
      const char *object_path,
      struct pam_data * arg_pam_data)
 {
-    return sbus_method_in_pam_data_out_pam_response_send(mem_ctx, conn, NULL,
+    return sbus_method_in_pam_data_out__send(mem_ctx, conn, NULL,
         busname, object_path, "sssd.ProxyChild.Auth", "PAM", arg_pam_data);
 }
 
 errno_t
 sbus_call_proxy_auth_PAM_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     struct pam_data ** _pam_response)
+    (struct tevent_req *req)
 {
-    return sbus_method_in_pam_data_out_pam_response_recv(mem_ctx, req, _pam_response);
+    return sbus_method_in_pam_data_out__recv(req);
 }
 
 struct tevent_req *
@@ -1832,17 +1808,15 @@ sbus_call_dp_dp_pamHandler_send
      const char *object_path,
      struct pam_data * arg_pam_data)
 {
-    return sbus_method_in_pam_data_out_pam_response_send(mem_ctx, conn, NULL,
+    return sbus_method_in_pam_data_out__send(mem_ctx, conn, NULL,
         busname, object_path, "sssd.dataprovider", "pamHandler", arg_pam_data);
 }
 
 errno_t
 sbus_call_dp_dp_pamHandler_recv
-    (TALLOC_CTX *mem_ctx,
-     struct tevent_req *req,
-     struct pam_data ** _pam_response)
+    (struct tevent_req *req)
 {
-    return sbus_method_in_pam_data_out_pam_response_recv(mem_ctx, req, _pam_response);
+    return sbus_method_in_pam_data_out__recv(req);
 }
 
 struct tevent_req *
