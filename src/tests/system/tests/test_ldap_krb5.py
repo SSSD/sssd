@@ -5,7 +5,8 @@ Tests where the ``id_provider`` is set to ``ldap`` and the ``auth_provider``
 is set to ``krb5``. They use ``KnownTopology.LDAP_KRB5`` (client + LDAP + KDC,
 host keytab provisioned by the topology controller).
 
-Misc krb cases ported from sssd-qe krb_misc are included in this module.
+Misc krb cases ported from sssd-qe krb_misc are included in this module, as well
+as the SASL GSSAPI bind cases.
 
 :requirement: SSSD - Kerberos
 """
@@ -13,6 +14,7 @@ Misc krb cases ported from sssd-qe krb_misc are included in this module.
 from __future__ import annotations
 
 import time
+from datetime import datetime
 
 import pytest
 from sssd_test_framework.roles.client import Client
@@ -28,6 +30,35 @@ NOBODY_C_SOURCE = (
     "    return 0;\n"
     "}\n"
 )
+
+
+def ticket_lifetime(client: Client, ccache: str, principal: str) -> int:
+    """
+    Return how long a ticket held in a credential cache is valid for.
+
+    :param client: Client role object.
+    :type client: Client
+    :param ccache: Path of the credential cache.
+    :type ccache: str
+    :param principal: Service principal of the wanted ticket.
+    :type principal: str
+    :return: Number of seconds between the start and the expiration of the ticket.
+    :rtype: int
+    """
+    result = client.host.conn.run(f"LC_ALL=C klist -c FILE:{ccache}")
+
+    for line in result.stdout.splitlines():
+        # "10/28/26 10:55:43  10/28/26 10:57:43  krbtgt/TEST@TEST", the "renew until"
+        # continuation lines hold fewer fields and are skipped by the length check.
+        fields = line.split()
+        if len(fields) != 5 or fields[4] != principal:
+            continue
+
+        start = datetime.strptime(f"{fields[0]} {fields[1]}", "%m/%d/%y %H:%M:%S")
+        expires = datetime.strptime(f"{fields[2]} {fields[3]}", "%m/%d/%y %H:%M:%S")
+        return int((expires - start).total_seconds())
+
+    raise ValueError(f"No ticket for {principal} in {ccache}:\n{result.stdout}")
 
 
 @pytest.mark.importance("high")
@@ -380,3 +411,46 @@ def test_ldap_krb5__password_change_via_ssh(client: Client, provider: GenericPro
     ), f"krb5_child initial auth message not found: {log_content[:500]}!"
 
     assert client.auth.ssh.password("puser1", new_password), "Auth with new password failed after password change!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.authentication
+@pytest.mark.parametrize("lifetime", [120, 600])
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__ldap_krb5_ticket_lifetime_is_used_for_the_gssapi_service_ticket(
+    client: Client, provider: GenericProvider, kdc: KDC, lifetime: int
+):
+    """
+    :title: GSSAPI bind obtains its credentials for the configured ticket lifetime
+
+    :setup:
+        1. Create user "puser1" and its kerberos principal
+        2. Configure SSSD with a GSSAPI bind and ldap_krb5_ticket_lifetime
+        3. Start SSSD
+    :steps:
+        1. Resolve puser1
+        2. Check the service credential cache and the lifetime of the TGT in it
+    :expectedresults:
+        1. User is resolvable
+        2. The TGT is valid for exactly ldap_krb5_ticket_lifetime seconds
+    :customerscenario: False
+    """
+    provider.user("puser1").add()
+    kdc.principal("puser1").add()
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["ldap_sasl_mech"] = "GSSAPI"
+    client.sssd.domain["ldap_sasl_authid"] = f"host/{client.host.hostname}@{kdc.realm}"
+    client.sssd.domain["ldap_krb5_ticket_lifetime"] = str(lifetime)
+    client.sssd.start()
+
+    assert client.tools.id("puser1"), "User puser1 is not resolvable!"
+
+    ccache = f"/var/lib/sss/db/ccache_{kdc.realm}"
+    assert client.fs.exists(ccache), f"GSSAPI service credential cache {ccache} was not created!"
+
+    service = f"ldap/{provider.host.hostname}@{kdc.realm}"
+    ticket_lifetime(client, ccache, service)
+
+    granted = ticket_lifetime(client, ccache, f"krbtgt/{kdc.realm}@{kdc.realm}")
+    assert granted == lifetime, f"TGT in {ccache} is valid for {granted} seconds, expected {lifetime}!"
