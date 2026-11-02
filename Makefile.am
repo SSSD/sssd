@@ -464,6 +464,10 @@ py3exec_LTLIBRARIES = \
     $(NULL)
 endif
 
+dist_bin_SCRIPTS = \
+    src/shells/sss-confined-shell \
+    $(NULL)
+
 sbin_SCRIPTS = \
 	src/tools/wrappers/sss_debuglevel \
 	$(NULL)

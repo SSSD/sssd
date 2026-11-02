@@ -716,6 +716,7 @@ install -D -p -m 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/sssd.conf
 %{_libdir}/%{name}/libsss_sbus_sync.so
 
 %{ldb_modulesdir}/memberof.so
+%{_bindir}/sss-confined-shell
 %{_bindir}/sss_ssh_authorizedkeys
 %{_bindir}/sss_ssh_knownhosts
 %{_bindir}/sss_ssh_knownhostsproxy
