@@ -59,6 +59,15 @@ struct sss_nc_id_range {
 struct sss_nc_ctx {
     struct tdb_context *tdb;
     uint32_t timeout;
+    /* Responder context used to repopulate the permanent entries.
+     * Set by the first `sss_ncache_prepopulate()` */
+    struct resp_ctx *rctx;
+    /* tdb map size occupied by the permanent entries */
+    size_t base_map_size;
+    /* how many bytes the cache may grow past base_map_size before it is
+     * recreated; 0 disables the limit (see the undocumented
+     * CONFDB_NSS_ENTRY_NEG_CACHE_MAX_SIZE option) */
+    size_t max_map_size;
     struct sss_nc_id_range *uid_ranges;
     struct sss_nc_id_range *gid_ranges;
 };
@@ -88,7 +97,7 @@ static struct tdb_context *sss_ncache_open_tdb(void)
 }
 
 int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
-                    struct sss_nc_ctx **_ctx)
+                    size_t max_map_size, struct sss_nc_ctx **_ctx)
 {
     struct sss_nc_ctx *ctx;
 
@@ -99,6 +108,7 @@ int sss_ncache_init(TALLOC_CTX *memctx, uint32_t timeout,
     if (!ctx->tdb) return errno;
 
     ctx->timeout = timeout;
+    ctx->max_map_size = max_map_size;
 
     *_ctx = ctx;
     return EOK;
@@ -109,7 +119,6 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
     TDB_DATA key;
     TDB_DATA data;
     unsigned long long int timestamp;
-    bool expired = false;
     char *ep;
     int ret;
 
@@ -118,20 +127,22 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
     data.dptr = NULL;
 
     ret = string_to_tdb_data(str, &key);
-    if (ret != EOK) goto done;
+    if (ret != EOK) {
+        return ret;
+    }
 
     data = tdb_fetch(ctx->tdb, key);
-
     if (!data.dptr) {
-        ret = ENOENT;
-        goto done;
+        return ENOENT;
     }
 
     errno = 0;
     timestamp = strtoull((const char *)data.dptr, &ep, 10);
     if (errno != 0 || *ep != '\0') {
-        /* Malformed entry, remove it and return no entry */
-        expired = true;
+        /* Malformed entry, treat it as absent. Expired and malformed entries
+         * are not evicted individually; they are flushed when the cache is
+         * recreated. */
+        ret = ENOENT;
         goto done;
     }
 
@@ -147,15 +158,10 @@ static int sss_ncache_check_str(struct sss_nc_ctx *ctx, char *str)
         goto done;
     }
 
-    expired = true;
+    /* expired, report as absent but leave it in place */
+    ret = ENOENT;
 
 done:
-    if (expired) {
-        /* expired, remove and return no entry */
-        tdb_delete(ctx->tdb, key);
-        ret = ENOENT;
-    }
-
     free(data.dptr);
     return ret;
 }
@@ -185,6 +191,22 @@ static int sss_ncache_set_str(struct sss_nc_ctx *ctx, char *str, bool permanent)
 
     ret = string_to_tdb_data(timest, &data);
     if (ret != EOK) goto done;
+
+    /* Keep the cache bounded: deleting entries does not shrink the tdb map,
+     * so once the limit is hit, recreate it from scratch. */
+    if (!permanent && ctx->rctx != NULL && ctx->max_map_size != 0
+            && tdb_map_size(ctx->tdb) > ctx->base_map_size + ctx->max_map_size) {
+        DEBUG(SSSDBG_IMPORTANT_INFO,
+              "Negative cache grew %zu bytes past its baseline, recreating it\n",
+              ctx->max_map_size);
+        ret = sss_ncache_reset(ctx->rctx, ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to recreate the negative cache [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            goto done;
+        }
+    }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Adding [%s] to negative cache%s\n",
               str, permanent?" permanently":"");
@@ -1191,6 +1213,10 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
         return ENOMEM;
     }
 
+    /* Remember the responder context so the cache can be recreated later (on
+     * reset or when it grows past max_map_size). */
+    ncache->rctx = rctx;
+
     /* Populate domain-specific negative cache user entries */
     for (dom = domain_list; dom; dom = get_next_domain(dom, 0)) {
         conf_path = talloc_asprintf(tmpctx, CONFDB_DOMAIN_PATH_TMPL,
@@ -1554,6 +1580,9 @@ errno_t sss_ncache_prepopulate(struct sss_nc_ctx *ncache,
               "(%d [%s])\n",
               ret, strerror(ret));
     }
+
+    /* Record the footprint of the permanent entries */
+    ncache->base_map_size = tdb_map_size(ncache->tdb);
 
     ret = EOK;
 
