@@ -999,6 +999,7 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
                                      struct sss_nc_ctx **ncache)
 {
     uint32_t neg_timeout;
+    size_t max_map_size;
     int tmp_value;
     int ret;
 
@@ -1021,8 +1022,27 @@ static errno_t responder_init_ncache(TALLOC_CTX *mem_ctx,
 
     neg_timeout = tmp_value;
 
+    /* max_map_size (undocumented on purpose) */
+    ret = confdb_get_int(cdb, CONFDB_NSS_CONF_ENTRY,
+                         CONFDB_NSS_ENTRY_NEG_CACHE_MAX_SIZE,
+                         CONFDB_NSS_ENTRY_NEG_CACHE_DEFAULT_MAX_SIZE, &tmp_value);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE,
+              "Fatal failure of setup negative cache size limit [%s].\n",
+              CONFDB_NSS_ENTRY_NEG_CACHE_MAX_SIZE);
+        ret = ENOENT;
+        goto done;
+    }
+
+    if (tmp_value < 0) {
+        ret = EINVAL;
+        goto done;
+    }
+
+    max_map_size = tmp_value;
+
     /* negative cache init */
-    ret = sss_ncache_init(mem_ctx, neg_timeout, ncache);
+    ret = sss_ncache_init(mem_ctx, neg_timeout, max_map_size, ncache);
     if (ret != EOK) {
         DEBUG(SSSDBG_FATAL_FAILURE,
               "Fatal failure of initializing negative cache.\n");
