@@ -21,6 +21,7 @@
 #include "config.h"
 
 #include <dhash.h>
+#include <limits.h>
 #include <talloc.h>
 #include <tevent.h>
 #include <string.h>
@@ -294,4 +295,118 @@ done:
 
     sss_cmd_done(cctx, NULL);
     return EOK;
+}
+
+static errno_t pam_bot_add_env(struct pam_data *pd,
+                               TALLOC_CTX *tmp_ctx,
+                               const char *name,
+                               const char *value)
+{
+    char *env;
+    size_t len;
+    errno_t ret;
+
+    if (value == NULL) {
+        return EOK;
+    }
+
+    env = talloc_asprintf(tmp_ctx, "%s=%s", name, value);
+    if (env == NULL) {
+        return ENOMEM;
+    }
+
+    len = strlen(env) + 1;
+    if (len > INT_MAX) {
+        talloc_free(env);
+        return EOVERFLOW;
+    }
+
+    ret = pam_add_response(pd, SSS_PAM_ENV_ITEM, len, (uint8_t *)env);
+    talloc_free(env);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to add bot environment variable [%s] [%d]: %s\n",
+              name, ret, sss_strerror(ret));
+    }
+
+    return ret;
+}
+
+/* Export bot account information through PAM for sss-confined-shell. */
+errno_t pam_bot_export_env(struct pam_auth_req *preq,
+                           struct pam_bot_ctx *ctx)
+{
+    TALLOC_CTX *tmp_ctx;
+    struct pam_bot_entry *entry;
+    const char *original_name;
+    const char *shell;
+    errno_t ret;
+
+    if (preq->bot == NULL) {
+        return EOK;
+    }
+
+    tmp_ctx = talloc_new(preq);
+    if (tmp_ctx == NULL) {
+        return ENOMEM;
+    }
+
+    original_name = sss_get_name_from_msg(preq->domain, preq->user_obj);
+    shell = sss_resp_get_shell_override(preq->user_obj,
+                                        preq->cctx->rctx, preq->domain);
+
+    ret = pam_bot_add_env(preq->pd, tmp_ctx,
+                          "SSS_BOT_NAME", preq->bot->input);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = pam_bot_add_env(preq->pd, tmp_ctx,
+                          "SSS_BOT_ORIGINAL_USER", original_name);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = pam_bot_add_env(preq->pd, tmp_ctx,
+                          "SSS_BOT_ORIGINAL_SHELL", shell);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    entry = sss_ptr_hash_lookup(ctx->table, preq->bot->name,
+                                struct pam_bot_entry);
+    if (entry == NULL) {
+        ret = EOK;
+        goto done;
+    }
+
+    ret = pam_bot_add_env(preq->pd, tmp_ctx,
+                          "SSS_BOT_AGENT", entry->metadata.agent);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = pam_bot_add_env(preq->pd, tmp_ctx,
+                          "SSS_BOT_MODEL", entry->metadata.model);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = pam_bot_add_env(preq->pd, tmp_ctx,
+                          "SSS_BOT_TOOL", entry->metadata.tool);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = pam_bot_add_env(preq->pd, tmp_ctx,
+                          "SSS_BOT_REQUEST_ID", entry->metadata.request_id);
+    if (ret != EOK) {
+        goto done;
+    }
+
+    ret = EOK;
+
+done:
+    talloc_free(tmp_ctx);
+    return ret;
 }

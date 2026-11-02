@@ -97,6 +97,7 @@ struct pam_auth_req {
     bool cached_auth_failed;
 
     struct ldb_message *user_obj;
+    struct sss_bot *bot;
     struct cert_auth_info *cert_list;
     struct cert_auth_info *current_cert;
     /* Switched to 'true' if the backend indicates that it cannot handle

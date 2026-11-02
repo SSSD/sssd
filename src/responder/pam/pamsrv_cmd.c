@@ -1653,6 +1653,18 @@ void pam_reply(struct pam_auth_req *preq)
         }
     }
 
+    /* Export bot identity and metadata to sss-confined-shell. */
+    if (pd->cmd == SSS_PAM_OPEN_SESSION && pd->pam_status == PAM_SUCCESS
+            && preq->bot != NULL) {
+        ret = pam_bot_export_env(preq, pctx->bot_ctx);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Failed to export bot environment variables [%d]: %s\n",
+                  ret, sss_strerror(ret));
+            pd->pam_status = PAM_SYSTEM_ERR;
+        }
+    }
+
     resp_c = 0;
     resp_size = 0;
     resp = pd->resp_list;
@@ -2734,6 +2746,7 @@ static void pam_check_user_search_done(struct pam_auth_req *preq, int ret,
 
     if (ret == EOK) {
         preq->user_obj = result->msgs[0];
+        preq->bot = result->bot;
         pd_set_primary_name(preq->user_obj, preq->pd);
         preq->domain = result->domain;
 

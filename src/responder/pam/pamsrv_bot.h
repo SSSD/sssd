@@ -28,6 +28,8 @@
 #include "responder/common/responder.h"
 #include "util/util_errors.h"
 
+struct pam_auth_req;
+
 struct pam_bot_ctx {
     struct tevent_context *ev;
     hash_table_t *table;
@@ -38,5 +40,9 @@ errno_t pam_bot_init(TALLOC_CTX *mem_ctx,
                      struct pam_bot_ctx **_ctx);
 
 int pam_bot_cmd_register(struct cli_ctx *cctx);
+
+/* Export bot identity and consume any available metadata on success. */
+errno_t pam_bot_export_env(struct pam_auth_req *preq,
+                           struct pam_bot_ctx *ctx);
 
 #endif /* _PAMSRV_BOT_H_ */
