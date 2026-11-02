@@ -35,6 +35,8 @@ jobs:
       - upstream
     targets: &copr_targets
       - centos-stream-8
+    additional_repos: &additional_repos
+      - https://dl.fedoraproject.org/pub/epel/8/Everything/$basearch/
     sync_test_job_statuses_with_builds: False
 
   # Produce COPR build on each pull request
@@ -43,6 +45,7 @@ jobs:
     packages:
       - upstream
     targets: *copr_targets
+    additional_repos: *additional_repos
     require: &require
       label:
         absent:
