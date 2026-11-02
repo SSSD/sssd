@@ -102,9 +102,7 @@ def test_ldap_krb5__ldap_child_handles_missing_keytab_without_segfault(
     :setup:
         1. Create user and kerberos principal
         2. Configure SSSD
-        3. Configure ``ldap_krb5_keytab`` to ``/etc/krb5.keytab`` (topology default path
-           and SELinux context), remove that file via :meth:`client.fs.rm` (backed up for
-           teardown), then start SSSD
+        3. Remove the provisioned keytab and start SSSD
     :steps:
         1. Trigger user lookup
         2. Check journal for segfault messages
@@ -121,10 +119,10 @@ def test_ldap_krb5__ldap_child_handles_missing_keytab_without_segfault(
     client.sssd.common.krb5_auth(kdc)
     client.sssd.domain["ldap_sasl_mech"] = "GSSAPI"
 
-    # Use the real keytab path (correct SELinux type); avoid /tmp copies. fs.rm backs up
-    # and restores /etc/krb5.keytab after the test.
-    client.sssd.domain["ldap_krb5_keytab"] = "/etc/krb5.keytab"
-    client.fs.rm("/etc/krb5.keytab")
+    # Read the provisioned keytab path from the ldap_krb5_keytab domain default.
+    # fs.rm backs up and restores the keytab after the test.
+    keytab = client.sssd.domain["ldap_krb5_keytab"]
+    client.fs.rm(keytab)
 
     client.sssd.restart(clean=True)
 
@@ -170,9 +168,10 @@ def test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms(
     provider.user("puser1").add(uid=1001, gid=1001, password="12345678")
     kdc.principal("puser1").add(password="12345678")
 
-    # Topology provisions host keytab at /etc/krb5.keytab; copy for ktutil input.
+    # Read the provisioned keytab path from the ldap_krb5_keytab domain default.
+    keytab = client.sssd.domain["ldap_krb5_keytab"]
     valid_keytab = "/tmp/sssd_client_valid.keytab"
-    client.fs.copy("/etc/krb5.keytab", valid_keytab)
+    client.fs.copy(keytab, valid_keytab)
 
     wrong_principal = f"nfs/{client.host.hostname}@TEST.EXAMPLE.COM"
     mixed_keytab = "/tmp/first_invalid.keytab"
@@ -185,13 +184,12 @@ def test_ldap_krb5__keytab_selects_correct_principal_with_multiple_realms(
     if result.rc != 0:
         pytest.skip(f"ktutil failed to create mixed keytab: {result.stderr or result.stdout}")
 
-    client.fs.rm("/etc/krb5.keytab")
-    client.fs.copy(mixed_keytab, "/etc/krb5.keytab")
+    client.fs.rm(keytab)
+    client.fs.copy(mixed_keytab, keytab)
 
     client.sssd.common.krb5_auth(kdc)
     client.sssd.domain["krb5_realm"] = "TEST.EXAMPLE.COM"
     client.sssd.domain["ldap_sasl_mech"] = "GSSAPI"
-    client.sssd.domain["ldap_krb5_keytab"] = "/etc/krb5.keytab"
     client.sssd.domain["debug_level"] = "0xFFF0"
     client.sssd.start()
 
