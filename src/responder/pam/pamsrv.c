@@ -40,6 +40,7 @@
 #include "responder/common/responder_packet.h"
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
+#include "responder/pam/pamsrv_bot.h"
 #include "responder/common/negcache.h"
 #include "sss_iface/sss_iface_async.h"
 
@@ -200,6 +201,12 @@ static int pam_process_init(TALLOC_CTX *mem_ctx,
 
     pctx->rctx = rctx;
     pctx->rctx->pvt_ctx = pctx;
+
+    ret = pam_bot_init(pctx, ev, &pctx->bot_ctx);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_FATAL_FAILURE, "Could not initialize bot metadata cache\n");
+        goto done;
+    }
 
     ret = get_trusted_uids(pctx);
     if (ret != EOK) {

@@ -32,6 +32,7 @@
 #define PROMPT_CONFIG_SECOND    2
 
 struct pam_auth_req;
+struct pam_bot_ctx;
 
 typedef void (pam_dp_callback_t)(struct pam_auth_req *preq);
 
@@ -44,6 +45,7 @@ enum pam_initgroups_scheme {
 
 struct pam_ctx {
     struct resp_ctx *rctx;
+    struct pam_bot_ctx *bot_ctx;
     time_t id_timeout;
     hash_table_t *id_table;
     size_t trusted_uids_count;

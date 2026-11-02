@@ -744,6 +744,7 @@ dist_noinst_HEADERS = \
     src/responder/common/cache_req/cache_req_plugin.h \
     src/responder/common/cache_req/cache_req_private.h \
     src/responder/pam/pamsrv.h \
+    src/responder/pam/pamsrv_bot.h \
     src/responder/pam/pam_helpers.h \
     src/responder/pam/pamsrv_json.h \
     src/responder/pam/pamsrv_passkey.h \
@@ -1508,6 +1509,7 @@ endif
 
 sssd_pam_SOURCES = \
     src/responder/pam/pamsrv.c \
+    src/responder/pam/pamsrv_bot.c \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \
@@ -2562,6 +2564,7 @@ pam_srv_tests_SOURCES = \
     src/tests/cmocka/test_pam_srv.c \
     src/tests/cmocka/common_utils.c \
     src/sss_client/pam_message.c \
+    src/responder/pam/pamsrv_bot.c \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \
@@ -2614,6 +2617,7 @@ endif # BUILD_PASSKEY
 
 test_pamsrv_json_SOURCES = \
     $(TEST_MOCK_RESP_OBJ) \
+    src/responder/pam/pamsrv_bot.c \
     src/responder/pam/pamsrv_cmd.c \
     src/responder/pam/pamsrv_json.c \
     src/responder/pam/pamsrv_p11.c \

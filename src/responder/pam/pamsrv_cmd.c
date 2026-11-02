@@ -37,6 +37,7 @@
 #include "responder/common/negcache.h"
 #include "providers/data_provider.h"
 #include "responder/pam/pamsrv.h"
+#include "responder/pam/pamsrv_bot.h"
 #include "responder/pam/pamsrv_json.h"
 #include "responder/pam/pamsrv_passkey.h"
 #include "responder/pam/pam_helpers.h"
@@ -3134,6 +3135,7 @@ struct sss_cmd_table *get_pam_cmds(void)
         {SSS_PAM_PREAUTH, pam_cmd_preauth},
         {SSS_GSSAPI_INIT, pam_cmd_gssapi_init},
         {SSS_GSSAPI_SEC_CTX, pam_cmd_gssapi_sec_ctx},
+        {SSS_PAM_BOT_REGISTER, pam_bot_cmd_register},
         {SSS_CLI_NULL, NULL}
     };
 
