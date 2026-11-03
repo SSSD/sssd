@@ -199,15 +199,23 @@ def test_nss__filter_uids(client: Client, provider: LDAP, section: str):
         1. Look up the user whose UID is not filtered.
         2. Look up the user matching the single filtered UID.
         3. Look up the user falling inside the filtered range.
+        4. Look up the users on both bounds of the filtered range.
+        5. Look up the users immediately outside both bounds of the range.
     :expectedresults:
         1. The non-filtered user is found.
         2. The user matching the single UID is not found.
         3. The user inside the range is not found.
+        4. Neither is found, the range is inclusive.
+        5. Both are found.
     :customerscenario: False
     """
     u1 = provider.user("user1").add(uid=10001, gid=19001)
     u2 = provider.user("user2").add(uid=10002, gid=19002)
     u3 = provider.user("user3").add(uid=10500, gid=19500)
+    u4 = provider.user("user4").add(uid=10400, gid=19400)
+    u5 = provider.user("user5").add(uid=10600, gid=19600)
+    u6 = provider.user("user6").add(uid=10399, gid=19399)
+    u7 = provider.user("user7").add(uid=10601, gid=19601)
 
     if section == "nss":
         client.sssd.nss["filter_uids"] = "10002, 10400-10600"
@@ -223,6 +231,14 @@ def test_nss__filter_uids(client: Client, provider: LDAP, section: str):
 
     # A UID inside a filtered range
     assert client.tools.getent.passwd(10500) is None, f"User {u3.name} is not filtered out by uid!"
+
+    # The range is inclusive, so both bounds are filtered as well
+    assert client.tools.getent.passwd(10400) is None, f"User {u4.name} on the lower bound is not filtered out!"
+    assert client.tools.getent.passwd(10600) is None, f"User {u5.name} on the upper bound is not filtered out!"
+
+    # The UIDs immediately outside the range are not
+    assert client.tools.getent.passwd(10399) is not None, f"User {u6.name} below the range is filtered out!"
+    assert client.tools.getent.passwd(10601) is not None, f"User {u7.name} above the range is filtered out!"
 
 
 @pytest.mark.importance("high")
@@ -284,6 +300,92 @@ def test_nss__filter_gids(client: Client, provider: LDAP, section: str):
     assert 20001 in gids, f"{g1.name} is missing from {u1.name}'s groups!"
     assert 20002 not in gids, f"{g2.name} is not filtered from {u1.name}'s groups!"
     assert 20500 not in gids, f"{g3.name} is not filtered from {u1.name}'s groups!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_nss__filter_uids_does_not_query_the_provider(client: Client, provider: LDAP):
+    """
+    :title: A lookup for a filtered UID is answered without querying the provider
+    :description:
+        The point of 'filter_uids' is not only that the lookup returns nothing,
+        'min_id' already does that, but that no search is sent to the directory
+        server at all. This test asserts on the search filter logged by the
+        provider to prove the back end was never asked.
+    :setup:
+        1. Create two users with known UIDs in provider
+        2. Set 'filter_uids' to the UID of the second user only
+        3. Start SSSD
+    :steps:
+        1. Lookup the user whose UID is not filtered
+        2. Lookup the user whose UID is filtered
+        3. Search the domain log for an LDAP search on the non-filtered UID
+        4. Search the domain log for an LDAP search on the filtered UID
+    :expectedresults:
+        1. User is found
+        2. User is not found
+        3. The provider did search for the non-filtered UID
+        4. The provider never searched for the filtered UID
+    :customerscenario: True
+    """
+    provider.user("user1").add(uid=10001, gid=19001)
+    provider.user("user2").add(uid=10002, gid=19002)
+
+    client.sssd.nss["filter_uids"] = "10002"
+    client.sssd.start(clean=True)
+
+    assert client.tools.getent.passwd(10001) is not None, "User with a non-filtered uid is not found!"
+    assert client.tools.getent.passwd(10002) is None, "User with a filtered uid is found!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+
+    # Control, without this the assertion below could pass simply because the
+    # provider never logs its search filters.
+    assert "uidNumber=10001" in log, "The provider did not search for the non-filtered uid!"
+    assert "uidNumber=10002" not in log, "The provider searched for a filtered uid!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_nss__filter_uids_and_gids_do_not_filter_by_name(client: Client, provider: LDAP):
+    """
+    :title: Filtering an ID does not filter the matching name
+    :description:
+        'filter_uids' and 'filter_gids' act on getpwuid and getgrgid only.
+        Resolving the very same user or group by name must keep working, that
+        is what 'filter_users' and 'filter_groups' are for.
+    :setup:
+        1. Create a user and a group with known IDs in provider
+        2. Set 'filter_uids' and 'filter_gids' to those IDs
+        3. Start SSSD
+    :steps:
+        1. Lookup the user by uid and the group by gid
+        2. Lookup the same user and group by name
+    :expectedresults:
+        1. Neither is found
+        2. Both are found and report the filtered IDs
+    :customerscenario: False
+    """
+    uid = 10001
+    gid = 20001
+
+    u1 = provider.user("user1").add(uid=uid, gid=19001)
+    g1 = provider.group("group1").add(gid=gid)
+
+    client.sssd.nss["filter_uids"] = str(uid)
+    client.sssd.nss["filter_gids"] = str(gid)
+    client.sssd.start(clean=True)
+
+    assert client.tools.getent.passwd(uid) is None, f"User {u1.name} is not filtered out by uid!"
+    assert client.tools.getent.group(gid) is None, f"Group {g1.name} is not filtered out by gid!"
+
+    user = client.tools.getent.passwd(u1.name)
+    assert user is not None, f"User {u1.name} is not found by name!"
+    assert user.uid == uid, f"User {u1.name} resolved to an unexpected uid!"
+
+    group = client.tools.getent.group(g1.name)
+    assert group is not None, f"Group {g1.name} is not found by name!"
+    assert group.gid == gid, f"Group {g1.name} resolved to an unexpected gid!"
 
 
 @pytest.mark.importance("medium")
