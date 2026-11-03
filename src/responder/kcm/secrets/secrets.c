@@ -235,7 +235,7 @@ static errno_t get_secret_expiration_time(uint8_t *key, size_t key_length,
 
     for (cred = cred_list; *cred != NULL; cred++) {
         if ((*cred)->times.endtime != 0) {
-            expiration = (time_t) (*cred)->times.endtime;
+            expiration = (time_t)(uint32_t)(*cred)->times.endtime;
             break;
         }
     }

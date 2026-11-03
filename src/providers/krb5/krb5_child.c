@@ -2071,10 +2071,10 @@ static errno_t add_ticket_times_and_upn_to_response(struct krb5_req *kr)
     char *upn = NULL;
     unsigned int upn_len = 0;
 
-    t[0] = (int64_t) kr->creds->times.authtime;
-    t[1] = (int64_t) kr->creds->times.starttime;
-    t[2] = (int64_t) kr->creds->times.endtime;
-    t[3] = (int64_t) kr->creds->times.renew_till;
+    t[0] = (int64_t)(uint32_t)kr->creds->times.authtime;
+    t[1] = (int64_t)(uint32_t)kr->creds->times.starttime;
+    t[2] = (int64_t)(uint32_t)kr->creds->times.endtime;
+    t[3] = (int64_t)(uint32_t)kr->creds->times.renew_till;
 
     ret = pam_add_response(kr->pd, SSS_KRB5_INFO_TGT_LIFETIME,
                            4*sizeof(int64_t), (uint8_t *) t);
