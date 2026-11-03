@@ -15,8 +15,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-10-06 17:40+0000\n"
-"PO-Revision-Date: 2026-10-06 11:00+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"PO-Revision-Date: 2026-11-03 13:32+0000\n"
+"Last-Translator: David Medina <dmedinacpnl@gmail.com>\n"
 "Language-Team: Catalan <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ca/>\n"
 "Language: ca\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.11\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:10 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -578,6 +578,8 @@ msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
+"Controla si l'SSSD ha de controlar l'estat de resolv.conf per identificar "
+"quan necessita actualitzar el seu resoledor DNS intern."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:385
@@ -1231,9 +1233,9 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
-"El valor de la memòria cau es pot establir per actualitzar a automàticament "
-"les entrades en rerefons, si se sol·liciten més enllà d'un percentatge del "
-"valor entry_cache_timeout per al domini."
+"La memòria cau d'entrades es pot establir per actualitzar automàticament les "
+"entrades en segon pla si es demanen més enllà d'un percentatge del valor "
+"entrycachetimeout per al domini."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:864
@@ -1522,6 +1524,8 @@ msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr ""
+"Especifica el temps en segons pel qual la llista de subdominis es "
+"considerarà vàlida."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1066 sssd.conf.5.xml:1457 sssd.conf.5.xml:1788
@@ -1952,7 +1956,7 @@ msgstr "pam_pwd_expiration_warning (enter)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1426 sssd.conf.5.xml:3037
 msgid "Display a warning N days before the password expires."
-msgstr ""
+msgstr "Mostra un avís N dies abans que caduqui la contrasenya."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1429
@@ -3309,6 +3313,10 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
+"Una llista separada per comes d'usuaris que haurien de tenir activada "
+"l'enregistrament de la sessió. Concorda amb els noms d'usuari com retornats "
+"per NSS. És a dir, després de la possible substitució d'espai, canvis de "
+"majúscules i minúscules, etc."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2484 sssd-session-recording.5.xml:115
@@ -3327,6 +3335,10 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
+"Una llista separada per comes de grups, els membres dels quals haurien de "
+"tenir activada l'enregistrament de la sessió. Concorda amb els noms de grup "
+"com retornats per NSS. És a dir, després de la possible substitució d'espai, "
+"canvis de majúscules i minúscules, etc."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2498 sssd.conf.5.xml:2530 sssd-session-recording.5.xml:129
@@ -3724,6 +3736,8 @@ msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
+"Quants segons s'ha de mantenir una clau ssh de l'amfitrió després "
+"d'actualitzar. EAD quant de temps s'ha d'emmagatzemar la clau de l'amfitrió."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2835
@@ -3940,6 +3954,10 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"Si s'utilitza 2-Factor-Authentication (2FA) i s'han de desar les "
+"credencials, aquest valor determina la longitud mínima que ha de tenir el "
+"primer factor d'autenticació (contrasenya a llarg termini) que s'ha de desar "
+"com a resum SHA512 a la memòria cau."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3008
@@ -5231,6 +5249,8 @@ msgstr "realmd_tags (cadena)"
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
+"Diverses etiquetes emmagatzemades pel servei de configuració del realmd per "
+"aquest domini."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4093
@@ -8114,6 +8134,8 @@ msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
+"Permet retenir usuaris locals com a membres d'un grup LDAP per a servidors "
+"que utilitzen l'esquema RFC2307."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1646
@@ -8461,7 +8483,7 @@ msgstr "ldap_autofs_map_master_name (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1965
 msgid "The name of the automount master map in LDAP."
-msgstr ""
+msgstr "El nom del mapa mestre de muntatge automàtic en LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1968
@@ -18504,7 +18526,7 @@ msgstr "ldap_netgroup_object_class (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:808
 msgid "The object class of a netgroup entry in LDAP."
-msgstr "La classe d'objecte d'una entrada de netgroup a LDAP."
+msgstr "La classe d'objecte d'una entrada de grup net a LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:811
@@ -18524,7 +18546,7 @@ msgstr "ldap_netgroup_name (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:824
 msgid "The LDAP attribute that corresponds to the netgroup name."
-msgstr "L'atribut LDAP que es correspon amb el nom del netgroup."
+msgstr "L'atribut LDAP que correspon al nom del grup de xarxa."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:828
@@ -18539,7 +18561,7 @@ msgstr "ldap_netgroup_member (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:841
 msgid "The LDAP attribute that contains the names of the netgroup's members."
-msgstr "L'atribut LDAP que conté els noms dels membres del netgroup."
+msgstr "L'atribut LDAP que conté els noms dels membres del grup de xarxa."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:845
@@ -18591,7 +18613,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:897
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "La classe d'objecte d'una entrada d'amfitrió a LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:900 sssd-ldap-attributes.5.xml:1213
@@ -18653,7 +18675,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:961
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr ""
+msgstr "L'atribut LDAP que conté les claus públiques SSH de l'amfitrió."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:971
@@ -19013,10 +19035,8 @@ msgstr "ldap_sudorule_object_class (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1300
-#, fuzzy
-#| msgid "The object class of a user entry in LDAP."
 msgid "The object class of an subid entry in LDAP."
-msgstr "La classe d'objecte d'una entrada d'usuari a LDAP."
+msgstr "La classe d'objecte d'una entrada de subid en LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1303
@@ -19111,7 +19131,7 @@ msgstr "ldap_sudorule_order (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1360
 msgid "Owner of an entry"
-msgstr ""
+msgstr "Propietari d'una entrada"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1363

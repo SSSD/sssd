@@ -7,8 +7,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-10-06 17:40+0000\n"
-"PO-Revision-Date: 2026-10-06 11:27+0000\n"
-"Last-Translator: Luna Jernberg <bittin@reimu.nl>\n"
+"PO-Revision-Date: 2026-10-19 12:26+0000\n"
+"Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
 "Language-Team: Swedish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/sv/>\n"
 "Language: sv\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.10.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:10 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -100,6 +100,11 @@ msgid ""
 "quote> are all equivalent and valid; the same applies to <quote>FALSE</"
 "quote>."
 msgstr ""
+"De datatyper som används är sträng (inga citattecken behövs), heltal och "
+"boolesk (med värdena <quote>TRUE/FALSE</quote>). Booleska värden är inte "
+"skiftlägeskänsliga. Till exempel är <quote>TRUE</quote>, <quote>True</quote> "
+"och <quote>true</quote> likvärdiga och giltiga. Detsamma gäller <quote>"
+"FALSE</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:49
@@ -196,10 +201,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:108
-#, fuzzy
-#| msgid "EXAMPLE CUSTODIA AND PROXY PROVIDER CONFIGURATION"
 msgid "VENDOR PROVIDED CONFIGURATION"
-msgstr "EXEMPEL PÅ KONFIGURATION AV CUSTODIA- OCH PROXY-LEVERANTÖRER"
+msgstr "LEVERANTÖRSTILLHANDAHÅLLEN KONFIGURATION"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:111
@@ -211,13 +214,17 @@ msgid ""
 "overriden by creating config snippets in <filename>&sssd_conf_dir;/conf.d</"
 "filename> directory."
 msgstr ""
+"Den leverantörstillhandahållna konfigurationsfilen installeras i <filename>"
+"&sssd_vendor_dir;/sssd.conf</filename>, men filen får inte redigeras direkt. "
+"Den kan helt maskeras genom att skapa den systemspecifika "
+"konfigurationsfilen <filename>&sssd_conf_dir;/sssd.conf</filename>, eller "
+"delvis åsidosättas genom att skapa konfigurationsfragment i katalogen "
+"<filename>&sssd_conf_dir;/conf.d</filename>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:120
-#, fuzzy
-#| msgid "CONFIGURATION FILE"
 msgid "CONFIGURATION FILE HIERARCHY"
-msgstr "KONFIGURATIONSFIL"
+msgstr "HIERARKI FÖR KONFIGURATIONSFILER"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:122
@@ -229,6 +236,12 @@ msgid ""
 "<filename>&sssd_vendor_dir;/sssd.conf</filename> is completely ignored in "
 "this case."
 msgstr ""
+"När sssd läser konfigurationen försöker programmet först öppna den "
+"systemspecifika konfigurationsfilen i <filename>&sssd_conf_dir;/sssd.conf</"
+"filename>. Om den finns läses den in och fragment från <filename>"
+"&sssd_conf_dir;/conf.d</filename> tillämpas. Den leverantörstillhandahållna "
+"konfigurationsfilen <filename>&sssd_vendor_dir;/sssd.conf</filename> "
+"ignoreras helt i det här fallet."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:131
@@ -238,6 +251,10 @@ msgid ""
 "<filename>&sssd_vendor_dir;/sssd.conf</filename> is loaded and snippets from "
 "<filename>&sssd_conf_dir;/conf.d</filename> are applied."
 msgstr ""
+"Om den systemspecifika konfigurationsfilen <filename>&sssd_conf_dir;/"
+"sssd.conf</filename> inte finns läses leverantörens konfigurationsfil "
+"<filename>&sssd_vendor_dir;/sssd.conf</filename> in och fragment från "
+"<filename>&sssd_conf_dir;/conf.d</filename> tillämpas."
 
 #. type: Content of: <reference><refentry><refsect1><title>
 #: sssd.conf.5.xml:141
@@ -261,6 +278,9 @@ msgid ""
 "section, see <quote>Session recording configuration options</quote> section "
 "for more details."
 msgstr ""
+"Obs: Alternativen nedan ignoreras i avsnittet <quote>[session_recording]</"
+"quote>. Se avsnittet <quote>Konfigurationsalternativ för sessionsinspelning</"
+"quote> för mer information."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:156
@@ -287,10 +307,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:173
-#, fuzzy
-#| msgid "debug_timestamps (bool)"
 msgid "debug_timestamps (boolean)"
-msgstr "debug_timestamps (bool)"
+msgstr "debug_timestamps (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:176
@@ -314,10 +332,8 @@ msgstr "Standard: true"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:186
-#, fuzzy
-#| msgid "debug_microseconds (bool)"
 msgid "debug_microseconds (boolean)"
-msgstr "debug_microseconds (bool)"
+msgstr "debug_microseconds (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:189
@@ -339,10 +355,8 @@ msgstr "Standard: false"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:199
-#, fuzzy
-#| msgid "debug_backtrace_enabled (bool)"
 msgid "debug_backtrace_enabled (boolean)"
-msgstr "debug_backtrace_enabled (bool)"
+msgstr "debug_backtrace_enabled (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:202
@@ -430,10 +444,8 @@ msgstr "Sektionsparametrar"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:265
-#, fuzzy
-#| msgid "users (string)"
 msgid "services (string)"
-msgstr "users (sträng)"
+msgstr "services (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:268
@@ -624,7 +636,7 @@ msgid ""
 msgstr ""
 "Det finns ett fåtal situationer där det är lämpligt att inte ens försöka "
 "använda inotify. I dessa sällsynta fall ska detta alternativ sättas till "
-"'false'."
+"'false'"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:400
@@ -984,7 +996,7 @@ msgid ""
 "be disabled by setting this option to 'true'"
 msgstr ""
 "De ändringar av SSSD-tillståndet som orsakas av netlink-händelser kan vara "
-"oönskade och kan inaktiveras genom att sätta detta alternativ till 'true'."
+"oönskade och kan inaktiveras genom att sätta detta alternativ till 'true'"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:629
@@ -993,10 +1005,8 @@ msgstr "Standard: false (netlink-förändringar detekteras)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:634
-#, fuzzy
-#| msgid "domain_resolution_order"
 msgid "domain_resolution_order (string)"
-msgstr "domain_resolution_order"
+msgstr "domain_resolution_order (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:637
@@ -1169,7 +1179,7 @@ msgid ""
 msgstr ""
 "Inställningar som kan användas för att konfigurera olika tjänster beskrivs i "
 "detta avsnitt. De ska finnas i sektionen [<replaceable>$NAME</replaceable>]. "
-"För NSS-tjänsten är sektionen till exempel <quote>[nss]</quote>."
+"För NSS-tjänsten är sektionen till exempel <quote>[nss]</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:760
@@ -1183,31 +1193,21 @@ msgstr "Dessa alternativ kan användas för att konfigurera alla tjänster."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:766
-#, fuzzy
-#| msgid "wildcard_limit (integer)"
 msgid "fd_limit (integer)"
-msgstr "wildcard_limit (heltal)"
+msgstr "fd_limit (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:769
-#, fuzzy
-#| msgid ""
-#| "This option specifies the maximum number of file descriptors that may be "
-#| "opened at one time by this SSSD process. On systems where SSSD is granted "
-#| "the CAP_SYS_RESOURCE capability, this will be an absolute setting. On "
-#| "systems without this capability, the resulting value will be the lower "
-#| "value of this or the limits.conf \"hard\" limit."
 msgid ""
 "This option specifies the maximum number of file descriptors that may be "
 "opened at one time by this SSSD process. Note this value will be capped by "
 "the init system at the startup of SSSD, see e.g.  man systemd.exec for "
 "details."
 msgstr ""
-"Detta alternativ anger det maximala antalet filbeskrivare som kan öppnas på "
-"en gång av denna SSSD-process. På system där SSSD ges förmågan "
-"CAP_SYS_RESOURCE kommer detta vara en absolut inställning. På system utan "
-"denna förmåga kommer det resulterande värdet vara det lägre av detta värde "
-"och den ”hårda” gränsen i limits.conf."
+"Det här alternativet anger högsta antal fildeskriptorer som får vara öppna "
+"samtidigt i den här SSSD-processen. Observera att init-systemet begränsar "
+"värdet när SSSD startar. Se till exempel manualsidan systemd.exec för mer "
+"information."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:776
@@ -1216,10 +1216,8 @@ msgstr "Standard: 8192 (eller den ”hårda” gränsen i limits.conf)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:781
-#, fuzzy
-#| msgid "offline_timeout (integer)"
 msgid "client_idle_timeout (integer)"
-msgstr "offline_timeout (heltal)"
+msgstr "client_idle_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:784
@@ -1242,10 +1240,8 @@ msgstr "Standard: 60, KCM: 300"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:798
-#, fuzzy
-#| msgid "responder_idle_timeout"
 msgid "responder_idle_timeout (integer)"
-msgstr "responder_idle_timeout"
+msgstr "responder_idle_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:801
@@ -1273,10 +1269,8 @@ msgstr "Standard: 300"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:820
-#, fuzzy
-#| msgid "cache_first"
 msgid "cache_first (boolean)"
-msgstr "cache_first"
+msgstr "cache_first (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:823
@@ -1294,16 +1288,12 @@ msgstr "NSS-konfigurationsalternativ"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:837
-#, fuzzy
-#| msgid ""
-#| "These options can be used to configure the Name Service Switch (NSS) "
-#| "service."
 msgid ""
 "These options can be used to configure the Name Service Switch (NSS) service "
 "and should be specified under the <quote>[nss]</quote> section."
 msgstr ""
-"Dessa alternativ kan användas för att konfigurera tjänsten Name Service "
-"Switch (NSS)."
+"De här alternativen kan användas för att konfigurera tjänsten Name Service "
+"Switch (NSS) och ska anges i avsnittet <quote>[nss]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:843
@@ -1420,7 +1410,7 @@ msgid ""
 "NSS. E.g. a group having a member group filtered out will still have the "
 "member users of the latter listed."
 msgstr ""
-"OBS! Alternativet filter_groups påverkar inte arv av nästlade "
+"OBS: Alternativet filter_groups påverkar inte arv av nästlade "
 "gruppmedlemmar, eftersom filtreringen sker efter att de har spridits för "
 "retur via NSS. En grupp vars medlemsgrupp filtreras bort listar till exempel "
 "fortfarande den senare gruppens medlemsanvändare."
@@ -1432,21 +1422,16 @@ msgstr "Standard: root"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:925
-#, fuzzy
-#| msgid "filter_users_in_groups (bool)"
 msgid "filter_users_in_groups (boolean)"
-msgstr "filter_users_in_groups (bool)"
+msgstr "filter_users_in_groups (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:928
-#, fuzzy
-#| msgid ""
-#| "If you want filtered user still be group members set this option to false."
 msgid ""
 "If you want filtered users to remain group members set this option to false"
 msgstr ""
-"Om du vill att filtrerade användare fortfarande skall vara gruppmedlemmar "
-"sätt då detta alternativ till false."
+"Om filtrerade användare ska vara kvar som gruppmedlemmar anger du det här "
+"alternativet till false"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:939
@@ -1576,7 +1561,7 @@ msgid ""
 "that a restart of the SSSD is required in case a new shell is installed."
 msgstr ""
 "<quote>/etc/shells</quote> läses endast vid start av SSSD, vilket innebär "
-"att SSSD måste startas om om ett nytt skal installeras."
+"att SSSD måste startas om när ett nytt skal installeras."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1015
@@ -1633,7 +1618,7 @@ msgid ""
 "substitute something sensible when necessary, usually /bin/sh)"
 msgstr ""
 "Standard: inte angivet (returnera NULL om inget skal anges och förlita dig "
-"på att libc ersätter med något lämpligt vid behov, vanligtvis /bin/sh)."
+"på att libc ersätter med något lämpligt vid behov, vanligtvis /bin/sh)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1059 sssd.conf.5.xml:1450
@@ -1684,7 +1669,7 @@ msgid ""
 "NOTE: If the environment variable SSS_NSS_USE_MEMCACHE is set to \"NO\", "
 "client applications will not use the fast in-memory cache."
 msgstr ""
-"OBS! Om miljövariabeln SSS_NSS_USE_MEMCACHE är satt till \"NO\" använder "
+"OBS: Om miljövariabeln SSS_NSS_USE_MEMCACHE är satt till \"NO\" använder "
 "klientprogram inte den snabba minnescachen."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
@@ -1837,6 +1822,14 @@ msgid ""
 "as locked. Setting <option>pwfield = x</option> in the domain section "
 "restores the expected behavior."
 msgstr ""
+"Det här alternativet kan också anges per domän, vilket åsidosätter värdet i "
+"avsnittet <quote>[nss]</quote> för den domänen. Det är särskilt användbart "
+"när en proxydomän används med <option>proxy_lib_name=files</option> och ett "
+"<option>proxy_pam_target</option> annat än <quote>sssd-shadowutils</quote>. "
+"Då returnerar SSSD som standard <quote>*</quote> för lösenordsfältet, vilket "
+"gör att <command>pam_unix</command> behandlar alla konton som låsta. Ange "
+"<option>pwfield = x</option> i domänavsnittet för att återställa det "
+"förväntade beteendet."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1246
@@ -1845,16 +1838,12 @@ msgstr "Standard: <quote>*</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1249
-#, fuzzy
-#| msgid ""
-#| "Default: <quote>not set</quote> (remote domains), <quote>x</quote> (proxy "
-#| "domain with nss_files and sssd-shadowutils target)"
 msgid ""
 "Default (per-domain): <quote>not set</quote> (remote domains), <quote>x</"
 "quote> (proxy domain with nss_files and sssd-shadowutils target)"
 msgstr ""
-"Standard: <quote>inte satt</quote> (fjärrdomäner), <quote>x</quote> "
-"(proxydomän med målet nss_files och sssd-shadowutils)"
+"Standard per domän: <quote>inte angivet</quote> för fjärrdomäner, <quote>x</"
+"quote> för proxydomäner med nss_files och målet sssd-shadowutils"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><title>
 #: sssd.conf.5.xml:1258
@@ -1863,16 +1852,12 @@ msgstr "PAM-konfigurationsalternativ"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:1260
-#, fuzzy
-#| msgid ""
-#| "These options can be used to configure the Pluggable Authentication "
-#| "Module (PAM) service."
 msgid ""
 "These options can be used to configure the Pluggable Authentication Module "
 "(PAM) service and should be specified under the <quote>[pam]</quote> section."
 msgstr ""
-"Dessa alternativ kan användas för att konfigurera tjänsten Pluggable "
-"Authentication Module (PAM)."
+"De här alternativen kan användas för att konfigurera tjänsten Pluggable "
+"Authentication Module (PAM) och ska anges i avsnittet <quote>[pam]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1266
@@ -1885,9 +1870,9 @@ msgid ""
 "If the authentication provider is offline, how long should we allow cached "
 "logins (in days since the last successful online login)."
 msgstr ""
-"Om autentiseringsleverantören är frånkopplad, hur länge ska cachade "
-"inloggningar tillåtas (i dagar sedan den senaste lyckade inloggningen "
-"online)?"
+"Anger hur länge cachade inloggningar ska tillåtas när "
+"autentiseringsleverantören är frånkopplad, i dagar sedan den senaste lyckade "
+"inloggningen online."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1274 sssd.conf.5.xml:1287
@@ -2075,7 +2060,7 @@ msgstr "Standard: ENV:KRB5CCNAME:sudo, ENV:KRB5CCNAME:sudo-i"
 #: sssd.conf.5.xml:1393
 msgid ""
 "Example: -ENV:KRB5CCNAME:sudo-i will remove the filter from the default list"
-msgstr "Exempel: -ENV:KRB5CCNAME:sudo-i tar bort filtret från standardlistan."
+msgstr "Exempel: -ENV:KRB5CCNAME:sudo-i tar bort filtret från standardlistan"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1400
@@ -2286,10 +2271,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1554
-#, fuzzy
-#| msgid "pam_passkey_auth (bool)"
 msgid "pam_passkey_auth (boolean)"
-msgstr "pam_passkey_auth (bool)"
+msgstr "pam_passkey_auth (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1557
@@ -2304,10 +2287,8 @@ msgstr "Standard: True"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1565
-#, fuzzy
-#| msgid "passkey_debug_libfido2 (bool)"
 msgid "passkey_debug_libfido2 (boolean)"
-msgstr "passkey_debug_libfido2 (bool)"
+msgstr "passkey_debug_libfido2 (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1568
@@ -2324,10 +2305,8 @@ msgstr "Standard: False"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1576
-#, fuzzy
-#| msgid "pam_cert_auth (bool)"
 msgid "pam_cert_auth (boolean)"
-msgstr "pam_cert_auth (bool)"
+msgstr "pam_cert_auth (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1579
@@ -2348,6 +2327,10 @@ msgid ""
 "are located in a common <quote>opensc</quote> directory in SSSD's state "
 "directory.  The behaviour can be changed in opensc.conf"
 msgstr ""
+"Obs: När OpenSC används för smartkortsåtkomst stöder SSSD filsystemcache i "
+"OpenSC om den aktiveras i opensc.conf. De cachade filerna finns i en "
+"gemensam <quote>opensc</quote>-katalog i SSSD:s tillståndskatalog. Beteendet "
+"kan ändras i opensc.conf"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1597
@@ -2365,14 +2348,24 @@ msgid ""
 "}\n"
 "                            "
 msgstr ""
+"app /usr/libexec/sssd/p11_child {\n"
+"        framework pkcs15 {\n"
+"                use_file_caching = no;\n"
+"        }\n"
+"}\n"
+"app /usr/libexec/sssd/krb5_child {\n"
+"        framework pkcs15 {\n"
+"                use_file_caching = no;\n"
+"        }\n"
+"}\n"
+"                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1595
-#, fuzzy
-#| msgid "Example: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgid ""
 "Example opensc.conf (*): <placeholder type=\"programlisting\" id=\"0\"/>"
-msgstr "Exempel: <placeholder type=\"programlisting\" id=\"0\"/>"
+msgstr ""
+"Exempel på opensc.conf (*): <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1610
@@ -2380,6 +2373,8 @@ msgid ""
 "(*) The actual <quote>libexec</quote> directory for p11_child and krb5_child "
 "depends on the distribution."
 msgstr ""
+"(*) Den faktiska <quote>libexec</quote>-katalogen för p11_child och "
+"krb5_child beror på distributionen."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1615
@@ -2479,7 +2474,7 @@ msgid ""
 "<quote>application</quote>"
 msgstr ""
 "Vilka PAM-tjänster som tillåts kontakta domäner av typen <quote>application</"
-"quote>."
+"quote>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1694
@@ -2565,10 +2560,8 @@ msgstr "kdm"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1756 sssd-ad.5.xml:694
-#, fuzzy
-#| msgid "login"
 msgid "plasmalogin"
-msgstr "login"
+msgstr "plasmalogin"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1761 sssd-ad.5.xml:962
@@ -2597,8 +2590,8 @@ msgid ""
 "to p11_child_timeout should the PAM responder wait until a Smartcard is "
 "inserted."
 msgstr ""
-"Om smartkortsautentisering krävs, hur många extra sekunder utöver "
-"p11_child_timeout ska PAM-svararen vänta på att ett smartkort sätts in?"
+"Anger hur många extra sekunder utöver p11_child_timeout PAM-svararen ska "
+"vänta på att ett smartkort sätts in när smartkortsautentisering krävs."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1793
@@ -2657,10 +2650,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1826
-#, fuzzy
-#| msgid "pam_initgroups_scheme"
 msgid "pam_initgroups_scheme (string)"
-msgstr "pam_initgroups_scheme"
+msgstr "pam_initgroups_scheme (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1834
@@ -2673,7 +2664,7 @@ msgid ""
 "Always do an online lookup, please note that pam_id_timeout still applies"
 msgstr ""
 "Gör alltid en uppslagning online. Observera att pam_id_timeout fortfarande "
-"gäller."
+"gäller"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1839
@@ -2687,7 +2678,7 @@ msgid ""
 "the user is currently not logged in"
 msgstr ""
 "Gör endast en uppslagning online om användaren inte har någon aktiv session, "
-"dvs. om användaren för närvarande inte är inloggad."
+"dvs. om användaren för närvarande inte är inloggad"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1845 sssd-ldap.5.xml:189
@@ -2701,7 +2692,7 @@ msgid ""
 "are not expired"
 msgstr ""
 "Tvinga aldrig fram en uppslagning online; använd data från cachen så länge "
-"de inte har gått ut."
+"de inte har gått ut"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1829
@@ -2713,7 +2704,7 @@ msgid ""
 msgstr ""
 "PAM-svararen kan tvinga fram en uppslagning online för att hämta aktuella "
 "gruppmedlemskap för användaren som försöker logga in. Detta alternativ styr "
-"när detta ska göras, och följande värden tillåts: <placeholder "
+"när detta ska göras och följande värden tillåts: <placeholder "
 "type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -2723,10 +2714,8 @@ msgstr "Standard: no_session"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1858
-#, fuzzy
-#| msgid "pam_app_services (string)"
 msgid "pam_gssapi_services (string)"
-msgstr "pam_app_services (sträng)"
+msgstr "pam_gssapi_services (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1861
@@ -2778,10 +2767,8 @@ msgstr "Standard: - (GSSAPI-autentisering är avaktiverat)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1887
-#, fuzzy
-#| msgid "pam_gssapi_check_upn"
 msgid "pam_gssapi_check_upn (boolean)"
-msgstr "pam_gssapi_check_upn"
+msgstr "pam_gssapi_check_upn (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1890
@@ -2796,23 +2783,17 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1897
-#, fuzzy
-#| msgid ""
-#| "If False, every user that is able to obtained required service ticket "
-#| "will be authenticated."
 msgid ""
 "If False, every user that is able to obtain a required service ticket will "
 "be authenticated."
 msgstr ""
-"Om falskt kommer varje användare som kan få den begärda biljetten att "
-"autentiseras."
+"Om värdet är False autentiseras varje användare som kan hämta en nödvändig "
+"tjänstebiljett."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1912
-#, fuzzy
-#| msgid "pam_gssapi_indicators_map"
 msgid "pam_gssapi_indicators_map (string)"
-msgstr "pam_gssapi_indicators_map"
+msgstr "pam_gssapi_indicators_map (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1915
@@ -2876,8 +2857,8 @@ msgid ""
 "pkinit -- pre-authentication using X.509 certificates -- whether stored in "
 "files or on smart cards."
 msgstr ""
-"pkinit — förautentisering med X.509-certifikat — oavsett om de lagrats i "
-"filer eller på smarta kort."
+"pkinit: förautentisering med X.509-certifikat: oavsett om de lagrats i filer "
+"eller på smarta kort."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1951
@@ -2885,13 +2866,13 @@ msgid ""
 "hardened -- SPAKE pre-authentication or any pre-authentication wrapped in a "
 "FAST channel."
 msgstr ""
-"hardened — SPAKE-förautentisering eller godtycklig förautentisering inslagen "
+"hardened: SPAKE-förautentisering eller godtycklig förautentisering inslagen "
 "i en FAST-kanal."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1954
 msgid "radius -- pre-authentication with the help of a RADIUS server."
-msgstr "radius — förautentisering med hjälp av en RADIUS-server."
+msgstr "radius: förautentisering med hjälp av en RADIUS-server."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1957
@@ -2899,13 +2880,13 @@ msgid ""
 "otp -- pre-authentication using integrated two-factor authentication (2FA or "
 "one-time password, OTP) in IPA."
 msgstr ""
-"otp — förautentisering med användning av integrerad tvåfaktorautentisering "
+"otp: förautentisering med användning av integrerad tvåfaktorautentisering "
 "(2FA eller engångslösenord, OTP) i IPA."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1960
 msgid "idp -- pre-authentication using external identity provider."
-msgstr "idp — förautentisering med extern identitetsleverantör."
+msgstr "idp: förautentisering med extern identitetsleverantör."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:1970
@@ -2926,7 +2907,7 @@ msgid ""
 msgstr ""
 "Exempel: sätt <placeholder type=\"programlisting\" id=\"0\"/> för att endast "
 "kräva åtkomst till SUDO-tjänster för användare som hämtat sina Kerberos-"
-"biljetter med X.509-certifikatbaserad förautentisering (PKINIT)."
+"biljetter med X.509-certifikatbaserad förautentisering (PKINIT)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1974
@@ -2936,10 +2917,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1979
-#, fuzzy
-#| msgid "pam_gssapi_indicators_map"
 msgid "pam_gssapi_indicators_apply (string)"
-msgstr "pam_gssapi_indicators_map"
+msgstr "pam_gssapi_indicators_apply (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1982
@@ -2947,30 +2926,28 @@ msgid ""
 "Comma separated list of triples to assign additional information from the "
 "Kerberos ticket, e.g. a SID from the PAC, to authentication indicators."
 msgstr ""
+"Kommaseparerad lista med tripplar som tilldelar ytterligare information från "
+"Kerberosbiljetten, till exempel ett SID från PAC, till "
+"autentiseringsindikatorer."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1988
-#, fuzzy
-#| msgid "Currently supported debug levels:"
 msgid "Currently supported is:"
-msgstr "Felsökningsnivåer som för närvarande stödjs:"
+msgstr "Följande stöds för närvarande:"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1991
 msgid "SID:S-1-5-[domain]-[RID]:[authentication indicator]"
-msgstr ""
+msgstr "SID:S-1-5-[domain]-[RID]:[authentication indicator]"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:2002
-#, fuzzy, no-wrap
-#| msgid ""
-#| "pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit\n"
-#| "                            "
+#, no-wrap
 msgid ""
 "pam_gssapi_indicators_apply = SID:S-1-5-12345-23456-34567-4321:pkinit\n"
 "                            "
 msgstr ""
-"pam_gssapi_indicators_map = sudo:pkinit, sudo-i:pkinit\n"
+"pam_gssapi_indicators_apply = SID:S-1-5-12345-23456-34567-4321:pkinit\n"
 "                            "
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
@@ -2981,6 +2958,10 @@ msgid ""
 "authentication, to the 'pkinit' authentication indicator use: <placeholder "
 "type=\"programlisting\" id=\"0\"/>"
 msgstr ""
+"Exempel: Använd följande för att tilldela autentiseringsindikatorn 'pkinit' "
+"ett SID som exempelvis har angetts av Active Directorys Authentication "
+"Mechanism Assurance (AMA) om AD-användaren använde ett smartkort för "
+"autentisering: <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2011
@@ -3034,24 +3015,15 @@ msgstr "SUDO-konfigurationsalternativ"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2044
-#, fuzzy
-#| msgid "These options can be used to configure the session recording."
 msgid ""
 "These options can be used to configure the sudo service and should be "
 "specified under the <quote>[sudo]</quote> section."
-msgstr "Dessa alternativ kan användas för att konfigurera sessionsinspelning."
+msgstr ""
+"Dessa alternativ kan användas för att konfigurera sudo-tjänsten och ska "
+"anges i avsnittet <quote>[sudo]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2048
-#, fuzzy
-#| msgid ""
-#| "These options can be used to configure the sudo service.  The detailed "
-#| "instructions for configuration of <citerefentry> <refentrytitle>sudo</"
-#| "refentrytitle> <manvolnum>8</manvolnum> </citerefentry> to work with "
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
-#| "manvolnum> </citerefentry> are in the manual page <citerefentry> "
-#| "<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
-#| "citerefentry>."
 msgid ""
 "The detailed instructions for configuration of <citerefentry> "
 "<refentrytitle>sudo</refentrytitle> <manvolnum>8</manvolnum> </citerefentry> "
@@ -3060,20 +3032,16 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry>."
 msgstr ""
-"Dessa alternativ kan användas för att konfigurera tjänsten sudo.  De "
-"detaljerade instruktionerna för konfiguration av <citerefentry> "
-"<refentrytitle>sudo</refentrytitle> <manvolnum>8</manvolnum> </citerefentry> "
-"för att fungera med <citerefentry> <refentrytitle>sssd</refentrytitle> "
-"<manvolnum>8</manvolnum> </citerefentry> finns i manualsidan <citerefentry> "
-"<refentrytitle>sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>."
+"De detaljerade instruktionerna för hur <citerefentry> <refentrytitle>sudo</"
+"refentrytitle> <manvolnum>8</manvolnum> </citerefentry> konfigureras för att "
+"fungera med <citerefentry> <refentrytitle>sssd</refentrytitle> <manvolnum>8</"
+"manvolnum> </citerefentry> finns i manualsidan <citerefentry> <refentrytitle>"
+"sssd-sudo</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2064
-#, fuzzy
-#| msgid "sudo_timed (bool)"
 msgid "sudo_timed (boolean)"
-msgstr "sudo_timed (bool)"
+msgstr "sudo_timed (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2067
@@ -3111,12 +3079,12 @@ msgstr "AUTOFS-konfigurationsalternativ"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2103
-#, fuzzy
-#| msgid "These options can be used to configure the autofs service."
 msgid ""
 "These options can be used to configure the autofs service and should be "
 "specified under the <quote>[autofs]</quote> section."
-msgstr "Dessa alternativ kan användas för att konfigurera tjänsten autofs."
+msgstr ""
+"Dessa alternativ kan användas för att konfigurera autofs-tjänsten och ska "
+"anges i avsnittet <quote>[autofs]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2109
@@ -3141,19 +3109,17 @@ msgstr "SSH-konfigurationsalternativ"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2130
-#, fuzzy
-#| msgid "These options can be used to configure the SSH service."
 msgid ""
 "These options can be used to configure the SSH service and should be "
 "specified under the <quote>[ssh]</quote> section."
-msgstr "Dessa alternativ kan användas för att konfigurera tjänsten SSH."
+msgstr ""
+"Dessa alternativ kan användas för att konfigurera SSH-tjänsten och ska anges "
+"i avsnittet <quote>[ssh]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2136
-#, fuzzy
-#| msgid "ssh_use_certificate_keys (bool)"
 msgid "ssh_use_certificate_keys (boolean)"
-msgstr "ssh_use_certificate_keys (bool)"
+msgstr "ssh_use_certificate_keys (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2139
@@ -3229,7 +3195,7 @@ msgid ""
 "rule are used"
 msgstr ""
 "Standard: inte angivet, vilket motsvarar 'all_rules'; alla funna regler "
-"eller standardregeln används."
+"eller standardregeln används"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2191
@@ -3262,7 +3228,7 @@ msgid ""
 "the PAC is decoded and evaluated some of the following operations are done:"
 msgstr ""
 "PAC-svararen fungerar tillsammans med insticksmodulen för auktoriseringsdata "
-"för MIT Kerberos, sssd_pac_plugin.so, och en underdomänsleverantör. "
+"för MIT Kerberos, sssd_pac_plugin.so och en underdomänsleverantör. "
 "Insticksmodulen skickar PAC-data till PAC-svararen under en GSSAPI-"
 "autentisering. Underdomänsleverantören samlar in domän-SID och ID-intervall "
 "för den domän som klienten är ansluten till samt för fjärrbetrodda domäner "
@@ -3296,12 +3262,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2239
-#, fuzzy
-#| msgid "These options can be used to configure the PAC responder."
 msgid ""
 "These options can be used to configure the PAC responder and should be "
 "specified under the <quote>[pac]</quote> section."
-msgstr "Dessa alternativ kan användas för att konfigurera PAC-respondenten."
+msgstr ""
+"Dessa alternativ kan användas för att konfigurera PAC-svararen och ska anges "
+"i avsnittet <quote>[pac]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2244 sssd-ifp.5.xml:66
@@ -3470,7 +3436,7 @@ msgstr ""
 "där en UPN är angiven på serversidan men inte läses av SSSD. Ett typiskt "
 "exempel är en FreeIPA-domän där 'ldap_user_principal' är angivet till ett "
 "attributnamn som inte finns. Detta gjordes ofta för att kringgå problem vid "
-"hantering av enterprise-huvudmän. Problemet har dock varit löst länge, och "
+"hantering av enterprise-huvudmän. Problemet har dock varit löst länge och "
 "FreeIPA kan hantera enterprise-huvudmän utan problem. Det finns inte längre "
 "någon anledning att ange 'ldap_user_principal'."
 
@@ -3571,12 +3537,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2420
-#, fuzzy
-#| msgid "These options can be used to configure the session recording."
 msgid ""
 "These options can be used to configure session recording and should be "
 "specified under the <quote>[session_recording]</quote> section."
-msgstr "Dessa alternativ kan användas för att konfigurera sessionsinspelning."
+msgstr ""
+"Dessa alternativ kan användas för att konfigurera sessionsinspelning och ska "
+"anges i avsnittet <quote>[session_recording]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para>
 #: sssd.conf.5.xml:2425
@@ -3587,6 +3553,11 @@ msgid ""
 "quote>, <quote>[nss]</quote> and <quote>[domain/<replaceable>NAME</"
 "replaceable>]</quote> sections."
 msgstr ""
+"Obs: Till skillnad från andra avsnitt ignorerar avsnittet <quote>"
+"[session_recording]</quote> alternativ av typen <replaceable>debug*</"
+"replaceable>. Lämpliga <replaceable>debug*</replaceable>-alternativ måste "
+"anges i avsnitten <quote>[pam]</quote>, <quote>[nss]</quote> och <quote>"
+"[domain/<replaceable>NAME</replaceable>]</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2433 sssd-session-recording.5.xml:64
@@ -3686,9 +3657,9 @@ msgid ""
 "performance cost, because each uncached request for a user requires "
 "retrieving and matching the groups the user is member of."
 msgstr ""
-"OBS! Att använda detta alternativ (att sätta det till något värde) medför en "
-"betydande prestandakostnad, eftersom varje ocachad begäran om en användare "
-"kräver hämtning och matchning av de grupper användaren är medlem i."
+"OBS: Att använda detta alternativ, genom att sätta det till något värde, "
+"medför en betydande prestandakostnad eftersom varje ocachad begäran om en "
+"användare kräver hämtning och matchning av de grupper användaren är medlem i."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2505 sssd-session-recording.5.xml:136
@@ -3740,10 +3711,8 @@ msgstr "DOMÄNSEKTIONER"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2554
-#, fuzzy
-#| msgid "ad_enable_gc (boolean)"
 msgid "enabled (boolean)"
-msgstr "ad_enable_gc (boolesk)"
+msgstr "enabled (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2557
@@ -3866,10 +3835,8 @@ msgstr "Standard: 1 för min_id, 0 (ingen gräns) för max_id"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2631
-#, fuzzy
-#| msgid "enumerate (bool)"
 msgid "enumerate (boolean)"
-msgstr "enumerate (bool)"
+msgstr "enumerate (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2634
@@ -4171,32 +4138,24 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2852
-#, fuzzy
-#| msgid ""
-#| "The offline_timeout default value is 60.  The offline_timeout_max default "
-#| "value is 3600.  The offline_timeout_random_offset default value is 30.  "
-#| "The end result is amount of seconds before next retry."
 msgid ""
 "The offline_timeout default value is 60.  The offline_timeout_max default "
 "value is 3600.  The offline_timeout_random_offset default value is 30.  The "
 "end result is the number of seconds before next retry."
 msgstr ""
-"Standardvärdet för offline_timeout är 60. Standardvärdet på "
-"offline_timeout_max är 3600. Standardvärdet på offline_timeout_random_offset "
-"är 30. Slutresultatet är antalet sekunder före nästa omförsök."
+"Standardvärdet för offline_timeout är 60. Standardvärdet för "
+"offline_timeout_max är 3600. Standardvärdet för "
+"offline_timeout_random_offset är 30. Slutresultatet är antalet sekunder före "
+"nästa omförsök."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2858
-#, fuzzy
-#| msgid ""
-#| "Note that the maximum length of each interval is defined by "
-#| "offline_timeout_max (apart of random part)."
 msgid ""
 "Note that the maximum length of each interval is defined by "
 "offline_timeout_max (apart from the random part)."
 msgstr ""
-"Observera att den maximala längde på varje intervall definieras av "
-"offline_timeout_max (förutom slumpdelen)."
+"Observera att den maximala längden för varje intervall definieras av "
+"offline_timeout_max, bortsett från slumpdelen."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2868
@@ -4228,22 +4187,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2883
-#, fuzzy
-#| msgid ""
-#| "With offline_timeout set to 60 (default value) there is no point in "
-#| "setting offlinet_timeout_max to less than 120 as it will saturate "
-#| "instantly. General rule here should be to set offline_timeout_max to at "
-#| "least 4 times offline_timeout."
 msgid ""
 "With offline_timeout set to 60 (default value) there is no point in setting "
 "offline_timeout_max to less than 120 as it will saturate instantly. General "
 "rule here should be to set offline_timeout_max to at least 4 times "
 "offline_timeout."
 msgstr ""
-"Med offline_timout satt till 60 (standardvärdet) är det ingen poäng i att "
-"sätta ofline_timeout_max till mindre än 120 eftersom det kommer mättas "
-"omedelbart. En allmän regel här bör vara att sätta offline_timeout_max till "
-"åtminstone 4 gånger offline_timeout."
+"När offline_timeout är satt till 60, vilket är standardvärdet, finns det "
+"ingen anledning att sätta offline_timeout_max till mindre än 120 eftersom "
+"värdet då omedelbart når maxvärdet. En allmän regel är att sätta "
+"offline_timeout_max till minst fyra gånger offline_timeout."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2889
@@ -4364,10 +4317,8 @@ msgstr "Standard: 0 (avaktiverat)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2970
-#, fuzzy
-#| msgid "cache_credentials (bool)"
 msgid "cache_credentials (boolean)"
-msgstr "cache_credentials (bool)"
+msgstr "cache_credentials (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2973
@@ -4541,13 +4492,13 @@ msgid ""
 "Default: Not set (This is a mandatory setting that must be explicitly "
 "defined for each configured domain)."
 msgstr ""
+"Standard: Inte angivet. Det här är en obligatorisk inställning som måste "
+"definieras uttryckligen för varje konfigurerad domän."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3109
-#, fuzzy
-#| msgid "use_fully_qualified_names (bool)"
 msgid "use_fully_qualified_names (boolean)"
-msgstr "use_fully_qualified_names (bool)"
+msgstr "use_fully_qualified_names (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3112
@@ -4595,10 +4546,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3139
-#, fuzzy
-#| msgid "ignore_group_members (bool)"
 msgid "ignore_group_members (boolean)"
-msgstr "ignore_group_members (bool)"
+msgstr "ignore_group_members (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3142
@@ -4616,7 +4565,7 @@ msgid ""
 "citerefentry>.  As an effect, <quote>getent group $groupname</quote> would "
 "return the requested group as if it was empty."
 msgstr ""
-"Om satt till TRUE begärs inte attributet gruppmedlemskap från ldap-servern, "
+"Om satt till TRUE begärs inte attributet gruppmedlemskap från ldap-servern "
 "och gruppmedlemmar returneras inte vid behandling av gruppuppslagningsanrop, "
 "såsom <citerefentry> <refentrytitle>getgrnam</refentrytitle> <manvolnum>3</"
 "manvolnum> </citerefentry> eller <citerefentry> <refentrytitle>getgrgid</"
@@ -4728,8 +4677,8 @@ msgid ""
 "access providers (in addition to any included in installed backends)  "
 "Internal special providers are:"
 msgstr ""
-"Åtkomstkontrollleverantören som används för domänen. Det finns två inbyggda "
-"åtkomstleverantörer, utöver eventuella leverantörer i installerade "
+"Leverantören av åtkomstkontroll som används för domänen. Det finns två "
+"inbyggda åtkomstleverantörer utöver eventuella leverantörer i installerade "
 "bakomliggande komponenter. Interna specialleverantörer är:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
@@ -4955,17 +4904,14 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3428
-#, fuzzy
-#| msgid ""
-#| "Default: The value of <quote>id_provider</quote> is used if it is set and "
-#| "can handle subdomain requests."
 msgid ""
 "Default: the value of <quote>id_provider</quote> is used if it is set and "
 "can handle selinux loading requests. Otherwise the result is the same as if "
 "the selinux_provider is set to none."
 msgstr ""
-"Standard: Värdet för <quote>id_provider</quote> används om det är inställt "
-"och kan hantera underdomänsförfrågningar."
+"Standard: värdet för <quote>id_provider</quote> används om det är angivet "
+"och kan hantera begäranden om att läsa in SELinux. Annars blir resultatet "
+"detsamma som om selinux_provider är satt till none."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3435
@@ -5322,7 +5268,7 @@ msgstr "Värden som stödjs:"
 #: sssd.conf.5.xml:3711
 msgid "ipv4_first: Try looking up IPv4 address, if that fails, try IPv6"
 msgstr ""
-"ipv4_first: Försök slå upp en IPv4-adress; om det misslyckas, prova IPv6."
+"ipv4_first: Försök slå upp en IPv4-adress; om det misslyckas, prova IPv6"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3714
@@ -5333,7 +5279,7 @@ msgstr "ipv4_only: Försök endast lösa värdnamn till IPv4-adresser."
 #: sssd.conf.5.xml:3717
 msgid "ipv6_first: Try looking up IPv6 address, if that fails, try IPv4"
 msgstr ""
-"ipv6_first: Försök slå upp en IPv6-adress; om det misslyckas, prova IPv4."
+"ipv6_first: Försök slå upp en IPv6-adress; om det misslyckas, prova IPv4"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3720
@@ -5352,16 +5298,12 @@ msgstr "dns_resolver_server_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3732
-#, fuzzy
-#| msgid ""
-#| "Defines the amount of time (in milliseconds)  SSSD would try to talk to "
-#| "DNS server before trying next DNS server."
 msgid ""
 "Defines the timeout duration (in milliseconds)  SSSD waits for a DNS server "
 "to respond before moving to the next one."
 msgstr ""
-"Definierar mängden tid (i millisekunder) SSSD skall försöka att tala med en "
-"DNS-server före den provar nästa DNS-server."
+"Anger hur länge SSSD väntar på svar från en DNS-server, i millisekunder, "
+"innan nästa server prövas."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3737
@@ -5373,14 +5315,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3741 sssd.conf.5.xml:3777 sssd.conf.5.xml:3814
-#, fuzzy
-#| msgid ""
-#| "Specifies the timeout (in seconds) after which the <citerefentry> "
-#| "<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry>/<citerefentry> <refentrytitle>select</refentrytitle> "
-#| "<manvolnum>2</manvolnum> </citerefentry> following a <citerefentry> "
-#| "<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
-#| "citerefentry> returns in case of no activity."
 msgid ""
 "Please see the section <quote>FAILOVER</quote> in <citerefentry> "
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
@@ -5390,12 +5324,13 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information about the service resolution."
 msgstr ""
-"Anger tidsgränsen (i sekunder) efter vilken <citerefentry> "
-"<refentrytitle>poll</refentrytitle> <manvolnum>2</manvolnum> </citerefentry>/"
-"<citerefentry> <refentrytitle>select</refentrytitle> <manvolnum>2</"
-"manvolnum> </citerefentry>, efter en <citerefentry> <refentrytitle>connect</"
-"refentrytitle> <manvolnum>2</manvolnum> </citerefentry>, returnerar om ingen "
-"aktivitet sker."
+"Mer information om tjänsteupplösning finns i avsnittet <quote>FAILOVER</"
+"quote> i <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> <manvolnum>"
+"5</manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</"
+"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> eller <citerefentry> <refentrytitle>sssd-ad</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3762 sssd-ldap.5.xml:700 include/failover.xml:84
@@ -5442,10 +5377,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3841
-#, fuzzy
-#| msgid "dns_resolver_use_search_list (bool)"
 msgid "dns_resolver_use_search_list (boolean)"
-msgstr "dns_resolver_use_search_list (bool)"
+msgstr "dns_resolver_use_search_list (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3844
@@ -5526,21 +5459,21 @@ msgstr "override_gid (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3897
-#, fuzzy
-#| msgid "Override the primary GID value with the one specified."
 msgid ""
 "Override the primary GID value for all users in the domain with specified "
 "value."
-msgstr "Ersätt det primära GID-värdet med det angivna."
+msgstr ""
+"Åsidosätt det primära GID-värdet för alla användare i domänen med det "
+"angivna värdet."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3901
-#, fuzzy
-#| msgid "Default: not set (SSSD will use the value retrieved from LDAP)"
 msgid ""
 "Default: not set (Use the primary GID value retrieved from the identity "
 "provider)"
-msgstr "Standard: inte angivet (SSSD använder värdet som hämtas från LDAP)"
+msgstr ""
+"Standard: inte angivet, använd det primära GID-värde som hämtas från "
+"identitetsleverantören"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3908
@@ -5608,10 +5541,8 @@ msgstr "Standard: True (False för AD-leverantören)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3962
-#, fuzzy
-#| msgid "verify_host (boolean)"
 msgid "avoid_by_id_lookups (boolean)"
-msgstr "verify_host (boolean)"
+msgstr "avoid_by_id_lookups (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3965
@@ -5620,6 +5551,9 @@ msgid ""
 "to the backend and will switch to a lookup by name if a cached object with a "
 "matching ID can be found."
 msgstr ""
+"Om det här alternativet anges till 'true' försöker SSSD undvika att skicka "
+"uppslagningar efter ID till bakänden och använder i stället uppslagning "
+"efter namn om ett cachat objekt med matchande ID hittas."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3971
@@ -5628,13 +5562,14 @@ msgid ""
 "the server side because of missing indexes or are not even possible, e.g. "
 "due to non-reversible POSIX id-mapping."
 msgstr ""
+"Det här alternativet kan till exempel användas när sökningar efter ID är "
+"resurskrävande på serversidan på grund av saknade index, eller inte är "
+"möjliga alls på grund av icke reversibel POSIX-ID-mappning."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3978
-#, fuzzy
-#| msgid "Default: True (False for AD provider)"
 msgid "Default: False (True for IdP provider)"
-msgstr "Standard: True (False för AD-leverantören)"
+msgstr "Standard: False, True för IdP-leverantören"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3984
@@ -5813,22 +5748,17 @@ msgstr "cached_auth_timeout (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4096
-#, fuzzy
-#| msgid ""
-#| "Specifies time in seconds since last successful online authentication for "
-#| "which user will be authenticated using cached credentials while SSSD is "
-#| "in the online mode. If the credentials are incorrect, SSSD falls back to "
-#| "online authentication."
 msgid ""
 "Specifies the number of seconds since the last successful online "
 "authentication during which SSSD will authenticate users via cached "
 "credentials, even while online.  If the cached authentication fails, SSSD "
 "immediately falls back to online authentication."
 msgstr ""
-"Anger tiden i sekunder sedan senaste lyckade uppkopplade autentisering under "
-"vilka användaren kommer autentiseras med cachade kreditiv medan SSSD är i "
-"uppkopplat läge. Om kreditiven är felaktiga faller SSSD tillbaka till "
-"uppkopplad autentisering."
+"Anger antalet sekunder sedan den senaste lyckade nätverksanslutna "
+"autentiseringen då SSSD autentiserar användare med cachade "
+"inloggningsuppgifter även när anslutning finns. Om den cachade "
+"autentiseringen misslyckas återgår SSSD genast till nätverksansluten "
+"autentisering."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4103
@@ -5898,7 +5828,7 @@ msgstr ""
 "metoderna för lokal autentisering. <quote>enable:passkey</quote> aktiverar "
 "till exempel endast passkey för lokal autentisering. Flera enable-värden ska "
 "vara kommaseparerade, till exempel <quote>enable:passkey, enable:smartcard</"
-"quote>."
+"quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4151
@@ -5910,7 +5840,7 @@ msgstr ""
 "Följande tabell visar vilka autentiseringsmetoder som, om de är korrekt "
 "konfigurerade, för närvarande är aktiverade eller inaktiverade för varje "
 "bakomliggande komponent med standardvärdet local_auth_policy: <quote>match</"
-"quote>."
+"quote>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><thead><row><entry>
 #: sssd.conf.5.xml:4164
@@ -6024,7 +5954,7 @@ msgid ""
 "UID or GID number with this option. In other words, enabling this option "
 "enforces uniqueness across the ID space."
 msgstr ""
-"OBS! Eftersom GID-numret och användarens privata grupp härleds från UID-"
+"OBS: Eftersom GID-numret och användarens privata grupp härleds från UID-"
 "numret stöds inte flera poster med samma UID- eller GID-nummer när detta "
 "alternativ används. Med andra ord kräver aktivering av alternativet unika "
 "värden i hela ID-rymden."
@@ -6539,7 +6469,7 @@ msgid ""
 "Extended Key Usage <quote>clientAuth</quote>"
 msgstr ""
 "Standard: KRB5:&lt;EKU&gt;clientAuth, dvs. endast certifikat som har "
-"Extended Key Usage <quote>clientAuth</quote>."
+"Extended Key Usage <quote>clientAuth</quote>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4537
@@ -6704,7 +6634,7 @@ msgid ""
 "second factor is optional."
 msgstr ""
 "Booleskt värde. Om True visas endast en fråga som använder värdet för "
-"first_prompt, och båda faktorerna förväntas anges som en enda sträng. "
+"first_prompt och båda faktorerna förväntas anges som en enda sträng. "
 "Observera att båda faktorerna måste anges här, även om den andra faktorn är "
 "valfri."
 
@@ -6800,27 +6730,22 @@ msgid ""
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
 "för att konfigurera frågor för passnyckelautentisering. Tillåtna alternativ "
-"är: <placeholder type=\"variablelist\" id=\"0\"/>."
+"är: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4713
-#, fuzzy
-#| msgid "[prompting/2fa]"
 msgid "[prompting/oauth2]"
-msgstr "[prompting/2fa]"
+msgstr "[prompting/oauth2]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4721
-#, fuzzy
-#| msgid ""
-#| "boolean value, if True prompt a message to remind the user to touch the "
-#| "device."
 msgid ""
 "boolean value, if True prompt a message after asking the user to "
 "authenticate, and wait before requesting the access token."
 msgstr ""
-"Booleskt värde. Om True, visa ett meddelande som påminner användaren om att "
-"vidröra enheten."
+"Booleskt värde. Om värdet är True visas ett meddelande efter att användaren "
+"har ombetts att autentisera sig och programmet väntar innan åtkomsttoken "
+"begärs."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4725
@@ -6828,33 +6753,27 @@ msgid ""
 "If False, make sure to set the <quote>idp_request_timeout</quote> "
 "sufficiently high, to give the user time to authenticate."
 msgstr ""
+"Om värdet är False ska <quote>idp_request_timeout</quote> sättas "
+"tillräckligt högt för att ge användaren tid att autentisera sig."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4715
-#, fuzzy
-#| msgid ""
-#| "to configure passkey authentication prompting, allowed options are: "
-#| "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "to configure OAuth2 authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"för att konfigurera frågor för passnyckelautentisering. Tillåtna alternativ "
-"är: <placeholder type=\"variablelist\" id=\"0\"/>."
+"för att konfigurera frågor vid OAuth2-autentisering. Tillåtna alternativ är: "
+"<placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4748
-#, fuzzy
-#| msgid "[prompting/2fa]"
 msgid "[prompting/cert_auth]"
-msgstr "[prompting/2fa]"
+msgstr "[prompting/cert_auth]"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4754
-#, fuzzy
-#| msgid "single_prompt"
 msgid "pin_prompt"
-msgstr "single_prompt"
+msgstr "pin_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4756
@@ -6862,13 +6781,13 @@ msgid ""
 "to change the message which asks the user to enter the PIN at the computer "
 "keyboard. At the end of the message the token name is printed."
 msgstr ""
+"för att ändra meddelandet som uppmanar användaren att ange PIN-koden på "
+"datorns tangentbord. Tokennamnet skrivs ut i slutet av meddelandet."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4764
-#, fuzzy
-#| msgid "password_prompt"
 msgid "keypad_prompt"
-msgstr "password_prompt"
+msgstr "keypad_prompt"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4766
@@ -6876,13 +6795,13 @@ msgid ""
 "to change the message which asks the user to enter the PIN at keypad of the "
 "Smartcard reader. At the end of the message the token name is printed."
 msgstr ""
+"för att ändra meddelandet som uppmanar användaren att ange PIN-koden på "
+"smartkortsläsarens knappsats. Tokennamnet skrivs ut i slutet av meddelandet."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4774
-#, fuzzy
-#| msgid "username"
 msgid "user_name_hint"
-msgstr "username"
+msgstr "user_name_hint"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4776
@@ -6890,28 +6809,21 @@ msgid ""
 "boolean value, if True ask for a user name if no name was given before and "
 "the found certificate can be mapped to more than one user."
 msgstr ""
+"booleskt värde. Om värdet är True frågas efter ett användarnamn om inget "
+"namn har angetts tidigare och det hittade certifikatet kan mappas till fler "
+"än en användare."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:4750
-#, fuzzy
-#| msgid ""
-#| "to configure passkey authentication prompting, allowed options are: "
-#| "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgid ""
 "to configure Smartcard authentication prompting, allowed options are: "
 "<placeholder type=\"variablelist\" id=\"0\"/>"
 msgstr ""
-"för att konfigurera frågor för passnyckelautentisering. Tillåtna alternativ "
-"är: <placeholder type=\"variablelist\" id=\"0\"/>."
+"för att konfigurera frågor vid smartkortsautentisering. Tillåtna alternativ "
+"är: <placeholder type=\"variablelist\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4611
-#, fuzzy
-#| msgid ""
-#| "Each supported authentication method has its own configuration subsection "
-#| "under <quote>[prompting/...]</quote>. Currently there are: <placeholder "
-#| "type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" "
-#| "id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/>"
 msgid ""
 "Each supported authentication method has its own configuration subsection "
 "under <quote>[prompting/...]</quote>. Currently there are: <placeholder "
@@ -6920,10 +6832,12 @@ msgid ""
 "type=\"variablelist\" id=\"3\"/> <placeholder type=\"variablelist\" id=\"4\"/"
 ">"
 msgstr ""
-"Varje autentiseringsmetod som stödjs har sin egen konfigurationsundersektion "
-"under <quote>[prompting/…]</quote>. För närvarande finns det: <placeholder "
-"type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" id=\"1\"/"
-"> <placeholder type=\"variablelist\" id=\"2\"/>"
+"Varje autentiseringsmetod som stöds har sitt eget konfigurationsunderavsnitt "
+"under <quote>[prompting/...]</quote>. För närvarande finns: <placeholder "
+"type=\"variablelist\" id=\"0\"/> <placeholder type=\"variablelist\" "
+"id=\"1\"/> <placeholder type=\"variablelist\" id=\"2\"/> <placeholder "
+"type=\"variablelist\" id=\"3\"/> <placeholder type=\"variablelist\" "
+"id=\"4\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:4792
@@ -7058,8 +6972,8 @@ msgid ""
 msgstr ""
 "3. Följande exempel visar konfigurationen av en certifikatmappningsregel. "
 "Den gäller för den konfigurerade domänen <quote>my.domain</quote>, dessutom "
-"för underdomänen <quote>your.domain</quote>, och använder hela certifikatet "
-"i sökfiltret. <placeholder type=\"programlisting\" id=\"0\"/>"
+"för underdomänen <quote>your.domain</quote> och använder hela certifikatet i "
+"sökfiltret. <placeholder type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-ldap.5.xml:10 sssd-ldap.5.xml:16
@@ -7277,14 +7191,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:151
-#, fuzzy
-#| msgid ""
-#| "Default: If not set, the value of the defaultNamingContext or "
-#| "namingContexts attribute from the RootDSE of the LDAP server is used. If "
-#| "defaultNamingContext does not exist or has an empty value namingContexts "
-#| "is used.  The namingContexts attribute must have a single value with the "
-#| "DN of the search base of the LDAP server to make this work. Multiple "
-#| "values are are not supported."
 msgid ""
 "Default: If not set, the value of the defaultNamingContext or namingContexts "
 "attribute from the RootDSE of the LDAP server is used. If "
@@ -7293,12 +7199,11 @@ msgid ""
 "the search base of the LDAP server to make this work. Multiple values are "
 "not supported."
 msgstr ""
-"Standard: om inte satt används värdet från attributet defaultNamingContext "
-"eller namingContexts från RootDSE:n hos LDAP-servern.  Om "
+"Standard: om värdet inte är angivet används värdet för attributet "
+"defaultNamingContext eller namingContexts från LDAP-serverns RootDSE. Om "
 "defaultNamingContext inte finns eller har ett tomt värde används "
-"namingContexts.  Attributet namingContexts måste ha ett ensamt värde med "
-"DN:n hos sökbasen hos LDAP-servern för att detta skall fungera.  Flera "
-"värden stödjs inte."
+"namingContexts. Attributet namingContexts måste ha ett enda värde med DN för "
+"LDAP-serverns sökbas för att detta ska fungera. Flera värden stöds inte."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:165
@@ -7572,7 +7477,7 @@ msgid ""
 msgstr ""
 "Att sätta detta alternativ till noll inaktiverar cache-rensningen. Observera "
 "att rensningsuppgiften krävs om uppräkning är aktiverad för att upptäcka "
-"poster som tagits bort från servern, och den kan då inte inaktiveras. Som "
+"poster som tagits bort från servern och den kan då inte inaktiveras. Som "
 "standard körs rensningsuppgiften var tredje timme när uppräkning är "
 "aktiverad."
 
@@ -7719,7 +7624,7 @@ msgid ""
 "is entered)"
 msgstr ""
 "Anger tidsgränsen (i sekunder) som LDAP-sökningar får köras innan de avbryts "
-"och cachelagrade resultat returneras (och frånkopplat läge aktiveras)."
+"och cachelagrade resultat returneras (och frånkopplat läge aktiveras)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:523
@@ -7746,7 +7651,7 @@ msgid ""
 msgstr ""
 "Anger tidsgränsen (i sekunder) som LDAP-sökningar efter användar- och "
 "gruppuppräkningar får köras innan de avbryts och cachelagrade resultat "
-"returneras (och frånkopplat läge aktiveras)."
+"returneras (och frånkopplat läge aktiveras)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:556
@@ -7808,14 +7713,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:621
-#, fuzzy
-#| msgid ""
-#| "If the connection is idle (not actively running an operation) within "
-#| "<emphasis>ldap_opt_timeout</emphasis> seconds of expiration, then it will "
-#| "be closed early to ensure that a new query cannot require the connection "
-#| "to remain open past its expiration.  This implies that connections will "
-#| "always be closed immediately and will never be reused if "
-#| "<emphasis>ldap_connection_expire_timeout &lt;= ldap_opt_timout</emphasis>"
 msgid ""
 "If the connection is idle (not actively running an operation) within "
 "<emphasis>ldap_opt_timeout</emphasis> seconds of expiration, then it will be "
@@ -7824,13 +7721,12 @@ msgid ""
 "be closed immediately and will never be reused if "
 "<emphasis>ldap_connection_expire_timeout &lt;= ldap_opt_timeout</emphasis>"
 msgstr ""
-"Om anslutningen är inaktiv (inte aktivt kör en åtgärd) under "
-"<emphasis>ldap_opt_timeout</emphasis> sekunders utgångstid, då kommer den "
-"att stängas i förväg för att säkerställa att en ny begäran inte kan kräva "
-"att förbindelsen skall hållas öppen utöver dess utgångstid. Detta implicerar "
-"att anslutningar alltid kommer stängas omedelbart och aldrig kommer "
-"återanvändas om <emphasis>ldap_connection_expire_timoute ≤ ldap_opt_timeout</"
-"emphasis>"
+"Om anslutningen är inaktiv, alltså inte aktivt utför någon åtgärd, när "
+"mindre än <emphasis>ldap_opt_timeout</emphasis> sekunder återstår till "
+"utgången stängs den i förväg. Det säkerställer att en ny fråga inte kan "
+"kräva att anslutningen hålls öppen efter utgångstiden. Det innebär att "
+"anslutningar alltid stängs omedelbart och aldrig återanvänds om <emphasis>"
+"ldap_connection_expire_timeout &lt;= ldap_opt_timeout</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:633
@@ -7838,8 +7734,8 @@ msgid ""
 "This timeout can be extended of a random value specified by "
 "<emphasis>ldap_connection_expire_offset</emphasis>"
 msgstr ""
-"Tidsgränsen kan utökas med ett slumpvärde som anges av "
-"<emphasis>ldap_connection_expire_offset</emphasis>."
+"Tidsgränsen kan utökas med ett slumpvärde som anges av <emphasis>"
+"ldap_connection_expire_offset</emphasis>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:643 sssd-ldap.5.xml:686 sssd-ldap.5.xml:1809
@@ -8058,10 +7954,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:831
-#, fuzzy
-#| msgid "ldap_ignore_unreadable_references (bool)"
 msgid "ldap_ignore_unreadable_references (boolean)"
-msgstr "ldap_ignore_unreadable_references (bool)"
+msgstr "ldap_ignore_unreadable_references (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:834
@@ -8172,7 +8066,7 @@ msgid ""
 "ldap.conf</filename>"
 msgstr ""
 "Standard: använd standardvärden för OpenLDAP, vanligtvis i <filename>/etc/"
-"openldap/ldap.conf</filename>."
+"openldap/ldap.conf</filename>"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:911
@@ -8539,7 +8433,7 @@ msgid ""
 "LDAP server. This feature is available with MIT Kerberos >= 1.7"
 msgstr ""
 "Anger om värdhuvudnamnet ska kanoniseras vid anslutning till en LDAP-server. "
-"Funktionen är tillgänglig med MIT Kerberos >= 1.7."
+"Funktionen är tillgänglig med MIT Kerberos >= 1.7"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1215 sssd-krb5.5.xml:336
@@ -8704,10 +8598,8 @@ msgstr "Standard: inte angivet, dvs. tjänsteupptäckt är inaktiverad"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1339
-#, fuzzy
-#| msgid "ldap_chpass_update_last_change (bool)"
 msgid "ldap_chpass_update_last_change (boolean)"
-msgstr "ldap_chpass_update_last_change (boolean)"
+msgstr "ldap_chpass_update_last_change (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1342
@@ -8800,7 +8692,7 @@ msgstr ""
 "Frånkopplad cachelagring för den här funktionen är begränsad till att avgöra "
 "om användarens senaste onlineinloggning beviljades åtkomst. Om användaren "
 "beviljades åtkomst vid sin senaste inloggning fortsätter den att beviljas "
-"när användaren är frånkopplad, och omvänt."
+"när användaren är frånkopplad och omvänt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1405 sssd-ldap.5.xml:1461
@@ -9047,7 +8939,7 @@ msgid ""
 msgstr ""
 "Observera att fältet rhost i PAM sätts av programmet. Kontrollera därför vad "
 "programmet skickar till PAM innan det här åtkomststyrningsalternativet "
-"aktiveras."
+"aktiveras"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1574
@@ -10026,7 +9918,7 @@ msgid ""
 msgstr ""
 "Fråga alltid användaren efter autentiseringsuppgifter. Med det här "
 "alternativet ignoreras autentiseringsuppgifter som begärs av andra PAM-"
-"moduler, vanligen ett lösenord, och pam_sss frågar efter "
+"moduler, vanligen ett lösenord och pam_sss frågar efter "
 "autentiseringsuppgifter på nytt. Baserat på SSSD:s svar före autentisering "
 "kan pam_sss fråga efter ett lösenord, en PIN-kod för smartkort eller andra "
 "autentiseringsuppgifter."
@@ -10047,7 +9939,7 @@ msgstr ""
 "Försök använda certifikatbaserad autentisering, dvs. autentisering med ett "
 "smartkort eller liknande enheter. Om ett smartkort är tillgängligt och "
 "tjänsten tillåter smartkortsautentisering uppmanas användaren att ange en "
-"PIN-kod och den certifikatbaserade autentiseringen fortsätter."
+"PIN-kod och den certifikatbaserade autentiseringen fortsätter"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:227
@@ -10360,19 +10252,14 @@ msgstr "PAM_NO_MODULE_DATA"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:434
-#, fuzzy
-#| msgid ""
-#| "No authentication method was found by Kerberos.  This might happen if the "
-#| "user has a Smartcard assigned but the pkint plugin is not available on "
-#| "the client."
 msgid ""
 "No authentication method was found by Kerberos.  This might happen if the "
 "user has a Smartcard assigned but the pkinit plugin is not available on the "
 "client."
 msgstr ""
-"Ingen autentiseringsmetod hittades av Kerberos. Detta kan inträffa om "
-"användaren har ett smartkort tilldelat men insticksmodulen pkint inte är "
-"tillgänglig på klienten."
+"Kerberos hittade ingen autentiseringsmetod. Det kan inträffa om användaren "
+"har ett tilldelat smartkort men pkinit-insticksmodulen inte är tillgänglig "
+"på klienten."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:441
@@ -10939,6 +10826,9 @@ msgid ""
 "address the plugin will use this address instead of reading the kdcinfo "
 "file. The address format is the same as in the kdcinfo file (see above)."
 msgstr ""
+"Om miljövariabeln SSSD_KRB5_LOCATOR_KDC_ADDRESS anges till en KDC-adress "
+"använder insticksmodulen den adressen i stället för att läsa filen kdcinfo. "
+"Adressformatet är detsamma som i filen kdcinfo, se ovan."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_locator_plugin.8.xml:112
@@ -10948,6 +10838,10 @@ msgid ""
 "the kpasswdinfo file. The address format is the same as in the kpasswdinfo "
 "file (see above)."
 msgstr ""
+"Om miljövariabeln SSSD_KRB5_LOCATOR_KPASSWD_ADDRESS anges till en kpasswd-"
+"serveradress använder insticksmodulen den adressen i stället för att läsa "
+"filen kpasswdinfo. Adressformatet är detsamma som i filen kpasswdinfo, se "
+"ovan."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-simple.5.xml:10 sssd-simple.5.xml:16
@@ -11347,7 +11241,7 @@ msgstr ""
 "Matchningsregeln används för att välja ett certifikat som mappningsregeln "
 "ska tillämpas på. Den använder ett system som liknar det för alternativet "
 "<quote>pkinit_cert_match</quote> i MIT Kerberos. Den består av ett nyckelord "
-"mellan '&lt;' och '&gt;', som identifierar en viss del av certifikatet, och "
+"mellan '&lt;' och '&gt;', som identifierar en viss del av certifikatet och "
 "ett mönster som måste hittas för att regeln ska matcha. Flera nyckelords- "
 "och mönsterpar kan sammanfogas med '&amp;&amp;' (och) eller '&#124;&#124;' "
 "(eller)."
@@ -11861,7 +11755,7 @@ msgstr ""
 "användarinformation (undantaget är proxy-leverantören, som inte är relevant "
 "här). Därför bygger mappningsregeln på syntaxen för LDAP-sökfilter, med "
 "mallar för att lägga till certifikatinnehåll i filtret. Filtret förväntas "
-"endast innehålla de specifika data som behövs för mappningen, och anroparen "
+"endast innehålla de specifika data som behövs för mappningen och anroparen "
 "bäddar in det i ett annat filter för att utföra den faktiska sökningen. "
 "Därför ska filtersträngen börja med '(' och sluta med ')'."
 
@@ -11888,7 +11782,7 @@ msgid ""
 "mapping on purpose for a specific user."
 msgstr ""
 "Detta bör föredras framför att läsa användarspecifika data från "
-"certifikatet, till exempel en e-postadress, och söka efter dem på LDAP-"
+"certifikatet, till exempel en e-postadress och söka efter dem på LDAP-"
 "servern. Anledningen är att användarspecifika data i LDAP kan ändras av "
 "olika skäl, vilket skulle bryta mappningen. Å andra sidan skulle det vara "
 "svårt att avsiktligt bryta mappningen för en viss användare."
@@ -12821,10 +12715,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:256 sssd-ad.5.xml:1266
-#, fuzzy
-#| msgid "dyndns_update_ptr (bool)"
 msgid "dyndns_update_ptr (boolean)"
-msgstr "dyndns_update_ptr (bool)"
+msgstr "dyndns_update_ptr (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:259 sssd-ad.5.xml:1269
@@ -12861,10 +12753,8 @@ msgstr "Standard: False (avaktiverat)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:281 sssd-ad.5.xml:1285
-#, fuzzy
-#| msgid "dyndns_force_tcp (bool)"
 msgid "dyndns_force_tcp (boolean)"
-msgstr "dyndns_force_tcp (bool)"
+msgstr "dyndns_force_tcp (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:284 sssd-ad.5.xml:1288
@@ -13260,10 +13150,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ipa.5.xml:649
-#, fuzzy
-#| msgid "ipa_hbac_refresh (integer)"
 msgid "ipa_selinux_refresh (integer)"
-msgstr "ipa_hbac_refresh (heltal)"
+msgstr "ipa_selinux_refresh (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ipa.5.xml:652
@@ -13547,7 +13435,7 @@ msgid ""
 "subdomain requests are sent to the IPA server if necessary."
 msgstr ""
 "Om alternativet 'subdomains_provider = ipa' finns i domänavsnittet i "
-"sssd.conf konfigureras IPA-underdomänsleverantören uttryckligen, och alla "
+"sssd.conf konfigureras IPA-underdomänsleverantören uttryckligen och alla "
 "underdomänsbegäranden skickas vid behov till IPA-servern."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -15190,16 +15078,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1101
-#, fuzzy
-#| msgid ""
-#| "The optional fourth string value identifies the helper binary which "
-#| "should be used for the renewal.  Currently <command>adcli</command> and "
-#| "<command>realm</command> are supported. If this value is missing or empty "
-#| "in the value string <command>realm</command> will be used. Since the "
-#| "helper is started as the user SSSD is running as there might be the "
-#| "chance that the renewal will fail if this user does not has permissions "
-#| "to modify the keytab file where the machine account credentials are "
-#| "stored. This will typically be the case for <command>adcli</command>."
 msgid ""
 "The optional fourth string value identifies the helper binary which should "
 "be used for the renewal.  Currently <command>adcli</command> and "
@@ -15210,14 +15088,13 @@ msgid ""
 "keytab file where the machine account credentials are stored. This will "
 "typically be the case for <command>adcli</command>."
 msgstr ""
-"Det valfria fjärde strängvärdet identifierar hjälpprogrammet som ska "
-"användas för förnyelsen.  För närvarande stöds <command>adcli</command> och "
-"<command>realm</command>. Om detta värde saknas eller är tomt i "
-"värdesträngen kommer <command>realm</command> att användas. Eftersom "
-"hjälpprogrammet startas som den användare som SSSD körs som kan det hända "
-"att förnyelsen misslyckas om denna användare inte har behörighet att ändra "
-"keytab-filen där maskinens kontouppgifter lagras. Detta är vanligtvis fallet "
-"för <command>adcli</command>."
+"Det valfria fjärde strängvärdet anger vilket hjälpprogram som ska användas "
+"för förnyelsen. För närvarande stöds <command>adcli</command> och <command>"
+"realm</command>. Om värdet saknas eller är tomt i värdesträngen används "
+"<command>realm</command>. Hjälpprogrammet startas med samma användare som "
+"SSSD körs som. Förnyelsen kan därför misslyckas om användaren saknar "
+"behörighet att ändra keytab-filen där maskinkontots inloggningsuppgifter "
+"lagras. Detta gäller vanligtvis <command>adcli</command>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1115
@@ -15231,8 +15108,8 @@ msgstr ""
 "<command>realm</command> uppdaterar inte keytab-filen direkt utan anropar "
 "processen <command>realmd</command>, som körs som root, för uppgiften. "
 "<command>realmd</command> kan tillåta åtkomst för oprivilegierade användare "
-"med hjälp av PolicyKit, och SSSD tillhandahåller som standard lämpliga "
-"regler för den användare som SSSD körs som."
+"med hjälp av PolicyKit och SSSD tillhandahåller som standard lämpliga regler "
+"för den användare som SSSD körs som."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1124
@@ -15259,21 +15136,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ad.5.xml:1146
-#, fuzzy
-#| msgid "ad_use_ldaps (bool)"
 msgid "ad_use_ldaps (boolean)"
-msgstr "ad_use_ldaps (bool)"
+msgstr "ad_use_ldaps (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1149
-#, fuzzy
-#| msgid ""
-#| "By default SSSD uses the plain LDAP port 389 and the Global Catalog port "
-#| "3628. If this option is set to True SSSD will use the LDAPS port 636 and "
-#| "Global Catalog port 3629 with LDAPS protection. Since AD does not allow "
-#| "to have multiple encryption layers on a single connection and we still "
-#| "want to use SASL/GSSAPI or SASL/GSS-SPNEGO for authentication the SASL "
-#| "security property maxssf is set to 0 (zero)  for those connections."
 msgid ""
 "By default SSSD uses the plain LDAP port 389 and the Global Catalog port "
 "3268. If this option is set to True SSSD will use the LDAPS port 636 and "
@@ -15282,13 +15149,12 @@ msgid ""
 "use SASL/GSSAPI or SASL/GSS-SPNEGO for authentication the SASL security "
 "property maxssf is set to 0 (zero)  for those connections."
 msgstr ""
-"Som standard använder SSSD den enkla LDAP-porten 389 porten 3628 för den "
-"globala katalogen. Om denna flagga är satt till sant kommer SSSD använda "
-"LDAPS-porten 636 och porten 3629 för den globala katalogen med LDAPS-skydd. "
-"Eftersom AD inte tillåter att ha flera krypteringsnivåer på en ensam "
-"förbindelse och vi fortfarande vill använda SASL/GSSAPI eller SASL/GSS-"
-"SPNEGO till autentisering är SASL-säkerhetsegenskapen maxssf satt till 0 "
-"(noll) för dessa förbindelser."
+"Som standard använder SSSD den okrypterade LDAP-porten 389 och Global "
+"Catalog-porten 3268. Om alternativet sätts till True använder SSSD LDAPS-"
+"porten 636 och Global Catalog-porten 3269 med LDAPS-skydd. AD tillåter inte "
+"flera krypteringslager på en anslutning. Eftersom SASL/GSSAPI eller SASL/GSS-"
+"SPNEGO fortfarande ska användas för autentisering sätts SASL-"
+"säkerhetsegenskapen maxssf till 0 för dessa anslutningar."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1169
@@ -15323,24 +15189,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ad.5.xml:1252
-#, fuzzy
-#| msgid ""
-#| "How often should the back end perform periodic DNS update in addition to "
-#| "the automatic update performed when the back end goes online.  This "
-#| "option is optional and applicable only when dyndns_update is true. Note "
-#| "that the lowest possible value is 60 seconds in-case if value is provided "
-#| "less than 60, parameter will assume lowest value only."
 msgid ""
 "How often should the back end perform periodic DNS update in addition to the "
 "automatic update performed when the back end goes online.  This is optional "
 "and applicable only when dyndns_update is true. Note that the minimum value "
 "is 60 seconds, any specified value below this threshold will default to 60."
 msgstr ""
-"Hur ofta bakänden skall utföra periodiska DNS-uppdateringar utöver den "
-"automatiska uppdateringen som utförs när bakänden kopplar upp.  Detta "
-"alternativ är valfritt och tillämpligt endast när dyndns_update är sann.  "
-"Observera att det lägsta möjliga värdet är 60 sekunder, ifall ett värde "
-"mindre än 60 ges kommer parametern endast anta det lägsta värdet."
+"Anger hur ofta bakänden ska utföra en periodisk DNS-uppdatering utöver den "
+"automatiska uppdatering som görs när bakänden ansluter. Detta är valfritt "
+"och gäller bara när dyndns_update är true. Observera att minsta värde är 60 "
+"sekunder. Ett angivet lägre värde blir 60."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ad.5.xml:1465
@@ -15623,22 +15481,16 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:137
-#, fuzzy
-#| msgid ""
-#| "The <emphasis>smart refresh</emphasis> periodically downloads rules that "
-#| "are new or were modified after the last update. Its primary goal is to "
-#| "keep the database growing by fetching only small increments that do not "
-#| "generate large amounts of network traffic."
 msgid ""
 "The <emphasis>smart refresh</emphasis> periodically downloads rules that are "
 "new or were modified after the last update. Its primary goal is to grow the "
 "database incrementally by fetching only small updates, avoiding large "
 "amounts of network traffic."
 msgstr ""
-"Den <emphasis>smarta uppdateringen</emphasis> hämtar periodiskt regler som "
-"är nya eller ändrades efter den senaste uppdateringen.  Dess primära mål är "
-"att se till att databasen växer genom att bara hämta små inkrementella steg "
-"som inte genererar stora mängder med nätverkstrafik."
+"Den <emphasis>smarta uppdateringen</emphasis> hämtar regelbundet regler som "
+"är nya eller har ändrats sedan den senaste uppdateringen. Huvudsyftet är att "
+"utöka databasen stegvis genom att bara hämta små uppdateringar och undvika "
+"stora mängder nätverkstrafik."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-sudo.5.xml:143
@@ -15853,7 +15705,7 @@ msgstr ""
 "(UID) eller hemkatalog. SSSD:s IdP-leverantör genererar automatiskt de "
 "attribut som behövs. Standardalgoritmen för att generera användar-ID (UID) "
 "och grupp-ID (GID) syftar till att skapa reproducerbara ID på olika system. "
-"En nackdel är att algoritmen kan tilldela samma ID till olika objekt, och "
+"En nackdel är att algoritmen kan tilldela samma ID till olika objekt och "
 "endast det första som begärs via SSSD kommer att vara tillgängligt."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
@@ -15872,12 +15724,6 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:70
-#, fuzzy
-#| msgid ""
-#| "Depending on the IdP product additional platform specific options might "
-#| "follow the name separated by a colon (:). E.g. for Keycloak the base URI "
-#| "for the user and group REST API must be given. For Entra ID this is not "
-#| "needed because there is a generic endpoint for all tenants."
 msgid ""
 "Depending on the IdP product additional platform specific options might "
 "follow the name separated by a colon (:). E.g. for Keycloak the base URI for "
@@ -15888,9 +15734,12 @@ msgid ""
 "government cloud (GCC High)."
 msgstr ""
 "Beroende på IdP-produkten kan ytterligare plattformsspecifika alternativ "
-"följa efter namnet, åtskilda med ett kolon (:). För Keycloak måste till "
-"exempel bas-URI för användar- och grupp-REST-API anges. För Entra ID behövs "
-"detta inte eftersom det finns en generisk slutpunkt för alla hyresgäster."
+"följa efter namnet, avgränsade med kolon (:). För Keycloak måste exempelvis "
+"bas-URI:n för REST-API:t för användare och grupper anges. För Entra ID kan "
+"bas-URI:n för Microsoft Graph-API:t anges för att använda slutpunkter i "
+"suveräna eller myndighetsmoln i stället för standardvärdet (https://"
+"graph.microsoft.com/v1.0). Exempelvis <quote>entra_id:https://"
+"graph.microsoft.us/v1.0</quote> för USA:s myndighetsmoln (GCC High)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:82 sssd-idp.5.xml:98 sssd-idp.5.xml:123
@@ -15991,6 +15840,8 @@ msgid ""
 "Note: In previous versions of SSSD, this option was expected to already be "
 "URL-encoded."
 msgstr ""
+"Obs: I tidigare versioner av SSSD förväntades det här alternativet redan "
+"vara URL-kodat."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:172
@@ -16021,10 +15872,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:193
-#, fuzzy
-#| msgid "ldap_user_extra_attrs (string)"
 msgid "idp_auth_user_identifier_attr (string)"
-msgstr "ldap_user_extra_attrs (sträng)"
+msgstr "idp_auth_user_identifier_attr (sträng)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:196
@@ -16032,6 +15881,8 @@ msgid ""
 "Attribute used to identify the authenticated user in userinfo data or token "
 "claims."
 msgstr ""
+"Attribut som används för att identifiera den autentiserade användaren i "
+"userinfo-data eller tokenanspråk."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:200
@@ -16043,6 +15894,12 @@ msgid ""
 "on-premises counterpart and only the administrator knows which one the "
 "directory synchronization is configured to use."
 msgstr ""
+"För hybrida Active Directory- och Entra ID-distributioner där <quote>"
+"id_provider = ad</quote> och <quote>auth_provider = idp</quote> används "
+"måste det här alternativet anges uttryckligen. Inget värde hämtas från "
+"identitetsleverantören, eftersom fler än ett attribut kan länka ett Entra ID-"
+"objekt till dess lokala motsvarighet och bara administratören vet vilket "
+"attribut som katalogsynkroniseringen är konfigurerad att använda."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:211
@@ -16055,6 +15912,13 @@ msgid ""
 "for AD objectGUID attributes, so the result matches the UUID stored in the "
 "SSSD cache for the AD user."
 msgstr ""
+"Att ange det här alternativet till <quote>onPremisesImmutableId</quote> är "
+"det vanliga valet för sådana distributioner. Microsoft Entra Connect fyller "
+"attributet med den base64-kodade formen av Active Directorys 16 byte långa "
+"<quote>objectGUID</quote> när objectGUID används som sourceAnchor. SSSD "
+"avkodar värdet och konverterar de råa byten med samma konvertering som "
+"används för AD-attributen objectGUID, så att resultatet matchar UUID:t som "
+"lagras i SSSD-cachen för AD-användaren."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:224
@@ -16070,6 +15934,16 @@ msgid ""
 "plan-connect-design-concepts\"> Microsoft Entra Connect: Design concepts</"
 "ulink> for details on sourceAnchor selection."
 msgstr ""
+"Observera att Microsoft Entra Connect 1.1.524.0 och senare använder <quote>"
+"ms-DS-ConsistencyGuid</quote> som sourceAnchor för användarobjekt i stället "
+"för <quote>objectGUID</quote>. Värdet kopieras normalt från objectGUID för "
+"objekt där det ännu inte är angivet. I så fall matchar den avkodade "
+"identifieraren fortfarande. Den matchar inte om ms-DS-ConsistencyGuid har "
+"fyllts i självständigt, om användare har flyttats mellan skogar eller "
+"domäner eller om ett annat attribut, till exempel employeeID, har valts som "
+"sourceAnchor. Se <ulink url=\"https://learn.microsoft.com/en-us/entra/"
+"identity/hybrid/connect/plan-connect-design-concepts\">Microsoft Entra "
+"Connect: Design concepts</ulink> för information om val av sourceAnchor."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:241
@@ -16080,6 +15954,11 @@ msgid ""
 "learn.microsoft.com/en-us/graph/api/resources/user\"> the Microsoft Graph "
 "user resource type</ulink>."
 msgstr ""
+"Microsoft Graph returnerar inte <quote>onPremisesImmutableId</quote> som "
+"standard. <quote>idp_userinfo_endpoint</quote> måste begära det med <quote>"
+"$select</quote>. Se exemplet nedan och <ulink url=\"https://"
+"learn.microsoft.com/en-us/graph/api/resources/user\">resurstypen Microsoft "
+"Graph user</ulink>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:251
@@ -16089,6 +15968,10 @@ msgid ""
 "authentication fails. SSSD does not fall back to another attribute when this "
 "option is set."
 msgstr ""
+"Om det konfigurerade attributet saknas eller inte kan avkodas, till exempel "
+"för Entra ID-användare som bara finns i molnet och saknar <quote>"
+"onPremisesImmutableId</quote>, misslyckas autentiseringen. SSSD faller inte "
+"tillbaka till ett annat attribut när det här alternativet är angivet."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:258
@@ -16096,6 +15979,8 @@ msgid ""
 "Default: not set, <quote>sub</quote> for Keycloak and <quote>id</quote> for "
 "other IdP types"
 msgstr ""
+"Standard: inte angivet, <quote>sub</quote> för Keycloak och <quote>id</"
+"quote> för andra IdP-typer"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:264
@@ -16109,23 +15994,21 @@ msgstr "Tidsgräns i sekunder för en enskild begäran till IdP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:276
-#, fuzzy
-#| msgid "ldap_referrals (boolean)"
 msgid "idp_auto_refresh (boolean)"
-msgstr "ldap_referrals (boolean)"
+msgstr "idp_auto_refresh (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:279
 msgid ""
 "Refresh tokens automatically, after they have reached about half their "
 "lifetime."
-msgstr ""
+msgstr "Förnya token automatiskt när de har nått ungefär halva sin livslängd."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-idp.5.xml:283
 msgid ""
 "Note: Scheduled token refreshes are not preserved across restarts of SSSD."
-msgstr ""
+msgstr "Obs: Schemalagda tokenförnyelser bevaras inte mellan omstarter av SSSD."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-idp.5.xml:292
@@ -16195,18 +16078,7 @@ msgstr "Anger antalet POSIX-ID som är tillgängliga för en enskild IdP-domän.
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-idp.5.xml:346
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[domain/entra_id]\n"
-#| "id_provider = idp\n"
-#| "idp_type = entra_id\n"
-#| "idp_client_id = 12345678-abcd-0101-efef-ba9876543210\n"
-#| "idp_client_secret = YOUR-CLIENT-SCERET\n"
-#| "idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token\n"
-#| "idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me\n"
-#| "idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode\n"
-#| "idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default\n"
-#| "idp_auth_scope = openid profile email\n"
+#, no-wrap
 msgid ""
 "[domain/entra_id]\n"
 "id_provider = idp\n"
@@ -16223,27 +16095,18 @@ msgstr ""
 "id_provider = idp\n"
 "idp_type = entra_id\n"
 "idp_client_id = 12345678-abcd-0101-efef-ba9876543210\n"
-"idp_client_secret = DIN-KLIENTHEMLIGHET\n"
-"idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token\n"
+"idp_client_secret = YOUR-CLIENT-SECRET\n"
+"idp_token_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/"
+"token\n"
 "idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me\n"
-"idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode\n"
-"idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default\n"
+"idp_device_auth_endpoint = https://login.microsoftonline.com/TENANT-ID/"
+"oauth2/v2.0/devicecode\n"
+"idp_id_scope = https://graph.microsoft.com/.default\n"
 "idp_auth_scope = openid profile email\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-idp.5.xml:358
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[domain/entra_id]\n"
-#| "id_provider = idp\n"
-#| "idp_type = entra_id\n"
-#| "idp_client_id = 12345678-abcd-0101-efef-ba9876543210\n"
-#| "idp_client_secret = YOUR-CLIENT-SCERET\n"
-#| "idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token\n"
-#| "idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me\n"
-#| "idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode\n"
-#| "idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default\n"
-#| "idp_auth_scope = openid profile email\n"
+#, no-wrap
 msgid ""
 "[domain/ad.example.com]\n"
 "id_provider = ad\n"
@@ -16263,31 +16126,30 @@ msgid ""
 "idp_auth_scope = openid profile email\n"
 "idp_auth_user_identifier_attr = onPremisesImmutableId\n"
 msgstr ""
-"[domain/entra_id]\n"
-"id_provider = idp\n"
+"[domain/ad.example.com]\n"
+"id_provider = ad\n"
+"auth_provider = idp\n"
+"access_provider = permit\n"
+"\n"
+"ad_domain = ad.example.com\n"
+"krb5_realm = AD.EXAMPLE.COM\n"
+"\n"
 "idp_type = entra_id\n"
 "idp_client_id = 12345678-abcd-0101-efef-ba9876543210\n"
-"idp_client_secret = DIN-KLIENTHEMLIGHET\n"
-"idp_token_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/token\n"
-"idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/me\n"
-"idp_device_auth_endpoint = https://login.microsoftonline.com/TENNANT-ID/oauth2/v2.0/devicecode\n"
-"idp_id_scope = https%3A%2F%2Fgraph.microsoft.com%2F.default\n"
+"idp_client_secret = YOUR-CLIENT-SECRET\n"
+"idp_token_endpoint = https://login.microsoftonline.com/TENANT-ID/oauth2/v2.0/"
+"token\n"
+"idp_userinfo_endpoint = https://graph.microsoft.com/v1.0/"
+"me?$select=id,userPrincipalName,onPremisesImmutableId\n"
+"idp_device_auth_endpoint = https://login.microsoftonline.com/TENANT-ID/"
+"oauth2/v2.0/devicecode\n"
+"idp_id_scope = https://graph.microsoft.com/.default\n"
 "idp_auth_scope = openid profile email\n"
+"idp_auth_user_identifier_attr = onPremisesImmutableId\n"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd-idp.5.xml:377
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[domain/keycloak]\n"
-#| "idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/\n"
-#| "id_provider = idp\n"
-#| "idp_client_id = myclient\n"
-#| "idp_client_secret = YOUR-CLIENT-SCERET\n"
-#| "idp_token_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/token\n"
-#| "idp_userinfo_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/userinfo\n"
-#| "idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/auth/device\n"
-#| "idp_id_scope = profile\n"
-#| "idp_auth_scope = openid profile email\n"
+#, no-wrap
 msgid ""
 "[domain/keycloak]\n"
 "idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/\n"
@@ -16301,29 +16163,30 @@ msgid ""
 "idp_auth_scope = openid profile email\n"
 msgstr ""
 "[domain/keycloak]\n"
-"idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/master/\n"
+"idp_type = keycloak:https://master.keycloak.test:8443/auth/admin/realms/"
+"master/\n"
 "id_provider = idp\n"
 "idp_client_id = myclient\n"
-"idp_client_secret = DIN-KLIENTHEMLIGHET\n"
-"idp_token_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/token\n"
-"idp_userinfo_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/userinfo\n"
-"idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/master/protocol/openid-connect/auth/device\n"
+"idp_client_secret = YOUR-CLIENT-SECRET\n"
+"idp_token_endpoint = https://master.keycloak.test:8443/auth/realms/master/"
+"protocol/openid-connect/token\n"
+"idp_userinfo_endpoint = https://master.keycloak.test:8443/auth/realms/master/"
+"protocol/openid-connect/userinfo\n"
+"idp_device_auth_endpoint = https://master.keycloak.test:8443/auth/realms/"
+"master/protocol/openid-connect/auth/device\n"
 "idp_id_scope = profile\n"
 "idp_auth_scope = openid profile email\n"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-idp.5.xml:345
-#, fuzzy
-#| msgid ""
-#| "<placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
-#| "type=\"programlisting\" id=\"1\"/>"
 msgid ""
 "<placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
 "type=\"programlisting\" id=\"1\"/> <placeholder type=\"programlisting\" "
 "id=\"2\"/>"
 msgstr ""
 "<placeholder type=\"programlisting\" id=\"0\"/> <placeholder "
-"type=\"programlisting\" id=\"1\"/>"
+"type=\"programlisting\" id=\"1\"/> <placeholder type=\"programlisting\" "
+"id=\"2\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-idp.5.xml:390
@@ -16335,6 +16198,12 @@ msgid ""
 "endpoint and is only populated for users synchronized from Active Directory "
 "with objectGUID as the sourceAnchor."
 msgstr ""
+"I exemplet ovan med hybrid Active Directory och Entra ID används <quote>"
+"onPremisesImmutableId</quote> vid autentisering så att IdP-resultatet "
+"matchar det AD objectGUID-UUID som lagras i SSSD-cachen. Attributet måste "
+"begäras via <quote>$select</quote> i Graphs userinfo-slutpunkt och fylls "
+"bara i för användare som synkroniserats från Active Directory med objectGUID "
+"som sourceAnchor."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.8.xml:10 sssd.8.xml:15
@@ -17506,16 +17375,12 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:291
-#, fuzzy
-#| msgid ""
-#| "<emphasis>demand</emphasis> to use FAST. The authentication fails if the "
-#| "server does not require fast."
 msgid ""
 "<emphasis>demand</emphasis> to use FAST. The authentication fails if the "
 "server does not support FAST."
 msgstr ""
-"<emphasis>demand</emphasis> kräv användning av FAST.  Autentiseringen "
-"misslyckas om servern inte begär fast."
+"<emphasis>demand</emphasis> för att använda FAST. Autentiseringen misslyckas "
+"om servern inte stöder FAST."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:296
@@ -18615,10 +18480,8 @@ msgstr "Konfigurationsattribut"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sss_rpcidmapd.5.xml:69
-#, fuzzy
-#| msgid "memcache (bool)"
 msgid "memcache (boolean)"
-msgstr "memcache (bool)"
+msgstr "memcache (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sss_rpcidmapd.5.xml:72
@@ -19000,17 +18863,6 @@ msgstr "NYCKELHÄMTNING"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_knownhosts.1.xml:93
-#, fuzzy
-#| msgid ""
-#| "The key lines retrieved from the backend are expected to respect the key "
-#| "format as decribed in the <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> "
-#| "section of <citerefentry><refentrytitle>sshd</refentrytitle> "
-#| "<manvolnum>8</manvolnum></citerefentry>. However, returning only the "
-#| "keytype and the key itself is tolerated, in which case, the hostname "
-#| "received as parameter will be added before the keytype to output a "
-#| "correctly formatted line. The hostname will be added unmodified or just "
-#| "the hostname (no port number), depending on whether the <option>-o</"
-#| "option>,<option>--only-host-name</option> option was provided."
 msgid ""
 "The key lines retrieved from the backend are expected to respect the key "
 "format as described in the <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> "
@@ -19022,15 +18874,14 @@ msgid ""
 "depending on whether the <option>-o</option>,<option>--only-host-name</"
 "option> option was provided."
 msgstr ""
-"Nyckelraderna som hämtas från en bakände förväntas att följa ncykelformatet "
-"som det beskrivs i avsnittet <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> i "
+"Nyckelraderna som hämtas från bakänden förväntas följa nyckelformatet som "
+"beskrivs i avsnittet <quote>SSH_KNOWN_HOSTS FILE FORMAT</quote> i "
 "<citerefentry><refentrytitle>sshd</refentrytitle> <manvolnum>8</manvolnum></"
-"citerefentry>. Dock tolereras det att returnera endast nyckeltypen och "
-"själva nyckeln, i vilket fall värdnamnet tas emot som en parameter kommer "
-"läggas till före nyckeltypen för att mata ut en korrekt formaterad rad. "
-"Värdnamnet kommer läggas till oförändrat eller bara värdnamnet (inget "
-"portnummer), beroende på huruvida flaggan <option>-o</option>,<option>--only-"
-"host-name</option> gavs."
+"citerefentry>. Det accepteras dock att bara returnera nyckeltypen och själva "
+"nyckeln. I så fall läggs värdnamnet som tas emot som parameter till före "
+"nyckeltypen för att skapa en korrekt formaterad rad. Värdnamnet läggs till "
+"oförändrat, eller bara som värdnamn utan portnummer, beroende på om "
+"alternativet <option>-o</option>,<option>--only-host-name</option> angavs."
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sss_ssh_knownhosts.1.xml:110
@@ -19335,7 +19186,7 @@ msgstr ""
 "I en miljö där Kerberos-cachar hanteras av KCM är Kerberos-biblioteket, som "
 "vanligen används via ett program som <citerefentry> <refentrytitle>kinit</"
 "refentrytitle><manvolnum>1</manvolnum> </citerefentry>, en <quote>\"KCM "
-"client\"</quote>, och KCM-bakgrundsprocessen kallas <quote>\"KCM server\"</"
+"client\"</quote> och KCM-bakgrundsprocessen kallas <quote>\"KCM server\"</"
 "quote>. Klienten och servern kommunicerar via ett UNIX-uttag."
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -19664,21 +19515,14 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:215
-#, fuzzy
-#| msgid ""
-#| "The KCM service is configured in the <quote>kcm</quote> For a detailed "
-#| "syntax reference, refer to the <quote>FILE FORMAT</quote> section of the "
-#| "<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-#| "manvolnum> </citerefentry> manual page."
 msgid ""
 "For a detailed syntax reference, refer to the <quote>FILE FORMAT</quote> "
 "section of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> manual page."
 msgstr ""
-"Tjänsten KCM konfigureras i <quote>kcm</quote> För en detaljeras "
-"syntaxreferens, se avsnittet <quote>FILFORMAT</quote> i manualsidan "
-"<citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry>."
+"En detaljerad syntaxreferens finns i avsnittet <quote>FILE FORMAT</quote> i "
+"manualsidan <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:222
@@ -19764,16 +19608,12 @@ msgstr "max_ccache_size (heltal)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:279
-#, fuzzy
-#| msgid ""
-#| "How big can a credential cache be per ccache. Each service ticket "
-#| "accounts into this quota."
 msgid ""
 "How big a credential cache be per ccache. Each service ticket counts toward "
 "this quota."
 msgstr ""
-"Hor stor kan en kreditivcach vara per ccache. Varje tjänsteärende räknas in "
-"i denna kvot."
+"Anger hur stor inloggningsuppgiftscache som får vara per ccache. Varje "
+"tjänstebiljett räknas in i denna kvot."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:283
@@ -19782,10 +19622,8 @@ msgstr "Standard: 65536"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sssd-kcm.8.xml:288
-#, fuzzy
-#| msgid "tgt_renewal (bool)"
 msgid "tgt_renewal (boolean)"
-msgstr "tgt_renewal (bool)"
+msgstr "tgt_renewal (boolesk)"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-kcm.8.xml:291
@@ -20842,10 +20680,9 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:381
-#, fuzzy
-#| msgid "Default: uid (rfc2307, rfc2307bis and IPA), sAMAccountName (AD)"
 msgid "Default: loginDisabled (rfc2307, rfc2307bis and IPA), not set (AD)"
-msgstr "Standard: uid (rfc2307, rfc2307bis och IPA), sAMAccountName (AD)"
+msgstr ""
+"Standard: loginDisabled (rfc2307, rfc2307bis och IPA), inte angivet (AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:387
@@ -20863,11 +20700,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:395
-#, fuzzy
-#| msgid "Default: cn (rfc2307, rfc2307bis and IPA), sAMAccountName (AD)"
 msgid ""
 "Default: loginExpirationTime (rfc2307, rfc2307bis and IPA), not set (AD)"
-msgstr "Standard: cn (rfc2307, rfc2307bis och IPA), sAMAccountName (AD)"
+msgstr ""
+"Standard: loginExpirationTime (rfc2307, rfc2307bis och IPA), inte angivet "
+"(AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:401
@@ -20885,11 +20722,11 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:409
-#, fuzzy
-#| msgid "Default: uid (rfc2307, rfc2307bis and IPA), sAMAccountName (AD)"
 msgid ""
 "Default: loginAllowedTimeMap (rfc2307, rfc2307bis and IPA), not set (AD)"
-msgstr "Standard: uid (rfc2307, rfc2307bis och IPA), sAMAccountName (AD)"
+msgstr ""
+"Standard: loginAllowedTimeMap (rfc2307, rfc2307bis och IPA), inte angivet "
+"(AD)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:415
@@ -22044,12 +21881,7 @@ msgstr "KONFIGURATION"
 
 #. type: Content of: <reference><refentry><refsect1><para><programlisting>
 #: sssd_krb5_localauth_plugin.8.xml:56
-#, fuzzy, no-wrap
-#| msgid ""
-#| "[plugins]\n"
-#| " localauth = {\n"
-#| "  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
-#| " }\n"
+#, no-wrap
 msgid ""
 "[plugins]\n"
 " localauth = {\n"
@@ -22059,6 +21891,7 @@ msgid ""
 msgstr ""
 "[plugins]\n"
 " localauth = {\n"
+"  disable = an2ln\n"
 "  module = sssd:/usr/lib64/sssd/modules/sssd_krb5_localauth_plugin.so\n"
 " }\n"
 
@@ -22095,6 +21928,14 @@ msgid ""
 "modules provided by MIT Kerberos, e.g.  <command>k5login</command> are not "
 "affected."
 msgstr ""
+"Det här konfigurationsfragmentet inaktiverar också modulen <command>an2ln</"
+"command> från MIT Kerberos om SSSD är konfigurerat att använda AD- eller IPA-"
+"leverantören. I de miljöerna kan <command>sssd_krb5_localauth_plugin</"
+"command> pålitligt mappa systemanvändarnamn till Kerberos-huvudnamn. En "
+"reservlösning med <command>an2ln</command> kan orsaka problem i miljöer där "
+"användare har behörighet att skapa egna Kerberos-huvudnamn som kan kollidera "
+"med namn på andra användare i systemet. Andra moduler från MIT Kerberos, "
+"till exempel <command>k5login</command>, påverkas inte."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd_krb5_localauth_plugin.8.xml:79
@@ -22103,6 +21944,8 @@ msgid ""
 "<command>sssd_krb5_localauth_plugin</command> is not used, therefore the "
 "above text is not applicable."
 msgstr ""
+"Obs: Om <quote>auth_provider = krb5</quote> används inte <command>"
+"sssd_krb5_localauth_plugin</command>. Texten ovan är därför inte tillämplig."
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: include/autofs_attributes.xml:3
@@ -22401,7 +22244,7 @@ msgstr ""
 "Att slå upp en server att ansluta till kan vara så enkelt som en enda DNS-"
 "fråga, men kan också omfatta flera steg, till exempel att hitta rätt plats "
 "eller prova flera värdnamn om vissa konfigurerade servrar inte kan nås. De "
-"mer komplexa scenarierna kan ta tid, och SSSD måste balansera mellan att ge "
+"mer komplexa scenarierna kan ta tid och SSSD måste balansera mellan att ge "
 "tillräckligt med tid för att slutföra uppslaget och att inte försöka för "
 "länge innan frånkopplat läge används. Om SSSD:s felsökningsloggar visar att "
 "serveruppslaget når tidsgränsen innan en aktiv server kontaktas kan du "
@@ -23782,7 +23625,7 @@ msgid ""
 "as the last entry or the only entry in the keytab file."
 msgstr ""
 "Verifiera med hjälp av krb5_keytab att den hämtade TGT:n inte har "
-"förfalskats. Keytab-filen kontrolleras sekventiellt, och den första posten "
+"förfalskats. Keytab-filen kontrolleras sekventiellt och den första posten "
 "med ett matchande realm används för validering. Om ingen post matchar "
 "realmet används den sista posten i keytab-filen. Processen kan användas för "
 "att validera miljöer som använder förtroenderelationer mellan realmer genom "

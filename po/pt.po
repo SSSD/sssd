@@ -10,9 +10,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-02 15:57+0000\n"
-"PO-Revision-Date: 2026-10-06 10:58+0000\n"
-"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
-"memory@weblate.org>\n"
+"PO-Revision-Date: 2026-10-06 22:28+0000\n"
+"Last-Translator: Américo Monteiro <a_monteiro@gmx.com>\n"
 "Language-Team: Portuguese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/pt/>\n"
 "Language: pt\n"
@@ -394,14 +393,13 @@ msgstr ""
 "impostos para acesso PAM com autenticação GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
-#, fuzzy
 msgid ""
 "List of triples <type>:<value>:<authentication indicator> that assigns "
 "additional information from the Kerberos ticket to an authentication "
 "indicator."
 msgstr ""
-"Lista de pares <serviço PAM>:<indicador de autenticação> que têm de ser "
-"impostos para acesso PAM com autenticação GSSAPI"
+"Lista de triplos <tipo>:<valor>:<indicador de autenticação> que atribui "
+"informação adicional do bilhete Kerberos a um indicador de autenticação."
 
 #: src/config/SSSDConfig/sssdoptions.py:112
 msgid "Allow passkey device authentication."
@@ -502,7 +500,7 @@ msgid ""
 "replacement, case changes, etc."
 msgstr ""
 "Uma lista separada por vírgulas de utilizadores que deverão ter registo de "
-"sessão activo. Corresponde a nomes de utilizadores como retornados pelo NSS, "
+"sessão ativo. Corresponde a nomes de utilizadores como retornados pelo NSS, "
 "isto é, após a possível substituição de espaços, alterações de minúscula/"
 "maiúscula, etc."
 
@@ -513,7 +511,7 @@ msgid ""
 "possible space replacement, case changes, etc."
 msgstr ""
 "Uma lista separada por vírgulas de grupos, cujos membros deverão ter registo "
-"de sessão activo. Corresponde a nomes de grupos como retornados pelo NSS, "
+"de sessão ativo. Corresponde a nomes de grupos como retornados pelo NSS, "
 "isto é, após a possível substituição de espaços, alterações de minúscula/"
 "maiúscula, etc."
 
@@ -673,7 +671,7 @@ msgstr "Trata nomes de utilizador como sensível a maiúsculas/minúsculas"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Lookups by ID are expensive or do not work at all"
-msgstr ""
+msgstr "Pesquisas pelo ID são dispendiosas e não funcionam de todo"
 
 #: src/config/SSSDConfig/sssdoptions.py:197
 msgid "How often should expired entries be refreshed in background"
@@ -930,7 +928,7 @@ msgstr "O atributo LDAP que contém o FQDN da máquina."
 #: src/config/SSSDConfig/sssdoptions.py:261
 #: src/config/SSSDConfig/sssdoptions.py:284
 msgid "The object class of a host entry in LDAP."
-msgstr "A classe de objecto de uma entrada de máquina em LDAP."
+msgstr "A classe de objeto de uma entrada de máquina em LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:262
 msgid "Use the given string as search base for host objects."
@@ -982,7 +980,7 @@ msgstr "O atributo LDAP que corresponde ao nome netgroup."
 
 #: src/config/SSSDConfig/sssdoptions.py:274
 msgid "The object class of a netgroup entry in LDAP."
-msgstr "A classe de objecto de uma entrada netgroup em LDAP."
+msgstr "A classe de objeto de uma entrada netgroup em LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
@@ -1658,33 +1656,28 @@ msgstr ""
 "utilizador"
 
 #: src/config/SSSDConfig/sssdoptions.py:456
-#, fuzzy
 msgid "The object class of an subid entry in LDAP."
-msgstr "A classe de objecto de uma entrada de máquina em LDAP."
+msgstr "A classe de objeto de uma entrada de subid em LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:457
-#, fuzzy
 msgid "Subordinate user ID count attribute"
-msgstr "Atributo de utilizador de regra sudo"
+msgstr "Atributo de contagem de ID de utilizador subordinado"
 
 #: src/config/SSSDConfig/sssdoptions.py:458
-#, fuzzy
 msgid "Subordinate group ID count attribute"
-msgstr "Atributo de opção de regra sudo"
+msgstr "Atributo de contagem de ID de grupo subordinado"
 
 #: src/config/SSSDConfig/sssdoptions.py:459
-#, fuzzy
 msgid "User ID range start value attribute"
-msgstr "Atributo do nome do utilizador"
+msgstr "Atributo de valor de inicio da gama de ID de utilizador"
 
 #: src/config/SSSDConfig/sssdoptions.py:460
-#, fuzzy
 msgid "Group ID range start value attribute"
-msgstr "Atributo UUID de grupo"
+msgstr "Atributo de valor de inicio da gama de ID de grupo"
 
 #: src/config/SSSDConfig/sssdoptions.py:461
 msgid "Owner of an entry"
-msgstr ""
+msgstr "Dono de uma entrada"
 
 #: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Base DN for group lookups"
@@ -2125,7 +2118,7 @@ msgid "Can't read config: '%s'\n"
 msgstr "Incapaz de ler configuração: '%s'\n"
 
 #: src/monitor/monitor.c:1878
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to bootstrap SSSD 'monitor' process: %s"
 msgstr "Falhou ao impulsionar o processo 'monitor' do SSSD: %s"
 
@@ -2171,7 +2164,7 @@ msgstr "Verifica bandeiras PAC"
 
 #: src/providers/krb5/krb5_child.c:4335
 msgid "Set environment variable (KEY=VALUE)"
-msgstr ""
+msgstr "Definir variável de ambiente (CHAVE=VALOR)"
 
 #: src/providers/data_provider_be.c:786
 msgid "Domain of the information provider (mandatory)"
@@ -2291,14 +2284,14 @@ msgid "Password change failed. "
 msgstr "Alteração da palavra passe falhou. "
 
 #: src/sss_client/pam_sss.c:2028
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate at \"%1$s\"."
-msgstr "Autentique em %1$s e pressione ENTER."
+msgstr "Autentique em \"%1$s\"."
 
 #: src/sss_client/pam_sss.c:2031
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
-msgstr "Autentique com PIN %1$s em %2$s e pressione ENTER."
+msgstr "Autentique com PIN \"%1$s\" em \"%2$s\"."
 
 #: src/sss_client/pam_sss.c:2470
 msgid "Please (re)insert (different) Smartcard"
@@ -2314,7 +2307,7 @@ msgstr "Re-insira a nova Palavra Passe: "
 
 #: src/sss_client/pam_sss.c:2890
 msgid "Press ENTER to continue."
-msgstr ""
+msgstr "Pressione ENTER para continuar."
 
 #: src/sss_client/pam_sss.c:2913 src/sss_client/pam_sss.c:2916
 msgid "First Factor: "
@@ -3004,9 +2997,8 @@ msgid "Run with high debug level to see details.\n"
 msgstr "Corra com nível de depuração alto para ver detalhes.\n"
 
 #: src/tools/sssctl/sssctl_config.c:142
-#, fuzzy
 msgid "Failed to run validators\n"
-msgstr "Falhou ao correr validadores"
+msgstr "Falhou ao correr validadores\n"
 
 #: src/tools/sssctl/sssctl_config.c:146
 #, c-format

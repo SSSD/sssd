@@ -5,12 +5,13 @@
 # Translators:
 # hsu zangmen <chzang55@gmail.com>, 2025, 2026.
 # Alang Hsu <alang.hsu@gmail.com>, 2026.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-02 15:57+0000\n"
-"PO-Revision-Date: 2026-10-06 11:06+0000\n"
+"PO-Revision-Date: 2026-10-20 08:44+0000\n"
 "Last-Translator: hsu zangmen <chzang55@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_TW/>\n"
@@ -19,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -355,13 +356,11 @@ msgstr ""
 "使用 GSSAPI 認證的 PAM 存取必須強制執行的 <PAM 服務>:<認證指示器> 配對清單"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
-#, fuzzy
 msgid ""
 "List of triples <type>:<value>:<authentication indicator> that assigns "
 "additional information from the Kerberos ticket to an authentication "
 "indicator."
-msgstr ""
-"使用 GSSAPI 認證的 PAM 存取必須強制執行的 <PAM 服務>:<認證指示器> 配對清單"
+msgstr "使用 GSSAPI 認證的 PAM 存取必須強制執行的 <PAM 服務>:<認證指示器> 配對清單."
 
 #: src/config/SSSDConfig/sssdoptions.py:112
 msgid "Allow passkey device authentication."
@@ -601,7 +600,7 @@ msgstr "將使用者名稱視為區分大小寫"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Lookups by ID are expensive or do not work at all"
-msgstr ""
+msgstr "根據 ID 進行查詢的效率很低，或者根本無法運作"
 
 #: src/config/SSSDConfig/sssdoptions.py:197
 msgid "How often should expired entries be refreshed in background"
@@ -1516,33 +1515,28 @@ msgid "A list of extra attributes to download along with the user entry"
 msgstr "與使用者項目一起下載的額外屬性清單"
 
 #: src/config/SSSDConfig/sssdoptions.py:456
-#, fuzzy
 msgid "The object class of an subid entry in LDAP."
-msgstr "LDAP 中主機項目的物件類別。"
+msgstr "LDAP 中 subid 條目所屬的物件類別。"
 
 #: src/config/SSSDConfig/sssdoptions.py:457
-#, fuzzy
 msgid "Subordinate user ID count attribute"
-msgstr "sudo 規則使用者屬性"
+msgstr "從屬使用者 ID 計數屬性"
 
 #: src/config/SSSDConfig/sssdoptions.py:458
-#, fuzzy
 msgid "Subordinate group ID count attribute"
-msgstr "sudo 規則選項屬性"
+msgstr "下屬群組 ID 計數屬性"
 
 #: src/config/SSSDConfig/sssdoptions.py:459
-#, fuzzy
 msgid "User ID range start value attribute"
-msgstr "使用者名稱屬性"
+msgstr "使用者 ID 範圍起始值屬性"
 
 #: src/config/SSSDConfig/sssdoptions.py:460
-#, fuzzy
 msgid "Group ID range start value attribute"
-msgstr "群組 UUID 屬性"
+msgstr "群組 ID 範圍起始值屬性"
 
 #: src/config/SSSDConfig/sssdoptions.py:461
 msgid "Owner of an entry"
-msgstr ""
+msgstr "條目擁有者"
 
 #: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Base DN for group lookups"
@@ -1973,7 +1967,7 @@ msgstr "無法讀取設定：「%s」\n"
 #: src/monitor/monitor.c:1878
 #, c-format
 msgid "Failed to bootstrap SSSD 'monitor' process: %s"
-msgstr ""
+msgstr "無法啟動 SSSD「monitor」處理程式：%s"
 
 #: src/monitor/monitor.c:1973
 msgid "Out of memory\n"
@@ -2017,7 +2011,7 @@ msgstr "檢查 PAC 旗標"
 
 #: src/providers/krb5/krb5_child.c:4335
 msgid "Set environment variable (KEY=VALUE)"
-msgstr ""
+msgstr "設定環境變數 (KEY=VALUE)"
 
 #: src/providers/data_provider_be.c:786
 msgid "Domain of the information provider (mandatory)"
@@ -2134,12 +2128,12 @@ msgstr "密碼變更失敗。 "
 #: src/sss_client/pam_sss.c:2028
 #, c-format
 msgid "Authenticate at \"%1$s\"."
-msgstr ""
+msgstr "請在「%1$s」處進行驗證。"
 
 #: src/sss_client/pam_sss.c:2031
 #, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
-msgstr ""
+msgstr "請在「%2$s」處輸入 PIN 碼「%1$s」進行驗證。"
 
 #: src/sss_client/pam_sss.c:2470
 msgid "Please (re)insert (different) Smartcard"
@@ -2155,7 +2149,7 @@ msgstr "再次輸入新密碼： "
 
 #: src/sss_client/pam_sss.c:2890
 msgid "Press ENTER to continue."
-msgstr ""
+msgstr "請按下 Enter 繼續."
 
 #: src/sss_client/pam_sss.c:2913 src/sss_client/pam_sss.c:2916
 msgid "First Factor: "
@@ -2832,9 +2826,8 @@ msgid "Run with high debug level to see details.\n"
 msgstr "以高除錯層級執行以檢視詳細資訊。\n"
 
 #: src/tools/sssctl/sssctl_config.c:142
-#, fuzzy
 msgid "Failed to run validators\n"
-msgstr "顯示物件失敗：%s\n"
+msgstr "無法執行驗證程式\n"
 
 #: src/tools/sssctl/sssctl_config.c:146
 #, c-format

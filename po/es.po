@@ -18,14 +18,14 @@
 # Pavel Brezina <pbrezina@redhat.com>, 2025, 2026.
 # "Fco. Javier F. Serrador" <fserrador@gmail.com>, 2025, 2026.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2025, 2026.
+# Luis Flores <luisfno21@gmail.com>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-02 15:57+0000\n"
-"PO-Revision-Date: 2026-10-06 10:52+0000\n"
-"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
-"memory@weblate.org>\n"
+"PO-Revision-Date: 2026-10-18 17:18+0000\n"
+"Last-Translator: Luis Flores <luisfno21@gmail.com>\n"
 "Language-Team: Spanish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/es/>\n"
 "Language: es\n"
@@ -33,7 +33,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.10.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -417,14 +417,14 @@ msgstr ""
 "cumplir para el acceso PAM con autenticación GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
-#, fuzzy
 msgid ""
 "List of triples <type>:<value>:<authentication indicator> that assigns "
 "additional information from the Kerberos ticket to an authentication "
 "indicator."
 msgstr ""
-"La lista de pares <PAM service>:<authentication indicator> que se debe hacer "
-"cumplir para el acceso PAM con autenticación GSSAPI"
+"Lista de tuplas con el formato <tipo>:<valor>:<indicador de autenticación> "
+"que asigna información adicional del ticket de Kerberos a un indicador de "
+"autenticación."
 
 #: src/config/SSSDConfig/sssdoptions.py:112
 msgid "Allow passkey device authentication."
@@ -693,7 +693,7 @@ msgstr "Trate al nombre de usuario con mayúsculas y minúsculas"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Lookups by ID are expensive or do not work at all"
-msgstr ""
+msgstr "Las búsquedas por ID son costosas o directamente no funcionan"
 
 #: src/config/SSSDConfig/sssdoptions.py:197
 msgid "How often should expired entries be refreshed in background"
@@ -1702,33 +1702,28 @@ msgstr ""
 "Una lista de los atributos extra a descargar junto con la entrada del usuario"
 
 #: src/config/SSSDConfig/sssdoptions.py:456
-#, fuzzy
 msgid "The object class of an subid entry in LDAP."
-msgstr "La clase de objeto de una entrada de host en LDAP."
+msgstr "La clase de objeto de una entrada subid en LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:457
-#, fuzzy
 msgid "Subordinate user ID count attribute"
-msgstr "Atributo de la regla usuario de sudo"
+msgstr "Atributo de cantidad de ID de usuario subordinados"
 
 #: src/config/SSSDConfig/sssdoptions.py:458
-#, fuzzy
 msgid "Subordinate group ID count attribute"
-msgstr "Atributo de la regla opción de sudo"
+msgstr "Atributo de cantidad de ID de grupo subordinados"
 
 #: src/config/SSSDConfig/sssdoptions.py:459
-#, fuzzy
 msgid "User ID range start value attribute"
-msgstr "Atributo Username"
+msgstr "Atributo del valor inicial del rango de ID de usuario"
 
 #: src/config/SSSDConfig/sssdoptions.py:460
-#, fuzzy
 msgid "Group ID range start value attribute"
-msgstr "Atributo UUID de grupo"
+msgstr "Atributo del valor inicial del rango de ID de grupo"
 
 #: src/config/SSSDConfig/sssdoptions.py:461
 msgid "Owner of an entry"
-msgstr ""
+msgstr "Propietario de una entrada"
 
 #: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Base DN for group lookups"
@@ -2174,9 +2169,9 @@ msgid "Can't read config: '%s'\n"
 msgstr "No puede leer config: '%s'\n"
 
 #: src/monitor/monitor.c:1878
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to bootstrap SSSD 'monitor' process: %s"
-msgstr "Ha fallado el proceso 'monitor' de arranque SSSD: %s"
+msgstr "Error al iniciar el proceso 'monitor' de SSSD: %s"
 
 #: src/monitor/monitor.c:1973
 msgid "Out of memory\n"
@@ -2220,7 +2215,7 @@ msgstr "Compruebe indicadores de PAC"
 
 #: src/providers/krb5/krb5_child.c:4335
 msgid "Set environment variable (KEY=VALUE)"
-msgstr ""
+msgstr "Establecer variable de entorno (KEY=VALUE)"
 
 #: src/providers/data_provider_be.c:786
 msgid "Domain of the information provider (mandatory)"
@@ -2340,14 +2335,14 @@ msgid "Password change failed. "
 msgstr "Falló el cambio de contraseña. "
 
 #: src/sss_client/pam_sss.c:2028
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate at \"%1$s\"."
-msgstr "Autenticar en %1$s y presione ENTRAR."
+msgstr "Autenticarse en \"%1$s\"."
 
 #: src/sss_client/pam_sss.c:2031
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
-msgstr "Autenticar con %1$s en %2$s y presione INTRO."
+msgstr "Autenticarse con el PIN \"%1$s\" en \"%2$s\"."
 
 #: src/sss_client/pam_sss.c:2470
 msgid "Please (re)insert (different) Smartcard"
@@ -2363,7 +2358,7 @@ msgstr "Reingrese la contraseña nueva: "
 
 #: src/sss_client/pam_sss.c:2890
 msgid "Press ENTER to continue."
-msgstr ""
+msgstr "Pulsa ENTER para continuar."
 
 #: src/sss_client/pam_sss.c:2913 src/sss_client/pam_sss.c:2916
 msgid "First Factor: "
@@ -3054,9 +3049,8 @@ msgid "Run with high debug level to see details.\n"
 msgstr "Ejecute con nivel depurador alto para ver detalles.\n"
 
 #: src/tools/sssctl/sssctl_config.c:142
-#, fuzzy
 msgid "Failed to run validators\n"
-msgstr "Falló al ejecutar los validadores"
+msgstr "No se pudieron ejecutar los validadores\n"
 
 #: src/tools/sssctl/sssctl_config.c:146
 #, c-format

@@ -10,13 +10,14 @@
 # sgallagh <sgallagh@redhat.com>, 2011
 # Robert Antoni Buj Gelonch <rbuj@fedoraproject.org>, 2015. #zanata
 # Robert Antoni Buj Gelonch <rbuj@fedoraproject.org>, 2017. #zanata
+# David Medina <dmedinacpnl@gmail.com>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-02 15:57+0000\n"
-"PO-Revision-Date: 2026-10-06 10:50+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"PO-Revision-Date: 2026-11-03 13:32+0000\n"
+"Last-Translator: David Medina <dmedinacpnl@gmail.com>\n"
 "Language-Team: Catalan <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ca/>\n"
 "Language: ca\n"
@@ -24,7 +25,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.11\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -42,11 +43,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:20
 msgid "Enable/disable debug backtrace"
-msgstr ""
+msgstr "Habilita/inhabilita la traça inversa de depuració"
 
 #: src/config/SSSDConfig/sssdoptions.py:21
 msgid "Watchdog timeout before restarting service"
-msgstr ""
+msgstr "Temps d'espera abans de reiniciar el servei"
 
 #: src/config/SSSDConfig/sssdoptions.py:22
 msgid "Command to start service"
@@ -64,11 +65,13 @@ msgstr "El temps d'inactivitat abans de la desconnexió automàtica d'un client"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
 msgid "Idle time before automatic shutdown of the responder"
-msgstr ""
+msgstr "Temps d'inactivitat abans de l'apagada automàtica del contestador"
 
 #: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Always query all the caches before querying the Data Providers"
 msgstr ""
+"Consulta sempre totes les memòries cau abans de consultar els proveïdors de "
+"dades"
 
 #: src/config/SSSDConfig/sssdoptions.py:27
 msgid ""
@@ -77,6 +80,10 @@ msgid ""
 "is in seconds and calculated by the following: offline_timeout + "
 "random_offset."
 msgstr ""
+"Quan l'SSSD canvia al mode fora de línia, la quantitat de temps abans que "
+"intenti tornar a la xarxa augmentarà en funció del temps dedicat a "
+"desconnectar. Aquest valor està en segons i calculat pel següent: "
+"offlinetimeout + randomoffset."
 
 #: src/config/SSSDConfig/sssdoptions.py:32
 msgid "SSSD Services to start"
@@ -112,7 +119,7 @@ msgstr "L'usuari a qui se li disminueixen els permisos"
 
 #: src/config/SSSDConfig/sssdoptions.py:39
 msgid "Tune certificate verification"
-msgstr ""
+msgstr "Verificació del certificat de Tune"
 
 #: src/config/SSSDConfig/sssdoptions.py:40
 msgid "All spaces in group or user names will be replaced with this character"
@@ -122,21 +129,23 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Tune sssd to honor or ignore netlink state changes"
-msgstr ""
+msgstr "Ajusta l'sssd per a honrar o ignorar els canvis d'estat de l'enllaç net"
 
 #: src/config/SSSDConfig/sssdoptions.py:42
 msgid "Enable or disable the implicit files domain"
-msgstr ""
+msgstr "Activa o desactiva el domini de fitxers implícits"
 
 #: src/config/SSSDConfig/sssdoptions.py:43
 msgid "A specific order of the domains to be looked up"
-msgstr ""
+msgstr "Un ordre específic dels dominis a cercar"
 
 #: src/config/SSSDConfig/sssdoptions.py:44
 msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
+"Controla si l'SSSD ha de controlar l'estat de resolv.conf per identificar "
+"quan necessita actualitzar el seu resoledor DNS intern."
 
 #: src/config/SSSDConfig/sssdoptions.py:46
 msgid ""
@@ -145,18 +154,22 @@ msgid ""
 "this, and will fall back to polling resolv.conf every five seconds if "
 "inotify cannot be used."
 msgstr ""
+"SSSD supervisa l'estat de resolv.conf per identificar quan necessita "
+"actualitzar el seu resoledor intern DNS. Per defecte, intentarem utilitzar "
+"inotify per a això, i tornarem a sondejar resolv.conf cada cinc segons si no "
+"es pot utilitzar inotify."
 
 #: src/config/SSSDConfig/sssdoptions.py:49
 msgid "Run PAC responder automatically for AD and IPA provider"
-msgstr ""
+msgstr "Executa automàticament el contestador PAC per al proveïdor AD i IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:50
 msgid "Enable or disable core dumps for all SSSD processes."
-msgstr ""
+msgstr "Activa o desactiva els bolcats del nucli per a tots els processos SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:51
 msgid "Tune passkey verification behavior"
-msgstr ""
+msgstr "Comportament de verificació de la clau d'accés de la melodia"
 
 #: src/config/SSSDConfig/sssdoptions.py:54
 msgid "Enumeration cache timeout length (seconds)"
@@ -243,30 +256,40 @@ msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for passwd requests"
 msgstr ""
+"Mida (en megabytes) de la taula de dades assignada dins de la memòria cau "
+"ràpida dins de la memòria cau per a les sol·licituds de passwd"
 
 #: src/config/SSSDConfig/sssdoptions.py:72
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for group requests"
 msgstr ""
+"Mida (en megabytes) de la taula de dades assignada dins de la memòria cau "
+"ràpida dins de la memòria cau per a sol·licituds de grup"
 
 #: src/config/SSSDConfig/sssdoptions.py:74
 msgid ""
 "Size (in megabytes) of the data table allocated inside fast in-memory cache "
 "for initgroups requests"
 msgstr ""
+"Mida (en megabytes) de la taula de dades assignada dins de la memòria cau "
+"ràpida per a sol·licituds d'initgroups"
 
 #: src/config/SSSDConfig/sssdoptions.py:75
 msgid ""
 "The value of this option will be used in the expansion of the "
 "override_homedir option if the template contains the format string %H."
 msgstr ""
+"El valor d'aquesta opció s'utilitzarà en l'expansió de l'opció "
+"overridehomedir si la plantilla conté la cadena de format %H."
 
 #: src/config/SSSDConfig/sssdoptions.py:77
 msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr ""
+"Especifica el temps en segons pel qual la llista de subdominis es "
+"considerarà vàlida."
 
 #: src/config/SSSDConfig/sssdoptions.py:79
 msgid ""
@@ -274,6 +297,9 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
+"La memòria cau d'entrades es pot establir per actualitzar automàticament les "
+"entrades en segon pla si es demanen més enllà d'un percentatge del valor "
+"entrycachetimeout per al domini."
 
 #: src/config/SSSDConfig/sssdoptions.py:84
 msgid "How long to allow cached logins between online logins (days)"
@@ -301,7 +327,7 @@ msgstr "Quins tipus de missatges es mostren a l'usuari durant l'autenticació"
 
 #: src/config/SSSDConfig/sssdoptions.py:89
 msgid "Filter PAM responses sent to the pam_sss"
-msgstr ""
+msgstr "Filtra les respostes PAM enviades al pamsss"
 
 #: src/config/SSSDConfig/sssdoptions.py:90
 msgid "How many seconds to keep identity information cached for PAM requests"
@@ -331,59 +357,62 @@ msgstr "El missatge que es mostra quan venç el compte de l'usuari."
 
 #: src/config/SSSDConfig/sssdoptions.py:95
 msgid "Message printed when user account is locked."
-msgstr ""
+msgstr "Missatge imprès quan el compte d'usuari està bloquejat."
 
 #: src/config/SSSDConfig/sssdoptions.py:96
 msgid "Allow certificate based/Smartcard authentication."
-msgstr ""
+msgstr "Permet l'autenticació basada en certificats/targetes intel·ligents."
 
 #: src/config/SSSDConfig/sssdoptions.py:97
 msgid "Path to certificate database with PKCS#11 modules."
-msgstr ""
+msgstr "Camí a la base de dades de certificats amb mòduls PKCS1111."
 
 #: src/config/SSSDConfig/sssdoptions.py:98
-#, fuzzy
 msgid "Tune certificate verification for PAM authentication."
 msgstr "Requereix verificació de certificat TLS"
 
 #: src/config/SSSDConfig/sssdoptions.py:99
 msgid "How many seconds will pam_sss wait for p11_child to finish"
-msgstr ""
+msgstr "Quants segons s'esperaran perquè acabi el «p11child»"
 
 #: src/config/SSSDConfig/sssdoptions.py:100
 msgid "Which PAM services are permitted to contact application domains"
-msgstr ""
+msgstr "Quins serveis PAM estan autoritzats a contactar amb dominis d'aplicació"
 
 #: src/config/SSSDConfig/sssdoptions.py:101
 msgid "Allowed services for using smartcards"
-msgstr ""
+msgstr "Serveis permesos per utilitzar targetes intel·ligents"
 
 #: src/config/SSSDConfig/sssdoptions.py:102
 msgid "Additional timeout to wait for a card if requested"
-msgstr ""
+msgstr "Temps d'espera addicional per a esperar una targeta si se sol·licita"
 
 #: src/config/SSSDConfig/sssdoptions.py:103
 msgid ""
 "PKCS#11 URI to restrict the selection of devices for Smartcard authentication"
 msgstr ""
+"URI PKCS1111 per restringir la selecció de dispositius per a l'autenticació "
+"amb targeta intel·ligent"
 
 #: src/config/SSSDConfig/sssdoptions.py:104
 msgid "When shall the PAM responder force an initgroups request"
-msgstr ""
+msgstr "Quan ha de forçar el contestador del PAM una sol·licitud d'initgroups"
 
 #: src/config/SSSDConfig/sssdoptions.py:105
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
-msgstr ""
+msgstr "Llista de serveis PAM que es poden autenticar amb GSSAPI."
 
 #: src/config/SSSDConfig/sssdoptions.py:106
 msgid "Whether to match authenticated UPN with target user"
-msgstr ""
+msgstr "Si s'ha de fer coincidir l'UPN autenticat amb l'usuari de destinació"
 
 #: src/config/SSSDConfig/sssdoptions.py:107
 msgid ""
 "List of pairs <PAM service>:<authentication indicator> that must be enforced "
 "for PAM access with GSSAPI authentication"
 msgstr ""
+"Llista de parelles <PAM service>:<authentication indicator> que s'han "
+"d'executar per a l'accés PAM amb autenticació GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
 msgid ""
@@ -391,22 +420,24 @@ msgid ""
 "additional information from the Kerberos ticket to an authentication "
 "indicator."
 msgstr ""
+"Llista de triples <type>:<value>:<authentication indicator> que assigna "
+"informació addicional del tiquet de Kerberos a un indicador d'autenticació."
 
 #: src/config/SSSDConfig/sssdoptions.py:112
 msgid "Allow passkey device authentication."
-msgstr ""
+msgstr "Permet l'autenticació del dispositiu de clau d'accés."
 
 #: src/config/SSSDConfig/sssdoptions.py:113
 msgid "How many seconds will pam_sss wait for passkey_child to finish"
-msgstr ""
+msgstr "Quants segons s'esperaran perquè finalitzi passkeychild"
 
 #: src/config/SSSDConfig/sssdoptions.py:114
 msgid "Enable debugging in the libfido2 library"
-msgstr ""
+msgstr "Habilita la depuració a la biblioteca libfido2"
 
 #: src/config/SSSDConfig/sssdoptions.py:115
 msgid "Enable JSON protocol for authentication methods selection."
-msgstr ""
+msgstr "Habilita el protocol JSON per a la selecció de mètodes d'autenticació."
 
 #: src/config/SSSDConfig/sssdoptions.py:118
 msgid "Whether to evaluate the time-based attributes in sudo rules"
@@ -415,12 +446,15 @@ msgstr "Si s'avaluen els atributs basats en temps a les regles sudo"
 #: src/config/SSSDConfig/sssdoptions.py:119
 msgid "If true, SSSD will switch back to lower-wins ordering logic"
 msgstr ""
+"Si és cert, l'SSSD tornarà a la lògica d'ordenació dels guanys més baixos"
 
 #: src/config/SSSDConfig/sssdoptions.py:120
 msgid ""
 "Maximum number of rules that can be refreshed at once. If this is exceeded, "
 "full refresh is performed."
 msgstr ""
+"Nombre màxim de regles que es poden actualitzar alhora. Si s'excedeix, es "
+"realitza una actualització completa."
 
 #: src/config/SSSDConfig/sssdoptions.py:127
 msgid "Whether to hash host names and addresses in the known_hosts file"
@@ -437,17 +471,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:130
 msgid "Path to storage of trusted CA certificates"
-msgstr ""
+msgstr "Camí a l'emmagatzematge de certificats CA de confiança"
 
 #: src/config/SSSDConfig/sssdoptions.py:131
 msgid "Allow to generate ssh-keys from certificates"
-msgstr ""
+msgstr "Permet generar claus ssh a partir de certificats"
 
 #: src/config/SSSDConfig/sssdoptions.py:132
 msgid ""
 "Use the following matching rules to filter the certificates for ssh-key "
 "generation"
 msgstr ""
+"Utilitzeu les següents regles coincidents per filtrar els certificats per a "
+"la generació de claus ssh"
 
 #: src/config/SSSDConfig/sssdoptions.py:136
 msgid "List of UIDs or user names allowed to access the PAC responder"
@@ -457,11 +493,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:137
 msgid "How long the PAC data is considered valid"
-msgstr ""
+msgstr "Quant de temps es consideren vàlides les dades PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:138
 msgid "Validate the PAC"
-msgstr ""
+msgstr "Valida el PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:141
 msgid "List of user attributes the InfoPipe is allowed to publish"
@@ -473,6 +509,10 @@ msgid ""
 "- No users are recorded. some - Users/groups specified by users and groups "
 "options are recorded. all - All users are recorded."
 msgstr ""
+"Una de les cadenes següents que especifica l'abast de l'enregistrament de la "
+"sessió: none - No s'enregistra cap usuari. alguns - Es registren els usuaris/"
+"grups especificats pels usuaris i les opcions de grups. all - Tots els "
+"usuaris estan registrats."
 
 #: src/config/SSSDConfig/sssdoptions.py:147
 msgid ""
@@ -480,6 +520,10 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
+"Una llista separada per comes d'usuaris que haurien de tenir activada "
+"l'enregistrament de la sessió. Concorda amb els noms d'usuari com retornats "
+"per NSS. És a dir, després de la possible substitució d'espai, canvis de "
+"majúscules i minúscules, etc."
 
 #: src/config/SSSDConfig/sssdoptions.py:149
 msgid ""
@@ -487,18 +531,26 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
+"Una llista separada per comes de grups, els membres dels quals haurien de "
+"tenir activada l'enregistrament de la sessió. Concorda amb els noms de grup "
+"com retornats per NSS. És a dir, després de la possible substitució d'espai, "
+"canvis de majúscules i minúscules, etc."
 
 #: src/config/SSSDConfig/sssdoptions.py:152
 msgid ""
 "A comma-separated list of users to be excluded from recording, only when "
 "scope=all"
 msgstr ""
+"Una llista d'usuaris separats per comes que s'exclourà de l'enregistrament, "
+"només quan SCOPE=all"
 
 #: src/config/SSSDConfig/sssdoptions.py:153
 msgid ""
 "A comma-separated list of groups, members of which should be excluded from "
 "recording,  only when scope=all. "
 msgstr ""
+"Una llista separada per comes de grups, els membres dels quals haurien de "
+"ser exclosos de l'enregistrament, només quan sigui d'abast. "
 
 #: src/config/SSSDConfig/sssdoptions.py:157
 msgid "Identity provider"
@@ -530,22 +582,21 @@ msgstr "Proveïdor d'identitat d'amfitrions"
 
 #: src/config/SSSDConfig/sssdoptions.py:164
 msgid "SELinux provider"
-msgstr ""
+msgstr "Proveïdor de SELinux"
 
 #: src/config/SSSDConfig/sssdoptions.py:165
 msgid "Session management provider"
-msgstr ""
+msgstr "Proveïdor de gestió de sessions"
 
 #: src/config/SSSDConfig/sssdoptions.py:166
 msgid "Resolver provider"
-msgstr ""
+msgstr "Proveïdor del solucionador"
 
 #: src/config/SSSDConfig/sssdoptions.py:169
 msgid "Whether the domain is usable by the OS or by applications"
-msgstr ""
+msgstr "Si el domini és utilitzable pel sistema operatiu o per aplicacions"
 
 #: src/config/SSSDConfig/sssdoptions.py:170
-#, fuzzy
 msgid "Enable or disable the domain"
 msgstr "Habilita la validació de credencials"
 
@@ -604,10 +655,14 @@ msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
 msgstr ""
+"Quant de temps hauria de parlar SSSD amb un únic servidor DNS abans de "
+"provar el servidor següent (milisegons)"
 
 #: src/config/SSSDConfig/sssdoptions.py:182
 msgid "How long should keep trying to resolve single DNS query (seconds)"
 msgstr ""
+"Quant de temps s'ha de seguir intentant resoldre una única consulta DNS "
+"(segons)"
 
 #: src/config/SSSDConfig/sssdoptions.py:183
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
@@ -625,6 +680,9 @@ msgid ""
 "reconnect to the primary server after a successful connection to the backup "
 "server"
 msgstr ""
+"Especifica l'interval, en segons, que l'SSSD espera abans d'intentar tornar "
+"a connectar al servidor primari després d'una connexió correcta al servidor "
+"de còpia de seguretat"
 
 #: src/config/SSSDConfig/sssdoptions.py:187
 msgid "Override GID value from the identity provider with this value"
@@ -637,7 +695,7 @@ msgstr "Distingeix entre majúscules i minúscules als noms d'usuari"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Lookups by ID are expensive or do not work at all"
-msgstr ""
+msgstr "Les cerques per ID són cares o no funcionen"
 
 #: src/config/SSSDConfig/sssdoptions.py:197
 msgid "How often should expired entries be refreshed in background"
@@ -646,6 +704,8 @@ msgstr "Amb quina freqüència les entrades vençudes s'actualitzen al rerefons"
 #: src/config/SSSDConfig/sssdoptions.py:198
 msgid "Maximum period deviation when refreshing expired entries in background"
 msgstr ""
+"Desviació màxima del període en actualitzar les entrades caducades en segon "
+"pla"
 
 #: src/config/SSSDConfig/sssdoptions.py:199
 msgid "Whether to automatically update the client's DNS entry"
@@ -656,6 +716,8 @@ msgid ""
 "Whether DNS update of A and AAAA record should be performed in one update or "
 "in two separate updates"
 msgstr ""
+"Si l'actualització DNS del registre A i AAAA s'ha de realitzar en una "
+"actualització o en dues actualitzacions separades"
 
 #: src/config/SSSDConfig/sssdoptions.py:202
 msgid "The TTL to apply to the client's DNS entry after updating it"
@@ -668,7 +730,6 @@ msgstr ""
 "dinàmiques DNS"
 
 #: src/config/SSSDConfig/sssdoptions.py:204
-#, fuzzy
 msgid "The list of IP addresses that should be used for dynamic DNS updates"
 msgstr ""
 "La interfície amb la IP que s'hauria d'utilitzar per a les actualitzacions "
@@ -679,7 +740,6 @@ msgid "How often to periodically update the client's DNS entry"
 msgstr "Cada quant s'actualitzarà automàticament l'entrada DNS del client"
 
 #: src/config/SSSDConfig/sssdoptions.py:206
-#, fuzzy
 msgid "Maximum period deviation when updating the client's DNS entry"
 msgstr "Cada quant s'actualitzarà automàticament l'entrada DNS del client"
 
@@ -699,20 +759,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:210
 msgid "Override the DNS server used to perform the DNS update"
-msgstr ""
+msgstr "Sobreescriu el servidor DNS utilitzat per realitzar l'actualització DNS"
 
 #: src/config/SSSDConfig/sssdoptions.py:211
 msgid "The file of the certificate authorities certificates for DoT"
-msgstr ""
+msgstr "L'arxiu dels certificats de les autoritats certificadores per a DoT"
 
 #: src/config/SSSDConfig/sssdoptions.py:212
-#, fuzzy
 msgid "The certificate(s) file for authentication for the DoT transport"
 msgstr "Requereix verificació de certificat TLS"
 
 #: src/config/SSSDConfig/sssdoptions.py:213
 msgid "The key file for authenticated encryption for the DoT transport"
-msgstr ""
+msgstr "El fitxer clau per a l'encriptatge autenticat per al transport de punts"
 
 #: src/config/SSSDConfig/sssdoptions.py:214
 msgid "How often should subdomains list be refreshed"
@@ -720,7 +779,7 @@ msgstr "Amb quina freqüència s'ha de refrescar la llista dels subdominis"
 
 #: src/config/SSSDConfig/sssdoptions.py:215
 msgid "Maximum period deviation when refreshing the subdomain list"
-msgstr ""
+msgstr "Desviació màxima del període en actualitzar la llista de subdominis"
 
 #: src/config/SSSDConfig/sssdoptions.py:216
 msgid "List of options that should be inherited into a subdomain"
@@ -728,36 +787,44 @@ msgstr "Llista de les opcions que han de ser inherents a un subdomini"
 
 #: src/config/SSSDConfig/sssdoptions.py:217
 msgid "Default subdomain homedir value"
-msgstr ""
+msgstr "Valor per defecte del directori d'inici del subdomini"
 
 #: src/config/SSSDConfig/sssdoptions.py:218
 msgid "How long can cached credentials be used for cached authentication"
 msgstr ""
+"Quant de temps es poden utilitzar les credencials a la memòria cau per a "
+"l'autenticació a la memòria cau"
 
 #: src/config/SSSDConfig/sssdoptions.py:219
 msgid "Whether to automatically create private groups for users"
-msgstr ""
+msgstr "Si s'han de crear automàticament grups privats per als usuaris"
 
 #: src/config/SSSDConfig/sssdoptions.py:220
 msgid "Display a warning N days before the password expires."
-msgstr ""
+msgstr "Mostra un avís N dies abans que caduqui la contrasenya."
 
 #: src/config/SSSDConfig/sssdoptions.py:221
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
+"Diverses etiquetes emmagatzemades pel servei de configuració del realmd per "
+"aquest domini."
 
 #: src/config/SSSDConfig/sssdoptions.py:222
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
 msgstr ""
+"El proveïdor que ha de gestionar la captura de subdominis. Aquest valor ha "
+"de ser sempre el mateix que l'idprovider."
 
 #: src/config/SSSDConfig/sssdoptions.py:224
 msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
+"Quants segons s'ha de mantenir una clau ssh de l'amfitrió després "
+"d'actualitzar. EAD quant de temps s'ha d'emmagatzemar la clau de l'amfitrió."
 
 #: src/config/SSSDConfig/sssdoptions.py:226
 msgid ""
@@ -765,10 +832,14 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"Si s'utilitza 2-Factor-Authentication (2FA) i s'han de desar les "
+"credencials, aquest valor determina la longitud mínima que ha de tenir el "
+"primer factor d'autenticació (contrasenya a llarg termini) que s'ha de desar "
+"com a resum SHA512 a la memòria cau."
 
 #: src/config/SSSDConfig/sssdoptions.py:230
 msgid "Local authentication methods policy "
-msgstr ""
+msgstr "Política de mètodes d'autenticació locals "
 
 #: src/config/SSSDConfig/sssdoptions.py:233
 msgid "IPA domain"
@@ -858,23 +929,27 @@ msgstr "Objectclass per als objectes de substitució de grup"
 
 #: src/config/SSSDConfig/sssdoptions.py:252
 msgid "Search base for Desktop Profile related objects"
-msgstr ""
+msgstr "Base de cerca d'objectes relacionats amb el perfil de l'escriptori"
 
 #: src/config/SSSDConfig/sssdoptions.py:253
 msgid ""
 "The amount of time in seconds between lookups of the Desktop Profile rules "
 "against the IPA server"
 msgstr ""
+"La quantitat de temps en segons entre cerques de les regles del perfil "
+"d'escriptori contra el servidor IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:255
 msgid ""
 "The amount of time in minutes between lookups of Desktop Profiles rules "
 "against the IPA server when the last request did not find any rule"
 msgstr ""
+"La quantitat de temps en minuts entre les cerques de les regles de Perfils "
+"d'escriptori contra el servidor IPA quan l'última sol·licitud no va trobar "
+"cap regla"
 
 #: src/config/SSSDConfig/sssdoptions.py:258
 #: src/config/SSSDConfig/sssdoptions.py:455
-#, fuzzy
 msgid "Search base for SUBID ranges"
 msgstr "Base de cerca per als contenidors de la vista"
 
@@ -885,116 +960,134 @@ msgstr "Quines regles s'haurien d'utilitzar per avaluar el control d'accés"
 
 #: src/config/SSSDConfig/sssdoptions.py:260
 msgid "The LDAP attribute that contains FQDN of the host."
-msgstr ""
+msgstr "L'atribut LDAP que conté FQDN del servidor."
 
 #: src/config/SSSDConfig/sssdoptions.py:261
 #: src/config/SSSDConfig/sssdoptions.py:284
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "La classe d'objecte d'una entrada d'amfitrió a LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:262
 msgid "Use the given string as search base for host objects."
 msgstr ""
+"Usa la cadena donada com a base de cerca per als objectes de l'amfitrió."
 
 #: src/config/SSSDConfig/sssdoptions.py:263
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr ""
+msgstr "L'atribut LDAP que conté les claus públiques SSH de l'amfitrió."
 
 #: src/config/SSSDConfig/sssdoptions.py:264
 msgid "The LDAP attribute that contains NIS domain name of the netgroup."
-msgstr ""
+msgstr "L'atribut LDAP que conté el nom de domini NIS del grup de xarxa."
 
 #: src/config/SSSDConfig/sssdoptions.py:265
 msgid "The LDAP attribute that contains the names of the netgroup's members."
-msgstr ""
+msgstr "L'atribut LDAP que conté els noms dels membres del grup de xarxa."
 
 #: src/config/SSSDConfig/sssdoptions.py:266
 msgid ""
 "The LDAP attribute that lists FQDNs of hosts and host groups that are "
 "members of the netgroup."
 msgstr ""
+"L'atribut LDAP que llista els FQDN dels amfitrions i grups d'amfitrions que "
+"són membres del grup net."
 
 #: src/config/SSSDConfig/sssdoptions.py:268
 msgid ""
 "The LDAP attribute that lists hosts and host groups that are direct members "
 "of the netgroup."
 msgstr ""
+"L'atribut LDAP que llista els amfitrions i els grups d'amfitrions que són "
+"membres directes del grup de xarxa."
 
 #: src/config/SSSDConfig/sssdoptions.py:270
 msgid "The LDAP attribute that lists netgroup's memberships."
-msgstr ""
+msgstr "L'atribut LDAP que llista les afiliacions de netgroup."
 
 #: src/config/SSSDConfig/sssdoptions.py:271
 msgid ""
 "The LDAP attribute that lists system users and groups that are direct "
 "members of the netgroup."
 msgstr ""
+"L'atribut LDAP que llista els usuaris del sistema i els grups que són "
+"membres directes del grup de xarxa."
 
 #: src/config/SSSDConfig/sssdoptions.py:273
 msgid "The LDAP attribute that corresponds to the netgroup name."
-msgstr ""
+msgstr "L'atribut LDAP que correspon al nom del grup de xarxa."
 
 #: src/config/SSSDConfig/sssdoptions.py:274
 msgid "The object class of a netgroup entry in LDAP."
-msgstr ""
+msgstr "La classe d'objecte d'una entrada de grup net a LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:275
 msgid ""
 "The LDAP attribute that contains the UUID/GUID of an LDAP netgroup object."
-msgstr ""
+msgstr "L'atribut LDAP que conté l'UUID/GUID d'un objecte netgroup LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:276
 msgid ""
 "The LDAP attribute that contains whether or not is user map enabled for "
 "usage."
 msgstr ""
+"L'atribut LDAP que conté si el mapa d'usuari està o no habilitat per al seu "
+"ús."
 
 #: src/config/SSSDConfig/sssdoptions.py:278
 msgid "The LDAP attribute that contains host category such as 'all'."
-msgstr ""
+msgstr "L'atribut LDAP que conté la categoria de l'amfitrió com «all»."
 
 #: src/config/SSSDConfig/sssdoptions.py:279
 msgid ""
 "The LDAP attribute that contains all hosts / hostgroups this rule match "
 "against."
 msgstr ""
+"L'atribut LDAP que conté tots els amfitrions / grups d'amfitrions contra el "
+"qual coincideix aquesta regla."
 
 #: src/config/SSSDConfig/sssdoptions.py:281
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
 msgstr ""
+"L'atribut LDAP que conté tots els usuaris/grups contra el qual coincideix "
+"aquesta regla."
 
 #: src/config/SSSDConfig/sssdoptions.py:283
 msgid "The LDAP attribute that contains the name of SELinux usermap."
-msgstr ""
+msgstr "L'atribut LDAP que conté el nom del mapa d'usuari SELinux."
 
 #: src/config/SSSDConfig/sssdoptions.py:285
 msgid ""
 "The LDAP attribute that contains DN of HBAC rule which can be used for "
 "matching instead of memberUser and memberHost."
 msgstr ""
+"L'atribut LDAP que conté DN de la regla HBAC que es pot utilitzar per a la "
+"coincidència en lloc de memberUser i memberHost."
 
 #: src/config/SSSDConfig/sssdoptions.py:287
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr ""
+msgstr "L'atribut LDAP que conté la pròpia cadena d'usuari SELinux."
 
 #: src/config/SSSDConfig/sssdoptions.py:288
 msgid "The LDAP attribute that contains user category such as 'all'."
-msgstr ""
+msgstr "L'atribut LDAP que conté la categoria d'usuari com ara «tot»."
 
 #: src/config/SSSDConfig/sssdoptions.py:289
 msgid "The LDAP attribute that contains unique ID of the user map."
-msgstr ""
+msgstr "L'atribut LDAP que conté un ID únic del mapa d'usuari."
 
 #: src/config/SSSDConfig/sssdoptions.py:290
 msgid ""
 "The option denotes that the SSSD is running on IPA server and should perform "
 "lookups of users and groups from trusted domains differently."
 msgstr ""
+"L'opció indica que l'SSSD s'està executant en el servidor IPA i hauria de "
+"realitzar cerques d'usuaris i grups de dominis de confiança de manera "
+"diferent."
 
 #: src/config/SSSDConfig/sssdoptions.py:292
 msgid "Use the given string as search base for trusted domains."
-msgstr ""
+msgstr "Usa la cadena donada com a base de cerca per als dominis de confiança."
 
 #: src/config/SSSDConfig/sssdoptions.py:295
 msgid "Active Directory domain"
@@ -1002,7 +1095,7 @@ msgstr "Domini Active Directory"
 
 #: src/config/SSSDConfig/sssdoptions.py:296
 msgid "Enabled Active Directory domains"
-msgstr ""
+msgstr "Dominis de directori actiu habilitats"
 
 #: src/config/SSSDConfig/sssdoptions.py:297
 msgid "Active Directory server address"
@@ -1105,18 +1198,21 @@ msgstr "un lloc determinat per utilitzar amb el client"
 msgid ""
 "Maximum age in days before the machine account password should be renewed"
 msgstr ""
+"Edat màxima en dies abans de renovar la contrasenya del compte de màquina"
 
 #: src/config/SSSDConfig/sssdoptions.py:318
 msgid "Option for tuning the machine account renewal task"
-msgstr ""
+msgstr "Opció per a ajustar la tasca de renovació del compte de màquina"
 
 #: src/config/SSSDConfig/sssdoptions.py:319
 msgid "Whether to update the machine account password in the Samba database"
 msgstr ""
+"Si s'ha d'actualitzar la contrasenya del compte de màquina a la base de "
+"dades de Samba"
 
 #: src/config/SSSDConfig/sssdoptions.py:321
 msgid "Use LDAPS port for LDAP and Global Catalog requests"
-msgstr ""
+msgstr "Usa el port LDAPS per a les sol·licituds LDAP i Global Catalog"
 
 #: src/config/SSSDConfig/sssdoptions.py:324
 #: src/config/SSSDConfig/sssdoptions.py:325
@@ -1187,7 +1283,7 @@ msgstr "Selecciona el principal per utilitzar amb FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:343
 msgid "Use anonymous PKINIT to request FAST credentials"
-msgstr ""
+msgstr "Utilitza PKINIT anònim per sol·licitar credencials FAST"
 
 #: src/config/SSSDConfig/sssdoptions.py:344
 msgid "Enables principal canonicalization"
@@ -1199,11 +1295,11 @@ msgstr "Habilita els principals empresarials"
 
 #: src/config/SSSDConfig/sssdoptions.py:346
 msgid "Enables using of subdomains realms for authentication"
-msgstr ""
+msgstr "Habilita l'ús dels dominis de subdominis per a l'autenticació"
 
 #: src/config/SSSDConfig/sssdoptions.py:347
 msgid "A mapping from user names to Kerberos principal names"
-msgstr ""
+msgstr "Un mapatge de noms d'usuari a noms principals de Kerberos"
 
 #: src/config/SSSDConfig/sssdoptions.py:350
 #: src/config/SSSDConfig/sssdoptions.py:351
@@ -1225,7 +1321,7 @@ msgstr "El DN base per defecte"
 
 #: src/config/SSSDConfig/sssdoptions.py:357
 msgid "How to read rootDSE from LDAP server"
-msgstr ""
+msgstr "Com llegir rootDSE des del servidor LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:358
 msgid "The Schema Type in use on the LDAP server, rfc2307"
@@ -1233,7 +1329,7 @@ msgstr "El tipus d'esquema en ús al servidor LDAP, rfc2307"
 
 #: src/config/SSSDConfig/sssdoptions.py:359
 msgid "Mode used to change user password"
-msgstr ""
+msgstr "Mode utilitzat per a canviar la contrasenya d'usuari"
 
 #: src/config/SSSDConfig/sssdoptions.py:360
 msgid "The default bind DN"
@@ -1309,7 +1405,7 @@ msgstr "Especifica el SSF mínim per a l'autorització SASL de LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:377
 msgid "Specify the maximal SSF for LDAP sasl authorization"
-msgstr ""
+msgstr "Especifiqueu el SSF màxim per a l'autorització LDAP sasl"
 
 #: src/config/SSSDConfig/sssdoptions.py:378
 msgid "Kerberos service keytab"
@@ -1346,7 +1442,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:386
 msgid "Ignore unreadable LDAP references"
-msgstr ""
+msgstr "Ignora les referències LDAP no llegibles"
 
 #: src/config/SSSDConfig/sssdoptions.py:387
 msgid ""
@@ -1361,6 +1457,8 @@ msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
+"Permet retenir usuaris locals com a membres d'un grup LDAP per a servidors "
+"que utilitzen l'esquema RFC2307."
 
 #: src/config/SSSDConfig/sssdoptions.py:392
 msgid "entryUSN attribute"
@@ -1386,13 +1484,15 @@ msgstr "Inhabilita la recuperació de l'interval de l'Active Directory"
 
 #: src/config/SSSDConfig/sssdoptions.py:400
 msgid "Use the ppolicy extension"
-msgstr ""
+msgstr "Usa l'extensió de la ppolicy"
 
 #: src/config/SSSDConfig/sssdoptions.py:401
 msgid ""
 "Force a password change when remaining grace logins reach or go below this "
 "threshold"
 msgstr ""
+"Força un canvi de contrasenya quan els inicis de sessió de gràcia restants "
+"arribin o vagin per sota d'aquest llindar"
 
 #: src/config/SSSDConfig/sssdoptions.py:404
 msgid "Length of time to wait for a search request"
@@ -1407,7 +1507,6 @@ msgid "Length of time between enumeration updates"
 msgstr "Període de temps entre les actualitzacions de les enumeracions"
 
 #: src/config/SSSDConfig/sssdoptions.py:407
-#, fuzzy
 msgid "Maximum period deviation between enumeration updates"
 msgstr "Període de temps entre les actualitzacions de les enumeracions"
 
@@ -1416,7 +1515,6 @@ msgid "Length of time between cache cleanups"
 msgstr "Període de temps entre les neteges de la memòria cau"
 
 #: src/config/SSSDConfig/sssdoptions.py:409
-#, fuzzy
 msgid "Maximum time deviation between cache cleanups"
 msgstr "Període de temps entre les neteges de la memòria cau"
 
@@ -1536,7 +1634,7 @@ msgstr "L'atribut que llista els amfitrions dels servidors autoritzats"
 
 #: src/config/SSSDConfig/sssdoptions.py:438
 msgid "Attribute listing authorized server rhosts"
-msgstr ""
+msgstr "Llista d'atributs dels servidors servidors autoritzats"
 
 #: src/config/SSSDConfig/sssdoptions.py:439
 msgid "krbLastPwdChange attribute"
@@ -1589,10 +1687,9 @@ msgstr "atribut que conté el certificat X509 de l'usuari"
 
 #: src/config/SSSDConfig/sssdoptions.py:451
 msgid "attribute containing the email address of the user"
-msgstr ""
+msgstr "atribut que conté l'adreça de correu electrònic de l'usuari"
 
 #: src/config/SSSDConfig/sssdoptions.py:452
-#, fuzzy
 msgid "attribute containing the passkey mapping data of the user"
 msgstr "atribut que conté el certificat X509 de l'usuari"
 
@@ -1604,31 +1701,27 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:456
 msgid "The object class of an subid entry in LDAP."
-msgstr ""
+msgstr "La classe d'objecte d'una entrada de subid en LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:457
-#, fuzzy
 msgid "Subordinate user ID count attribute"
 msgstr "L'atribut user de la regla sudo"
 
 #: src/config/SSSDConfig/sssdoptions.py:458
-#, fuzzy
 msgid "Subordinate group ID count attribute"
 msgstr "L'atribut option de la regla sudo"
 
 #: src/config/SSSDConfig/sssdoptions.py:459
-#, fuzzy
 msgid "User ID range start value attribute"
 msgstr "L'atribut nom d'usuari"
 
 #: src/config/SSSDConfig/sssdoptions.py:460
-#, fuzzy
 msgid "Group ID range start value attribute"
 msgstr "L'atribut UUID del grup"
 
 #: src/config/SSSDConfig/sssdoptions.py:461
 msgid "Owner of an entry"
-msgstr ""
+msgstr "Propietari d'una entrada"
 
 #: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Base DN for group lookups"
@@ -1668,19 +1761,19 @@ msgstr "Tipus del grup i altres senyals"
 
 #: src/config/SSSDConfig/sssdoptions.py:473
 msgid "The LDAP group external member attribute"
-msgstr ""
+msgstr "L'atribut de membre extern del grup LDAP"
 
 #: src/config/SSSDConfig/sssdoptions.py:474
 msgid "Maximum nesting level SSSD will follow"
-msgstr ""
+msgstr "El nivell màxim d'imbricació SSSD seguirà"
 
 #: src/config/SSSDConfig/sssdoptions.py:475
 msgid "Filter for group lookups"
-msgstr ""
+msgstr "Filtre per a les cerques en grup"
 
 #: src/config/SSSDConfig/sssdoptions.py:476
 msgid "Scope of group lookups"
-msgstr ""
+msgstr "Àmbit de les cerques en grup"
 
 #: src/config/SSSDConfig/sssdoptions.py:478
 msgid "Base DN for netgroup lookups"
@@ -1752,7 +1845,7 @@ msgstr "SID del domini per defecte per a l'assignació d'id."
 
 #: src/config/SSSDConfig/sssdoptions.py:497
 msgid "Number of secondary slices"
-msgstr ""
+msgstr "Nombre de talls secundaris"
 
 #: src/config/SSSDConfig/sssdoptions.py:499
 msgid "Whether to use Token-Groups"
@@ -1772,11 +1865,11 @@ msgstr "DN per a les consultes ppolicy"
 
 #: src/config/SSSDConfig/sssdoptions.py:503
 msgid "How many maximum entries to fetch during a wildcard request"
-msgstr ""
+msgstr "Quantes entrades màximes a recuperar durant una sol·licitud de comodí"
 
 #: src/config/SSSDConfig/sssdoptions.py:504
 msgid "Set libldap debug level"
-msgstr ""
+msgstr "Estableix el nivell de depuració de libldap"
 
 #: src/config/SSSDConfig/sssdoptions.py:507
 msgid "Policy to evaluate the password expiration"
@@ -1822,7 +1915,7 @@ msgstr "Període d'actualització automàtica intel·ligent"
 
 #: src/config/SSSDConfig/sssdoptions.py:525
 msgid "Smart and full refresh random offset"
-msgstr ""
+msgstr "Desplaçament aleatori intel·ligent i complet de l'actualització"
 
 #: src/config/SSSDConfig/sssdoptions.py:526
 msgid "Whether to filter rules by hostname, IP addresses and network"
@@ -1861,6 +1954,7 @@ msgstr "Objectclass de les regles sudo"
 #: src/config/SSSDConfig/sssdoptions.py:532
 msgid "Name of attribute that is used as object class for sudo rules"
 msgstr ""
+"Nom de l'atribut que s'utilitza com a classe d'objecte per a les regles sudo"
 
 #: src/config/SSSDConfig/sssdoptions.py:533
 msgid "Sudo rule name"
@@ -1937,47 +2031,47 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:552
 msgid "The name of the automount master map in LDAP."
-msgstr ""
+msgstr "El nom del mapa mestre de muntatge automàtic en LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:555
 msgid "Base DN for IP hosts lookups"
-msgstr ""
+msgstr "Base DN per a cerques d'amfitrions IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:556
 msgid "Object class for IP hosts"
-msgstr ""
+msgstr "Classe d'objecte per a servidors IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:557
 msgid "IP host name attribute"
-msgstr ""
+msgstr "Atribut del nom de l'amfitrió IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:558
 msgid "IP host number (address) attribute"
-msgstr ""
+msgstr "Atribut del número d'amfitrió IP (adreça)"
 
 #: src/config/SSSDConfig/sssdoptions.py:559
 msgid "IP host entryUSN attribute"
-msgstr ""
+msgstr "L'atribut IP host entryUSN"
 
 #: src/config/SSSDConfig/sssdoptions.py:560
 msgid "Base DN for IP networks lookups"
-msgstr ""
+msgstr "Base DN per a cerques de xarxes IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:561
 msgid "Object class for IP networks"
-msgstr ""
+msgstr "Classe d'objecte per a xarxes IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:562
 msgid "IP network name attribute"
-msgstr ""
+msgstr "Atribut de nom de xarxa IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:563
 msgid "IP network number (address) attribute"
-msgstr ""
+msgstr "Atribut del número de xarxa IP (adreça)"
 
 #: src/config/SSSDConfig/sssdoptions.py:564
 msgid "IP network entryUSN attribute"
-msgstr ""
+msgstr "Atribut IP entryUSN"
 
 #: src/config/SSSDConfig/sssdoptions.py:567
 msgid "Comma separated list of allowed users"
@@ -1992,6 +2086,8 @@ msgid ""
 "Comma separated list of groups that are allowed to log in. This applies only "
 "to groups within this SSSD domain. Local groups are not evaluated."
 msgstr ""
+"Llista separada per comes de grups que poden iniciar sessió. Això només "
+"s'aplica als grups dins d'aquest domini SSSD. Els grups locals no s'avaluen."
 
 #: src/config/SSSDConfig/sssdoptions.py:571
 msgid ""
@@ -1999,10 +2095,13 @@ msgid ""
 "applies only to groups within this SSSD domain. Local groups are not "
 "evaluated."
 msgstr ""
+"Llista separada per comes de grups als quals se'ls nega explícitament "
+"l'accés. Això només s'aplica als grups dins d'aquest domini SSSD. Els grups "
+"locals no s'avaluen."
 
 #: src/config/SSSDConfig/sssdoptions.py:575
 msgid "The number of preforked proxy children."
-msgstr ""
+msgstr "El nombre de fills proxy preforjats."
 
 #: src/config/SSSDConfig/sssdoptions.py:578
 msgid "The name of the NSS library to use"
@@ -2011,6 +2110,8 @@ msgstr "El nom de la biblioteca NSS a utilitzar"
 #: src/config/SSSDConfig/sssdoptions.py:579
 msgid "The name of the NSS library to use for hosts and networks lookups"
 msgstr ""
+"El nom de la biblioteca NSS a utilitzar per a les cerques de servidors i "
+"xarxes"
 
 #: src/config/SSSDConfig/sssdoptions.py:580
 msgid "Whether to look up canonical group name from cache if possible"
@@ -2023,11 +2124,11 @@ msgstr "Pila PAM a utilitzar"
 
 #: src/config/SSSDConfig/sssdoptions.py:586
 msgid "Path of passwd file sources."
-msgstr ""
+msgstr "Camí de les fonts de fitxers passwd."
 
 #: src/config/SSSDConfig/sssdoptions.py:587
 msgid "Path of group file sources."
-msgstr ""
+msgstr "Camí de les fonts dels fitxers de grup."
 
 #: src/monitor/monitor.c:1757
 msgid "Become a daemon (default)"
@@ -2042,34 +2143,40 @@ msgid "Print version number and exit"
 msgstr "Imprimeix el número de versió i surt"
 
 #: src/monitor/monitor.c:1772
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "\n"
 "Invalid option %s: %s\n"
 "\n"
-msgstr "L'ordre post-delete ha fallat: %1$s\n"
+msgstr ""
+"\n"
+"L'ordre post-delete ha fallat: %1$s\n"
+"\n"
 
 #: src/monitor/monitor.c:1794
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
 msgstr ""
+"L'opció -i with--interactive no està permesa juntament amb -D with--daemon\n"
 
 #: src/monitor/monitor.c:1838
 msgid "Failed to get initial capabilities\n"
-msgstr ""
+msgstr "No s'han pogut obtenir les capacitats inicials\n"
 
 #: src/monitor/monitor.c:1849
 msgid "Non-root service user support isn't built. Can't run under %"
 msgstr ""
+"No s'ha construït el suport d'usuari del servei no arrel. No es pot executar "
+"menys de %"
 
 #: src/monitor/monitor.c:1866
 #, c-format
 msgid "Can't read config: '%s'\n"
-msgstr ""
+msgstr "No es pot llegir la configuració: «%s»\n"
 
 #: src/monitor/monitor.c:1878
 #, c-format
 msgid "Failed to bootstrap SSSD 'monitor' process: %s"
-msgstr ""
+msgstr "No s'ha pogut arrencar el procés SSSD 'monitor': %s"
 
 #: src/monitor/monitor.c:1973
 msgid "Out of memory\n"
@@ -2077,50 +2184,49 @@ msgstr "Sense memòria\n"
 
 #: src/providers/krb5/krb5_child.c:4316
 msgid "Use anonymous PKINIT to request FAST armor ticket"
-msgstr ""
+msgstr "Utilitza PKINIT anònim per sol·licitar un bitllet d'armadura FAST"
 
 #: src/providers/krb5/krb5_child.c:4318
 msgid "Kerberos realm to use"
-msgstr ""
+msgstr "Reialme de Kerberos a utilitzar"
 
 #: src/providers/krb5/krb5_child.c:4320
 msgid "Requested lifetime of the ticket"
-msgstr ""
+msgstr "Durada sol·licitada de l'entrada"
 
 #: src/providers/krb5/krb5_child.c:4322
 msgid "Requested renewable lifetime of the ticket"
-msgstr ""
+msgstr "Temps de vida renovable sol·licitat del bitllet"
 
 #: src/providers/krb5/krb5_child.c:4324
 msgid "FAST options ('never', 'try', 'demand')"
-msgstr ""
+msgstr "Opcions ràpides ('mai', 'prova', 'demanda')"
 
 #: src/providers/krb5/krb5_child.c:4327
 msgid "Specifies the server principal to use for FAST"
-msgstr ""
+msgstr "Especifica el servidor principal a usar per FAST"
 
 #: src/providers/krb5/krb5_child.c:4329
 msgid "Requests canonicalization of the principal name"
-msgstr ""
+msgstr "Sol·licita la canonització del nom principal"
 
 #: src/providers/krb5/krb5_child.c:4331
 msgid "Use custom version of krb5_get_init_creds_password"
-msgstr ""
+msgstr "Usa una versió personalitzada de «krb5getinitcredspassword»"
 
 #: src/providers/krb5/krb5_child.c:4333
 msgid "Check PAC flags"
-msgstr ""
+msgstr "Comprova les banderes PAC"
 
 #: src/providers/krb5/krb5_child.c:4335
 msgid "Set environment variable (KEY=VALUE)"
-msgstr ""
+msgstr "Estableix la variable d'entorn (CLAU)VALOR)"
 
 #: src/providers/data_provider_be.c:786
 msgid "Domain of the information provider (mandatory)"
 msgstr "Domini del proveïdor d'informació (obligatori)"
 
 #: src/sss_client/common.c:1208
-#, fuzzy
 msgid "Socket has wrong ownership or permissions."
 msgstr "El sòcol públic té malament els permisos o el propietari."
 
@@ -2129,17 +2235,16 @@ msgid "Unexpected format of the server credential message."
 msgstr "Format inesperat del missatge de les credencials del servidor."
 
 #: src/sss_client/common.c:1214
-#, fuzzy
 msgid "SSSD is not run by trusted user."
 msgstr "L'SSSD no s'està executant com a root."
 
 #: src/sss_client/common.c:1217
 msgid "SSSD socket does not exist."
-msgstr ""
+msgstr "El sòcol SSSD no existeix."
 
 #: src/sss_client/common.c:1220
 msgid "Cannot get stat of SSSD socket."
-msgstr ""
+msgstr "No es pot obtenir l'estat del sòcol SSSD."
 
 #: src/sss_client/common.c:1225
 msgid "An error occurred, but no description can be found."
@@ -2163,10 +2268,12 @@ msgid ""
 "Kerberos TGT will not be granted upon login, user experience will be "
 "affected."
 msgstr ""
+"Kerberos TGT no es concedirà en iniciar sessió, l'experiència d'usuari es "
+"veurà afectada."
 
 #: src/sss_client/pam_sss.c:138
 msgid "Enter PIN:"
-msgstr ""
+msgstr "Introduïu el PIN:"
 
 #: src/sss_client/pam_sss.c:385
 msgid "Passwords do not match"
@@ -2197,7 +2304,7 @@ msgid "Your password will expire in %1$d %2$s."
 msgstr "La vostra contrasenya vencerà en %1$d %2$s."
 
 #: src/sss_client/pam_sss.c:709
-#, fuzzy, c-format
+#, c-format
 msgid "Your password has expired."
 msgstr "La vostra contrasenya vencerà en %1$d %2$s."
 
@@ -2219,13 +2326,15 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:813
 msgid "PIN locked"
-msgstr ""
+msgstr "PIN bloquejat"
 
 #: src/sss_client/pam_sss.c:828
 msgid ""
 "No Kerberos TGT granted as the server does not support this method. Your "
 "single-sign on(SSO) experience will be affected."
 msgstr ""
+"No s'ha concedit cap TGT de Kerberos perquè el servidor no admet aquest "
+"mètode. La teva experiència d'un sol senyal (SSO) es veurà afectada."
 
 #: src/sss_client/pam_sss.c:918 src/sss_client/pam_sss.c:931
 msgid "Password change failed. "
@@ -2234,16 +2343,16 @@ msgstr "Ha fallat el canvi de contrasenya."
 #: src/sss_client/pam_sss.c:2028
 #, c-format
 msgid "Authenticate at \"%1$s\"."
-msgstr ""
+msgstr "Autentica a \"%1$s\"."
 
 #: src/sss_client/pam_sss.c:2031
 #, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
-msgstr ""
+msgstr "Autentica amb el PIN \"%1$s\" a \"%2$s\"."
 
 #: src/sss_client/pam_sss.c:2470
 msgid "Please (re)insert (different) Smartcard"
-msgstr ""
+msgstr "Si us plau (re)insereix (diferent) targeta intel·ligent"
 
 #: src/sss_client/pam_sss.c:2700
 msgid "New Password: "
@@ -2255,7 +2364,7 @@ msgstr "Torneu a introduir la nova contrasenya: "
 
 #: src/sss_client/pam_sss.c:2890
 msgid "Press ENTER to continue."
-msgstr ""
+msgstr "Premeu RETORN per continuar."
 
 #: src/sss_client/pam_sss.c:2913 src/sss_client/pam_sss.c:2916
 msgid "First Factor: "
@@ -2263,7 +2372,7 @@ msgstr "Primer factor:"
 
 #: src/sss_client/pam_sss.c:2914 src/sss_client/pam_sss.c:3088
 msgid "Second Factor (optional): "
-msgstr ""
+msgstr "Segon factor (opcional): "
 
 #: src/sss_client/pam_sss.c:2917 src/sss_client/pam_sss.c:3092
 msgid "Second Factor: "
@@ -2272,6 +2381,7 @@ msgstr "Segon factor:"
 #: src/sss_client/pam_sss.c:2921
 msgid "Insert your passkey device, then press ENTER."
 msgstr ""
+"Insereix el teu dispositiu de clau d'accés i, a continuació, prem RETORN."
 
 #: src/sss_client/pam_sss.c:2925 src/sss_client/pam_sss.c:2933
 msgid "Password: "
@@ -2279,7 +2389,7 @@ msgstr "Contrasenya: "
 
 #: src/sss_client/pam_sss.c:3087 src/sss_client/pam_sss.c:3091
 msgid "First Factor (Current Password): "
-msgstr ""
+msgstr "Primer factor (contrasenya actual): "
 
 #: src/sss_client/pam_sss.c:3111
 msgid "Current Password: "
@@ -2323,6 +2433,14 @@ msgid ""
 "******************************************************************************\n"
 "\n"
 msgstr ""
+"\n"
+"********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************\n"
+"El vostre sistema està configurat per utilitzar l'eina obsoleta "
+"ssssshknownhostsproxy.\n"
+"Si us plau, llegiu la pàgina del manual ssssshknownhosts(1) per a saber-ne "
+"la substitució.\n"
+"********************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************\n"
+"\n"
 
 #: src/tools/sss_cache.c:229
 msgid "No cache object matched the specified search\n"
@@ -2341,10 +2459,11 @@ msgstr "No s'ha pogut invalidar %1$s %2$s\n"
 #: src/tools/sss_cache.c:653
 msgid "Can't find configuration db, was SSSD configured and run?\n"
 msgstr ""
+"No es pot trobar la configuració db, s'ha configurat i executat l'SSSD?\n"
 
 #: src/tools/sss_cache.c:709
 msgid "Invalidate all cached entries"
-msgstr ""
+msgstr "Invalida totes les entrades a la memòria cau"
 
 #: src/tools/sss_cache.c:711
 msgid "Invalidate particular user"
@@ -2396,11 +2515,11 @@ msgstr "Invalida tots els amfitrions SSH"
 
 #: src/tools/sss_cache.c:740
 msgid "Invalidate particular sudo rule"
-msgstr ""
+msgstr "Invalida una regla sudo particular"
 
 #: src/tools/sss_cache.c:742
 msgid "Invalidate all cached sudo rules"
-msgstr ""
+msgstr "Invalida totes les regles sudo de la memòria cau"
 
 #: src/tools/sss_cache.c:745
 msgid "Only invalidate entries from a particular domain"
@@ -2411,6 +2530,8 @@ msgid ""
 "Unexpected argument(s) provided, options that invalidate a single object "
 "only accept a single provided argument.\n"
 msgstr ""
+"S'han proporcionat arguments inesperats, les opcions que invaliden un sol "
+"objecte només accepten un sol argument proporcionat.\n"
 
 #: src/tools/sss_cache.c:809
 msgid "Please select at least one object to invalidate\n"
@@ -2436,291 +2557,287 @@ msgstr "S'ha d'executar %1$s com a root\n"
 
 #: src/tools/sssctl/sssctl.c:35
 msgid "yes"
-msgstr ""
+msgstr "sí"
 
 #: src/tools/sssctl/sssctl.c:37
 msgid "no"
-msgstr ""
+msgstr "no"
 
 #: src/tools/sssctl/sssctl.c:39
 msgid "error"
-msgstr ""
+msgstr "error"
 
 #: src/tools/sssctl/sssctl.c:42
 msgid "Invalid result."
-msgstr ""
+msgstr "Resultat no vàlid."
 
 #: src/tools/sssctl/sssctl.c:78
 msgid "Unable to read user input\n"
-msgstr ""
+msgstr "No s'ha pogut llegir l'entrada de l'usuari\n"
 
 #: src/tools/sssctl/sssctl.c:91
 #, c-format
 msgid "Invalid input, please provide either '%s' or '%s'.\n"
-msgstr ""
+msgstr "Entrada no vàlida, proporcioneu «%s» o «%s».\n"
 
 #: src/tools/sssctl/sssctl.c:151 src/tools/sssctl/sssctl.c:161
 msgid "Error while executing external command\n"
-msgstr ""
+msgstr "S'ha produït un error en executar una ordre externa\n"
 
 #: src/tools/sssctl/sssctl.c:165
 #, c-format
 msgid "Error while executing external command '%s'\n"
-msgstr ""
+msgstr "S'ha produït un error en executar l'ordre externa «%s»\n"
 
 #: src/tools/sssctl/sssctl.c:168
 #, c-format
 msgid "Command '%s' failed with [%d]\n"
-msgstr ""
+msgstr "L'ordre «%s» ha fallat amb [%d]\n"
 
 #: src/tools/sssctl/sssctl.c:215
 msgid "SSSD needs to be running. Start SSSD now?"
-msgstr ""
+msgstr "L'SSSD ha d'estar funcionant. Voleu iniciar l'SSSD ara?"
 
 #: src/tools/sssctl/sssctl.c:254
 msgid "SSSD must not be running. Stop SSSD now?"
-msgstr ""
+msgstr "L'SSSD no ha d'estar funcionant. Voleu aturar l'SSSD ara?"
 
 #: src/tools/sssctl/sssctl.c:290
 msgid "SSSD needs to be restarted. Restart SSSD now?"
-msgstr ""
+msgstr "S'ha de reiniciar l'SSSD. Voleu reiniciar l'SSSD ara?"
 
 #: src/tools/sssctl/sssctl.c:322
 msgid "SSSD Status:"
-msgstr ""
+msgstr "Estat SSSD:"
 
 #: src/tools/sssctl/sssctl.c:323
-#, fuzzy
 msgid "List available domains"
-msgstr "No s'han pogut obrir els dominis disponibles\n"
+msgstr "No s'han pogut obrir els dominis disponibles"
 
 #: src/tools/sssctl/sssctl.c:324
-#, fuzzy
 msgid "Print information about domain"
 msgstr "Control de l'enumeració dels amfitrions de confiança"
 
 #: src/tools/sssctl/sssctl.c:325
 msgid "Print information about a user and check authentication"
-msgstr ""
+msgstr "Imprimeix informació sobre un usuari i comprova l'autenticació"
 
 #: src/tools/sssctl/sssctl.c:326
 msgid "Generate access report for a domain"
-msgstr ""
+msgstr "Genera un informe d'accés per a un domini"
 
 #: src/tools/sssctl/sssctl.c:327
 msgid "Information about cached content:"
-msgstr ""
+msgstr "Informació sobre el contingut de la memòria cau:"
 
 #: src/tools/sssctl/sssctl.c:328
-#, fuzzy
 msgid "Information about cached user"
-msgstr "No es pot obtenir la informació sobre l'usuari\n"
+msgstr "No es pot obtenir la informació sobre l'usuari"
 
 #: src/tools/sssctl/sssctl.c:329
 msgid "Information about cached group"
-msgstr ""
+msgstr "Informació sobre el grup a la memòria cau"
 
 #: src/tools/sssctl/sssctl.c:330
 msgid "Information about cached netgroup"
-msgstr ""
+msgstr "Informació sobre cached netgroup"
 
 #: src/tools/sssctl/sssctl.c:331
 msgid "Local data tools:"
-msgstr ""
+msgstr "Eines de dades locals:"
 
 #: src/tools/sssctl/sssctl.c:332
 msgid "Backup local data"
-msgstr ""
+msgstr "Còpia de seguretat de les dades locals"
 
 #: src/tools/sssctl/sssctl.c:333
 msgid "Restore local data from backup"
-msgstr ""
+msgstr "Restaura les dades locals de la còpia de seguretat"
 
 #: src/tools/sssctl/sssctl.c:334
 msgid "Backup local data and remove cached content"
 msgstr ""
+"Fes una còpia de seguretat de les dades locals i elimina el contingut de la "
+"memòria cau"
 
 #: src/tools/sssctl/sssctl.c:335
-#, fuzzy
 msgid "Invalidate cached objects"
 msgstr "Invalida tots els usuaris"
 
 #: src/tools/sssctl/sssctl.c:336
 msgid "Manage cache indexes"
-msgstr ""
+msgstr "Gestiona els índexs de la memòria cau"
 
 #: src/tools/sssctl/sssctl.c:337
 msgid "Log files tools:"
-msgstr ""
+msgstr "Eines dels fitxers de registre:"
 
 #: src/tools/sssctl/sssctl.c:338
 msgid "Remove existing SSSD log files"
-msgstr ""
+msgstr "Elimina els fitxers de registre SSSD existents"
 
 #: src/tools/sssctl/sssctl.c:339
 msgid "Archive SSSD log files in tarball"
-msgstr ""
+msgstr "Arxiva els fitxers de registre SSSD a tarball"
 
 #: src/tools/sssctl/sssctl.c:340
 msgid "Change or print information about SSSD debug level"
-msgstr ""
+msgstr "Canvia o imprimeix informació sobre el nivell de depuració SSSD"
 
 #: src/tools/sssctl/sssctl.c:341
 msgid "Analyze logged data"
-msgstr ""
+msgstr "Analitza les dades registrades"
 
 #: src/tools/sssctl/sssctl.c:342
 msgid "Configuration files tools:"
-msgstr ""
+msgstr "Eines dels fitxers de configuració:"
 
 #: src/tools/sssctl/sssctl.c:343
 msgid "Perform static analysis of SSSD configuration"
-msgstr ""
+msgstr "Realitza l'anàlisi estàtica de la configuració SSSD"
 
 #: src/tools/sssctl/sssctl.c:344
 msgid "Certificate related tools:"
-msgstr ""
+msgstr "Eines relacionades amb el certificat:"
 
 #: src/tools/sssctl/sssctl.c:345
 msgid "Print information about the certificate"
-msgstr ""
+msgstr "Imprimeix informació sobre el certificat"
 
 #: src/tools/sssctl/sssctl.c:346
 msgid "Show users mapped to the certificate"
-msgstr ""
+msgstr "Mostra els usuaris mapejats al certificat"
 
 #: src/tools/sssctl/sssctl.c:347
 msgid "Check mapping and matching rule with a certificate"
-msgstr ""
+msgstr "Comprova l'assignació i la regla que coincideix amb un certificat"
 
 #: src/tools/sssctl/sssctl.c:348
 msgid "GPOs related tools:"
-msgstr ""
+msgstr "Eines relacionades amb GPO:"
 
 #: src/tools/sssctl/sssctl.c:349
-#, fuzzy
 msgid "Information about cached GPO"
-msgstr "No es pot obtenir la informació sobre l'usuari\n"
+msgstr "No es pot obtenir la informació sobre l'usuari"
 
 #: src/tools/sssctl/sssctl.c:350
 msgid "Enumerate cached GPOs"
-msgstr ""
+msgstr "Enumera els GPO a la memòria cau"
 
 #: src/tools/sssctl/sssctl.c:351
 msgid "Remove cached GPO"
-msgstr ""
+msgstr "Elimina el GPO a la memòria cau"
 
 #: src/tools/sssctl/sssctl.c:352
 msgid "Remove all cached GPOs"
-msgstr ""
+msgstr "Elimina tots els GPO a la memòria cau"
 
 #: src/tools/sssctl/sssctl.c:354
 msgid "Passkey related tools:"
-msgstr ""
+msgstr "Eines relacionades amb la contrasenya:"
 
 #: src/tools/sssctl/sssctl.c:355
 msgid "Perform passkey registration"
-msgstr ""
+msgstr "Realitza el registre de la clau d'accés"
 
 #: src/tools/sssctl/sssctl_cache.c:31
 #, c-format
 msgid " %s is not present in cache.\n"
-msgstr ""
+msgstr " %s no està present a la memòria cau.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:33
 msgid "Name"
-msgstr ""
+msgstr "Nom"
 
 #: src/tools/sssctl/sssctl_cache.c:34
 msgid "Cache entry creation date"
-msgstr ""
+msgstr "Data de creació de l'entrada a la memòria cau"
 
 #: src/tools/sssctl/sssctl_cache.c:35
 msgid "Cache entry last update time"
-msgstr ""
+msgstr "Hora de la darrera actualització de l'entrada a la memòria cau"
 
 #: src/tools/sssctl/sssctl_cache.c:36
 msgid "Cache entry expiration time"
-msgstr ""
+msgstr "Temps de venciment de l'entrada a la memòria cau"
 
 #: src/tools/sssctl/sssctl_cache.c:37
 msgid "Cached in InfoPipe"
-msgstr ""
+msgstr "En memòria cau a InfoPipe"
 
 #: src/tools/sssctl/sssctl_cache.c:38
-#, fuzzy
 msgid "Policy Name"
 msgstr "Nom complet"
 
 #: src/tools/sssctl/sssctl_cache.c:39
 msgid "Policy GUID"
-msgstr ""
+msgstr "GUID de política"
 
 #: src/tools/sssctl/sssctl_cache.c:40
 msgid "Policy Path"
-msgstr ""
+msgstr "Camí de la política"
 
 #: src/tools/sssctl/sssctl_cache.c:41
 msgid "Policy file timeout"
-msgstr ""
+msgstr "Temps d'espera del fitxer de política"
 
 #: src/tools/sssctl/sssctl_cache.c:42
 msgid "Policy version"
-msgstr ""
+msgstr "Versió de la política"
 
 #: src/tools/sssctl/sssctl_cache.c:556
 #, c-format
 msgid "Error: Unable to get object [%d]: %s\n"
-msgstr ""
+msgstr "Error: No s'ha pogut obtenir l'objecte [%d]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:572 src/tools/sssctl/sssctl_cache.c:927
 #, c-format
 msgid "%s: Unable to read value [%d]: %s\n"
-msgstr ""
+msgstr "%s: No es pot llegir el valor [%d]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:602
 msgid "Specify name."
-msgstr ""
+msgstr "Especifiqueu el nom."
 
 #: src/tools/sssctl/sssctl_cache.c:612
 #, c-format
 msgid "Unable to parse name %s.\n"
-msgstr ""
+msgstr "No s'ha pogut analitzar el nom %s.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:641 src/tools/sssctl/sssctl_cache.c:688
 msgid "Search by SID"
-msgstr ""
+msgstr "Cerca per SID"
 
 #: src/tools/sssctl/sssctl_cache.c:642
 msgid "Search by user ID"
-msgstr ""
+msgstr "Cerca per ID d'usuari"
 
 #: src/tools/sssctl/sssctl_cache.c:651
 msgid "Initgroups expiration time"
-msgstr ""
+msgstr "Temps d'expiració d'Initgroups"
 
 #: src/tools/sssctl/sssctl_cache.c:689
 msgid "Search by group ID"
-msgstr ""
+msgstr "Cerca per ID de grup"
 
 #: src/tools/sssctl/sssctl_cache.c:778 src/tools/sssctl/sssctl_cache.c:1126
 msgid "Search by GPO guid"
-msgstr ""
+msgstr "Cerca per GPO guid"
 
 #: src/tools/sssctl/sssctl_cache.c:785 src/tools/sssctl/sssctl_cache.c:1143
 #, c-format
 msgid "Failed to parse command line: %s\n"
-msgstr ""
+msgstr "No s'ha pogut analitzar la línia d'ordres: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:790 src/tools/sssctl/sssctl_cache.c:1148
 #, c-format
 msgid "%s\n"
-msgstr ""
+msgstr "%s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:803
 #, c-format
 msgid "Failed to print object: %s\n"
-msgstr ""
+msgstr "No s'ha pogut imprimir l'objecte: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:835 src/tools/sssctl/sssctl_cache.c:918
 #: src/tools/sssctl/sssctl_cache.c:950 src/tools/sssctl/sssctl_cache.c:956
@@ -2729,39 +2846,39 @@ msgstr ""
 #: src/tools/sssctl/sssctl_cache.c:1230 src/tools/sssctl/sssctl_cache.c:1236
 #: src/tools/sssctl/sssctl_cache.c:1245
 msgid "talloc failed\n"
-msgstr ""
+msgstr "ha fallat el talloc\n"
 
 #: src/tools/sssctl/sssctl_cache.c:841
 msgid "Unable to get attribute list!\n"
-msgstr ""
+msgstr "No es pot obtenir la llista d'atributs!\n"
 
 #: src/tools/sssctl/sssctl_cache.c:848
 msgid "Unable to create filter\n"
-msgstr ""
+msgstr "No s'ha pogut crear el filtre\n"
 
 #: src/tools/sssctl/sssctl_cache.c:861
 #, c-format
 msgid "%s [%s]:\n"
-msgstr ""
+msgstr "%s [%s]:\n"
 
 #: src/tools/sssctl/sssctl_cache.c:866
 msgid "Unable to get GPOs base DN\n"
-msgstr ""
+msgstr "No s'ha pogut obtenir el DN base GPOs\n"
 
 #: src/tools/sssctl/sssctl_cache.c:876
 #, c-format
 msgid "Unable to search sysdb: %s\n"
-msgstr ""
+msgstr "No s'ha pogut cercar a sysdb: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:882
 #, c-format
 msgid "Unable to convert message to sysdb attrs: %s\n"
-msgstr ""
+msgstr "No s'ha pogut convertir el missatge a sysdb attrs: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:931
 #, c-format
 msgid "\t%s: %s\n"
-msgstr ""
+msgstr "\t%s: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:933 src/tools/sssctl/sssctl_logs.c:50
 msgid "\n"
@@ -2769,15 +2886,15 @@ msgstr "\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1016
 msgid "Could not find GUID attribute from GPO entry\n"
-msgstr ""
+msgstr "No s'ha pogut trobar l'atribut GUID de l'entrada GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1023
 msgid "Could not find description attribute from GPO entry\n"
-msgstr ""
+msgstr "No s'ha pogut trobar l'atribut de descripció de l'entrada GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1047
 msgid "Could not delete GPO entry from cache\n"
-msgstr ""
+msgstr "No s'ha pogut suprimir l'entrada GPO de la memòria cau\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1053
 #, c-format
@@ -2785,112 +2902,115 @@ msgid ""
 "The GPO path was not yet stored in cache. Please remove files manually from "
 "[%s]\n"
 msgstr ""
+"El camí GPO encara no s'ha emmagatzemat a la memòria cau. Si us plau, "
+"suprimiu els fitxers manualment de [%s]\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1062 src/tools/sssctl/sssctl_cache.c:1068
 #, c-format
 msgid "Could not determine real path for [%s]: %s\n"
-msgstr ""
+msgstr "No s'ha pogut determinar el camí real per a [%s]: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1073
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
-msgstr ""
+msgstr "El camí GPO a la memòria cau [%s] no és sota [%s], s'ignora.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1098
 #, c-format
 msgid "Unable to remove downloaded GPO files: %s\n"
-msgstr ""
+msgstr "No s'han pogut eliminar els fitxers GPO baixats: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1166
 #, c-format
 msgid "Failed to fetch cache entry: %s\n"
-msgstr ""
+msgstr "No s'ha pogut obtenir l'entrada a la memòria cau: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1171
-#, fuzzy
 msgid "Could not determine object domain\n"
 msgstr "No s'han pogut obrir els dominis disponibles\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1201
 msgid "Could not find GUID attribute in GPO entry\n"
-msgstr ""
+msgstr "No s'ha pogut trobar l'atribut GUID a l'entrada GPO\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1207
 #, c-format
 msgid "Failed to delete GPO: %s\n"
-msgstr ""
+msgstr "No s'ha pogut suprimir el GPO: %s\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1211
 #, c-format
 msgid "%s removed from cache\n"
-msgstr ""
+msgstr "%s eliminat de la memòria cau\n"
 
 #: src/tools/sssctl/sssctl_cert.c:50 src/tools/sssctl/sssctl_cert.c:108
 #: src/tools/sssctl/sssctl_cert.c:214
 msgid "Show debug information"
-msgstr ""
+msgstr "Mostra la informació de depuració"
 
 #: src/tools/sssctl/sssctl_cert.c:56 src/tools/sssctl/sssctl_cert.c:114
 #: src/tools/sssctl/sssctl_cert.c:220
 msgid "Specify base64 encoded certificate."
-msgstr ""
+msgstr "Especifiqueu el certificat codificat en base64."
 
 #: src/tools/sssctl/sssctl_cert.c:138 src/tools/sssctl/sssctl_domains.c:104
 #: src/tools/sssctl/sssctl_domains.c:366
 #: src/tools/sssctl/sssctl_user_checks.c:99
 msgid "Unable to connect to system bus!\n"
-msgstr ""
+msgstr "No s'ha pogut connectar al bus del sistema!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:164
 msgid " - no mapped users found -"
-msgstr ""
+msgstr " - no s'ha trobat cap usuari mapejat -"
 
 #: src/tools/sssctl/sssctl_cert.c:212
 msgid "Mapping rule"
-msgstr ""
+msgstr "Regla d'assignació"
 
 #: src/tools/sssctl/sssctl_cert.c:213
 msgid "Matching rule"
-msgstr ""
+msgstr "Regla que coincideix"
 
 #: src/tools/sssctl/sssctl_cert.c:223
 msgid "Unable to parse command arguments\n"
-msgstr ""
+msgstr "No s'han pogut analitzar els arguments de l'ordre\n"
 
 #: src/tools/sssctl/sssctl_cert.c:229 src/tools/sssctl/sssctl_domains.c:354
 msgid "Out of memory!\n"
-msgstr ""
+msgstr "Fora de memòria!\n"
 
 #: src/tools/sssctl/sssctl_cert.c:238
 msgid "Failed to setup certmap context.\n"
-msgstr ""
+msgstr "No s'ha pogut configurar el context del mapa de certificats.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:244
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
+"No s'han pogut afegir les regles d'assignació i concordança amb l'error "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"
-msgstr ""
+msgstr "No s'ha pogut descodificar la cadena base64.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:259
 msgid "Certificate matches rule.\n"
-msgstr ""
+msgstr "Regla de concordança de certificats.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:262
 msgid "Certificate does not match rule.\n"
-msgstr ""
+msgstr "El certificat no coincideix amb la regla.\n"
 
 #: src/tools/sssctl/sssctl_cert.c:265
 #, c-format
 msgid "Error during certificate matching [%d][%s].\n"
-msgstr ""
+msgstr "Error durant el certificat que coincideix [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:272
 #, c-format
 msgid "Failed to generate mapping filter [%d][%s].\n"
-msgstr ""
+msgstr "No s'ha pogut generar el filtre de mapatge [%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:276
 #, c-format
@@ -2900,6 +3020,10 @@ msgid ""
 "    %s\n"
 "\n"
 msgstr ""
+"Filtre de mapatge:\n"
+"\n"
+"    %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_config.c:75
 msgid ""
@@ -2907,156 +3031,161 @@ msgid ""
 "where the main config file is located. For example if the config is set to "
 "\"/my/path/sssd.conf\", the snippet dir \"/my/path/conf.d\" is used)"
 msgstr ""
+"Especifiqueu un directori de fragments no predeterminat (el predeterminat és "
+"mirar al mateix lloc on es troba el fitxer de configuració principal. Per "
+"exemple, si la configuració està establerta a \"/my/path/sssd.conf\", "
+"s'utilitza el directori del fragment \"/my/path/conf.d\")"
 
 #: src/tools/sssctl/sssctl_config.c:126
 #, c-format
 msgid "File %1$s does not exist.\n"
-msgstr ""
+msgstr "El fitxer %1$s no existeix.\n"
 
 #: src/tools/sssctl/sssctl_config.c:127
 msgid "There is no configuration.\n"
-msgstr ""
+msgstr "No hi ha configuració.\n"
 
 #: src/tools/sssctl/sssctl_config.c:132
-#, fuzzy, c-format
+#, c-format
 msgid "Configuration validation failed: %s\n"
 msgstr "L'ordre post-delete ha fallat: %1$s\n"
 
 #: src/tools/sssctl/sssctl_config.c:133
 msgid "Run with high debug level to see details.\n"
-msgstr ""
+msgstr "Executeu amb un alt nivell de depuració per a veure els detalls.\n"
 
 #: src/tools/sssctl/sssctl_config.c:142
 msgid "Failed to run validators\n"
-msgstr ""
+msgstr "No s'han pogut executar validadors\n"
 
 #: src/tools/sssctl/sssctl_config.c:146
 #, c-format
 msgid "Issues identified by validators: %zu\n"
-msgstr ""
+msgstr "Incidències identificades pels validadors: %zu\n"
 
 #: src/tools/sssctl/sssctl_config.c:157
 #, c-format
 msgid "Messages generated during configuration merging: %zu\n"
-msgstr ""
+msgstr "Missatges generats durant la fusió de la configuració: %zu\n"
 
 #: src/tools/sssctl/sssctl_config.c:170
 #, c-format
 msgid "Used configuration snippet files: %zu\n"
-msgstr ""
+msgstr "Fitxers de fragments de configuració utilitzats: %zu\n"
 
 #: src/tools/sssctl/sssctl_data.c:91
 #, c-format
 msgid "Unable to create backup directory [%d]: %s"
-msgstr ""
+msgstr "No s'ha pogut crear el directori de còpia de seguretat [%d]: %s"
 
 #: src/tools/sssctl/sssctl_data.c:97
 msgid "SSSD backup of local data already exists, override?"
 msgstr ""
+"La còpia de seguretat SSSD de les dades locals ja existeix, voleu anul·lar-"
+"la?"
 
 #: src/tools/sssctl/sssctl_data.c:113
 msgid "Unable to export user overrides\n"
-msgstr ""
+msgstr "No s'han pogut exportar les sobreescriptures d'usuari\n"
 
 #: src/tools/sssctl/sssctl_data.c:120
 msgid "Unable to export group overrides\n"
-msgstr ""
+msgstr "No s'han pogut exportar les sobreescriptures del grup\n"
 
 #: src/tools/sssctl/sssctl_data.c:135 src/tools/sssctl/sssctl_data.c:216
 msgid "Override existing backup"
-msgstr ""
+msgstr "Sobreescriu la còpia de seguretat existent"
 
 #: src/tools/sssctl/sssctl_data.c:165
 msgid "Unable to import user overrides\n"
-msgstr ""
+msgstr "No s'han pogut importar les sobreescriptures d'usuari\n"
 
 #: src/tools/sssctl/sssctl_data.c:174
 msgid "Unable to import group overrides\n"
-msgstr ""
+msgstr "No s'han pogut importar les sobreescriptures del grup\n"
 
 #: src/tools/sssctl/sssctl_data.c:194 src/tools/sssctl/sssctl_domains.c:81
 #: src/tools/sssctl/sssctl_domains.c:326
 msgid "Start SSSD if it is not running"
-msgstr ""
+msgstr "Inicia l'SSSD si no s'està executant"
 
 #: src/tools/sssctl/sssctl_data.c:195
 msgid "Restart SSSD after data import"
-msgstr ""
+msgstr "Reinicia l'SSSD després de la importació de dades"
 
 #: src/tools/sssctl/sssctl_data.c:217
 msgid "Create clean cache files and import local data"
-msgstr ""
+msgstr "Crea fitxers de memòria cau nets i importa dades locals"
 
 #: src/tools/sssctl/sssctl_data.c:218
 msgid "Stop SSSD before removing the cache"
-msgstr ""
+msgstr "Atura l'SSSD abans d'eliminar la memòria cau"
 
 #: src/tools/sssctl/sssctl_data.c:219
 msgid "Start SSSD when the cache is removed"
-msgstr ""
+msgstr "Inicia l'SSSD quan s'elimini la memòria cau"
 
 #: src/tools/sssctl/sssctl_data.c:234
 msgid "Creating backup of local data...\n"
-msgstr ""
+msgstr "S'està creant una còpia de seguretat de les dades locals...\n"
 
 #: src/tools/sssctl/sssctl_data.c:237
 msgid "Unable to create backup of local data, can not remove the cache.\n"
 msgstr ""
+"No s'ha pogut crear una còpia de seguretat de les dades locals, no es pot "
+"eliminar la memòria cau.\n"
 
 #: src/tools/sssctl/sssctl_data.c:242
 msgid "Removing cache files...\n"
-msgstr ""
+msgstr "S'estan suprimint els fitxers de la memòria cau...\n"
 
 #: src/tools/sssctl/sssctl_data.c:245
 msgid "Unable to remove cache files\n"
-msgstr ""
+msgstr "No s'han pogut eliminar els fitxers de la memòria cau\n"
 
 #: src/tools/sssctl/sssctl_data.c:250
 msgid "Restoring local data...\n"
-msgstr ""
+msgstr "S'estan restaurant les dades locals...\n"
 
 #: src/tools/sssctl/sssctl_data.c:377
 #, c-format
 msgid "Creating cache index for domain %1$s\n"
-msgstr ""
+msgstr "S'està creant l'índex de la memòria cau per al domini %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:379
 #, c-format
 msgid "Deleting cache index for domain %1$s\n"
-msgstr ""
+msgstr "S'està suprimint l'índex de la memòria cau per al domini %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:381
 #, c-format
 msgid "Indexes for domain %1$s:\n"
-msgstr ""
+msgstr "Índexs del domini %1$s:\n"
 
 #: src/tools/sssctl/sssctl_data.c:401
 #, c-format
 msgid "  Attribute: %1$s\n"
-msgstr ""
+msgstr "  Atribut: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:428 src/tools/sssctl/sssctl_logs.c:525
 msgid "Target a specific domain"
-msgstr ""
+msgstr "Apunta a un domini específic"
 
 #: src/tools/sssctl/sssctl_data.c:428 src/tools/sssctl/sssctl_logs.c:525
-#, fuzzy
 msgid "domain"
 msgstr "Domini IPA"
 
 #: src/tools/sssctl/sssctl_data.c:430
 msgid "Attribute to index"
-msgstr ""
+msgstr "Atribut a index"
 
 #: src/tools/sssctl/sssctl_data.c:430
-#, fuzzy
 msgid "attribute"
 msgstr "L'atribut UID"
 
 #: src/tools/sssctl/sssctl_data.c:443
-#, fuzzy
 msgid "Action not provided\n"
-msgstr "Proveïdor d'autenticació"
+msgstr "Proveïdor d'autenticació\n"
 
 #: src/tools/sssctl/sssctl_data.c:456
 #, c-format
@@ -3064,237 +3193,241 @@ msgid ""
 "Unknown action: %1$s\n"
 "Valid actions are \"%2$s\", \"%3$s and \"%4$s\"\n"
 msgstr ""
+"Acció desconeguda: %1$s\n"
+"Les accions vàlides són «%2$s», «%3$s i «%4$s»\n"
 
 #: src/tools/sssctl/sssctl_data.c:464
 msgid "Attribute (-a) not provided\n"
-msgstr ""
+msgstr "No s'ha proporcionat l'atribut (-a)\n"
 
 #: src/tools/sssctl/sssctl_data.c:472
 #, c-format
 msgid "Attribute %1$s not indexed.\n"
-msgstr ""
+msgstr "L'atribut %1$s no està indexat.\n"
 
 #: src/tools/sssctl/sssctl_data.c:475
 #, c-format
 msgid "Attribute %1$s already indexed.\n"
-msgstr ""
+msgstr "L'atribut %1$s ja està indexat.\n"
 
 #: src/tools/sssctl/sssctl_data.c:478
-#, fuzzy, c-format
+#, c-format
 msgid "Index operation failed: %1$s\n"
 msgstr "L'ordre post-delete ha fallat: %1$s\n"
 
 #: src/tools/sssctl/sssctl_data.c:483
 msgid "Don't forget to also update the indexes on the remote providers.\n"
-msgstr ""
+msgstr "No oblidis actualitzar també els índexs dels proveïdors remots.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:82
 msgid "Show domain list including primary or trusted domain type"
 msgstr ""
+"Mostra la llista de dominis incloent el tipus de domini primari o de "
+"confiança"
 
 #: src/tools/sssctl/sssctl_domains.c:166
 msgid "Online"
-msgstr ""
+msgstr "En línia"
 
 #: src/tools/sssctl/sssctl_domains.c:166
 msgid "Offline"
-msgstr ""
+msgstr "Fora de línia"
 
 #: src/tools/sssctl/sssctl_domains.c:166
 #, c-format
 msgid "Online status: %s\n"
-msgstr ""
+msgstr "Estat en línia: %s\n"
 
 #: src/tools/sssctl/sssctl_domains.c:212
 msgid "This domain has no active servers.\n"
-msgstr ""
+msgstr "Aquest domini no té servidors actius.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:217
 msgid "Active servers:\n"
-msgstr ""
+msgstr "Servidors actius:\n"
 
 #: src/tools/sssctl/sssctl_domains.c:229
 msgid "not connected"
-msgstr ""
+msgstr "no connectat"
 
 #: src/tools/sssctl/sssctl_domains.c:266
 msgid "No servers discovered.\n"
-msgstr ""
+msgstr "No s'ha descobert cap servidor.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:272
 #, c-format
 msgid "Discovered %s servers:\n"
-msgstr ""
+msgstr "Servidors %s descoberts:\n"
 
 #: src/tools/sssctl/sssctl_domains.c:284
 msgid "None so far.\n"
-msgstr ""
+msgstr "Cap fins ara.\n"
 
 #: src/tools/sssctl/sssctl_domains.c:323
 msgid "Show online status"
-msgstr ""
+msgstr "Mostra l'estat en línia"
 
 #: src/tools/sssctl/sssctl_domains.c:324
 msgid "Show information about active server"
-msgstr ""
+msgstr "Mostra informació sobre el servidor actiu"
 
 #: src/tools/sssctl/sssctl_domains.c:325
 msgid "Show list of discovered servers"
-msgstr ""
+msgstr "Mostra la llista de servidors descoberts"
 
 #: src/tools/sssctl/sssctl_domains.c:331
 msgid "Specify domain name."
-msgstr ""
+msgstr "Especifiqueu el nom del domini."
 
 #: src/tools/sssctl/sssctl_domains.c:374 src/tools/sssctl/sssctl_domains.c:384
 msgid "Unable to get online status\n"
-msgstr ""
+msgstr "No s'ha pogut obtenir l'estat en línia\n"
 
 #: src/tools/sssctl/sssctl_domains.c:394
 msgid "Unable to get server list\n"
-msgstr ""
+msgstr "No s'ha pogut obtenir la llista del servidor\n"
 
 #: src/tools/sssctl/sssctl_logs.c:214
-#, fuzzy
 msgid "SSSD is not running.\n"
-msgstr "L'SSSD no s'està executant com a root."
+msgstr "L'SSSD no s'està executant com a root.\n"
 
 #: src/tools/sssctl/sssctl_logs.c:231
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
-msgstr ""
+msgstr "%1$-25s %2$..4x\n"
 
 #: src/tools/sssctl/sssctl_logs.c:235
 #, c-format
 msgid "%1$-25s Unknown domain\n"
-msgstr ""
+msgstr "%1$-25s Domini desconegut\n"
 
 #: src/tools/sssctl/sssctl_logs.c:237
 #, c-format
 msgid "%1$-25s Unreachable service\n"
-msgstr ""
+msgstr "%1$-25s Servei no accessible\n"
 
 #: src/tools/sssctl/sssctl_logs.c:429
 msgid "Delete log files instead of truncating"
-msgstr ""
+msgstr "Suprimeix els fitxers de registre en lloc de truncar"
 
 #: src/tools/sssctl/sssctl_logs.c:440
 msgid "Deleting log files...\n"
-msgstr ""
+msgstr "S'estan suprimint els fitxers de registre...\n"
 
 #: src/tools/sssctl/sssctl_logs.c:443
 msgid "Unable to remove log files\n"
-msgstr ""
+msgstr "No s'han pogut eliminar els fitxers de registre\n"
 
 #: src/tools/sssctl/sssctl_logs.c:460
 msgid "Truncating log files...\n"
-msgstr ""
+msgstr "S'estan truncant els fitxers de registre...\n"
 
 #: src/tools/sssctl/sssctl_logs.c:464
 msgid "Unable to truncate log files\n"
-msgstr ""
+msgstr "No s'han pogut truncar els fitxers de registre\n"
 
 #: src/tools/sssctl/sssctl_logs.c:498
 #, c-format
 msgid "Archiving log files into %s...\n"
-msgstr ""
+msgstr "S'estan arxivant els fitxers de registre a %s...\n"
 
 #: src/tools/sssctl/sssctl_logs.c:502
 msgid "Unable to archive log files\n"
-msgstr ""
+msgstr "No s'han pogut arxivar els fitxers de registre\n"
 
 #: src/tools/sssctl/sssctl_logs.c:526
 msgid "Target the SSSD service"
-msgstr ""
+msgstr "Objectiu del servei SSSD"
 
 #: src/tools/sssctl/sssctl_logs.c:527
 msgid "Target the NSS service"
-msgstr ""
+msgstr "Objectiu del servei NSS"
 
 #: src/tools/sssctl/sssctl_logs.c:528
-#, fuzzy
 msgid "Target the PAM service"
 msgstr "L'atribut que llista els serveis PAM autoritzats"
 
 #: src/tools/sssctl/sssctl_logs.c:529
 msgid "Target the SUDO service"
-msgstr ""
+msgstr "Objectiu del servei SUDO"
 
 #: src/tools/sssctl/sssctl_logs.c:530
 msgid "Target the AUTOFS service"
-msgstr ""
+msgstr "Objectiu del servei AUTOFS"
 
 #: src/tools/sssctl/sssctl_logs.c:531
 msgid "Target the SSH service"
-msgstr ""
+msgstr "Objectiu del servei SSH"
 
 #: src/tools/sssctl/sssctl_logs.c:532
 msgid "Target the PAC service"
-msgstr ""
+msgstr "Objectiu del servei PAC"
 
 #: src/tools/sssctl/sssctl_logs.c:533
 msgid "Target the IFP service"
-msgstr ""
+msgstr "Objectiu del servei IFP"
 
 #: src/tools/sssctl/sssctl_logs.c:548
 msgid "Specify debug level you want to set"
-msgstr ""
+msgstr "Especifiqueu el nivell de depuració que voleu establir"
 
 #: src/tools/sssctl/sssctl_logs.c:593
 msgid "ERROR: Tevent chain ID support missing, log analyzer is unsupported.\n"
 msgstr ""
+"ERROR: manca la implementació de l'ID de la cadena de esdeveniments, "
+"l'analitzador de registres no és compatible.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:121
 msgid "SSSD InfoPipe user lookup result:\n"
-msgstr ""
+msgstr "Resultat de la cerca de l'usuari SSSD InfoPipe:\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:171
 #, c-format
 msgid "dlopen failed with [%s].\n"
-msgstr ""
+msgstr "el dlopen ha fallat amb [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:178
 #, c-format
 msgid "dlsym failed with [%s].\n"
-msgstr ""
+msgstr "el dlsym ha fallat amb [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:186
 msgid "malloc failed.\n"
-msgstr ""
+msgstr "Ha fallat el malloc.\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:193
 #, c-format
 msgid "sss_getpwnam_r failed with [%d].\n"
-msgstr ""
+msgstr "sssgetpwnamr ha fallat amb [%d].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:198
 msgid "SSSD nss user lookup result:\n"
-msgstr ""
+msgstr "Resultat de la cerca de l'usuari SSSD nss:\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:199
 #, c-format
 msgid " - user name: %s\n"
-msgstr ""
+msgstr " - nom d'usuari: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:200
 #, c-format
 msgid " - user id: %d\n"
-msgstr ""
+msgstr " - ID d'usuari: %d\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:201
 #, c-format
 msgid " - group id: %d\n"
-msgstr ""
+msgstr " - ID del grup: %d\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:202
 #, c-format
 msgid " - gecos: %s\n"
-msgstr ""
+msgstr " - gecos: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:203
 #, c-format
 msgid " - home directory: %s\n"
-msgstr ""
+msgstr " - directori d'inici: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:204
 #, c-format
@@ -3302,18 +3435,20 @@ msgid ""
 " - shell: %s\n"
 "\n"
 msgstr ""
+" - shell: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:235
 msgid "PAM action [auth|acct|setc|chau|open|clos], default: "
-msgstr ""
+msgstr "Acció PAM [auth:acct:setc,chau,open:clos], per defecte: "
 
 #: src/tools/sssctl/sssctl_user_checks.c:238
 msgid "PAM service, default: "
-msgstr ""
+msgstr "Servei PAM, per defecte: "
 
 #: src/tools/sssctl/sssctl_user_checks.c:243
 msgid "Specify user name."
-msgstr ""
+msgstr "Especifiqueu el nom d'usuari."
 
 #: src/tools/sssctl/sssctl_user_checks.c:250
 #, c-format
@@ -3323,32 +3458,38 @@ msgid ""
 "service: %s\n"
 "\n"
 msgstr ""
+"usuari: %s\n"
+"acció: %s\n"
+"servei: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:255
 #, c-format
 msgid "User name lookup with [%s] failed.\n"
-msgstr ""
+msgstr "Ha fallat la cerca del nom d'usuari amb [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:260
 #, c-format
 msgid "InfoPipe User lookup with [%s] failed.\n"
-msgstr ""
+msgstr "Ha fallat la cerca de l'usuari InfoPipe amb [%s].\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:266
 #, c-format
 msgid "pam_start failed: %s\n"
-msgstr ""
+msgstr "ha fallat pamstart: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:272
 msgid ""
 "testing pam_authenticate\n"
 "\n"
 msgstr ""
+"s'està provant el pamauthenticate\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:276
 #, c-format
 msgid "pam_get_item failed: %s\n"
-msgstr ""
+msgstr "ha fallat el pamgetitem: %s\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:279
 #, c-format
@@ -3356,12 +3497,16 @@ msgid ""
 "pam_authenticate for user [%s]: %s\n"
 "\n"
 msgstr ""
+"pamauthenticate per a l'usuari [%s]: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:282
 msgid ""
 "testing pam_chauthtok\n"
 "\n"
 msgstr ""
+"provant pamchauthtok\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:284
 #, c-format
@@ -3369,12 +3514,16 @@ msgid ""
 "pam_chauthtok: %s\n"
 "\n"
 msgstr ""
+"pamchauthtok: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:286
 msgid ""
 "testing pam_acct_mgmt\n"
 "\n"
 msgstr ""
+"provant pamacctmgmt\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:288
 #, c-format
@@ -3382,12 +3531,16 @@ msgid ""
 "pam_acct_mgmt: %s\n"
 "\n"
 msgstr ""
+"pamacctmgmt: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:290
 msgid ""
 "testing pam_setcred\n"
 "\n"
 msgstr ""
+"provant pamsetcred\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:292
 #, c-format
@@ -3395,12 +3548,16 @@ msgid ""
 "pam_setcred: [%s]\n"
 "\n"
 msgstr ""
+"pamsetcred: [%s]\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:294
 msgid ""
 "testing pam_open_session\n"
 "\n"
 msgstr ""
+"proves de pamopensession\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:296
 #, c-format
@@ -3408,12 +3565,16 @@ msgid ""
 "pam_open_session: %s\n"
 "\n"
 msgstr ""
+"pamopensession: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:298
 msgid ""
 "testing pam_close_session\n"
 "\n"
 msgstr ""
+"provant pamclosesession\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:300
 #, c-format
@@ -3421,18 +3582,20 @@ msgid ""
 "pam_close_session: %s\n"
 "\n"
 msgstr ""
+"pamclosesession: %s\n"
+"\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:302
 msgid "unknown action\n"
-msgstr ""
+msgstr "acció desconeguda\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:305
 msgid "PAM Environment:\n"
-msgstr ""
+msgstr "Entorn PAM:\n"
 
 #: src/tools/sssctl/sssctl_user_checks.c:313
 msgid " - no env -\n"
-msgstr ""
+msgstr " - sense env -\n"
 
 #: src/util/util.h:100
 msgid "Specify a non-default config file"
@@ -3440,7 +3603,7 @@ msgstr "Especifica un fitxer de configuració diferent del predeterminat"
 
 #: src/util/util.h:107
 msgid "Informs that the responder has been socket-activated"
-msgstr ""
+msgstr "Informa que el contestador ha estat activat per sòcol"
 
 #~ msgid "Control enumeration of trusted domains"
 #~ msgstr "Control de l'enumeració dels amfitrions de confiança"
