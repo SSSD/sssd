@@ -180,6 +180,230 @@ def test_nss__filter_groups(client: Client, provider: GenericProvider, config: s
     assert g2_ent.gid not in gids, f"{g2.name} is not filtered from {u1.name}'s groups!"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.parametrize("section", ["nss", "domain"])
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_nss__filter_uids(client: Client, provider: LDAP, section: str):
+    """
+    :title: Test filtering of users by UID with 'filter_uids'
+    :description:
+        This test verifies that users can be filtered out of NSS lookups by
+        their numeric UID, both as a single value and as a range, using the
+        'filter_uids' option.
+    :setup:
+        1. Create users with known UIDs in provider.
+        2. Configure SSSD with 'filter_uids', using a single UID for one
+           user and a range for another.
+        3. Start SSSD.
+    :steps:
+        1. Look up the user whose UID is not filtered.
+        2. Look up the user matching the single filtered UID.
+        3. Look up the user falling inside the filtered range.
+    :expectedresults:
+        1. The non-filtered user is found.
+        2. The user matching the single UID is not found.
+        3. The user inside the range is not found.
+    :customerscenario: False
+    """
+    u1 = provider.user("user1").add(uid=10001, gid=19001)
+    u2 = provider.user("user2").add(uid=10002, gid=19002)
+    u3 = provider.user("user3").add(uid=10500, gid=19500)
+
+    if section == "nss":
+        client.sssd.nss["filter_uids"] = "10002, 10400-10600"
+    else:
+        client.sssd.domain["filter_uids"] = "10002, 10400-10600"
+    client.sssd.start(clean=True)
+
+    # UIDs outside of the filter are still resolved
+    assert client.tools.getent.passwd(10001) is not None, f"User {u1.name} should not be filtered out!"
+
+    # A single filtered UID
+    assert client.tools.getent.passwd(10002) is None, f"User {u2.name} is not filtered out by uid!"
+
+    # A UID inside a filtered range
+    assert client.tools.getent.passwd(10500) is None, f"User {u3.name} is not filtered out by uid!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.parametrize("section", ["nss", "domain"])
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_nss__filter_gids(client: Client, provider: LDAP, section: str):
+    """
+    :title: Test filtering of groups by GID with 'filter_gids'
+    :description:
+        This test verifies that groups can be filtered out of NSS lookups by
+        their numeric GID, both as a single value and as a range, using the
+        'filter_gids' option.
+    :setup:
+        1. Create a user and groups with known GIDs in provider.
+        2. Add the user as a member of every group.
+        3. Configure SSSD with 'filter_gids', using a single GID for one
+           group and a range for another.
+        4. Start SSSD.
+    :steps:
+        1. Look up the group whose GID is not filtered.
+        2. Look up the group matching the single filtered GID.
+        3. Look up the group falling inside the filtered range.
+        4. Check the group membership of the user.
+    :expectedresults:
+        1. The non-filtered group is found.
+        2. The group matching the single GID is not found.
+        3. The group inside the range is not found.
+        4. The filtered groups are excluded from the user's groups.
+    :customerscenario: False
+    """
+    u1 = provider.user("user1").add(uid=10001, gid=19001)
+
+    g1 = provider.group("group1").add(gid=20001)
+    g2 = provider.group("group2").add(gid=20002)
+    g3 = provider.group("group3").add(gid=20500)
+    g1.add_member(u1)
+    g2.add_member(u1)
+    g3.add_member(u1)
+
+    if section == "nss":
+        client.sssd.nss["filter_gids"] = "20002, 20400-20600"
+    else:
+        client.sssd.domain["filter_gids"] = "20002, 20400-20600"
+    client.sssd.start(clean=True)
+
+    # GIDs outside of the filter are still resolved
+    assert client.tools.getent.group(20001) is not None, f"Group {g1.name} should not be filtered out!"
+
+    # A single filtered GID
+    assert client.tools.getent.group(20002) is None, f"Group {g2.name} is not filtered out by gid!"
+
+    # A GID inside a filtered range
+    assert client.tools.getent.group(20500) is None, f"Group {g3.name} is not filtered out by gid!"
+
+    # The filtered GIDs are excluded from the user's groups
+    u1_id = client.tools.id(u1.name)
+    assert u1_id is not None, f"Command id failed for {u1.name}"
+    gids = set([group.id for group in u1_id.groups])
+    assert 20001 in gids, f"{g1.name} is missing from {u1.name}'s groups!"
+    assert 20002 not in gids, f"{g2.name} is not filtered from {u1.name}'s groups!"
+    assert 20500 not in gids, f"{g3.name} is not filtered from {u1.name}'s groups!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_nss__filter_uids_does_not_query_the_provider(client: Client, provider: LDAP):
+    """
+    :title: A lookup for a filtered UID is answered without querying the provider
+    :description:
+        The point of 'filter_uids' is not only that the lookup returns nothing,
+        'min_id' already does that, but that no search is sent to the directory
+        server at all. This test asserts on the search filter logged by the
+        provider to prove the back end was never asked.
+    :setup:
+        1. Create two users with known UIDs in provider
+        2. Set 'filter_uids' to the UID of the second user only
+        3. Start SSSD
+    :steps:
+        1. Lookup the user whose UID is not filtered
+        2. Lookup the user whose UID is filtered
+        3. Search the domain log for an LDAP search on the non-filtered UID
+        4. Search the domain log for an LDAP search on the filtered UID
+    :expectedresults:
+        1. User is found
+        2. User is not found
+        3. The provider did search for the non-filtered UID
+        4. The provider never searched for the filtered UID
+    :customerscenario: True
+    """
+    provider.user("user1").add(uid=10001, gid=19001)
+    provider.user("user2").add(uid=10002, gid=19002)
+
+    client.sssd.nss["filter_uids"] = "10002"
+    client.sssd.start(clean=True)
+
+    assert client.tools.getent.passwd(10001) is not None, "User with a non-filtered uid is not found!"
+    assert client.tools.getent.passwd(10002) is None, "User with a filtered uid is found!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+
+    # Control, without this the assertion below could pass simply because the
+    # provider never logs its search filters.
+    assert "uidNumber=10001" in log, "The provider did not search for the non-filtered uid!"
+    assert "uidNumber=10002" not in log, "The provider searched for a filtered uid!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_nss__filter_uids_and_gids_do_not_filter_by_name(client: Client, provider: LDAP):
+    """
+    :title: Filtering an ID does not filter the matching name
+    :description:
+        'filter_uids' and 'filter_gids' act on getpwuid and getgrgid only.
+        Resolving the very same user or group by name must keep working, that
+        is what 'filter_users' and 'filter_groups' are for.
+    :setup:
+        1. Create a user and a group with known IDs in provider
+        2. Set 'filter_uids' and 'filter_gids' to those IDs
+        3. Start SSSD
+    :steps:
+        1. Lookup the user by uid and the group by gid
+        2. Lookup the same user and group by name
+    :expectedresults:
+        1. Neither is found
+        2. Both are found and report the filtered IDs
+    :customerscenario: False
+    """
+    u1 = provider.user("user1").add(uid=10001, gid=19001)
+    g1 = provider.group("group1").add(gid=20001)
+
+    client.sssd.nss["filter_uids"] = "10001"
+    client.sssd.nss["filter_gids"] = "20001"
+    client.sssd.start(clean=True)
+
+    assert client.tools.getent.passwd(10001) is None, f"User {u1.name} is not filtered out by uid!"
+    assert client.tools.getent.group(20001) is None, f"Group {g1.name} is not filtered out by gid!"
+
+    user = client.tools.getent.passwd(u1.name)
+    assert user is not None, f"User {u1.name} is not found by name!"
+    assert user.uid == 10001, f"User {u1.name} resolved to an unexpected uid!"
+
+    group = client.tools.getent.group(g1.name)
+    assert group is not None, f"Group {g1.name} is not found by name!"
+    assert group.gid == 20001, f"Group {g1.name} resolved to an unexpected gid!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_nss__filter_uids_range_is_inclusive(client: Client, provider: LDAP):
+    """
+    :title: Both ends of a 'filter_uids' range are filtered
+    :description:
+        A range is documented as inclusive, so this checks the boundaries
+        themselves and the values immediately outside them.
+    :setup:
+        1. Create users with UIDs just below, on, inside and just above a range
+        2. Set 'filter_uids' to that range
+        3. Start SSSD
+    :steps:
+        1. Lookup the user just below the range
+        2. Lookup the users on the lower bound, inside, and on the upper bound
+        3. Lookup the user just above the range
+    :expectedresults:
+        1. User is found
+        2. None of them are found
+        3. User is found
+    :customerscenario: False
+    """
+    for uid in [10399, 10400, 10500, 10600, 10601]:
+        provider.user(f"user{uid}").add(uid=uid, gid=uid + 10000)
+
+    client.sssd.nss["filter_uids"] = "10400-10600"
+    client.sssd.start(clean=True)
+
+    assert client.tools.getent.passwd(10399) is not None, "Uid below the range is filtered out!"
+    assert client.tools.getent.passwd(10400) is None, "Lower bound of the range is not filtered out!"
+    assert client.tools.getent.passwd(10500) is None, "Uid inside the range is not filtered out!"
+    assert client.tools.getent.passwd(10600) is None, "Upper bound of the range is not filtered out!"
+    assert client.tools.getent.passwd(10601) is not None, "Uid above the range is filtered out!"
+
+
 @pytest.mark.importance("medium")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.parametrize("config", ["enumerate", "default"])
