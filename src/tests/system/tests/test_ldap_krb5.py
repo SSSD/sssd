@@ -5,7 +5,8 @@ Tests where the ``id_provider`` is set to ``ldap`` and the ``auth_provider``
 is set to ``krb5``. They use ``KnownTopology.LDAP_KRB5`` (client + LDAP + KDC,
 host keytab provisioned by the topology controller).
 
-Misc krb cases ported from sssd-qe krb_misc are included in this module.
+Misc krb cases ported from sssd-qe krb_misc and the credential cache location
+cases from sssd-qe krb_credential_cache are included in this module.
 
 :requirement: SSSD - Kerberos
 """
@@ -13,6 +14,7 @@ Misc krb cases ported from sssd-qe krb_misc are included in this module.
 from __future__ import annotations
 
 import time
+from fnmatch import fnmatch
 
 import pytest
 from sssd_test_framework.roles.client import Client
@@ -453,3 +455,233 @@ def test_ldap_krb5__access_provider_krb5_enforces_k5login(client: Client, provid
         dedent=False,
     )
     assert client.auth.ssh.password("puser1", "Secret123"), "Login failed with principal listed in .k5login!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.authentication
+@pytest.mark.parametrize(
+    "ccachedir, ccname_template, expected_ccache",
+    [
+        # Credential cache types accepted by krb5_ccname_template.
+        ("/tmp/krb5_cache", "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5_cache/krb5cc_{user}"),
+        (None, "FILE:/tmp/krb5cc_%U", "FILE:/tmp/krb5cc_{uid}"),
+        (None, "/tmp/krb5cc_%U", "FILE:/tmp/krb5cc_{uid}"),
+        ("/tmp/krb5_cache", "%d/krb5cc_%u", "FILE:/tmp/krb5_cache/krb5cc_{user}"),
+        (None, "%h/krb5cc_%u", "FILE:{home}/krb5cc_{user}"),
+        ("/tmp/krb5_cache", "FILE:%d/krb5cc_%u_XXXXXX", "FILE:/tmp/krb5_cache/krb5cc_{user}_??????"),
+        ("/tmp/krb5_cache", "DIR:%d/krb5cc_%u", "DIR:/tmp/krb5_cache/krb5cc_{user}"),
+        (None, "KEYRING:persistent:%U", "KEYRING:persistent:{uid}"),
+        # Substitution sequences in krb5_ccname_template, %u is already covered above.
+        ("/tmp/krb5_cache", "FILE:%d/cc_%U", "FILE:/tmp/krb5_cache/cc_{uid}"),
+        ("/tmp/krb5_cache", "FILE:%d/cc_%p", "FILE:/tmp/krb5_cache/cc_{user}@{realm}"),
+        ("/tmp/krb5_cache", "FILE:%d/cc_%r", "FILE:/tmp/krb5_cache/cc_{realm}"),
+        ("/tmp/krb5_cache", "FILE:%d/cc_%P", "FILE:/tmp/krb5_cache/cc_[0-9]*"),
+        ("/tmp/krb5_cache", "FILE:%d/my_%%_cc", "FILE:/tmp/krb5_cache/my_%_cc"),
+        ("/tmp/krb5_cache", "FILE:%d/cc_%u_%u", "FILE:/tmp/krb5_cache/cc_{user}_{user}"),
+        # libkrb5 default_ccache_name sequences that SSSD expands itself.
+        ("/tmp/krb5_cache", "FILE:%d/cc_%{uid}", "FILE:/tmp/krb5_cache/cc_{uid}"),
+        ("/tmp/krb5_cache", "FILE:%d/cc_%{USERID}", "FILE:/tmp/krb5_cache/cc_{uid}"),
+        ("/tmp/krb5_cache", "FILE:%d/cc_%{euid}", "FILE:/tmp/krb5_cache/cc_{uid}"),
+        ("/tmp/krb5_cache", "FILE:%d/cc_%{username}", "FILE:/tmp/krb5_cache/cc_{user}"),
+        # Substitution sequences in krb5_ccachedir.
+        ("/tmp/krb5_cache_%u", "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5_cache_{user}/krb5cc_{user}"),
+        ("/tmp/krb5_cache_%U", "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5_cache_{uid}/krb5cc_{user}"),
+        ("/tmp/krb5_cache_%p", "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5_cache_{user}@{realm}/krb5cc_{user}"),
+        ("/tmp/krb5_cache_%r", "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5_cache_{realm}/krb5cc_{user}"),
+        ("/tmp/krb5_cache_%h", "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5_cache_{home}/krb5cc_{user}"),
+        ("/tmp/my_%%_krb5", "FILE:%d/krb5cc_%u", "FILE:/tmp/my_%_krb5/krb5cc_{user}"),
+        ("/tmp/krb5_cache_%{uid}", "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5_cache_{uid}/krb5cc_{user}"),
+        ("/tmp/krb5_cache_%{username}", "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5_cache_{user}/krb5cc_{user}"),
+        # krb5_ccachedir values: the /tmp default, nested levels and a directory below the home.
+        (None, "FILE:%d/krb5cc_%u", "FILE:/tmp/krb5cc_{user}"),
+        ("/tmp/ccaches/%r/%u", "FILE:%d/krb5cc_%u", "FILE:/tmp/ccaches/{realm}/{user}/krb5cc_{user}"),
+        ("%h/.ccaches", "FILE:%d/krb5cc_%u", "FILE:{home}/.ccaches/krb5cc_{user}"),
+        # krb5_ccachedir is only consulted when the template references it with %d.
+        ("/tmp/unused_ccachedir", "FILE:/tmp/krb5cc_%U", "FILE:/tmp/krb5cc_{uid}"),
+    ],
+)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__krb5_ccachedir_substitutions_store_ccache_in_expected_directory(
+    client: Client,
+    provider: GenericProvider,
+    kdc: KDC,
+    ccachedir: str | None,
+    ccname_template: str,
+    expected_ccache: str,
+):
+    """
+    :title: KRB5 ccache creates files in the expected directory
+
+    :setup:
+        1. Create user "puser1" with uid 10001 and its kerberos principal
+        2. Configure SSSD with LDAP id provider and krb5 auth provider
+        3. Set krb5_ccachedir, unless the case exercises the /tmp default
+        4. Set krb5_ccname_template
+        5. Start SSSD with a clean cache
+        6. Create the parent directory owned by puser1 when it is missing
+    :steps:
+        1. Resolve puser1 to read its uid and home directory
+        2. Make sure that the credential cache does not exist yet
+        3. Authenticate puser1 over SSH
+        4. Check that the credential cache exists where the templates expand to
+        5. Check credential cache permissions
+        6. Check that the user session is given the expected KRB5CCNAME
+        7. Check that the credential cache holds a TGT for puser1 and the realm
+        8. Check that krb5_ccachedir is left alone when the template has no %d
+    :expectedresults:
+        1. User is resolvable
+        2. Credential cache does not exist
+        3. Authentication is successful
+        4. Credential cache is created in the location the templates expand to
+        5. Permissions are 0600 for a FILE cache and 0700 for a DIR collection
+        6. KRB5CCNAME in the user session points at the credential cache
+        7. Credential cache holds a TGT for puser1 and the realm
+        8. An unreferenced krb5_ccachedir is not created
+    :customerscenario: False
+    """
+    provider.user("puser1").add()
+    kdc.principal("puser1").add()
+
+    client.sssd.common.krb5_auth(kdc)
+    if ccachedir is not None:
+        client.sssd.domain["krb5_ccachedir"] = ccachedir
+    client.sssd.domain["krb5_ccname_template"] = ccname_template
+    # The cache is cleared so that SSSD does not reuse a credential cache
+    # location that a previous run of the test stored for the user.
+    client.sssd.start(clean=True)
+
+    passwd = client.tools.getent.passwd("puser1")
+    assert passwd is not None, "User puser1 is not resolvable!"
+
+    # The uid and home directory are assigned by the provider, so the expected
+    # credential cache location is resolved from the lookup result.
+    expected_ccache = expected_ccache.format(
+        realm=kdc.realm,
+        user="puser1",
+        uid=passwd.uid,
+        home=passwd.home,
+    )
+    cctype, _, residual = expected_ccache.partition(":")
+
+    if cctype in ("FILE", "DIR"):
+        parent = residual.rsplit("/", 1)[0]
+        if not client.fs.exists(parent):
+            client.fs.mkdir_p(parent, mode="0700", user="puser1")
+
+        # A credential cache left over from a previous run of the test would
+        # make the checks below pass without a new authentication. It is
+        # removed and the cache is verified to not exist, so that it is clear
+        # that it was created by the authentication that follows.
+        client.host.conn.run(f"rm -rf {residual}", raise_on_error=False)
+        assert not client.fs.exists(
+            residual
+        ), f"Credential cache {residual} already exists before puser1 is authenticated!"
+
+    with client.ssh("puser1", "Secret123") as ssh:
+        # The credential cache location is exported to the user session. The
+        # cache type prefix is part of it only when the template itself contains
+        # it, so the location is matched with and without the prefix. It can
+        # contain a random part, so a glob pattern is used.
+        krb5ccname = ssh.run("echo $KRB5CCNAME", raise_on_error=False).stdout.strip()
+        assert fnmatch(krb5ccname, expected_ccache) or fnmatch(
+            krb5ccname, residual
+        ), f"KRB5CCNAME in the session of puser1 is {krb5ccname}, expected {expected_ccache}!"
+
+        if cctype in ("FILE", "DIR"):
+            if any(char in residual for char in "?*["):
+                matches = client.host.conn.run(f"ls -1d {residual}", raise_on_error=False).stdout.splitlines()
+                assert (
+                    len(matches) == 1
+                ), f"Expected exactly one credential cache matching {residual}, found {matches}!"
+                # The glob pattern was resolved to the actual file name, the
+                # cache type prefix must be added back to the location.
+                expected_ccache = f"{cctype}:{matches[0]}"
+                residual = matches[0]
+
+            assert client.fs.exists(residual), f"Credential cache {residual} was not created!"
+
+            expected_mode = "0600" if cctype == "FILE" else "0700"
+            stat = client.fs.stat(residual)
+            assert (
+                stat.access == expected_mode
+            ), f"Credential cache {residual} has permissions {stat.access}, expected {expected_mode}!"
+            assert stat.user == "puser1", f"Credential cache {residual} is owned by {stat.user}, expected puser1!"
+
+            if cctype == "DIR":
+                assert client.fs.exists(f"{residual}/primary"), f"Collection {residual} has no primary cache!"
+
+        # A successful run of klist alone does not tell if the cache holds a
+        # TGT, the default principal and the TGT to the realm are checked.
+        klist = ssh.run(f"klist -c '{expected_ccache}'", raise_on_error=False)
+        assert klist.rc == 0, f"Credential cache {expected_ccache} cannot be read by puser1!"
+        assert (
+            f"Default principal: puser1@{kdc.realm}" in klist.stdout
+        ), f"Credential cache {expected_ccache} does not hold a TGT for puser1@{kdc.realm}!"
+        assert (
+            f"krbtgt/{kdc.realm}@{kdc.realm}" in klist.stdout
+        ), f"Credential cache {expected_ccache} does not hold a TGT for the realm {kdc.realm}!"
+
+    # krb5_ccachedir was set to a literal path that the template never references.
+    if ccachedir is not None and "%" not in ccachedir and "%d" not in ccname_template:
+        assert not client.fs.exists(ccachedir), f"Unreferenced krb5_ccachedir {ccachedir} was created!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.authentication
+@pytest.mark.parametrize(
+    "ccachedir, expected_error",
+    [
+        # %d and %P are valid in krb5_ccname_template only, both as the first
+        # substitution and once an earlier one has already expanded.
+        ("/tmp/krb5_cache_%d", "'%d' is not allowed in this template."),
+        ("/tmp/krb5_cache_%P", "'%P' is not allowed in this template."),
+        ("/tmp/%u_%d", "'%d' is not allowed in this template."),
+        ("/tmp/%u_%P", "'%P' is not allowed in this template."),
+        # Sequences that are not part of the substitution syntax at all.
+        ("/tmp/krb5_cache_%x", "format error, unknown template [%x]."),
+        ("/tmp/krb5_cache_%", "format error, single % at the end of the template."),
+        (
+            "/tmp/krb5_cache_%{uid",
+            "Missing closing '}' in [/tmp/krb5_cache_%{uid]",
+        ),
+    ],
+)
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__krb5_ccachedir_invalid_substitution_rejects_authentication(
+    client: Client, provider: GenericProvider, kdc: KDC, ccachedir: str, expected_error: str
+):
+    """
+    :title: Mistyped krb5_ccachedir makes authentication fail with a clear log message
+
+    :setup:
+        1. Create user "puser1" and its kerberos principal
+        2. Configure SSSD with LDAP id provider and krb5 auth provider
+        3. Set krb5_ccachedir to a path containing the rejected sequence
+        4. Set krb5_ccname_template to FILE:%d/krb5cc_%u so krb5_ccachedir is expanded
+        5. Start SSSD
+    :steps:
+        1. Resolve puser1
+        2. Authenticate puser1 over SSH
+        3. Check the domain log
+    :expectedresults:
+        1. User is resolvable
+        2. Authentication fails
+        3. Domain log reports why the template was rejected
+    :customerscenario: False
+    """
+    provider.user("puser1").add()
+    kdc.principal("puser1").add()
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["krb5_ccachedir"] = ccachedir
+    client.sssd.domain["krb5_ccname_template"] = "FILE:%d/krb5cc_%u"
+    client.sssd.start()
+
+    assert client.tools.id("puser1"), "User puser1 is not resolvable!"
+
+    assert not client.auth.ssh.password(
+        "puser1", "Secret123"
+    ), f"Authentication succeeded with krb5_ccachedir set to {ccachedir}!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert expected_error in log, f"Domain log does not report {expected_error!r} for krb5_ccachedir {ccachedir}!"
