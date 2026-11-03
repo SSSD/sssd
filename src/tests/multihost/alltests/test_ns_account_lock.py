@@ -284,8 +284,6 @@ class TestNsAccountLock(object):
         lock_check(multihost, "foo4")
         # Nested role has both the above roles and activated
         clean_sys(multihost)
-        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
-                                            ds_rootdn, ds_rootpw)
         manage_user_roles(multihost, "cn=nested", "unlock", "role")
         check_login_client(multihost, "foo1@example1", 'Secret123')
         check_login_client(multihost, "foo4@example1", 'Secret123')
