@@ -8,13 +8,14 @@
 # Evgeny Sinelnikov <sin@altlinux.org>, 2021, 2026.
 # Olesya Gerasimenko <gammaray@basealt.ru>, 2021, 2026.
 # Elena Mishina <lepata@basealt.ru>, 2022, 2023, 2024, 2025, 2026.
+# Andrei Stepanov <adem4ik@gmail.com>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-02 15:57+0000\n"
-"PO-Revision-Date: 2026-10-06 11:00+0000\n"
-"Last-Translator: Evgeny Sinelnikov <sin@altlinux.org>\n"
+"PO-Revision-Date: 2026-11-03 18:37+0000\n"
+"Last-Translator: Andrei Stepanov <adem4ik@gmail.com>\n"
 "Language-Team: Russian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ru/>\n"
 "Language: ru\n"
@@ -23,7 +24,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.11\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -116,8 +117,7 @@ msgstr "Настроить проверку сертификатов"
 
 #: src/config/SSSDConfig/sssdoptions.py:40
 msgid "All spaces in group or user names will be replaced with this character"
-msgstr ""
-"Все пробелы в именах пользователей и групп будут заменены этим символом"
+msgstr "Все пробелы в именах пользователей и групп будут заменены этим символом"
 
 #: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Tune sssd to honor or ignore netlink state changes"
@@ -359,8 +359,7 @@ msgstr "Путь к базе данных сертификатов с модул
 
 #: src/config/SSSDConfig/sssdoptions.py:98
 msgid "Tune certificate verification for PAM authentication."
-msgstr ""
-"Настроить проверку сертификатов для проверки подлинности с помощью PAM."
+msgstr "Настроить проверку сертификатов для проверки подлинности с помощью PAM."
 
 #: src/config/SSSDConfig/sssdoptions.py:99
 msgid "How many seconds will pam_sss wait for p11_child to finish"
@@ -416,15 +415,14 @@ msgstr ""
 "GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
-#, fuzzy
 msgid ""
 "List of triples <type>:<value>:<authentication indicator> that assigns "
 "additional information from the Kerberos ticket to an authentication "
 "indicator."
 msgstr ""
-"Список пар <служба PAM>:<индикатор проверки подлинности>, для которых должен "
-"быть принудительно установлен доступ PAM с проверкой подлинности с помощью "
-"GSSAPI"
+"Список троек <тип>:<значение>:<индикатор проверки подлинности>, который "
+"назначает дополнительную информацию из билета Kerberos индикатору проверки "
+"подлинности."
 
 #: src/config/SSSDConfig/sssdoptions.py:112
 msgid "Allow passkey device authentication."
@@ -667,8 +665,7 @@ msgstr "Как долго следует пытаться разрешить о�
 
 #: src/config/SSSDConfig/sssdoptions.py:183
 msgid "How long to wait for replies from DNS when resolving servers (seconds)"
-msgstr ""
-"Время ожидания ответа DNS при преобразовании имён серверов (в секундах)"
+msgstr "Время ожидания ответа DNS при преобразовании имён серверов (в секундах)"
 
 #: src/config/SSSDConfig/sssdoptions.py:184
 msgid "The domain part of service discovery DNS query"
@@ -686,8 +683,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:187
 msgid "Override GID value from the identity provider with this value"
-msgstr ""
-"Переопределять значение GID от поставщика учётных данных этим значением"
+msgstr "Переопределять значение GID от поставщика учётных данных этим значением"
 
 #: src/config/SSSDConfig/sssdoptions.py:188
 msgid "Treat usernames as case sensitive"
@@ -695,7 +691,7 @@ msgstr "Обрабатывать имена пользователей с учё
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Lookups by ID are expensive or do not work at all"
-msgstr ""
+msgstr "Поиск по ID обходится дорого или вообще не работает"
 
 #: src/config/SSSDConfig/sssdoptions.py:197
 msgid "How often should expired entries be refreshed in background"
@@ -809,8 +805,7 @@ msgstr "Показать предупреждение за N дней до ис�
 #: src/config/SSSDConfig/sssdoptions.py:221
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
-msgstr ""
-"Различные метки, сохранённые службой настройки realmd для этого домена."
+msgstr "Различные метки, сохранённые службой настройки realmd для этого домена."
 
 #: src/config/SSSDConfig/sssdoptions.py:222
 msgid ""
@@ -1135,37 +1130,37 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Имена служб PAM, которые сопоставляются параметрам политики GPO "
-"(Deny)InteractiveLogonRight"
+"Имена служб PAM, которые сопоставляются параметрам политики GPO (Deny)"
+"InteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Имена служб PAM, которые сопоставляются параметрам политики GPO "
-"(Deny)RemoteInteractiveLogonRight"
+"Имена служб PAM, которые сопоставляются параметрам политики GPO (Deny)"
+"RemoteInteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Имена служб PAM, которые сопоставляются параметрам политики GPO "
-"(Deny)NetworkLogonRight"
+"Имена служб PAM, которые сопоставляются параметрам политики GPO (Deny)"
+"NetworkLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Имена служб PAM, которые сопоставляются параметрам политики GPO "
-"(Deny)BatchLogonRight"
+"Имена служб PAM, которые сопоставляются параметрам политики GPO (Deny)"
+"BatchLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Имена служб PAM, которые сопоставляются параметрам политики GPO "
-"(Deny)ServiceLogonRight"
+"Имена служб PAM, которые сопоставляются параметрам политики GPO (Deny)"
+"ServiceLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1388,8 +1383,7 @@ msgstr "Укажите область авторизации SASL"
 
 #: src/config/SSSDConfig/sssdoptions.py:376
 msgid "Specify the minimal SSF for LDAP sasl authorization"
-msgstr ""
-"Укажите минимальное значение SSF для авторизации на LDAP с помощью SASL"
+msgstr "Укажите минимальное значение SSF для авторизации на LDAP с помощью SASL"
 
 #: src/config/SSSDConfig/sssdoptions.py:377
 msgid "Specify the maximal SSF for LDAP sasl authorization"
@@ -1687,33 +1681,28 @@ msgstr ""
 "Список дополнительных атрибутов для загрузки вместе с записью пользователя"
 
 #: src/config/SSSDConfig/sssdoptions.py:456
-#, fuzzy
 msgid "The object class of an subid entry in LDAP."
-msgstr "Класс объектов записи узла в LDAP."
+msgstr "Класс объектов записи subid в LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:457
-#, fuzzy
 msgid "Subordinate user ID count attribute"
-msgstr "Атрибут user (пользователь) правила sudo"
+msgstr "Атрибут количества подчинённых идентификаторов пользователя"
 
 #: src/config/SSSDConfig/sssdoptions.py:458
-#, fuzzy
 msgid "Subordinate group ID count attribute"
-msgstr "Атрибут option (параметр) правила sudo"
+msgstr "Атрибут количества подчинённых идентификаторов группы"
 
 #: src/config/SSSDConfig/sssdoptions.py:459
-#, fuzzy
 msgid "User ID range start value attribute"
-msgstr "Атрибут имени пользователя"
+msgstr "Атрибут начального значения диапазона идентификаторов пользователей"
 
 #: src/config/SSSDConfig/sssdoptions.py:460
-#, fuzzy
 msgid "Group ID range start value attribute"
-msgstr "Атрибут UUID группы"
+msgstr "Атрибут начального значения диапазона идентификаторов групп"
 
 #: src/config/SSSDConfig/sssdoptions.py:461
 msgid "Owner of an entry"
-msgstr ""
+msgstr "Владелец записи"
 
 #: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Base DN for group lookups"
@@ -2162,9 +2151,9 @@ msgid "Can't read config: '%s'\n"
 msgstr "Не возможно прочитать конфигурацию: '%s'\n"
 
 #: src/monitor/monitor.c:1878
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to bootstrap SSSD 'monitor' process: %s"
-msgstr "Не удалось ускорить процесс «мониторинга» SSSD: %s"
+msgstr "Не удалось запустить процесс «monitor» SSSD: %s"
 
 #: src/monitor/monitor.c:1973
 msgid "Out of memory\n"
@@ -2208,7 +2197,7 @@ msgstr "Проверить PAC флаги"
 
 #: src/providers/krb5/krb5_child.c:4335
 msgid "Set environment variable (KEY=VALUE)"
-msgstr ""
+msgstr "Задать переменную окружения (KEY=VALUE)"
 
 #: src/providers/data_provider_be.c:786
 msgid "Domain of the information provider (mandatory)"
@@ -2327,15 +2316,14 @@ msgid "Password change failed. "
 msgstr "Не удалось сменить пароль. "
 
 #: src/sss_client/pam_sss.c:2028
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate at \"%1$s\"."
-msgstr "Пожалуйста, авторизуйтесь на %1$s и нажмите ENTER."
+msgstr "Пройдите проверку подлинности на «%1$s»."
 
 #: src/sss_client/pam_sss.c:2031
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
-msgstr ""
-"Пожалуйста, авторизуйтесь с помощью PIN-кода %1$s на %2$s и нажмите ENTER."
+msgstr "Пройдите проверку подлинности с помощью PIN «%1$s» на «%2$s»."
 
 #: src/sss_client/pam_sss.c:2470
 msgid "Please (re)insert (different) Smartcard"
@@ -2351,7 +2339,7 @@ msgstr "Введите новый пароль ещё раз: "
 
 #: src/sss_client/pam_sss.c:2890
 msgid "Press ENTER to continue."
-msgstr ""
+msgstr "Нажмите ENTER для продолжения."
 
 #: src/sss_client/pam_sss.c:2913 src/sss_client/pam_sss.c:2916
 msgid "First Factor: "
@@ -2977,8 +2965,8 @@ msgstr "Не удалось настроить контекст привязки
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Не удалось добавить правила сопоставления и соответствия из-за ошибки [%d]"
-"[%s].\n"
+"Не удалось добавить правила сопоставления и соответствия из-за ошибки "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"
@@ -3042,13 +3030,11 @@ msgstr "Ошибка проверки конфигурации: %s\n"
 
 #: src/tools/sssctl/sssctl_config.c:133
 msgid "Run with high debug level to see details.\n"
-msgstr ""
-"Запустите с более высоким уровнем отладки, чтобы увидеть подробности.\n"
+msgstr "Запустите с более высоким уровнем отладки, чтобы увидеть подробности.\n"
 
 #: src/tools/sssctl/sssctl_config.c:142
-#, fuzzy
 msgid "Failed to run validators\n"
-msgstr "Не удалось запустить средства проверки"
+msgstr "Не удалось запустить средства проверки\n"
 
 #: src/tools/sssctl/sssctl_config.c:146
 #, c-format

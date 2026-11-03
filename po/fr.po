@@ -21,8 +21,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-02 15:57+0000\n"
-"PO-Revision-Date: 2026-10-06 10:53+0000\n"
-"Last-Translator: Jean-Baptiste Holcroft <jean-baptiste@holcroft.fr>\n"
+"PO-Revision-Date: 2026-11-03 18:30+0000\n"
+"Last-Translator: Transtats <suanand@redhat.com>\n"
 "Language-Team: French <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/fr/>\n"
 "Language: fr\n"
@@ -30,7 +30,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n > 1;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.11\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -403,13 +403,11 @@ msgstr "Quand le répondeur de PAM doit-il forcer une demande d'initgroupes"
 
 #: src/config/SSSDConfig/sssdoptions.py:105
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
-msgstr ""
-"Liste des services PAM qui sont autorisés à s'authentifier avec GSSAPI."
+msgstr "Liste des services PAM qui sont autorisés à s'authentifier avec GSSAPI."
 
 #: src/config/SSSDConfig/sssdoptions.py:106
 msgid "Whether to match authenticated UPN with target user"
-msgstr ""
-"S'il faut faire correspondre l'UPN authentifié avec l'utilisateur cible"
+msgstr "S'il faut faire correspondre l'UPN authentifié avec l'utilisateur cible"
 
 #: src/config/SSSDConfig/sssdoptions.py:107
 msgid ""
@@ -1065,8 +1063,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:287
 msgid "The LDAP attribute that contains SELinux user string itself."
-msgstr ""
-"L'attribut LDAP qui contient la chaîne d'utilisateur SELinux elle-même."
+msgstr "L'attribut LDAP qui contient la chaîne d'utilisateur SELinux elle-même."
 
 #: src/config/SSSDConfig/sssdoptions.py:288
 msgid "The LDAP attribute that contains user category such as 'all'."
@@ -1141,37 +1138,37 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie "
-"(Deny)InteractiveLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"InteractiveLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie "
-"(Deny)RemoteInteractiveLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"RemoteInteractiveLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie "
-"(Deny)NetworkLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"NetworkLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie "
-"(Deny)BatchLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"BatchLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Nom des services PAM correspondant à la configuration de la stratégie "
-"(Deny)ServiceLogonRight de la GPO"
+"Nom des services PAM correspondant à la configuration de la stratégie (Deny)"
+"ServiceLogonRight de la GPO"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1300,13 +1297,11 @@ msgstr "Active les principals d'entreprise"
 
 #: src/config/SSSDConfig/sssdoptions.py:346
 msgid "Enables using of subdomains realms for authentication"
-msgstr ""
-"Permet d'utiliser les domaines de sous-domaines pour l'authentification"
+msgstr "Permet d'utiliser les domaines de sous-domaines pour l'authentification"
 
 #: src/config/SSSDConfig/sssdoptions.py:347
 msgid "A mapping from user names to Kerberos principal names"
-msgstr ""
-"Un mappage des noms d'utilisateurs vers les noms de principaux Kerberos"
+msgstr "Un mappage des noms d'utilisateurs vers les noms de principaux Kerberos"
 
 #: src/config/SSSDConfig/sssdoptions.py:350
 #: src/config/SSSDConfig/sssdoptions.py:351
@@ -2290,8 +2285,7 @@ msgstr "Les mots de passe ne correspondent pas"
 
 #: src/sss_client/pam_sss.c:584
 msgid "Password reset by root is not supported."
-msgstr ""
-"La réinitialisation du mot de passe par root n'est pas prise en charge."
+msgstr "La réinitialisation du mot de passe par root n'est pas prise en charge."
 
 #: src/sss_client/pam_sss.c:625
 msgid "Authenticated with cached credentials"
@@ -2553,8 +2547,8 @@ msgid ""
 "use fully qualified name instead of --domain/-d parameter.\n"
 msgstr ""
 "Impossible d'ouvrir le domaine %1$s. Si le domaine est un sous-domaine "
-"(domaine approuvé), utiliser le nom pleinement qualifié au lieu du paramètre "
-"--domain/-d.\n"
+"(domaine approuvé), utiliser le nom pleinement qualifié au lieu du "
+"paramètre --domain/-d.\n"
 
 #: src/tools/sss_cache.c:897
 msgid "Could not open available domains\n"
@@ -2692,8 +2686,7 @@ msgstr "Archiver les fichiers journaux SSSD dans un tarball"
 
 #: src/tools/sssctl/sssctl.c:340
 msgid "Change or print information about SSSD debug level"
-msgstr ""
-"Modifier ou imprimer les informations sur le niveau de débogage de SSSD"
+msgstr "Modifier ou imprimer les informations sur le niveau de débogage de SSSD"
 
 #: src/tools/sssctl/sssctl.c:341
 msgid "Analyze logged data"
@@ -2924,8 +2917,7 @@ msgstr "Impossible de déterminer le chemin d'accès réel pour [%s] : %s\n"
 #: src/tools/sssctl/sssctl_cache.c:1073
 #, c-format
 msgid "The cached GPO path [%s] is not under [%s], ignoring.\n"
-msgstr ""
-"Le chemin d'accès à la GPO en cache [%s] n'est pas sous [%s], ignoré.\n"
+msgstr "Le chemin d'accès à la GPO en cache [%s] n'est pas sous [%s], ignoré.\n"
 
 #: src/tools/sssctl/sssctl_cache.c:1098
 #, c-format
@@ -2999,8 +2991,8 @@ msgstr "Échec de la configuration du contexte de la carte de certification.\n"
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Échec de l'ajout de règles de mappage et de correspondance avec l'erreur [%d]"
-"[%s].\n"
+"Échec de l'ajout de règles de mappage et de correspondance avec l'erreur "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"

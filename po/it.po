@@ -10,13 +10,14 @@
 # Ali Ciloqlu <ali.ciloqlu@murena.io>, 2026.
 # Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2026.
 # Ali Ciloglu <ali.ciloqlu@murena.io>, 2026.
+# Emanuele Petriglia <inbox@emanuelepetriglia.com>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-02 15:57+0000\n"
-"PO-Revision-Date: 2026-10-06 10:56+0000\n"
-"Last-Translator: Milo Casagrande <milo@milo.name>\n"
+"PO-Revision-Date: 2026-11-03 18:32+0000\n"
+"Last-Translator: Emanuele Petriglia <inbox@emanuelepetriglia.com>\n"
 "Language-Team: Italian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/it/>\n"
 "Language: it\n"
@@ -24,7 +25,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.11\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -192,8 +193,7 @@ msgstr "Indica se mostrare gli utenti filtrati nei gruppi"
 
 #: src/config/SSSDConfig/sssdoptions.py:60
 msgid "The value of the password field the NSS provider should return"
-msgstr ""
-"Il valore del campo password che deve essere ritornato dal provider NSS"
+msgstr "Il valore del campo password che deve essere ritornato dal provider NSS"
 
 #: src/config/SSSDConfig/sssdoptions.py:61
 msgid "Override homedir value from the identity provider with this value"
@@ -398,14 +398,14 @@ msgstr ""
 "essere applicate per l'accesso PAM con autenticazione GSSAPI"
 
 #: src/config/SSSDConfig/sssdoptions.py:109
-#, fuzzy
 msgid ""
 "List of triples <type>:<value>:<authentication indicator> that assigns "
 "additional information from the Kerberos ticket to an authentication "
 "indicator."
 msgstr ""
-"Elenco di coppie <servizio PAM>:<indicatore di autenticazione> che devono "
-"essere applicate per l'accesso PAM con autenticazione GSSAPI"
+"Elenco di triple nel formato <type>:<value>:<authentication indicator> che "
+"associano informazioni aggiuntive del ticket Kerberos a un indicatore di "
+"autenticazione."
 
 #: src/config/SSSDConfig/sssdoptions.py:112
 msgid "Allow passkey device authentication."
@@ -441,8 +441,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:127
 msgid "Whether to hash host names and addresses in the known_hosts file"
-msgstr ""
-"Se eseguire l'hash dei nomi host e degli indirizzi nel file known_hosts"
+msgstr "Se eseguire l'hash dei nomi host e degli indirizzi nel file known_hosts"
 
 #: src/config/SSSDConfig/sssdoptions.py:128
 msgid ""
@@ -575,8 +574,7 @@ msgstr "Provider resolver"
 
 #: src/config/SSSDConfig/sssdoptions.py:169
 msgid "Whether the domain is usable by the OS or by applications"
-msgstr ""
-"Se il dominio è utilizzabile dal sistema operativo o dalle applicazioni"
+msgstr "Se il dominio è utilizzabile dal sistema operativo o dalle applicazioni"
 
 #: src/config/SSSDConfig/sssdoptions.py:170
 msgid "Enable or disable the domain"
@@ -672,7 +670,7 @@ msgstr "Tratta i nomi utente come sensibili alle maiuscole/minuscole"
 
 #: src/config/SSSDConfig/sssdoptions.py:189
 msgid "Lookups by ID are expensive or do not work at all"
-msgstr ""
+msgstr "Le ricerche tramite ID sono onerose o non funzionano affatto"
 
 #: src/config/SSSDConfig/sssdoptions.py:197
 msgid "How often should expired entries be refreshed in background"
@@ -729,8 +727,7 @@ msgstr "Se il provider debba aggiornare esplicitamente anche il record PTR"
 
 #: src/config/SSSDConfig/sssdoptions.py:208
 msgid "Whether the nsupdate utility should default to using TCP"
-msgstr ""
-"Se l'utilità nsupdate debba utilizzare TCP per impostazione predefinita"
+msgstr "Se l'utilità nsupdate debba utilizzare TCP per impostazione predefinita"
 
 #: src/config/SSSDConfig/sssdoptions.py:209
 msgid "What kind of authentication should be used to perform the DNS update"
@@ -873,8 +870,7 @@ msgstr "Base di ricerca per l'oggetto contenente informazioni sul dominio IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:244
 msgid "Search base for objects containing info about ID ranges"
-msgstr ""
-"Base di ricerca per oggetti contenenti informazioni sugli intervalli ID"
+msgstr "Base di ricerca per oggetti contenenti informazioni sugli intervalli ID"
 
 #: src/config/SSSDConfig/sssdoptions.py:245
 msgid "Search base for view containers"
@@ -1111,37 +1107,37 @@ msgid ""
 "PAM service names that map to the GPO (Deny)InteractiveLogonRight policy "
 "settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
-"(Deny)InteractiveLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
+"InteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:307
 msgid ""
 "PAM service names that map to the GPO (Deny)RemoteInteractiveLogonRight "
 "policy settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
-"(Deny)RemoteInteractiveLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
+"RemoteInteractiveLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:309
 msgid ""
 "PAM service names that map to the GPO (Deny)NetworkLogonRight policy settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
-"(Deny)NetworkLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
+"NetworkLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:310
 msgid ""
 "PAM service names that map to the GPO (Deny)BatchLogonRight policy settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
-"(Deny)BatchLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
+"BatchLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:311
 msgid ""
 "PAM service names that map to the GPO (Deny)ServiceLogonRight policy settings"
 msgstr ""
-"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO "
-"(Deny)ServiceLogonRight"
+"Nomi dei servizi PAM che mappano alle impostazioni della policy GPO (Deny)"
+"ServiceLogonRight"
 
 #: src/config/SSSDConfig/sssdoptions.py:312
 msgid "PAM service names for which GPO-based access is always granted"
@@ -1226,8 +1222,7 @@ msgstr "Abilita la validazione delle credenziali"
 
 #: src/config/SSSDConfig/sssdoptions.py:337
 msgid "Store password if offline for later online authentication"
-msgstr ""
-"Memorizza la password se offline per l'autenticazione online successiva"
+msgstr "Memorizza la password se offline per l'autenticazione online successiva"
 
 #: src/config/SSSDConfig/sssdoptions.py:338
 msgid "Renewable lifetime of the TGT"
@@ -1659,33 +1654,28 @@ msgid "A list of extra attributes to download along with the user entry"
 msgstr "Un elenco di attributi extra da scaricare insieme alla voce utente"
 
 #: src/config/SSSDConfig/sssdoptions.py:456
-#, fuzzy
 msgid "The object class of an subid entry in LDAP."
-msgstr "La classe oggetto di una voce host in LDAP."
+msgstr "La classe dell'oggetto di una voce subid in LDAP."
 
 #: src/config/SSSDConfig/sssdoptions.py:457
-#, fuzzy
 msgid "Subordinate user ID count attribute"
-msgstr "Attributo utente regola sudo"
+msgstr "Attributo del numero di ID utente subordinati"
 
 #: src/config/SSSDConfig/sssdoptions.py:458
-#, fuzzy
 msgid "Subordinate group ID count attribute"
-msgstr "Attributo opzione regola sudo"
+msgstr "Attributo del numero di ID gruppo subordinati"
 
 #: src/config/SSSDConfig/sssdoptions.py:459
-#, fuzzy
 msgid "User ID range start value attribute"
-msgstr "Attributo del nome utente"
+msgstr "Attributo del valore iniziale dell'intervallo di ID utente"
 
 #: src/config/SSSDConfig/sssdoptions.py:460
-#, fuzzy
 msgid "Group ID range start value attribute"
-msgstr "Attributo UUID gruppo"
+msgstr "Attributo del valore iniziale dell'intervallo di ID gruppo"
 
 #: src/config/SSSDConfig/sssdoptions.py:461
 msgid "Owner of an entry"
-msgstr ""
+msgstr "Proprietario di una voce"
 
 #: src/config/SSSDConfig/sssdoptions.py:463
 msgid "Base DN for group lookups"
@@ -2066,8 +2056,7 @@ msgstr "Il nome della libreria NSS da usare"
 
 #: src/config/SSSDConfig/sssdoptions.py:579
 msgid "The name of the NSS library to use for hosts and networks lookups"
-msgstr ""
-"Il nome della libreria NSS da utilizzare per le ricerche di host e reti"
+msgstr "Il nome della libreria NSS da utilizzare per le ricerche di host e reti"
 
 #: src/config/SSSDConfig/sssdoptions.py:580
 msgid "Whether to look up canonical group name from cache if possible"
@@ -2128,9 +2117,9 @@ msgid "Can't read config: '%s'\n"
 msgstr "Impossibile leggere la configurazione: '%s'\n"
 
 #: src/monitor/monitor.c:1878
-#, fuzzy, c-format
+#, c-format
 msgid "Failed to bootstrap SSSD 'monitor' process: %s"
-msgstr "Fallito il bootstrap del processo 'monitor' di SSSD: %s"
+msgstr "Impossibile avviare il processo 'monitor' di SSSD: %s"
 
 #: src/monitor/monitor.c:1973
 msgid "Out of memory\n"
@@ -2174,7 +2163,7 @@ msgstr "Controlla flag PAC"
 
 #: src/providers/krb5/krb5_child.c:4335
 msgid "Set environment variable (KEY=VALUE)"
-msgstr ""
+msgstr "Imposta la variabile d'ambiente (CHIAVE=VALORE)"
 
 #: src/providers/data_provider_be.c:786
 msgid "Domain of the information provider (mandatory)"
@@ -2294,14 +2283,14 @@ msgid "Password change failed. "
 msgstr "Cambio password fallito."
 
 #: src/sss_client/pam_sss.c:2028
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate at \"%1$s\"."
-msgstr "Autenticati su %1$s e premi INVIO."
+msgstr "Autenticarsi su %1$s."
 
 #: src/sss_client/pam_sss.c:2031
-#, fuzzy, c-format
+#, c-format
 msgid "Authenticate with PIN \"%1$s\" at \"%2$s\"."
-msgstr "Autenticati con il PIN %1$s su %2$s e premi INVIO."
+msgstr "Autenticarsi con il PIN %1$s su %2$s."
 
 #: src/sss_client/pam_sss.c:2470
 msgid "Please (re)insert (different) Smartcard"
@@ -2317,7 +2306,7 @@ msgstr "Conferma nuova password: "
 
 #: src/sss_client/pam_sss.c:2890
 msgid "Press ENTER to continue."
-msgstr ""
+msgstr "Premere INVIO per continuare."
 
 #: src/sss_client/pam_sss.c:2913 src/sss_client/pam_sss.c:2916
 msgid "First Factor: "
@@ -2938,8 +2927,8 @@ msgstr "Fallita l'impostazione del contesto certmap.\n"
 #, c-format
 msgid "Failed to add mapping and matching rules with error [%d][%s].\n"
 msgstr ""
-"Fallita l'aggiunta delle regole di mappatura e corrispondenza con errore [%d]"
-"[%s].\n"
+"Fallita l'aggiunta delle regole di mappatura e corrispondenza con errore "
+"[%d][%s].\n"
 
 #: src/tools/sssctl/sssctl_cert.c:251
 msgid "Failed to decode base64 string.\n"
@@ -3006,9 +2995,8 @@ msgid "Run with high debug level to see details.\n"
 msgstr "Esegui con un livello di debug elevato per visualizzare i dettagli\n"
 
 #: src/tools/sssctl/sssctl_config.c:142
-#, fuzzy
 msgid "Failed to run validators\n"
-msgstr "Fallita l'esecuzione dei validatori"
+msgstr "Impossibile eseguire i validatori\n"
 
 #: src/tools/sssctl/sssctl_config.c:146
 #, c-format

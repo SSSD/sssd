@@ -12,8 +12,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-02 15:57+0000\n"
-"PO-Revision-Date: 2026-10-06 11:03+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"PO-Revision-Date: 2026-11-03 18:40+0000\n"
+"Last-Translator: Oğuz Ersen <oguz@ersen.moe>\n"
 "Language-Team: Turkish <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/tr/>\n"
 "Language: tr\n"
@@ -21,7 +21,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n>1);\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.11\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -64,8 +64,7 @@ msgstr "Yanıtlayıcının otomatik kapanmasından önceki boşta geçen süre"
 
 #: src/config/SSSDConfig/sssdoptions.py:26
 msgid "Always query all the caches before querying the Data Providers"
-msgstr ""
-"Veri sağlayıcıları sorgulamadan önce her zaman tüm önbellekleri sorgula"
+msgstr "Veri sağlayıcıları sorgulamadan önce her zaman tüm önbellekleri sorgula"
 
 #: src/config/SSSDConfig/sssdoptions.py:27
 msgid ""
@@ -387,8 +386,7 @@ msgstr "PAM yanıtlayıcısı bir initgroups talebini ne zaman zorlayacak"
 
 #: src/config/SSSDConfig/sssdoptions.py:105
 msgid "List of PAM services that are allowed to authenticate with GSSAPI."
-msgstr ""
-"GSSAPI ile kimlik doğrulamasına izin verilen PAM hizmetlerinin listesi."
+msgstr "GSSAPI ile kimlik doğrulamasına izin verilen PAM hizmetlerinin listesi."
 
 #: src/config/SSSDConfig/sssdoptions.py:106
 msgid "Whether to match authenticated UPN with target user"
@@ -1026,8 +1024,7 @@ msgstr ""
 #: src/config/SSSDConfig/sssdoptions.py:281
 msgid ""
 "The LDAP attribute that contains all users / groups this rule match against."
-msgstr ""
-"Bu kuralın eşleştiği tüm kullanıcıları/grupları içeren LDAP özniteliği."
+msgstr "Bu kuralın eşleştiği tüm kullanıcıları/grupları içeren LDAP özniteliği."
 
 #: src/config/SSSDConfig/sssdoptions.py:283
 msgid "The LDAP attribute that contains the name of SELinux usermap."
