@@ -84,6 +84,8 @@ struct cache_req_cased_name {
 struct cache_req_data {
     enum cache_req_type type;
     struct cache_req_parsed_name name;
+    struct sss_bot *bot;
+
     uint32_t id;
     const char *cert;
     const char *sid;
@@ -159,7 +161,8 @@ cache_req_create_result(TALLOC_CTX *mem_ctx,
                         struct sss_domain_info *domain,
                         struct ldb_result *ldb_result,
                         const char *lookup_name,
-                        const char *well_known_domain);
+                        const char *well_known_domain,
+                        struct sss_bot *bot);
 
 errno_t
 cache_req_create_and_add_result(TALLOC_CTX *mem_ctx,
