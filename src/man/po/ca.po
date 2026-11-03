@@ -15,8 +15,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-10-06 17:40+0000\n"
-"PO-Revision-Date: 2026-10-06 11:00+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"PO-Revision-Date: 2026-11-03 18:36+0000\n"
+"Last-Translator: Alexey Tikhonov <atikhono@redhat.com>\n"
 "Language-Team: Catalan <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/ca/>\n"
 "Language: ca\n"
@@ -24,7 +24,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.11\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:10 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -123,9 +123,9 @@ msgid ""
 "All sections can have an optional <replaceable>description</replaceable> "
 "parameter. Its function is only as a label for the section."
 msgstr ""
-"Totes les seccions poden tenir un paràmetre opcional de "
-"<replaceable>descripció</replaceable>. La seva funció tan sols és una "
-"etiqueta per a la secció."
+"Totes les seccions poden tenir un paràmetre opcional de <replaceable>"
+"descripció</replaceable>. La seva funció tan sols és una etiqueta per a la "
+"secció."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd.conf.5.xml:61
@@ -578,6 +578,8 @@ msgid ""
 "Controls if SSSD should monitor the state of resolv.conf to identify when it "
 "needs to update its internal DNS resolver."
 msgstr ""
+"Controla si l'SSSD ha de controlar l'estat de resolv.conf per identificar "
+"quan necessita actualitzar el seu resoledor DNS intern."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:385
@@ -1231,9 +1233,9 @@ msgid ""
 "if they are requested beyond a percentage of the entry_cache_timeout value "
 "for the domain."
 msgstr ""
-"El valor de la memòria cau es pot establir per actualitzar a automàticament "
-"les entrades en rerefons, si se sol·liciten més enllà d'un percentatge del "
-"valor entry_cache_timeout per al domini."
+"La memòria cau d'entrades es pot establir per actualitzar automàticament les "
+"entrades en segon pla si es demanen més enllà d'un percentatge del valor "
+"entrycachetimeout per al domini."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:864
@@ -1522,6 +1524,8 @@ msgid ""
 "Specifies time in seconds for which the list of subdomains will be "
 "considered valid."
 msgstr ""
+"Especifica el temps en segons pel qual la llista de subdominis es "
+"considerarà vàlida."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1066 sssd.conf.5.xml:1457 sssd.conf.5.xml:1788
@@ -1952,7 +1956,7 @@ msgstr "pam_pwd_expiration_warning (enter)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1426 sssd.conf.5.xml:3037
 msgid "Display a warning N days before the password expires."
-msgstr ""
+msgstr "Mostra un avís N dies abans que caduqui la contrasenya."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:1429
@@ -3309,6 +3313,10 @@ msgid ""
 "Matches user names as returned by NSS. I.e. after the possible space "
 "replacement, case changes, etc."
 msgstr ""
+"Una llista separada per comes d'usuaris que haurien de tenir activada "
+"l'enregistrament de la sessió. Concorda amb els noms d'usuari com retornats "
+"per NSS. És a dir, després de la possible substitució d'espai, canvis de "
+"majúscules i minúscules, etc."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2484 sssd-session-recording.5.xml:115
@@ -3327,6 +3335,10 @@ msgid ""
 "recording enabled. Matches group names as returned by NSS. I.e. after the "
 "possible space replacement, case changes, etc."
 msgstr ""
+"Una llista separada per comes de grups, els membres dels quals haurien de "
+"tenir activada l'enregistrament de la sessió. Concorda amb els noms de grup "
+"com retornats per NSS. És a dir, després de la possible substitució d'espai, "
+"canvis de majúscules i minúscules, etc."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2498 sssd.conf.5.xml:2530 sssd-session-recording.5.xml:129
@@ -3724,6 +3736,8 @@ msgid ""
 "How many seconds to keep a host ssh key after refresh. IE how long to cache "
 "the host key for."
 msgstr ""
+"Quants segons s'ha de mantenir una clau ssh de l'amfitrió després "
+"d'actualitzar. EAD quant de temps s'ha d'emmagatzemar la clau de l'amfitrió."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:2835
@@ -3940,6 +3954,10 @@ msgid ""
 "this value determines the minimal length the first authentication factor "
 "(long term password) must have to be saved as SHA512 hash into the cache."
 msgstr ""
+"Si s'utilitza 2-Factor-Authentication (2FA) i s'han de desar les "
+"credencials, aquest valor determina la longitud mínima que ha de tenir el "
+"primer factor d'autenticació (contrasenya a llarg termini) que s'ha de desar "
+"com a resum SHA512 a la memòria cau."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3008
@@ -4027,9 +4045,9 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ipa</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information on configuring FreeIPA."
 msgstr ""
-"<quote>ldap</quote> per autenticació nativa LDAP. Vegeu "
-"<citerefentry><refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> per a més informació sobre configuració d'LDAP."
+"<quote>ldap</quote> per autenticació nativa LDAP. Vegeu <citerefentry>"
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> per a més informació sobre configuració d'LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3085 sssd.conf.5.xml:3209 sssd.conf.5.xml:3268
@@ -4052,9 +4070,9 @@ msgid ""
 "(IdP). See <citerefentry> <refentrytitle>sssd-idp</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> for more information."
 msgstr ""
-"<quote>ldap</quote> per autenticació nativa LDAP. Vegeu "
-"<citerefentry><refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> per a més informació sobre configuració d'LDAP."
+"<quote>ldap</quote> per autenticació nativa LDAP. Vegeu <citerefentry>"
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> per a més informació sobre configuració d'LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3101
@@ -4174,9 +4192,9 @@ msgid ""
 "<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring LDAP."
 msgstr ""
-"<quote>ldap</quote> per autenticació nativa LDAP. Vegeu "
-"<citerefentry><refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> per a més informació sobre configuració d'LDAP."
+"<quote>ldap</quote> per autenticació nativa LDAP. Vegeu <citerefentry>"
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> per a més informació sobre configuració d'LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3193
@@ -4185,9 +4203,9 @@ msgid ""
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring Kerberos."
 msgstr ""
-"<quote>krb5</quote> per a l'autenticació Kerberos. Vegeu "
-"<citerefentry><refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> per a més informació sobre configurar Kerberos."
+"<quote>krb5</quote> per a l'autenticació Kerberos. Vegeu <citerefentry>"
+"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> per a més informació sobre configurar Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3217
@@ -4201,9 +4219,9 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-idp</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information."
 msgstr ""
-"<quote>ldap</quote> per autenticació nativa LDAP. Vegeu "
-"<citerefentry><refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> per a més informació sobre configuració d'LDAP."
+"<quote>ldap</quote> per autenticació nativa LDAP. Vegeu <citerefentry>"
+"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> per a més informació sobre configuració d'LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3225
@@ -4315,9 +4333,9 @@ msgid ""
 "<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum> </"
 "citerefentry> for more information on configuring Kerberos."
 msgstr ""
-"<quote>krb5</quote> per canviar la contrasenya Kerberos. Vegeu "
-"<citerefentry><refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> per a més informació sobre configurar Kerberos."
+"<quote>krb5</quote> per canviar la contrasenya Kerberos. Vegeu <citerefentry>"
+"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> per a més informació sobre configurar Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3339
@@ -4820,12 +4838,12 @@ msgid ""
 "<citerefentry> <refentrytitle>sssd-ad</refentrytitle> <manvolnum>5</"
 "manvolnum> </citerefentry> for more information about the service resolution."
 msgstr ""
-"Especifica el temps d'espera (en segons) després que el "
-"<citerefentry><refentrytitle>sondeig</refentrytitle> <manvolnum>2</"
-"manvolnum></citerefentry>/<citerefentry><refentrytitle>selecció</"
-"refentrytitle> <manvolnum>2</manvolnum></citerefentry> seguit d'una "
-"<citerefentry><refentrytitle>connexió</refentrytitle> <manvolnum>2</"
-"manvolnum></citerefentry> retorna en cas de cap activitat."
+"Especifica el temps d'espera (en segons) després que el <citerefentry>"
+"<refentrytitle>sondeig</refentrytitle> <manvolnum>2</manvolnum></"
+"citerefentry>/<citerefentry><refentrytitle>selecció</refentrytitle> "
+"<manvolnum>2</manvolnum></citerefentry> seguit d'una <citerefentry>"
+"<refentrytitle>connexió</refentrytitle> <manvolnum>2</manvolnum></"
+"citerefentry> retorna en cas de cap activitat."
 
 #. type: Content of: <refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3762 sssd-ldap.5.xml:700 include/failover.xml:84
@@ -5231,6 +5249,8 @@ msgstr "realmd_tags (cadena)"
 msgid ""
 "Various tags stored by the realmd configuration service for this domain."
 msgstr ""
+"Diverses etiquetes emmagatzemades pel servei de configuració del realmd per "
+"aquest domini."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:4093
@@ -6484,8 +6504,8 @@ msgid ""
 "ldap_search_base = cn=host_specific,dc=example,dc=com?subtree?"
 "(host=thishost)?dc=example.com?subtree?"
 msgstr ""
-"ldap_search_base = cn=host_specific,dc=exemple,dc=com?subtree?"
-"(host=thishost)?dc=exemple.com?subtree?"
+"ldap_search_base = cn=host_specific,dc=exemple,dc=com?subtree?(host=thishost)"
+"?dc=exemple.com?subtree?"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:144
@@ -6922,12 +6942,12 @@ msgid ""
 "<refentrytitle>connect</refentrytitle> <manvolnum>2</manvolnum> </"
 "citerefentry> returns in case of no activity."
 msgstr ""
-"Especifica el temps d'espera (en segons) després que el "
-"<citerefentry><refentrytitle>sondeig</refentrytitle> <manvolnum>2</"
-"manvolnum></citerefentry>/<citerefentry><refentrytitle>selecció</"
-"refentrytitle> <manvolnum>2</manvolnum></citerefentry> seguit d'una "
-"<citerefentry><refentrytitle>connexió</refentrytitle> <manvolnum>2</"
-"manvolnum></citerefentry> retorna en cas de cap activitat."
+"Especifica el temps d'espera (en segons) després que el <citerefentry>"
+"<refentrytitle>sondeig</refentrytitle> <manvolnum>2</manvolnum></"
+"citerefentry>/<citerefentry><refentrytitle>selecció</refentrytitle> "
+"<manvolnum>2</manvolnum></citerefentry> seguit d'una <citerefentry>"
+"<refentrytitle>connexió</refentrytitle> <manvolnum>2</manvolnum></"
+"citerefentry> retorna en cas de cap activitat."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:587
@@ -7556,8 +7576,8 @@ msgid ""
 msgstr ""
 "Aquesta opció s'anomenava <quote>krb5_kdcip</quote> en les primeres versions "
 "de l'SSSD. Mentre que el nom antic és reconegut de moment, s'aconsella als "
-"usuaris que migrin els seus fitxers de configuració per utilitzar "
-"<quote>krb5_server</quote>."
+"usuaris que migrin els seus fitxers de configuració per utilitzar <quote>"
+"krb5_server</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:1187 sssd-ipa.5.xml:570 sssd-krb5.5.xml:103
@@ -8114,6 +8134,8 @@ msgid ""
 "Allows to retain local users as members of an LDAP group for servers that "
 "use the RFC2307 schema."
 msgstr ""
+"Permet retenir usuaris locals com a membres d'un grup LDAP per a servidors "
+"que utilitzen l'esquema RFC2307."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1646
@@ -8461,7 +8483,7 @@ msgstr "ldap_autofs_map_master_name (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1965
 msgid "The name of the automount master map in LDAP."
-msgstr ""
+msgstr "El nom del mapa mestre de muntatge automàtic en LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:1968
@@ -8607,9 +8629,9 @@ msgid ""
 "distribution."
 msgstr ""
 "Les descripcions d'algunes de les opcions de configuració en aquesta pàgina "
-"del manual es basen en la pàgina del manual <citerefentry>de "
-"<refentrytitle>ldap.conf</refentrytitle> <manvolnum>5</manvolnum></"
-"citerefentry> de la distribució d'OpenLDAP 2.4."
+"del manual es basen en la pàgina del manual <citerefentry>de <refentrytitle>"
+"ldap.conf</refentrytitle> <manvolnum>5</manvolnum></citerefentry> de la "
+"distribució d'OpenLDAP 2.4."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: pam_sss.8.xml:11 pam_sss.8.xml:16
@@ -8743,8 +8765,8 @@ msgid ""
 msgstr ""
 "Si us plau, tingueu en compte que aquesta opció podria no funcionar com "
 "s'espera si l'aplicació que crida PAM gestiona pel seu compte el diàleg amb "
-"l'usuari. Un exemple típic és <command>sshd</command> amb "
-"<option>PasswordAuthentication</option>."
+"l'usuari. Un exemple típic és <command>sshd</command> amb <option>"
+"PasswordAuthentication</option>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:130
@@ -8810,9 +8832,9 @@ msgid ""
 msgstr ""
 "NOTA: Ha d'utilitzar-se juntament amb les opcions <quote>pam_trusted_users</"
 "quote> i <quote>pam_public_domains</quote>. Si us plau, vegeu la pàgina del "
-"manual de <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> per a més informació sobre aquestes "
-"dues opcions del contestador del PAM."
+"manual de <citerefentry> <refentrytitle>sssd.conf</refentrytitle> <manvolnum>"
+"5</manvolnum> </citerefentry> per a més informació sobre aquestes dues "
+"opcions del contestador del PAM."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:176
@@ -8937,8 +8959,8 @@ msgid ""
 "All module types (<option>account</option>, <option>auth</option>, "
 "<option>password</option> and <option>session</option>) are provided."
 msgstr ""
-"Es proporcionen tots els tipus de mòduls (<option>account</option>, "
-"<option>auth</option>, <option>password</option> i <option>session</option>)."
+"Es proporcionen tots els tipus de mòduls (<option>account</option>, <option>"
+"auth</option>, <option>password</option> i <option>session</option>)."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: pam_sss.8.xml:279
@@ -9643,9 +9665,8 @@ msgstr ""
 "control d'accés simple per a <citerefentry> <refentrytitle>sssd</"
 "refentrytitle> <manvolnum>8</manvolnum></citerefentry>.  Per a una "
 "referència detallada de la sintaxi, aneu a la secció <quote>FORMAT DEL "
-"FITXER</quote> de la pàgina del manual <citerefentry> "
-"<refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry>."
+"FITXER</quote> de la pàgina del manual <citerefentry> <refentrytitle>"
+"sssd.conf</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-simple.5.xml:38
@@ -9900,9 +9921,8 @@ msgstr ""
 "comprovació de l'accés, de manera que fins i tot els grups imbricats es "
 "poden incloure a les llistes d'accés. Si us plau, tingueu cura que l'opció "
 "<quote>ldap_group_nesting_level</quote> pot influir amb els resultats i s'ha "
-"d'establir amb un valor suficient. L'opció (<citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>)."
+"d'establir amb un valor suficient. L'opció (<citerefentry> <refentrytitle>"
+"sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </citerefentry>)."
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sss-certmap.5.xml:10 sss-certmap.5.xml:16
@@ -14421,8 +14441,8 @@ msgid ""
 "replaceable></arg>"
 msgstr ""
 "<command>sss_obfuscate</command> <arg choice='opt'> <replaceable>opcions</"
-"replaceable> </arg> <arg choice='plain'><replaceable>[PASSWORD]</"
-"replaceable></arg>"
+"replaceable> </arg> <arg choice='plain'><replaceable>[PASSWORD]</replaceable>"
+"</arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:32
@@ -14447,12 +14467,12 @@ msgid ""
 "citerefentry> for more details on these parameters."
 msgstr ""
 "La contrasenya en text clar es llegeix de l'entrada estàndard o s'introdueix "
-"de forma interactiva. La contrasenya ofuscada es fica al paràmetre "
-"<quote>ldap_default_authtok</quote> del domini SSSD indicat, i el paràmetre "
-"<quote>ldap_default_authtok_type</quote> s'estableix a "
-"<quote>obfuscated_password</quote>. Consulteu <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle> <manvolnum>5</manvolnum> </"
-"citerefentry> per a més detalls sobre aquests paràmetres."
+"de forma interactiva. La contrasenya ofuscada es fica al paràmetre <quote>"
+"ldap_default_authtok</quote> del domini SSSD indicat, i el paràmetre <quote>"
+"ldap_default_authtok_type</quote> s'estableix a <quote>obfuscated_password</"
+"quote>. Consulteu <citerefentry> <refentrytitle>sssd-ldap</refentrytitle> "
+"<manvolnum>5</manvolnum> </citerefentry> per a més detalls sobre aquests "
+"paràmetres."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_obfuscate.8.xml:49
@@ -14465,9 +14485,9 @@ msgid ""
 msgstr ""
 "Tingueu en compte que ofuscar les contrasenyes <emphasis>no proporciona cap "
 "benefici real de seguretat</emphasis>, ja que un atacant encara podria "
-"extreure la contrasenya amb enginyeria inversa. Es recomana "
-"<emphasis>aferrissadament</emphasis> l'ús de mecanismes d'autenticació "
-"millors com els certificats al cantó del client o el GSSAPI."
+"extreure la contrasenya amb enginyeria inversa. Es recomana <emphasis>"
+"aferrissadament</emphasis> l'ús de mecanismes d'autenticació millors com els "
+"certificats al cantó del client o el GSSAPI."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_obfuscate.8.xml:63
@@ -14495,8 +14515,8 @@ msgid ""
 "The SSSD domain to use the password in. The default name is <quote>default</"
 "quote>."
 msgstr ""
-"El domini SSSD on s'utilitza la contrasenya. El nom per defecte és "
-"<quote>default</quote>."
+"El domini SSSD on s'utilitza la contrasenya. El nom per defecte és <quote>"
+"default</quote>."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_obfuscate.8.xml:86
@@ -15601,8 +15621,8 @@ msgid ""
 "replaceable></arg>"
 msgstr ""
 "<command>sss_debuglevel</command> <arg choice='opt'> <replaceable>opcions</"
-"replaceable> </arg> <arg "
-"choice='plain'><replaceable>NOU_NIVELL_DE_DEPURACIÓ</replaceable></arg>"
+"replaceable> </arg> <arg choice='plain'><replaceable>"
+"NOU_NIVELL_DE_DEPURACIÓ</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_debuglevel.8.xml:32
@@ -15631,9 +15651,8 @@ msgid ""
 "arg>"
 msgstr ""
 "<command>sss_seed</command> <arg choice='opt'> <replaceable>opcions</"
-"replaceable> </arg> <arg choice='plain'>-D <replaceable>DOMINI</"
-"replaceable></arg> <arg choice='plain'>-n <replaceable>USUARI</replaceable></"
-"arg>"
+"replaceable> </arg> <arg choice='plain'>-D <replaceable>DOMINI</replaceable>"
+"</arg> <arg choice='plain'>-n <replaceable>USUARI</replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_seed.8.xml:33
@@ -15776,8 +15795,8 @@ msgid ""
 "<option>-p</option>,<option>--password-file</option> <replaceable>PASS_FILE</"
 "replaceable>"
 msgstr ""
-"<option>-p</option>,<option>--password-file</option> "
-"<replaceable>FITXER_CONTRASENYA</replaceable>"
+"<option>-p</option>,<option>--password-file</option> <replaceable>"
+"FITXER_CONTRASENYA</replaceable>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_seed.8.xml:153
@@ -15877,9 +15896,9 @@ msgid ""
 "<citerefentry><refentrytitle>sssd.conf</refentrytitle> <manvolnum>5</"
 "manvolnum></citerefentry>."
 msgstr ""
-"<quote>krb5</quote> per a l'autenticació Kerberos. Vegeu "
-"<citerefentry><refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> per a més informació sobre configurar Kerberos."
+"<quote>krb5</quote> per a l'autenticació Kerberos. Vegeu <citerefentry>"
+"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> per a més informació sobre configurar Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-ifp.5.xml:62
@@ -16036,9 +16055,9 @@ msgid ""
 msgstr ""
 "Es poden afegir altres atributs a aquest conjunt amb <quote>+nom_atribut</"
 "quote> o suprimir explícitament un atribut amb <quote>-nom_atribut</quote>. "
-"Per exemple, per permetre <quote>telephoneNumber</quote> però denegar "
-"<quote>loginShell</quote>, podríeu utilitzar la següent configuració: "
-"<placeholder type=\"programlisting\" id=\"0\"/>"
+"Per exemple, per permetre <quote>telephoneNumber</quote> però denegar <quote>"
+"loginShell</quote>, podríeu utilitzar la següent configuració: <placeholder "
+"type=\"programlisting\" id=\"0\"/>"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sssd-ifp.5.xml:151
@@ -16252,9 +16271,9 @@ msgid ""
 "<replaceable>options</replaceable> </arg> <arg "
 "choice='plain'><replaceable>USER</replaceable></arg>"
 msgstr ""
-"<command>sss_ssh_authorizedkeys</command> <arg choice='opt'> "
-"<replaceable>opcions</replaceable> </arg> <arg "
-"choice='plain'><replaceable>USUARI</replaceable></arg>"
+"<command>sss_ssh_authorizedkeys</command> <arg choice='opt'> <replaceable>"
+"opcions</replaceable> </arg> <arg choice='plain'><replaceable>USUARI</"
+"replaceable></arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sss_ssh_authorizedkeys.1.xml:32
@@ -16968,9 +16987,9 @@ msgid ""
 "section of the <citerefentry> <refentrytitle>sssd.conf</refentrytitle> "
 "<manvolnum>5</manvolnum> </citerefentry> manual page."
 msgstr ""
-"<quote>krb5</quote> per a l'autenticació Kerberos. Vegeu "
-"<citerefentry><refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> per a més informació sobre configurar Kerberos."
+"<quote>krb5</quote> per a l'autenticació Kerberos. Vegeu <citerefentry>"
+"<refentrytitle>sssd-krb5</refentrytitle> <manvolnum>5</manvolnum></"
+"citerefentry> per a més informació sobre configurar Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><para>
 #: sssd-kcm.8.xml:222
@@ -17646,8 +17665,7 @@ msgstr "ldap_user_uid_number (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:71
 msgid "The LDAP attribute that corresponds to the user's id."
-msgstr ""
-"L'atribut LDAP que correspon al númerdo de l'identificador de l'usuari."
+msgstr "L'atribut LDAP que correspon al númerdo de l'identificador de l'usuari."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:75
@@ -17802,9 +17820,9 @@ msgid ""
 "the last password change)."
 msgstr ""
 "En utilitzar ldap_pwd_policy=shadow, aquest paràmetre conté el nom d'un "
-"atribut d'LDAP corresponent al seu homòleg "
-"<citerefentry><refentrytitle>shadow</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> (data de l'últim canvi de contrasenya)."
+"atribut d'LDAP corresponent al seu homòleg <citerefentry><refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum></citerefentry> (data de "
+"l'últim canvi de contrasenya)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:203
@@ -17825,9 +17843,9 @@ msgid ""
 "password age)."
 msgstr ""
 "En utilitzar ldap_pwd_policy=shadow, aquest paràmetre conté el nom d'un "
-"atribut d'LDAP corresponent al seu homòleg "
-"<citerefentry><refentrytitle>shadow</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> (edat mínima de la contrasenya)."
+"atribut d'LDAP corresponent al seu homòleg <citerefentry><refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum></citerefentry> (edat mínima "
+"de la contrasenya)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:221
@@ -17848,9 +17866,9 @@ msgid ""
 "password age)."
 msgstr ""
 "En utilitzar ldap_pwd_policy=shadow, aquest paràmetre conté el nom d'un "
-"atribut d'LDAP corresponent al seu homòleg "
-"<citerefentry><refentrytitle>shadow</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> (edat màxima de la contrasenya)."
+"atribut d'LDAP corresponent al seu homòleg <citerefentry><refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum></citerefentry> (edat màxima "
+"de la contrasenya)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:239
@@ -17871,9 +17889,9 @@ msgid ""
 "(password warning period)."
 msgstr ""
 "En utilitzar ldap_pwd_policy=shadow, aquest paràmetre conté el nom d'un "
-"atribut d'LDAP corresponent al seu homòleg "
-"<citerefentry><refentrytitle>shadow</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> (període d'advertència de contrasenya)."
+"atribut d'LDAP corresponent al seu homòleg <citerefentry><refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum></citerefentry> (període "
+"d'advertència de contrasenya)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:258
@@ -17894,9 +17912,9 @@ msgid ""
 "(password inactivity period)."
 msgstr ""
 "En utilitzar ldap_pwd_policy=shadow, aquest paràmetre conté el nom d'un "
-"atribut d'LDAP corresponent al seu homòleg "
-"<citerefentry><refentrytitle>shadow</refentrytitle> <manvolnum>5</"
-"manvolnum></citerefentry> (període d'inactivitat de contrasenya)."
+"atribut d'LDAP corresponent al seu homòleg <citerefentry><refentrytitle>"
+"shadow</refentrytitle> <manvolnum>5</manvolnum></citerefentry> (període "
+"d'inactivitat de contrasenya)."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:277
@@ -18504,7 +18522,7 @@ msgstr "ldap_netgroup_object_class (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:808
 msgid "The object class of a netgroup entry in LDAP."
-msgstr "La classe d'objecte d'una entrada de netgroup a LDAP."
+msgstr "La classe d'objecte d'una entrada de grup net a LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:811
@@ -18524,7 +18542,7 @@ msgstr "ldap_netgroup_name (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:824
 msgid "The LDAP attribute that corresponds to the netgroup name."
-msgstr "L'atribut LDAP que es correspon amb el nom del netgroup."
+msgstr "L'atribut LDAP que correspon al nom del grup de xarxa."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:828
@@ -18539,7 +18557,7 @@ msgstr "ldap_netgroup_member (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:841
 msgid "The LDAP attribute that contains the names of the netgroup's members."
-msgstr "L'atribut LDAP que conté els noms dels membres del netgroup."
+msgstr "L'atribut LDAP que conté els noms dels membres del grup de xarxa."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:845
@@ -18591,7 +18609,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:897
 msgid "The object class of a host entry in LDAP."
-msgstr ""
+msgstr "La classe d'objecte d'una entrada d'amfitrió a LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:900 sssd-ldap-attributes.5.xml:1213
@@ -18653,7 +18671,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:961
 msgid "The LDAP attribute that contains the host's SSH public keys."
-msgstr ""
+msgstr "L'atribut LDAP que conté les claus públiques SSH de l'amfitrió."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap-attributes.5.xml:971
@@ -19013,10 +19031,8 @@ msgstr "ldap_sudorule_object_class (cadena)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1300
-#, fuzzy
-#| msgid "The object class of a user entry in LDAP."
 msgid "The object class of an subid entry in LDAP."
-msgstr "La classe d'objecte d'una entrada d'usuari a LDAP."
+msgstr "La classe d'objecte d'una entrada de subid en LDAP."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1303
@@ -19111,7 +19127,7 @@ msgstr "ldap_sudorule_order (cadena)"
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1360
 msgid "Owner of an entry"
-msgstr ""
+msgstr "Propietari d'una entrada"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap-attributes.5.xml:1363
@@ -20617,9 +20633,9 @@ msgid ""
 "well."
 msgstr ""
 "Les descripcions d'algunes de les opcions de configuració en aquesta pàgina "
-"del manual es basen en la pàgina del manual <citerefentry>de "
-"<refentrytitle>ldap.conf</refentrytitle> <manvolnum>5</manvolnum></"
-"citerefentry> de la distribució d'OpenLDAP 2.4."
+"del manual es basen en la pàgina del manual <citerefentry>de <refentrytitle>"
+"ldap.conf</refentrytitle> <manvolnum>5</manvolnum></citerefentry> de la "
+"distribució d'OpenLDAP 2.4."
 
 #. type: Content of: <variablelist><varlistentry><term>
 #: include/krb5_options.xml:44
