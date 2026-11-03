@@ -17,6 +17,7 @@
 
 #include <talloc.h>
 #include <tevent.h>
+#include <time.h>
 #include <errno.h>
 
 #include "config.h"
@@ -28,8 +29,141 @@
 #include "util/util.h"
 
 struct sss_failover_ldap_connect_state {
+    struct tevent_context *ev;
+    struct sss_failover_ctx *fctx;
+    time_t op_timeout;
+    time_t idle_timeout;
+
     struct sss_failover_ldap_connection *connection;
 };
+
+static int
+sss_failover_ldap_connection_destructor(struct sss_failover_ldap_connection *conn)
+{
+    /* This will trigger sdap_handle destructor and terminates the connection. */
+    talloc_zfree(conn->sh);
+
+    return 0;
+}
+
+static void
+sss_failover_ldap_connection_expired(struct tevent_context *ev,
+                                     struct tevent_timer *te,
+                                     struct timeval current_time,
+                                     void *pvt)
+{
+    struct sss_failover_ldap_connection *connection;
+
+    connection = talloc_get_type(pvt, struct sss_failover_ldap_connection);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Connection %p to server %s expired\n", connection,
+          connection->server->name);
+
+    /* Remove connection from the failover context. This will force failover to
+     * reconnect and terminate the connection when all references to it are
+     * dropped. */
+    sss_failover_connection_remove(connection->fctx, connection);
+}
+
+static errno_t
+sss_failover_ldap_connection_setup_expiration(
+    struct tevent_context *ev,
+    struct sss_failover_ldap_connection *connection,
+    time_t expire_time,
+    time_t op_timeout)
+{
+    struct tevent_timer *te;
+    struct timeval tv = {0};
+    time_t schedule;
+
+    /* Expiration is disabled. */
+    if (expire_time <= 0) {
+        return EOK;
+    }
+
+    schedule = expire_time - op_timeout;
+    if (schedule <= time(NULL)) {
+        DEBUG(SSSDBG_TRACE_ALL, "Not starting expire timer because connection "
+                                "is already expired\n");
+        return EOK;
+    }
+
+    tv.tv_sec = schedule;
+
+    te = tevent_add_timer(ev, connection, tv,
+                          sss_failover_ldap_connection_expired, connection);
+    if (te == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    return EOK;
+}
+
+static errno_t
+sss_failover_ldap_connection_setup_idle(
+    struct tevent_context *ev,
+    struct sss_failover_ldap_connection *connection,
+    time_t idle_timeout);
+
+static void
+sss_failover_ldap_connection_idle(struct tevent_context *ev,
+                                  struct tevent_timer *te,
+                                  struct timeval current_time,
+                                  void *pvt)
+{
+    struct sss_failover_ldap_connection *connection;
+    errno_t ret;
+
+    connection = talloc_get_type(pvt, struct sss_failover_ldap_connection);
+
+    if (connection->idle_since != 0 && connection->idle_since + connection->idle_timeout <= time(NULL)) {
+        DEBUG(SSSDBG_TRACE_ALL,
+              "Connection %p has reached idle timeout, releasing it\n", connection);
+        sss_failover_connection_remove(connection->fctx, connection);
+        return;
+    }
+
+    /* Not idle enough. */
+    ret = sss_failover_ldap_connection_setup_idle(ev, connection,
+                                                  connection->idle_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Unable to setup connection idle handler, "
+                                   "idle timeout will not work\n");
+    }
+}
+
+static errno_t
+sss_failover_ldap_connection_setup_idle(
+    struct tevent_context *ev,
+    struct sss_failover_ldap_connection *connection,
+    time_t idle_timeout)
+{
+    struct tevent_timer *te;
+    struct timeval tv = {0};
+
+    if (idle_timeout <= 0) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Connection idle timeout is disabled\n");
+        return EOK;
+    }
+
+    if (connection->idle_since == 0) {
+        tv = tevent_timeval_current_ofs(idle_timeout, 0);
+    } else {
+        tv = tevent_timeval_set(connection->idle_since + idle_timeout, 0);
+    }
+
+    DEBUG(SSSDBG_TRACE_ALL,
+          "Scheduling connection idle timer to run at %"SPRItime"\n", tv.tv_sec);
+
+    te = tevent_add_timer(ev, connection, tv, sss_failover_ldap_connection_idle,
+                          connection);
+    if (te == NULL) {
+        return ENOMEM;
+    }
+
+    return EOK;
+}
 
 static void sss_failover_ldap_connect_done(struct tevent_req *subreq);
 
@@ -38,8 +172,6 @@ sss_failover_ldap_connect_send(TALLOC_CTX *mem_ctx,
                                struct tevent_context *ev,
                                struct sss_failover_ctx *fctx,
                                struct sss_failover_server *server,
-                               bool addr_changed,
-                               bool reuse_connection,
                                bool authenticate_connection,
                                bool read_rootdse,
                                enum sss_failover_transaction_tls force_tls,
@@ -53,8 +185,6 @@ sss_failover_ldap_connect_send(TALLOC_CTX *mem_ctx,
     enum connect_tls tls;
     errno_t ret;
 
-    /* TODO handle active connection */
-
     opts = talloc_get_type_abort(pvt, struct sdap_options);
 
     req = tevent_req_create(mem_ctx, &state,
@@ -64,8 +194,25 @@ sss_failover_ldap_connect_send(TALLOC_CTX *mem_ctx,
         return NULL;
     }
 
+    state->ev = ev;
+    state->fctx = fctx;
+    state->op_timeout = dp_opt_get_int(opts->basic, SDAP_OPT_TIMEOUT);
+    state->idle_timeout = dp_opt_get_int(opts->basic, SDAP_IDLE_TIMEOUT);
+
     state->connection = talloc_zero(state, struct sss_failover_ldap_connection);
     if (state->connection == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    state->connection->fctx = fctx;
+    state->connection->op_count = 0;
+    state->connection->idle_timeout = state->idle_timeout;
+    state->connection->idle_since = time(NULL);
+
+    state->connection->server = talloc_reference(state->connection, server);
+    if (state->connection->server == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory\n");
         ret = ENOMEM;
         goto done;
@@ -77,6 +224,9 @@ sss_failover_ldap_connect_send(TALLOC_CTX *mem_ctx,
         ret = ENOMEM;
         goto done;
     }
+
+    talloc_set_destructor(state->connection,
+                          sss_failover_ldap_connection_destructor);
 
     switch (force_tls) {
     case SSS_FAILOVER_TRANSACTION_TLS_DEFAULT:
@@ -135,6 +285,23 @@ sss_failover_ldap_connect_done(struct tevent_req *subreq)
     talloc_steal(state->connection, state->connection->sh);
     talloc_steal(state->connection, state->connection->srv_opts);
 
+    ret = sss_failover_ldap_connection_setup_expiration(state->ev,
+                state->connection, state->connection->sh->expire_time,
+                state->op_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to setup connection expiration handler\n");
+        goto done;
+    }
+
+    ret = sss_failover_ldap_connection_setup_idle(state->ev, state->connection,
+                                                  state->idle_timeout);
+    if (ret != EOK) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Unable to setup connection idle handler\n");
+        goto done;
+    }
+
 done:
     if (ret != EOK) {
         tevent_req_error(req, ret);
@@ -159,4 +326,40 @@ sss_failover_ldap_connect_recv(TALLOC_CTX *mem_ctx,
     }
 
     return EOK;
+}
+
+void
+sss_failover_ldap_connect_op_start(struct sss_failover_ctx *fctx,
+                                   void *connection,
+                                   void *pvt)
+{
+    struct sss_failover_ldap_connection *conn;
+
+    conn = talloc_get_type_abort(connection,
+                                 struct sss_failover_ldap_connection);
+
+    conn->op_count++;
+    conn->idle_since = 0;
+}
+
+void
+sss_failover_ldap_connect_op_done(struct sss_failover_ctx *fctx,
+                                  void *connection,
+                                  void *pvt)
+{
+    struct sss_failover_ldap_connection *conn;
+
+    conn = talloc_get_type_abort(connection,
+                                 struct sss_failover_ldap_connection);
+
+    conn->op_count--;
+    if (conn->op_count == 0) {
+        conn->idle_since = time(NULL);
+        return;
+    }
+
+    if (conn->op_count < 0) {
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Bug: op_count < 0, idle timeout will not work correctly\n");
+    }
 }
