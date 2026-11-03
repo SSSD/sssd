@@ -1061,7 +1061,7 @@ def test_ldap__display_password_expiration_warning(client: Client, ldap: LDAP):
         3. Same results are expected for 'ssh' too
     :customerscenario: False
     """
-    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "86400", "passwordWarning": "86400"})
+    ldap.password_policy.expiration(max_age=86400, warning_time=86400)
     ldap.user("user1").add(password="Secret123")
     client.sssd.start()
 
@@ -1204,7 +1204,7 @@ def test_ldap__display_grace_logins_when_password_has_expired(client: Client, ld
         3. Results above are expected in every iteration
     :customerscenario: False
     """
-    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "2"})
+    ldap.password_policy.expiration(max_age=1, grace_limit=2)
     ldap.user("user1").add(password="Secret123")
     client.sssd.start()
     time.sleep(2)
@@ -1244,7 +1244,7 @@ def test_ldap__authentication_fails_once_password_max_age_is_reached(client: Cli
         3. Authentication succeeds using both methods with the original password
     :customerscenario: False
     """
-    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "0"})
+    ldap.password_policy.expiration(max_age=1, grace_limit=0)
     ldap.user("user1").add(password="Secret123")
     time.sleep(2)
     client.sssd.start()
@@ -1255,7 +1255,7 @@ def test_ldap__authentication_fails_once_password_max_age_is_reached(client: Cli
             rc == 1
         ), f"Expected authentication failure due to expired password and no grace logins! Method: {method}."
 
-    ldap.ldap.modify("cn=config", replace={"passwordExp": "off"})
+    ldap.password_policy.expiration(enable=False)
 
     for method in ["su", "ssh"]:
         assert client.auth.parametrize(method).password(
