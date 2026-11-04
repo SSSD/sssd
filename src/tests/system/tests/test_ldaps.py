@@ -9,8 +9,11 @@ topology controller during setup.
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 from sssd_test_framework.roles.client import Client
+from sssd_test_framework.roles.generic import GenericProvider
 from sssd_test_framework.roles.ipa import IPA
 from sssd_test_framework.roles.samba import Samba
 from sssd_test_framework.topology import KnownTopology
@@ -33,7 +36,7 @@ def test_ldaps__samba_user_lookup_over_ldaps(client: Client, samba: Samba):
     """
     samba.user("tuser").add(uid=10001, gid=10001)
 
-    client.sssd.common.ssl_tls(samba)
+    client.sssd.common.ssl_tls(cast(GenericProvider, samba))
     client.sssd.start()
 
     result = client.tools.getent.passwd("tuser@samba.test")
@@ -74,7 +77,7 @@ def test_ldaps__samba_ssl_tls_sets_sssd_options(client: Client, samba: Samba):
         1. ad_use_ldaps = True
         2. ldap_tls_cacert = /etc/pki/ca-trust/source/anchors/samba-ca.crt
     """
-    client.sssd.common.ssl_tls(samba)
+    client.sssd.common.ssl_tls(cast(GenericProvider, samba))
 
     assert client.sssd.domain.get("ad_use_ldaps") == "True"
     assert client.sssd.domain.get("ldap_tls_cacert") == "/etc/pki/ca-trust/source/anchors/samba-ca.crt"
@@ -93,7 +96,7 @@ def test_ldaps__ipa_ssl_tls_sets_sssd_options(client: Client, ipa: IPA):
         1. ldap_id_use_start_tls = True
         2. ldap_tls_cacert = /etc/pki/ca-trust/source/anchors/ipa-ca.crt
     """
-    client.sssd.common.ssl_tls(ipa)
+    client.sssd.common.ssl_tls(cast(GenericProvider, ipa))
 
     assert client.sssd.domain.get("ldap_id_use_start_tls") == "True"
     assert client.sssd.domain.get("ldap_tls_cacert") == "/etc/pki/ca-trust/source/anchors/ipa-ca.crt"
@@ -114,7 +117,7 @@ def test_ldaps__ipa_user_lookup_over_starttls(client: Client, ipa: IPA):
     """
     ipa.user("tuser").add()
 
-    client.sssd.common.ssl_tls(ipa)
+    client.sssd.common.ssl_tls(cast(GenericProvider, ipa))
     client.sssd.start()
 
     result = client.tools.getent.passwd("tuser@ipa.test")
