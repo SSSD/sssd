@@ -668,11 +668,13 @@ done:
     return ret;
 }
 
-/* True if the first LEN bytes of OBJCL are the whole of the class NAME,
-   ignoring case.  */
+/* True if the LEN bytes of OBJCL are the whole of the class NAME, ignoring
+   case.  OBJCL comes from the server and may contain a zero byte, so the
+   length is compared before the bytes rather than by indexing NAME at
+   LEN.  */
 static bool class_name_equals(const char *name, const char *objcl, int len)
 {
-    return strncasecmp(name, objcl, len) == 0 && name[len] == '\0';
+    return strlen(name) == (size_t)len && strncasecmp(name, objcl, len) == 0;
 }
 
 static bool objectclass_matched(struct sdap_attr_map *map,
