@@ -448,7 +448,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         goto done;
     }
 
-    /* The RootDSE has the empty DN, so only a missing value is an error.  */
+    /* The RootDSE has the empty DN, so only a missing value is an error. */
     if (bv.bv_val == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "ldap_get_dn_ber returned no DN\n");
         ret = EIO;
@@ -489,7 +489,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         setof_attr_val = bvals;
 
         /* A NULL bv.bv_val w/ LDAP_SUCCESS indicates that "all data
-           has been consumed". */
+         * has been consumed".
+         */
         if (bv.bv_val == NULL) {
             break;
         }
@@ -502,8 +503,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         }
 
         /* The attribute description points into the decoded message and
-           is not guaranteed to be terminated, while sdap_parse_range()
-           and the comparisons against the map require a C string.  */
+         * is not guaranteed to be terminated, while sdap_parse_range()
+         * and the comparisons against the map require a C string.
+         */
         attr_name = talloc_strndup(tmp_ctx, bv.bv_val, bv.bv_len);
         if (attr_name == NULL) {
             ret = ENOMEM;
@@ -540,11 +542,12 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             }
 
             /* An entry may repeat an attribute description, so a later
-               objectClass attribute can still match and the entry is
-               only rejected once the whole message has been parsed.
-               The values are then handled like any other attribute, as
-               a map extended through ldap_user_extra_attrs may store
-               objectClass itself.  */
+             * objectClass attribute can still match and the entry is
+             * only rejected once the whole message has been parsed.
+             * The values are then handled like any other attribute, as
+             * a map extended through ldap_user_extra_attrs may store
+             * objectClass itself.
+             */
         }
 
         ret = sdap_parse_range(tmp_ctx, attr_name, &base_attr, &range_offset,
@@ -669,9 +672,10 @@ done:
 }
 
 /* True if the LEN bytes of OBJCL are the whole of the class NAME, ignoring
-   case.  OBJCL comes from the server and may contain a zero byte, so the
-   length is compared before the bytes rather than by indexing NAME at
-   LEN.  */
+ * case.  OBJCL comes from the server and may contain a zero byte, so the
+ * length is compared before the bytes rather than by indexing NAME at
+ * LEN.
+ */
 static bool class_name_equals(const char *name, const char *objcl, int len)
 {
     return strlen(name) == (size_t)len && strncasecmp(name, objcl, len) == 0;
@@ -710,20 +714,21 @@ static bool objectclass_matched_ber(struct sdap_attr_map *map,
 }
 
 /* True if SETOF_ATTR_VAL, as returned by ldap_get_attribute_ber(), holds
-   at least one value.  An attribute that carries no values leaves the
-   value array unset, so SETOF_ATTR_VAL is NULL rather than empty.  */
+ * at least one value.  An attribute that carries no values leaves the
+ * value array unset, so SETOF_ATTR_VAL is NULL rather than empty.
+ */
 static bool attribute_has_values(const struct berval *setof_attr_val)
 {
     return setof_attr_val != NULL && setof_attr_val[0].bv_val != NULL;
 }
 
-/* The length of BV as a printf precision, which is an int.  */
+/* The length of BV as a printf precision, which is an int. */
 static int berval_precision(const struct berval bv)
 {
     return bv.bv_len > INT_MAX ? INT_MAX : (int)bv.bv_len;
 }
 
-/* True if BV contains a zero byte, which an LDAPString never does.  */
+/* True if BV contains a zero byte, which an LDAPString never does. */
 static bool berval_has_zero_byte(const struct berval bv)
 {
     return memchr(bv.bv_val, '\0', bv.bv_len) != NULL;
