@@ -1502,6 +1502,6 @@ def test_authentication__user_authentication_over_ldaps(client: Client, provider
         client.firewall.outbound.drop_port(389)
     client.sssd.start()
 
-    assert client.auth.su.password(user.name, "Secret123"), (
-        f"Authentication failed for '{user.name}' over encrypted LDAP"
-    )
+    assert client.auth.su.password(
+        user.name, "Secret123"
+    ), f"Authentication failed for '{user.name}' over encrypted LDAP"
