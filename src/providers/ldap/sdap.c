@@ -417,7 +417,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 {
     struct sysdb_attrs *attrs;
     BerElement *ber = NULL;
-    struct berval bv, *bvals = NULL;
+    struct berval bv;
+    struct berval *bvals = NULL;
     const struct berval *setof_attr_val;
     const char *attr_name;
     struct ldb_val v;
@@ -431,10 +432,10 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     uint32_t range_offset;
     TALLOC_CTX *tmp_ctx = talloc_new(NULL);
 
-    if (!tmp_ctx) return ENOMEM;
+    if (tmp_ctx == NULL) return ENOMEM;
 
     attrs = sysdb_new_attrs(tmp_ctx);
-    if (!attrs) {
+    if (attrs == NULL) {
         ret = ENOMEM;
         goto done;
     }
@@ -464,14 +465,15 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                       berval_precision(bv), bv.bv_val);
     PROBE(SDAP_PARSE_ENTRY, "OriginalDN", bv.bv_val, bv.bv_len);
     ret = sysdb_attrs_add_mem(attrs, SYSDB_ORIG_DN, bv.bv_val, bv.bv_len);
-    if (ret)
+    if (ret != EOK) {
         goto done;
+    }
 
     /* If there is no map, skip the objectClass matching logic. */
-    object_class_matched = !map;
+    object_class_matched = map == NULL ? true : false;
 
     for (;;) {
-        if (bvals) {
+        if (bvals != NULL) {
             ber_memfree(bvals);
             bvals = NULL;
         }
@@ -488,8 +490,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
         /* A NULL bv.bv_val w/ LDAP_SUCCESS indicates that "all data
            has been consumed". */
-        if (bv.bv_val == NULL)
+        if (bv.bv_val == NULL) {
             break;
+        }
 
         if (berval_has_zero_byte(bv)) {
             DEBUG(SSSDBG_CRIT_FAILURE,
@@ -570,10 +573,10 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
         base64 = false;
 
         name = base_attr;
-        if (map) {
+        if (map != NULL) {
             for (i = 1; i < attrs_num; i++) {
                 /* check if this attr is valid with the chosen schema */
-                if (!map[i].name)
+                if (map[i].name == NULL)
                     continue;
 
                 /* check if it is an attr we are interested in */
@@ -606,7 +609,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
             if (base64) {
                 v.data = sss_base64_enc_ber(attrs, setof_attr_val[i]);
-                if (!v.data) {
+                if (v.data == NULL) {
                     ret = ENOMEM;
                     goto done;
                 }
@@ -618,7 +621,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
 
             PROBE(SDAP_PARSE_ENTRY, attr_name, v.data, v.length);
 
-            if (map) {
+            if (map != NULL) {
                 /* The same LDAP attr might be used for more sysdb
                  * attrs in case there is a map. Find all that match
                  * and copy the value
@@ -626,7 +629,7 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
                 for (ai = base_attr_idx; ai < attrs_num; ai++) {
                     /* check if this attr is valid with the chosen
                      * schema */
-                    if (!map[ai].name) continue;
+                    if (map[ai].name == NULL) continue;
 
                     /* check if it is an attr we are interested in */
                     if (strcasecmp(base_attr, map[ai].name) == 0) {
@@ -640,8 +643,9 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
             } else {
                 /* No map, just store the attribute */
                 ret = sysdb_attrs_add_val(attrs, name, &v);
-                if (ret)
+                if (ret != EOK) {
                     goto done;
+                }
             }
         }
     }
@@ -658,8 +662,8 @@ int sdap_parse_entry(TALLOC_CTX *memctx,
     ret = EOK;
 
 done:
-    if (bvals) ber_memfree(bvals);
-    if (ber) ber_free(ber, 0);
+    if (bvals != NULL) ber_memfree(bvals);
+    if (ber != NULL) ber_free(ber, 0);
     talloc_free(tmp_ctx);
     return ret;
 }
