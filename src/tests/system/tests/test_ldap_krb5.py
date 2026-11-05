@@ -382,3 +382,136 @@ def test_ldap_krb5__password_change_via_ssh(client: Client, provider: GenericPro
     ), f"krb5_child initial auth message not found: {log_content[:500]}!"
 
     assert client.auth.ssh.password("puser1", new_password), "Auth with new password failed after password change!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.authentication
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__k5login_allows_cross_user_access(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: access_provider krb5 honors a second principal listed in another user's .k5login
+
+    With access_provider=krb5, a .k5login listing a second user's Kerberos principal lets that
+    user log into the file owner's account using their own ticket (GSSAPI). Here puser1's .k5login
+    lists both puser1 and puser2, so puser2 (holding puser2's TGT) may access puser1's account.
+
+    :setup:
+        1. Add users puser1 and puser2 to LDAP, each with a matching group
+        2. Add Kerberos principals for puser1 and puser2
+        3. Configure SSSD with LDAP+KRB5 and access_provider=krb5
+        4. Start SSSD
+        5. Create puser1 home directory with a .k5login listing both principals
+    :steps:
+        1. Log in as puser1 directly with puser1's password
+        2. Log in as puser2, then from that session use the cached ticket to SSH as puser1 via GSSAPI
+    :expectedresults:
+        1. puser1 login succeeds (own principal is listed)
+        2. puser2 reaches puser1's account because puser2's principal is listed in puser1's .k5login
+    :customerscenario: True
+    """
+    puser1 = provider.user("puser1").add(uid=2003, gid=2003)
+    provider.group("puser1").add(gid=2003).add_member(puser1)
+    puser2 = provider.user("puser2").add(uid=2004, gid=2004)
+    provider.group("puser2").add(gid=2004).add_member(puser2)
+    kdc.principal("puser1").add()
+    kdc.principal("puser2").add()
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["access_provider"] = "krb5"
+    client.sssd.domain["cache_credentials"] = "true"
+    client.sssd.start()
+
+    assert client.tools.id("puser1") is not None, "puser1 should be resolvable via SSSD!"
+
+    client.fs.mkdir_p("/home/puser1", mode="0700", user="puser1", group="puser1")
+    client.fs.write(
+        "/home/puser1/.k5login",
+        f"puser1@{kdc.realm}\npuser2@{kdc.realm}\n",
+        user="puser1",
+        group="puser1",
+        mode="0640",
+        dedent=False,
+    )
+
+    # puser1 can log in directly (own principal is listed).
+    assert client.auth.ssh.password("puser1", "Secret123"), "puser1 direct login should succeed!"
+
+    # puser2 logs in (obtaining a TGT), then uses GSSAPI to reach puser1's account; puser1's
+    # .k5login authorizes puser2's principal.
+    with client.ssh("puser2", "Secret123") as puser2_ssh:
+        result = puser2_ssh.run(
+            "ssh -q -o StrictHostKeyChecking=no -o PasswordAuthentication=no "
+            "-o PreferredAuthentications=gssapi-with-mic -o GSSAPIAuthentication=yes "
+            f"puser1@{client.host.hostname} whoami",
+            raise_on_error=False,
+        )
+    assert (
+        result.rc == 0 and "puser1" in result.stdout
+    ), f"puser2 should reach puser1's account via .k5login (GSSAPI); rc={result.rc}, out={result.stdout!r}"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.authentication
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__k5login_access_denied_when_ldap_user_deleted(client: Client, provider: GenericProvider, kdc: KDC):
+    """
+    :title: access_provider krb5 denies a deleted LDAP user even if listed in a .k5login
+
+    When puser1 is removed from LDAP, their account can no longer be resolved, so login is denied
+    regardless of the .k5login that still lists their principal, while an unrelated user (puser2)
+    keeps its own access.
+
+    :setup:
+        1. Add users puser1 and puser2 to LDAP, each with a matching group
+        2. Add Kerberos principals for puser1 and puser2
+        3. Configure SSSD with LDAP+KRB5 and access_provider=krb5
+        4. Start SSSD
+        5. Create puser1 home directory with a .k5login listing both principals
+    :steps:
+        1. Log in as puser1 with puser1's password
+        2. Delete puser1 from LDAP and restart SSSD with a clean cache
+        3. Attempt to log in as puser1
+        4. Log in as puser2
+    :expectedresults:
+        1. puser1 login succeeds before deletion
+        2. puser1 is removed from LDAP
+        3. puser1 login fails after deletion
+        4. puser2 login still succeeds
+    :customerscenario: True
+    """
+    puser1 = provider.user("puser1").add(uid=2003, gid=2003)
+    provider.group("puser1").add(gid=2003).add_member(puser1)
+    puser2 = provider.user("puser2").add(uid=2004, gid=2004)
+    provider.group("puser2").add(gid=2004).add_member(puser2)
+    kdc.principal("puser1").add()
+    kdc.principal("puser2").add()
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["access_provider"] = "krb5"
+    client.sssd.domain["cache_credentials"] = "true"
+    client.sssd.start()
+
+    assert client.tools.id("puser1") is not None, "puser1 should be resolvable via SSSD!"
+
+    client.fs.mkdir_p("/home/puser1", mode="0700", user="puser1", group="puser1")
+    client.fs.write(
+        "/home/puser1/.k5login",
+        f"puser1@{kdc.realm}\npuser2@{kdc.realm}\n",
+        user="puser1",
+        group="puser1",
+        mode="0640",
+        dedent=False,
+    )
+
+    # Baseline: puser1 can log in while present in LDAP.
+    assert client.auth.ssh.password("puser1", "Secret123"), "puser1 login should succeed before deletion!"
+
+    # Remove puser1 from LDAP and clear the cache.
+    puser1.delete()
+    client.sssd.restart(clean=True)
+
+    # puser1 is no longer resolvable, so login is denied despite the .k5login entry.
+    assert not client.auth.ssh.password("puser1", "Secret123"), "puser1 login should fail after LDAP deletion!"
+
+    # puser2 is unaffected and retains its own access.
+    assert client.auth.ssh.password("puser2", "Secret123"), "puser2 login should still succeed!"
