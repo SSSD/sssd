@@ -30,6 +30,7 @@ struct sss_failover_ldap_connection {
     struct sdap_server_opts *srv_opts;
     struct sdap_handle *sh;
     char *uri;
+    bool no_mpg_user_fallback;
 };
 
 struct tevent_req *

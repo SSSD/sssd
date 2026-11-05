@@ -99,7 +99,7 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
 
     /* TODO write kdcinfo */
 
-    subreq = sdap_get_tgt_send(state, ev, realm, principal, keytab, lifetime,
+    subreq = sdap_get_tgt_send(state, ev, NULL, realm, principal, keytab, lifetime,
                                timeout);
     if (subreq == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");

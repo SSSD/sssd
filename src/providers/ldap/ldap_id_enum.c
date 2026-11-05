@@ -166,8 +166,7 @@ ldap_id_enumeration_send(TALLOC_CTX *mem_ctx,
     state->dom = ectx->sdom->dom;
     state->id_ctx = talloc_get_type_abort(ectx->pvt, struct sdap_id_ctx);
 
-    subreq = sdap_dom_enum_send(state, ev, state->id_ctx, ectx->sdom,
-                                state->id_ctx->conn);
+    subreq = sdap_dom_enum_send(state, ev, state->id_ctx, ectx->sdom);
     if (subreq == NULL) {
         /* The ptask API will reschedule the enumeration on its own on
          * failure */
