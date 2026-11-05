@@ -50,8 +50,7 @@ dp_pam_handler_send(TALLOC_CTX *mem_ctx,
 
 errno_t
 dp_pam_handler_recv(TALLOC_CTX *mem_ctx,
-                    struct tevent_req *req,
-                    struct pam_data **_pd);
+                    struct tevent_req *req);
 
 struct tevent_req *
 dp_sudo_handler_send(TALLOC_CTX *mem_ctx,

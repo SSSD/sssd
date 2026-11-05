@@ -1920,11 +1920,7 @@ proxy_account_info_handler_send(TALLOC_CTX *mem_ctx,
     ret = proxy_account_info(state, id_ctx, data, params->be_ctx,
                                       params->be_ctx->domain);
 
-    if (ret != EOK) {
-        tevent_req_error(req, ret);
-    } else {
-        tevent_req_done(req);
-    }
+    tevent_req_done_or_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;

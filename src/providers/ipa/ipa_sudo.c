@@ -41,7 +41,7 @@ ipa_sudo_handler_send(TALLOC_CTX *mem_ctx,
     struct ipa_sudo_handler_state *state;
     struct tevent_req *subreq;
     struct tevent_req *req;
-    errno_t ret;
+    errno_t ret = EOK;
 
     req = tevent_req_create(mem_ctx, &state, struct ipa_sudo_handler_state);
     if (req == NULL) {
@@ -79,7 +79,7 @@ ipa_sudo_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    tevent_req_error(req, ret);
+    tevent_req_done_or_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;

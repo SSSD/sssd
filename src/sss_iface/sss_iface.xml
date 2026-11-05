@@ -41,7 +41,6 @@
         <annotation name="codegen.SyncCaller" value="false" />
         <method name="PAM">
             <arg name="pam_data" type="pam_data" direction="in" />
-            <arg name="pam_response" type="pam_response" direction="out" />
         </method>
     </interface>
 
@@ -103,7 +102,6 @@
         <annotation name="codegen.SyncCaller" value="false" />
         <method name="pamHandler">
             <arg name="pam_data" type="pam_data" direction="in" />
-            <arg name="pam_response" type="pam_response" direction="out" />
         </method>
         <method name="sudoHandler">
             <annotation name="codegen.CustomInputHandler" value="true" />

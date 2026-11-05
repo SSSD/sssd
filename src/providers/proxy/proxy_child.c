@@ -301,8 +301,7 @@ static errno_t
 pc_pam_handler(TALLOC_CTX *mem_ctx,
                struct sbus_request *sbus_req,
                struct pc_ctx *pc_ctx,
-               struct pam_data *pd,
-               struct pam_data **_response)
+               struct pam_data *pd)
 {
     errno_t ret;
 
@@ -322,8 +321,6 @@ pc_pam_handler(TALLOC_CTX *mem_ctx,
 
     DEBUG(SSSDBG_CONF_SETTINGS, "Sending result [%d][%s]\n",
           pd->pam_status, pd->domain);
-
-    *_response = pd;
 
     /* We'll return the message and let the
      * parent process kill us.
