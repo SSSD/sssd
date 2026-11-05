@@ -1419,3 +1419,49 @@ def test_authentication__pam_sss_domains_skips_non_matching_krb5_domains(
         assert (
             f"krbtgt/{realm}@{realm}" in result.stdout
         ), f"TGT should come from the {domain} realm ({realm}) when authenticating with that realm's password!"
+
+
+@pytest.mark.importance("high")
+@pytest.mark.ticket(bz=[1762420, 1883467])
+@pytest.mark.topology(KnownTopologyGroup.AnyDC)
+def test_authentication__user_lookup_over_ldaps(client: Client, provider: GenericProvider):
+    """
+    :title: SSSD resolves user identity over encrypted LDAP connection
+    :description:
+        SSSD must resolve user identity over an encrypted LDAP channel.
+
+        - **AD / Samba**: LDAPS on port 636 (``ad_use_ldaps = True``).  Port 389 is
+          blocked to confirm that plain LDAP is not used.
+        - **IPA**: STARTTLS on port 389 (``ldap_id_use_start_tls = True``).  Port 389
+          must remain open because STARTTLS negotiation starts there.
+
+        The domain CA certificate is pre-installed by the topology controller.
+        SSSD is configured for encrypted LDAP via ``client.sssd.common.ssl_tls()``.
+    :setup:
+        1. Create a user on the provider
+        2. Configure SSSD for encrypted LDAP using ssl_tls()
+        3. For AD/Samba: block outbound TCP port 389 to force LDAPS on port 636
+    :steps:
+        1. Start SSSD
+        2. Look up the user with getent passwd
+        3. For AD/Samba: check SSSD domain log for an ldaps:// connection URI
+    :expectedresults:
+        1. SSSD starts successfully
+        2. User is resolved with the correct name
+        3. For AD/Samba: domain log shows an ldaps:// connection URI
+    :customerscenario: True
+    """
+    user = provider.user("ldaps-user").add()
+
+    client.sssd.common.ssl_tls(provider)
+    if provider.name == "ad":
+        client.firewall.outbound.drop_port(389)
+    client.sssd.start()
+
+    result = client.tools.getent.passwd(user.name)
+    assert result is not None, f"User '{user.name}' not found via getent passwd"
+    assert result.name == user.name
+
+    if provider.name == "ad":
+        log = client.fs.read(client.sssd.logs.domain())
+        assert "ldaps://" in log, "SSSD domain log should show an ldaps:// connection"
