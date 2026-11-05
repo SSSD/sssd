@@ -17,11 +17,13 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdint.h>
 #include <string.h>
 #include <dhash.h>
 
 #include "ldb_module.h"
 #include "util/util.h"
+#include "ldb_modules/memberof_transaction.h"
 
 #define DB_MEMBER "member"
 #define DB_GHOST "ghost"
@@ -164,6 +166,13 @@ struct mbof_mod_ctx {
     bool terminate;
 };
 
+struct mbof_rename_ctx {
+    struct mbof_ctx *ctx;
+
+    struct ldb_message **entries;
+    size_t num_entries;
+    size_t current_entry;
+};
 static struct mbof_ctx *mbof_init(struct ldb_module *module,
                                   struct ldb_request *req)
 {
@@ -518,6 +527,10 @@ static int memberof_add(struct ldb_module *module, struct ldb_request *req)
     struct mbof_dn_array *parents;
     struct ldb_dn *valdn;
     int i, ret;
+
+    if (memberof_tx_enabled(module)) {
+        return memberof_tx_add(module, req);
+    }
 
     if (ldb_dn_is_special(req->op.add.message->dn)) {
 
@@ -1277,6 +1290,420 @@ static int mbof_add_muop_callback(struct ldb_request *req,
 
 
 
+/* rename operation */
+
+/*
+ * A rename only changes the DN used to label a member/memberof edge. Unlike a
+ * delete, it does not change the membership graph, so update those labels
+ * directly instead of recalculating all transitive memberships.
+ */
+
+static int mbof_rename_search_callback(struct ldb_request *req,
+                                       struct ldb_reply *ares);
+static int mbof_rename_callback(struct ldb_request *req,
+                                struct ldb_reply *ares);
+static int mbof_rename_mod_callback(struct ldb_request *req,
+                                    struct ldb_reply *ares);
+static int mbof_rename_next_mod(struct mbof_rename_ctx *rename_ctx);
+static int mbof_rename_make_mod(struct mbof_rename_ctx *rename_ctx,
+                                struct ldb_message *entry,
+                                struct ldb_message **_mod_msg);
+static int mbof_rename_replace_values(struct mbof_rename_ctx *rename_ctx,
+                                      struct ldb_message *mod_msg,
+                                      const struct ldb_message_element *src);
+
+static int memberof_rename(struct ldb_module *module,
+                           struct ldb_request *req)
+{
+    static const char *attrs[] = { DB_MEMBER, DB_MEMBEROF, NULL };
+    struct ldb_context *ldb = ldb_module_get_ctx(module);
+    struct mbof_rename_ctx *rename_ctx;
+    struct mbof_ctx *ctx;
+    struct ldb_request *search;
+    const char *old_dn;
+    char *clean_dn;
+    char *expression;
+    errno_t sret;
+    int ret;
+
+    if (memberof_tx_enabled(module)) {
+        return memberof_tx_rename(module, req);
+    }
+
+    if (getenv("SSSD_UPGRADE_DB")) {
+        /* do not do anything during upgrade */
+        return ldb_next_request(module, req);
+    }
+
+    if (ldb_dn_is_special(req->op.rename.olddn)
+            || ldb_dn_is_special(req->op.rename.newdn)) {
+        /* do not manipulate control entries */
+        return ldb_next_request(module, req);
+    }
+
+    ctx = mbof_init(module, req);
+    if (ctx == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    rename_ctx = talloc_zero(ctx, struct mbof_rename_ctx);
+    if (rename_ctx == NULL) {
+        talloc_free(ctx);
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+    rename_ctx->ctx = ctx;
+
+    old_dn = ldb_dn_get_linearized(req->op.rename.olddn);
+    if (old_dn == NULL) {
+        talloc_free(ctx);
+        return LDB_ERR_INVALID_DN_SYNTAX;
+    }
+
+    sret = sss_filter_sanitize_dn(rename_ctx, old_dn, &clean_dn);
+    if (sret != EOK) {
+        talloc_free(ctx);
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    expression = talloc_asprintf(rename_ctx, "(|(%s=%s)(%s=%s))",
+                                 DB_MEMBER, clean_dn,
+                                 DB_MEMBEROF, clean_dn);
+    talloc_zfree(clean_dn);
+    if (expression == NULL) {
+        talloc_free(ctx);
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    ret = ldb_build_search_req(&search, ldb, rename_ctx,
+                               NULL, LDB_SCOPE_SUBTREE,
+                               expression, attrs, NULL,
+                               rename_ctx, mbof_rename_search_callback,
+                               req);
+    if (ret != LDB_SUCCESS) {
+        talloc_free(ctx);
+        return ret;
+    }
+
+    return ldb_request(ldb, search);
+}
+
+static int mbof_rename_search_callback(struct ldb_request *req,
+                                       struct ldb_reply *ares)
+{
+    struct mbof_rename_ctx *rename_ctx;
+    struct mbof_ctx *ctx;
+    struct ldb_context *ldb;
+    struct ldb_request *rename_req;
+    struct ldb_message **entries;
+    int ret;
+
+    rename_ctx = talloc_get_type(req->context, struct mbof_rename_ctx);
+    ctx = rename_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
+
+    if (ares == NULL) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+    if (ares->error != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+
+    switch (ares->type) {
+    case LDB_REPLY_ENTRY:
+        if (rename_ctx->num_entries == SIZE_MAX) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
+        entries = talloc_realloc(rename_ctx, rename_ctx->entries,
+                                 struct ldb_message *,
+                                 rename_ctx->num_entries + 1);
+        if (entries == NULL) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
+        rename_ctx->entries = entries;
+
+        entries[rename_ctx->num_entries] = talloc_steal(entries,
+                                                         ares->message);
+        if (entries[rename_ctx->num_entries] == NULL) {
+            return ldb_module_done(ctx->req, NULL, NULL,
+                                   LDB_ERR_OPERATIONS_ERROR);
+        }
+        rename_ctx->num_entries++;
+        break;
+
+    case LDB_REPLY_REFERRAL:
+        /* ignore */
+        break;
+
+    case LDB_REPLY_DONE:
+        ret = ldb_build_rename_req(&rename_req, ldb, rename_ctx,
+                                   ctx->req->op.rename.olddn,
+                                   ctx->req->op.rename.newdn,
+                                   ctx->req->controls,
+                                   rename_ctx, mbof_rename_callback,
+                                   ctx->req);
+        talloc_zfree(ares);
+        if (ret != LDB_SUCCESS) {
+            return ldb_module_done(ctx->req, NULL, NULL, ret);
+        }
+
+        return ldb_next_request(ctx->module, rename_req);
+    }
+
+    talloc_zfree(ares);
+    return LDB_SUCCESS;
+}
+
+static int mbof_rename_callback(struct ldb_request *req,
+                                struct ldb_reply *ares)
+{
+    struct mbof_rename_ctx *rename_ctx;
+    struct mbof_ctx *ctx;
+    struct ldb_context *ldb;
+    int ret;
+
+    rename_ctx = talloc_get_type(req->context, struct mbof_rename_ctx);
+    ctx = rename_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
+
+    if (ares == NULL) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+    if (ares->error != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+    if (ares->type != LDB_REPLY_DONE) {
+        talloc_zfree(ares);
+        ldb_set_errstring(ldb, "Invalid reply type!");
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    ctx->ret_ctrls = talloc_steal(ctx, ares->controls);
+    ctx->ret_resp = talloc_steal(ctx, ares->response);
+    talloc_zfree(ares);
+
+    ret = mbof_rename_next_mod(rename_ctx);
+    if (ret != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req, NULL, NULL, ret);
+    }
+
+    return LDB_SUCCESS;
+}
+
+static int mbof_rename_replace_values(struct mbof_rename_ctx *rename_ctx,
+                                      struct ldb_message *mod_msg,
+                                      const struct ldb_message_element *src)
+{
+    struct mbof_ctx *ctx = rename_ctx->ctx;
+    struct ldb_message_element *dst;
+    const char *old_dn;
+    const char *new_dn;
+    const char *value;
+    bool changed = false;
+    bool duplicate;
+    unsigned int i;
+    unsigned int j;
+    int ret;
+
+    old_dn = ldb_dn_get_linearized(ctx->req->op.rename.olddn);
+    new_dn = ldb_dn_get_linearized(ctx->req->op.rename.newdn);
+    if (old_dn == NULL || new_dn == NULL) {
+        return LDB_ERR_INVALID_DN_SYNTAX;
+    }
+
+    for (i = 0; i < src->num_values; i++) {
+        if (sss_linearized_dn_match((const char *)src->values[i].data,
+                                    old_dn)) {
+            changed = true;
+            break;
+        }
+    }
+    if (!changed) {
+        return LDB_SUCCESS;
+    }
+
+    ret = ldb_msg_add_empty(mod_msg, src->name, LDB_FLAG_MOD_REPLACE, &dst);
+    if (ret != LDB_SUCCESS) {
+        return ret;
+    }
+
+    dst->values = talloc_array(dst, struct ldb_val, src->num_values);
+    if (dst->values == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    for (i = 0; i < src->num_values; i++) {
+        value = (const char *)src->values[i].data;
+        if (sss_linearized_dn_match(value, old_dn)) {
+            value = new_dn;
+        }
+
+        duplicate = false;
+        for (j = 0; j < dst->num_values; j++) {
+            if (sss_linearized_dn_match(value,
+                                        (const char *)dst->values[j].data)) {
+                duplicate = true;
+                break;
+            }
+        }
+        if (duplicate) {
+            continue;
+        }
+
+        dst->values[dst->num_values].data =
+            (uint8_t *)talloc_strdup(dst->values, value);
+        if (dst->values[dst->num_values].data == NULL) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+        dst->values[dst->num_values].length = strlen(value);
+        dst->num_values++;
+    }
+
+    return LDB_SUCCESS;
+}
+
+static int mbof_rename_make_mod(struct mbof_rename_ctx *rename_ctx,
+                                struct ldb_message *entry,
+                                struct ldb_message **_mod_msg)
+{
+    struct mbof_ctx *ctx = rename_ctx->ctx;
+    struct ldb_message_element *el;
+    struct ldb_message *mod_msg;
+    const char *entry_dn;
+    const char *old_dn;
+    int ret;
+
+    *_mod_msg = NULL;
+
+    old_dn = ldb_dn_get_linearized(ctx->req->op.rename.olddn);
+    entry_dn = ldb_dn_get_linearized(entry->dn);
+    if (old_dn == NULL || entry_dn == NULL) {
+        return LDB_ERR_INVALID_DN_SYNTAX;
+    }
+
+    mod_msg = ldb_msg_new(rename_ctx);
+    if (mod_msg == NULL) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    if (sss_linearized_dn_match(entry_dn, old_dn)) {
+        mod_msg->dn = ctx->req->op.rename.newdn;
+    } else {
+        mod_msg->dn = entry->dn;
+    }
+
+    el = ldb_msg_find_element(entry, DB_MEMBER);
+    if (el != NULL) {
+        ret = mbof_rename_replace_values(rename_ctx, mod_msg, el);
+        if (ret != LDB_SUCCESS) {
+            talloc_free(mod_msg);
+            return ret;
+        }
+    }
+
+    el = ldb_msg_find_element(entry, DB_MEMBEROF);
+    if (el != NULL) {
+        ret = mbof_rename_replace_values(rename_ctx, mod_msg, el);
+        if (ret != LDB_SUCCESS) {
+            talloc_free(mod_msg);
+            return ret;
+        }
+    }
+
+    if (mod_msg->num_elements == 0) {
+        talloc_free(mod_msg);
+        return LDB_SUCCESS;
+    }
+
+    *_mod_msg = mod_msg;
+    return LDB_SUCCESS;
+}
+
+static int mbof_rename_next_mod(struct mbof_rename_ctx *rename_ctx)
+{
+    struct mbof_ctx *ctx = rename_ctx->ctx;
+    struct ldb_context *ldb = ldb_module_get_ctx(ctx->module);
+    struct ldb_request *mod_req;
+    struct ldb_message *mod_msg;
+    int ret;
+
+    while (rename_ctx->current_entry < rename_ctx->num_entries) {
+        ret = mbof_rename_make_mod(rename_ctx,
+                                   rename_ctx->entries[rename_ctx->current_entry],
+                                   &mod_msg);
+        rename_ctx->current_entry++;
+        if (ret != LDB_SUCCESS) {
+            return ret;
+        }
+        if (mod_msg == NULL) {
+            continue;
+        }
+
+        ret = ldb_build_mod_req(&mod_req, ldb, rename_ctx,
+                                mod_msg, NULL,
+                                rename_ctx, mbof_rename_mod_callback,
+                                ctx->req);
+        if (ret != LDB_SUCCESS) {
+            return ret;
+        }
+
+        return ldb_next_request(ctx->module, mod_req);
+    }
+
+    return ldb_module_done(ctx->req, ctx->ret_ctrls, ctx->ret_resp,
+                           LDB_SUCCESS);
+}
+
+static int mbof_rename_mod_callback(struct ldb_request *req,
+                                    struct ldb_reply *ares)
+{
+    struct mbof_rename_ctx *rename_ctx;
+    struct mbof_ctx *ctx;
+    struct ldb_context *ldb;
+    int ret;
+
+    rename_ctx = talloc_get_type(req->context, struct mbof_rename_ctx);
+    ctx = rename_ctx->ctx;
+    ldb = ldb_module_get_ctx(ctx->module);
+
+    if (ares == NULL) {
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+    if (ares->error != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req,
+                               ares->controls,
+                               ares->response,
+                               ares->error);
+    }
+    if (ares->type != LDB_REPLY_DONE) {
+        talloc_zfree(ares);
+        ldb_set_errstring(ldb, "Invalid reply type!");
+        return ldb_module_done(ctx->req, NULL, NULL,
+                               LDB_ERR_OPERATIONS_ERROR);
+    }
+
+    talloc_zfree(ares);
+    ret = mbof_rename_next_mod(rename_ctx);
+    if (ret != LDB_SUCCESS) {
+        return ldb_module_done(ctx->req, NULL, NULL, ret);
+    }
+
+    return LDB_SUCCESS;
+}
+
+
+
 /* delete operations */
 
 /* The implementation of delete operations is a bit more complex than an add
@@ -1408,6 +1835,10 @@ static int memberof_del(struct ldb_module *module, struct ldb_request *req)
     struct mbof_ctx *ctx;
     int ret;
     errno_t sret;
+
+    if (memberof_tx_enabled(module)) {
+        return memberof_tx_delete(module, req);
+    }
 
     if (ldb_dn_is_special(req->op.del.dn)) {
         /* do not manipulate our control entries */
@@ -2953,6 +3384,10 @@ static int memberof_mod(struct ldb_module *module, struct ldb_request *req)
     struct ldb_request *search;
     int ret;
 
+    if (memberof_tx_enabled(module)) {
+        return memberof_tx_modify(module, req);
+    }
+
     if (getenv("SSSD_UPGRADE_DB")) {
         /* do not do anything during upgrade */
         return ldb_next_request(module, req);
@@ -3939,18 +4374,88 @@ struct mbof_member {
     bool orig_has_memberof;
     bool orig_has_memberuid;
     struct ldb_message_element *orig_members;
+    hash_table_t *orig_memberofs;
+    hash_table_t *orig_memuids;
 
     struct mbof_member **members;
 
     hash_table_t *memberofs;
 
     struct ldb_message_element *memuids;
+    hash_table_t *memuid_set;
 
     enum { MBOF_GROUP_TO_DO = 0,
            MBOF_GROUP_DONE,
            MBOF_USER,
            MBOF_ITER_ERROR } status;
 };
+
+static int mbof_hash_values(TALLOC_CTX *mem_ctx,
+                            const struct ldb_message_element *el,
+                            hash_table_t **_table)
+{
+    hash_table_t *table;
+    hash_value_t value;
+    hash_key_t key;
+    unsigned int i;
+    int ret;
+
+    *_table = NULL;
+    if (el == NULL || el->num_values == 0) {
+        return LDB_SUCCESS;
+    }
+
+    ret = hash_create_ex(el->num_values, &table, 0, 0, 0, 0,
+                         hash_alloc, hash_free, mem_ctx, NULL, NULL);
+    if (ret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
+    value.type = HASH_VALUE_UNDEF;
+    for (i = 0; i < el->num_values; i++) {
+        key.type = HASH_KEY_STRING;
+        key.str = (char *)el->values[i].data;
+        if (hash_has_key(table, &key)) {
+            continue;
+        }
+
+        ret = hash_enter(table, &key, &value);
+        if (ret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+    }
+
+    *_table = table;
+    return LDB_SUCCESS;
+}
+
+static bool mbof_hash_equal(hash_table_t *left, hash_table_t *right)
+{
+    hash_key_t *keys;
+    unsigned long count;
+    unsigned long i;
+    int ret;
+
+    if (left == NULL || hash_count(left) == 0) {
+        return right == NULL || hash_count(right) == 0;
+    }
+    if (right == NULL || hash_count(left) != hash_count(right)) {
+        return false;
+    }
+
+    ret = hash_keys(left, &count, &keys);
+    if (ret != HASH_SUCCESS) {
+        return false;
+    }
+
+    for (i = 0; i < count; i++) {
+        if (!hash_has_key(right, &keys[i])) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 struct mbof_rcmp_context {
     struct ldb_module *module;
@@ -4078,6 +4583,13 @@ static int mbof_rcmp_usr_callback(struct ldb_request *req,
 
         if (ldb_msg_find_element(ares->message, DB_MEMBEROF)) {
             usr->orig_has_memberof = true;
+            ret = mbof_hash_values(usr,
+                                   ldb_msg_find_element(ares->message,
+                                                        DB_MEMBEROF),
+                                   &usr->orig_memberofs);
+            if (ret != LDB_SUCCESS) {
+                return ldb_module_done(ctx->req, NULL, NULL, ret);
+            }
         }
 
         DLIST_ADD(ctx->user_list, usr);
@@ -4184,10 +4696,24 @@ static int mbof_rcmp_grp_callback(struct ldb_request *req,
 
         if (ldb_msg_find_element(ares->message, DB_MEMBEROF)) {
             grp->orig_has_memberof = true;
+            ret = mbof_hash_values(grp,
+                                   ldb_msg_find_element(ares->message,
+                                                        DB_MEMBEROF),
+                                   &grp->orig_memberofs);
+            if (ret != LDB_SUCCESS) {
+                return ldb_module_done(ctx->req, NULL, NULL, ret);
+            }
         }
 
         if (ldb_msg_find_element(ares->message, DB_MEMBERUID)) {
             grp->orig_has_memberuid = true;
+            ret = mbof_hash_values(grp,
+                                   ldb_msg_find_element(ares->message,
+                                                        DB_MEMBERUID),
+                                   &grp->orig_memuids);
+            if (ret != LDB_SUCCESS) {
+                return ldb_module_done(ctx->req, NULL, NULL, ret);
+            }
         }
 
         ret = mbof_steal_msg_el(grp, DB_MEMBER,
@@ -4445,6 +4971,9 @@ static bool mbof_member_iter(hash_entry_t *item, void *user_data)
 static int mbof_add_memuid(struct mbof_member *grp, const char *user)
 {
     struct ldb_val *vals;
+    hash_value_t value;
+    hash_key_t key;
+    int ret;
     int n;
 
     if (!grp->memuids) {
@@ -4457,6 +4986,18 @@ static int mbof_add_memuid(struct mbof_member *grp, const char *user)
         if (!grp->memuids->name) {
             return LDB_ERR_OPERATIONS_ERROR;
         }
+
+        ret = hash_create_ex(0, &grp->memuid_set, 0, 0, 0, 0,
+                             hash_alloc, hash_free, grp, NULL, NULL);
+        if (ret != HASH_SUCCESS) {
+            return LDB_ERR_OPERATIONS_ERROR;
+        }
+    }
+
+    key.type = HASH_KEY_STRING;
+    key.str = discard_const(user);
+    if (hash_has_key(grp->memuid_set, &key)) {
+        return LDB_SUCCESS;
     }
 
     n = grp->memuids->num_values;
@@ -4473,6 +5014,12 @@ static int mbof_add_memuid(struct mbof_member *grp, const char *user)
     grp->memuids->values = vals;
     grp->memuids->num_values = n + 1;
 
+    value.type = HASH_VALUE_UNDEF;
+    ret = hash_enter(grp->memuid_set, &key, &value);
+    if (ret != HASH_SUCCESS) {
+        return LDB_ERR_OPERATIONS_ERROR;
+    }
+
     return LDB_SUCCESS;
 }
 
@@ -4488,6 +5035,7 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
     int flags;
     int ret, i;
 
+next_entry:
     /* we process all users first and then all groups */
     if (ctx->user_list) {
         /* take the next entry and remove it from the list */
@@ -4514,7 +5062,9 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
     msg->dn = x->dn;
 
     /* process memberof */
-    if (x->memberofs) {
+    if (mbof_hash_equal(x->memberofs, x->orig_memberofs)) {
+        /* no change */
+    } else if (x->memberofs) {
         ret = hash_keys(x->memberofs, &count, &keys);
         if (ret != HASH_SUCCESS) {
             ret = LDB_ERR_OPERATIONS_ERROR;
@@ -4551,7 +5101,9 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
     }
 
     /* process memberuid */
-    if (x->memuids) {
+    if (mbof_hash_equal(x->memuid_set, x->orig_memuids)) {
+        /* no change */
+    } else if (x->memuids) {
         if (x->orig_has_memberuid) {
             flags = LDB_FLAG_MOD_REPLACE;
         } else {
@@ -4568,6 +5120,11 @@ static int mbof_rcmp_update(struct mbof_rcmp_context *ctx)
         if (ret != LDB_SUCCESS) {
             goto done;
         }
+    }
+
+    if (msg->num_elements == 0) {
+        talloc_zfree(msg);
+        goto next_entry;
     }
 
     ret = ldb_build_mod_req(&req, ldb, ctx, msg, NULL,
@@ -4645,6 +5202,9 @@ static int memberof_init(struct ldb_module *module)
     ret = ldb_schema_attribute_add(ldb, DB_MEMBEROF, 0, LDB_SYNTAX_DN);
     if (ret != 0) return LDB_ERR_OPERATIONS_ERROR;
 
+    ret = memberof_tx_init(module);
+    if (ret != LDB_SUCCESS) return ret;
+
     return ldb_next_init(module);
 }
 
@@ -4654,6 +5214,11 @@ const struct ldb_module_ops ldb_memberof_module_ops = {
     .add = memberof_add,
     .modify = memberof_mod,
     .del = memberof_del,
+    .rename = memberof_rename,
+    .start_transaction = memberof_tx_start,
+    .prepare_commit = memberof_tx_prepare_commit,
+    .end_transaction = memberof_tx_end,
+    .del_transaction = memberof_tx_cancel,
 };
 
 int ldb_init_module(const char *version)
