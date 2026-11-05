@@ -228,11 +228,8 @@ def test_autofs__maps_are_served_from_cache_when_provider_is_offline(
     """
     :title: Automount maps are served from cache when provider is offline
     :description:
-        Once SSSD has fetched automount maps from an online provider it stores them in its
-        cache. This test verifies that the autofs responder keeps serving those cached maps
-        after the provider becomes unreachable: the maps are first loaded and mounted while
-        online, then all traffic to the provider is blocked so SSSD goes offline, and the same
-        mount must still succeed from cache without contacting the provider.
+        Verifies that the autofs responder keeps serving cached automount maps after the
+        provider becomes unreachable and SSSD is brought offline.
     :setup:
         1. Create NFS export
         2. Create auto.master map
@@ -244,13 +241,13 @@ def test_autofs__maps_are_served_from_cache_when_provider_is_offline(
         8. Reload autofs daemon
     :steps:
         1. Access /var/export/export (populates cache)
-        2. Block traffic to the provider
+        2. Block traffic to the provider and bring SSSD offline
         3. Reload autofs daemon
         4. Access /var/export/export again
         5. Dump automount maps "automount -m"
     :expectedresults:
         1. Directory is mounted to the NFS share
-        2. Provider becomes unreachable
+        2. SSSD is offline
         3. Autofs daemon reloads successfully
         4. Directory is still accessible from cache
         5. /var/export contains auto.export map and "export" key
@@ -269,6 +266,9 @@ def test_autofs__maps_are_served_from_cache_when_provider_is_offline(
     assert client.automount.mount("/var/export/export", nfs_export), "Unable to mount /var/export/export while online!"
 
     client.firewall.outbound.reject_host(provider)
+    # Blocking traffic does not terminate existing connections, so explicitly bring SSSD
+    # offline to make sure the provider is really treated as unreachable.
+    client.sssd.bring_offline()
     client.automount.reload()
 
     assert client.automount.mount(
@@ -288,11 +288,8 @@ def test_autofs__explicit_ldap_autofs_search_base_configures_lookup_scope(
     """
     :title: Automount maps are found when ldap_autofs_search_base is explicitly set
     :description:
-        By default SSSD derives the search base for automount maps from the domain
-        configuration. The ldap_autofs_search_base option lets an administrator restrict the
-        lookup to a specific subtree. This test sets ldap_autofs_search_base explicitly to the
-        provider naming context and verifies that the maps are still discovered and mounted
-        correctly, confirming the option scopes the search without breaking map resolution.
+        Verifies that automount maps are still discovered and mounted when the lookup subtree
+        is restricted with the ldap_autofs_search_base option.
     :setup:
         1. Create NFS export
         2. Create auto.master map
@@ -335,11 +332,8 @@ def test_autofs__autofs_provider_none_serves_maps_from_warm_cache(client: Client
     """
     :title: Automount maps are served from warm cache when autofs_provider is set to none
     :description:
-        A "warm cache" is a cache that was already populated by earlier online lookups against
-        the provider. This test first runs with a live autofs provider so the automount maps are
-        fetched and stored in the SSSD cache. The provider is then disabled by setting
-        autofs_provider = none, which stops SSSD from performing any live map lookups. The maps
-        must still be served from the previously populated (warm) cache.
+        A warm cache is one already populated by earlier online lookups. Verifies that with
+        autofs_provider = none (no live lookups) the maps are still served from that cache.
     :setup:
         1. Create NFS export
         2. Create auto.master map
@@ -351,20 +345,16 @@ def test_autofs__autofs_provider_none_serves_maps_from_warm_cache(client: Client
         8. Reload autofs daemon
     :steps:
         1. Access /var/export/export (populates cache)
-        2. Stop SSSD
-        3. Set autofs_provider = none
-        4. Start SSSD
-        5. Reload autofs daemon
-        6. Access /var/export/export
-        7. Dump automount maps "automount -m"
+        2. Configure autofs_provider = none and restart SSSD
+        3. Reload autofs daemon
+        4. Access /var/export/export
+        5. Dump automount maps "automount -m"
     :expectedresults:
         1. Directory is mounted to the NFS share
-        2. SSSD is stopped
-        3. autofs_provider is changed to none
-        4. SSSD starts successfully
-        5. Autofs daemon reloads successfully
-        6. Directory is still accessible from warm cache
-        7. /var/export contains auto.export map and "export" key
+        2. SSSD restarts with autofs_provider = none
+        3. Autofs daemon reloads successfully
+        4. Directory is still accessible from warm cache
+        5. /var/export contains auto.export map and "export" key
     :customerscenario: False
     """
     nfs_export = nfs.export("export").add()
@@ -381,9 +371,8 @@ def test_autofs__autofs_provider_none_serves_maps_from_warm_cache(client: Client
         "/var/export/export", nfs_export
     ), "Unable to mount /var/export/export with provider!"
 
-    client.sssd.stop()
     client.sssd.domain["autofs_provider"] = "none"
-    client.sssd.start()
+    client.sssd.restart()
     client.automount.reload()
 
     assert client.automount.mount(
@@ -403,11 +392,8 @@ def test_autofs__new_map_entries_added_to_provider_are_visible_after_reload(
     """
     :title: New automount map entries added to provider are visible after autofs reload
     :description:
-        Automount maps can change on the provider after SSSD is already running. This test
-        verifies that a newly added map key is picked up by SSSD and the autofs responder: it
-        starts with a map that contains a single export, adds a second export key on the
-        provider while SSSD is running, reloads the autofs daemon, and confirms both the old
-        and the new entry are resolvable and mountable.
+        Verifies that a map key added on the provider while SSSD is running is picked up after
+        an autofs reload, alongside the existing entries.
     :setup:
         1. Create two NFS exports
         2. Create auto.master map
