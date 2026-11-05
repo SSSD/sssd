@@ -1056,6 +1056,56 @@ void test_json_unpack_oauth2_code(void **state)
     talloc_free(test_ctx);
 }
 
+void test_json_format_mechanisms_oauth2_confirmation(void **state)
+{
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
+    json_t *mechs = NULL;
+    json_t *confirmation;
+    int ret;
+
+    auth_data->oauth2->enabled = true;
+    auth_data->oauth2->uri = discard_const(OAUTH2_URI);
+    auth_data->oauth2->code = discard_const(OAUTH2_CODE);
+    auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
+    auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
+    auth_data->oauth2->confirmation = discard_const("numeric:6:page");
+
+    ret = json_format_mechanisms(auth_data, &mechs);
+    assert_int_equal(ret, EOK);
+
+    confirmation = json_object_get(json_object_get(mechs, "eidp"), "confirmation");
+    assert_non_null(confirmation);
+    assert_int_equal(json_integer_value(json_object_get(confirmation, "length")), 6);
+    assert_string_equal(json_string_value(json_object_get(confirmation, "charset")),
+                        "numeric");
+    assert_string_equal(json_string_value(json_object_get(confirmation, "delivery")),
+                        "page");
+
+    json_decref(mechs);
+}
+
+void test_json_unpack_oauth2_confirmation_code(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    char *oauth2_code = NULL;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+
+    /* DARC: the code typed by the user wins over the echoed device code. */
+    ret = json_unpack_oauth2_code(test_ctx,
+            discard_const("{\"authSelection\": {\"mechanisms\": {\"eidp\": "
+                          "{\"code\": \"" OAUTH2_CODE "\", "
+                          "\"confirmationCode\": \"481207\"}}, "
+                          "\"priority\": [\"eidp\"]}}"),
+            &oauth2_code);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(oauth2_code, "481207");
+
+    talloc_free(test_ctx);
+}
+
 void test_is_pam_json_enabled_service_in_list(void **state)
 {
     char *json_services[] = {discard_const("sshd"), discard_const("su"),
@@ -1112,6 +1162,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_get_cert_data, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_password, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_oauth2, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_mechanisms_oauth2_confirmation, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc1, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc2, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_passkey, setup, teardown),
@@ -1135,6 +1186,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test(test_json_unpack_auth_reply_passkey),
         cmocka_unit_test(test_json_unpack_auth_reply_failure),
         cmocka_unit_test(test_json_unpack_oauth2_code),
+        cmocka_unit_test(test_json_unpack_oauth2_confirmation_code),
         cmocka_unit_test(test_is_pam_json_enabled_service_in_list),
         cmocka_unit_test(test_is_pam_json_enabled_service_not_in_list),
         cmocka_unit_test(test_is_pam_json_enabled_null_list),
