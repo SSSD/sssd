@@ -35,11 +35,8 @@ jobs:
           exit 1
 
       - name: Require a backport decision before merging
-        # Enforce that a conscious backport decision was made: either the PR is
-        # targeted at one or more stable branches (one or more 'backport-to-*'
-        # labels) or it is explicitly flagged as not to be backported
-        # ('no-backport'). Matching is case-insensitive to stay consistent with
-        # GitHub's expression comparisons used elsewhere in this workflow.
+        # Enforce that a conscious backport decision was made (one or more 'backport-to-*'
+        # or 'no-backport' label).
         env:
           LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
         run: |
@@ -52,7 +49,12 @@ jobs:
           exit 1
 
       - name: Checkout Repository
-        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
+        # Run the accept automation whenever any gate-related label changes so label order doesn't matter
+        if: >-
+          github.event.action == 'labeled' &&
+          (github.event.label.name == 'Accepted' ||
+           github.event.label.name == 'no-backport' ||
+           startsWith(github.event.label.name, 'backport-to-'))
         uses: actions/checkout@v7
         with:
           # Fetch the entire history of the repository
@@ -65,13 +67,21 @@ jobs:
           allow-unsafe-pr-checkout: true
 
       - name: Set git user identity
-        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
+        if: >-
+          github.event.action == 'labeled' &&
+          (github.event.label.name == 'Accepted' ||
+           github.event.label.name == 'no-backport' ||
+           startsWith(github.event.label.name, 'backport-to-'))
         run: |
           git config --global user.name "sssd-bot"
           git config --global user.email "sssd-maintainers@lists.fedoraproject.org"
 
       - name: Add 'Reviewed-by' trailer
-        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
+        if: >-
+          github.event.action == 'labeled' &&
+          (github.event.label.name == 'Accepted' ||
+           github.event.label.name == 'no-backport' ||
+           startsWith(github.event.label.name, 'backport-to-'))
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
           PR_ID: ${{ github.event.pull_request.number }}
@@ -117,7 +127,11 @@ jobs:
           fi
 
       - name: Add comment to print current CI status
-        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
+        if: >-
+          github.event.action == 'labeled' &&
+          (github.event.label.name == 'Accepted' ||
+           github.event.label.name == 'no-backport' ||
+           startsWith(github.event.label.name, 'backport-to-'))
         env:
           GH_TOKEN: ${{ secrets.BOT_TOKEN }}
           PR_ID: ${{ github.event.pull_request.number }}
@@ -184,7 +198,11 @@ jobs:
           gh pr comment "$PR_ID" --body-file "$COMMENT_FILE"
 
       - name: Push changes
-        if: github.event.action == 'labeled' && github.event.label.name == 'Accepted'
+        if: >-
+          github.event.action == 'labeled' &&
+          (github.event.label.name == 'Accepted' ||
+           github.event.label.name == 'no-backport' ||
+           startsWith(github.event.label.name, 'backport-to-'))
         env:
           PUSH_TOKEN: ${{ secrets.BOT_TOKEN }}
           FORK_REPO: ${{ github.event.pull_request.head.repo.full_name }}
