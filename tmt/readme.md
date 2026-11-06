@@ -22,12 +22,15 @@ KEY=VALUE` (`/packit test`), or `tmt run -e KEY=VALUE` locally.
 * `SSSD_CI_CONTAINERS` -- repository and branch of
   [sssd-ci-containers](https://github.com/SSSD/sssd-ci-containers) to use,
   as `owner/repo@branch`. Default: `SSSD/sssd-ci-containers@master`.
-* `SSSD_TEST_FRAMEWORK` -- repository and branch of
+* `SSSD_TEST_FRAMEWORK` -- optional override for
   [sssd-test-framework](https://github.com/SSSD/sssd-test-framework), as
-  `owner/repo@branch`. Default: `SSSD/sssd-test-framework@master`.
-* `PYTEST_MH` -- repository and branch of
+  `owner/repo@branch`. Default empty: keep the package installed from
+  `src/tests/system/requirements.txt`. When set, that package is
+  force-reinstalled from the given repo/branch after requirements install.
+* `PYTEST_MH` -- optional override for
   [pytest-mh](https://github.com/next-actions/pytest-mh), as `owner/repo@branch`.
-  Default: `next-actions/pytest-mh@master`.
+  Default empty: keep the package from `requirements.txt`. When set,
+  force-reinstall from the given repo/branch after requirements install.
 * `TAG` -- sssd-ci-containers image tag to pull, consumed by
   `sssd-ci-containers/tmt/setup.sh`. Default empty (= autodetect).
 * `PACKIT_COPR_PROJECT` -- COPR project to install SSSD from, set by Packit for
@@ -72,11 +75,13 @@ command reference.
 
 ## Testing against in-development dependencies
 
-To validate a PR against unreleased changes in `sssd-ci-containers`,
-`sssd-test-framework`, or `pytest-mh` (e.g. a container or framework fix that
-hasn't landed yet), you can temporarily point the automatic Packit-triggered
-test runs at your own fork/branch by adding an `env:` override to the `tests`
-job in [.packit.yaml](../.packit.yaml):
+Python test dependencies (including `sssd-test-framework` and `pytest-mh`)
+come from `src/tests/system/requirements.txt` on the branch under test. Point
+that file at your fork/branch when the PR needs unreleased framework changes.
+
+To override without editing `requirements.txt`, or to use a fork of
+`sssd-ci-containers`, set environment variables on the Packit `tests` job in
+[.packit.yaml](../.packit.yaml):
 
 ```yaml
 - job: tests
@@ -92,11 +97,10 @@ Packit reads `.packit.yaml` from the pull request's own branch, so this
 override applies to every push to that PR automatically -- no need to repeat
 `--env` on every `/packit test` comment.
 
-**Be careful not to merge this change.** It's meant as a throwaway override
-to validate the PR against in-development dependencies. Remove it again
-before the branch is merged -- otherwise every future PR and commit build
-will silently keep testing against your fork/branch instead of the default
-in [plans/system-tests.fmf](plans/system-tests.fmf).
+**Be careful not to merge a `.packit.yaml` `env:` override.** It's meant as a
+throwaway pin for in-development dependencies. Remove it again before the
+branch is merged -- otherwise every future PR and commit build will keep
+testing against your fork/branch.
 
 ## Running locally
 
@@ -135,7 +139,7 @@ testing-farm request --compose Fedora-latest \
   -e PACKIT_COPR_PROJECT=@sssd/nightly       \ # Set COPR repository
   -e PACKIT_COPR_RPMS='sssd*'                \ # Set packages to install on client and ipa container
   -e TAG=centos-10                           \ # Set sssd-ci-containers TAG
-  -e SSSD_TEST_FRAMEWORK=myfork/sssd-test-framework@mybranch # Use a fork/branch of sssd-ci-containers
+  -e SSSD_TEST_FRAMEWORK=myfork/sssd-test-framework@mybranch # Optional override of requirements.txt
 ```
 
 It is possible to use `--reserve` parameter to get access to the machine when
