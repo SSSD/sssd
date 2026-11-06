@@ -534,15 +534,8 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
         goto fail;
     }
 
-    if (kr->pd->child_pid == 0) {
-        /* Create new child. */
-        ret = start_krb5_child(req);
-        if (ret != EOK) {
-            DEBUG(SSSDBG_CRIT_FAILURE, "fork_child failed.\n");
-            goto fail;
-        }
-    } else {
-        /* Continue talking to an existing child. */
+    if (kr->pd->child_pid != 0) {
+        /* Continue talking to an existing child, if possible. */
         io_key = talloc_asprintf(state, "%d", kr->pd->child_pid);
         if (io_key == NULL) {
             ret = ENOMEM;
@@ -552,9 +545,18 @@ struct tevent_req *handle_child_send(TALLOC_CTX *mem_ctx,
         state->io = sss_ptr_hash_lookup(kr->krb5_ctx->io_table, io_key,
                                         struct child_io_fds);
         if (state->io == NULL) {
-            DEBUG(SSSDBG_OP_FAILURE, "Unable to locate pipe for child pid=%s\n",
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "No pipe for child pid=%s; starting new child.\n",
                   io_key);
-            ret = ENOENT;
+            kr->pd->child_pid = 0;
+        }
+    }
+
+    if (kr->pd->child_pid == 0) {
+        /* Create new child. */
+        ret = start_krb5_child(req);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_CRIT_FAILURE, "fork_child failed.\n");
             goto fail;
         }
     }
