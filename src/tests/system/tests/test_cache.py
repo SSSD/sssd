@@ -433,3 +433,62 @@ def test_cache__both_ldap_user_email_and_extra_attribute_email_are_stored(client
     assert user_dict["description"] == ["gecos1"], "attribute 'description' was not correct"
     assert user_dict["mail"] == ["user1@example.test"], "attribute 'mail' was not correct"
     assert user_dict["email"] == ["user1@example.test"], "attribute 'email' was not correct"
+
+
+@pytest.mark.integration
+@pytest.mark.importance("medium")
+@pytest.mark.ticket(bz=1772513)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_cache__user_resolvable_after_timestamp_db_removed_and_cache_invalidated(client: Client, provider: LDAP):
+    """
+    :title: User is resolvable after timestamps database is deleted and cache is invalidated
+    :setup:
+        1. Create user "user1"
+        2. Start SSSD
+        3. Lookup user1 to populate both the cache and timestamps ldb databases
+    :steps:
+        1. Verify user1 is present in both the cache and timestamps ldb databases
+        2. Stop SSSD and remove the timestamps ldb database file
+        3. Start SSSD and invalidate all cache entries with sssctl cache-expire --everything
+        4. Lookup user1 again
+        5. Verify user1 is present in both rebuilt ldb databases
+    :expectedresults:
+        1. User1 found in both databases
+        2. SSSD is stopped and the timestamps ldb file is removed from disk
+        3. SSSD starts and cache is invalidated without error
+        4. User1 is returned by getent passwd
+        5. User1 found in both rebuilt databases
+    :customerscenario: True
+    """
+    if not client.fs.exists("/usr/bin/ldbsearch"):
+        pytest.skip("/usr/bin/ldbsearch is not available, skipping test")
+
+    provider.user("user1").add(uid=10001, gid=10001)
+    client.sssd.start()
+
+    domain = client.sssd.default_domain
+    assert client.tools.getent.passwd("user1") is not None, "user1 should be resolvable after SSSD starts!"
+
+    cache = f"/var/lib/sss/db/cache_{domain}.ldb"
+    timestamps = f"/var/lib/sss/db/timestamps_{domain}.ldb"
+    user_dn = f"name=user1@{domain},cn=users,cn={domain},cn=sysdb"
+
+    assert client.ldb.search(cache, user_dn), f"user1 not found in {cache} after initial lookup!"
+    assert client.ldb.search(timestamps, user_dn), f"user1 not found in {timestamps} after initial lookup!"
+
+    # Remove the timestamps database while SSSD is stopped (BZ 1772513 scenario).
+    client.sssd.stop()
+    client.fs.rm(timestamps)
+    assert not client.fs.exists(timestamps), f"Timestamps file '{timestamps}' should be deleted!"
+
+    # Restart SSSD and invalidate all cache entries.
+    client.sssd.start()
+    client.sssctl.cache_expire(everything=True)
+
+    assert (
+        client.tools.getent.passwd("user1") is not None
+    ), "user1 should be resolvable after timestamps DB removal and cache invalidation!"
+
+    # Both databases must be rebuilt correctly.
+    assert client.ldb.search(cache, user_dn), f"user1 not found in {cache} after timestamps DB removal cycle!"
+    assert client.ldb.search(timestamps, user_dn), f"user1 not found in rebuilt {timestamps} after removal cycle!"
