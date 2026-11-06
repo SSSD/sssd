@@ -589,6 +589,56 @@ def test_sudo__ldap_sudo_search_base_not_set_emits_warning(client: Client, ldap:
     ), "Journal must contain alert when ldap_sudo_search_base is not set!"
 
 
+@pytest.mark.importance("high")
+@pytest.mark.ticket(gh=9030)
+@pytest.mark.topology(KnownTopology.IPA)
+@pytest.mark.topology(KnownTopology.LDAP)
+def test_sudo__search_base_set_by_provider_no_warning(client: Client, provider: GenericProvider):
+    """
+    :title: No spurious warning about ldap_sudo_search_base when it is set by the provider
+    :description: When ldap_sudo_search_base is already set (either automatically by the
+        IPA provider or explicitly in sssd.conf for LDAP), the security warning about the
+        missing search base must not appear in the domain log or journal. Sudo rules should
+        still be retrieved correctly.
+    :setup:
+        1. Create user "user-1"
+        2. Create sudorule to allow "user-1" run "/bin/ls" on all hosts
+        3. Enable SSSD sudo responder
+        4. Set ldap_sudo_search_base explicitly for LDAP provider (IPA sets it automatically)
+        5. Start SSSD
+    :steps:
+        1. List sudo rules for "user-1" to trigger sudo operations
+        2. Read the SSSD domain debug log and check the system journal
+    :expectedresults:
+        1. Sudo rules are retrieved successfully
+        2. Neither the domain log nor the journal contains the search base warning
+    :customerscenario: True
+    """
+    u = provider.user("user-1").add()
+    provider.sudorule("test").add(user=u, host="ALL", command="/bin/ls")
+
+    client.sssd.common.sudo()
+    if isinstance(provider, LDAP):
+        client.sssd.domain["ldap_sudo_search_base"] = provider.ldap.naming_context
+    client.sssd.start()
+
+    assert client.auth.sudo.list("user-1", "Secret123", expected=["(root) /bin/ls"]), "Sudo list failed!"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert (
+        "`ldap_sudo_search_base` is not set" not in log
+    ), "Domain log must not contain search base warning when provider sets it!"
+
+    # Avoid journald.is_match(): journalctl exits 0 on "-- No entries --", which is_match treats as a hit.
+    journal = client.journald.journalctl(
+        grep=r"`ldap_sudo_search_base` is not set",
+        unit="sssd",
+    )
+    assert (
+        "`ldap_sudo_search_base` is not set" not in journal.stdout
+    ), "Journal must not contain search base alert when provider sets it!"
+
+
 @pytest.mark.importance("critical")
 @pytest.mark.ticket(bz=902436)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
