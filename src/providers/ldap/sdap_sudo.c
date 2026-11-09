@@ -82,7 +82,7 @@ sdap_sudo_handler_send(TALLOC_CTX *mem_ctx,
     return req;
 
 immediately:
-    tevent_req_error(req, ret);
+    tevent_req_done_or_error(req, ret);
     tevent_req_post(req, params->ev);
 
     return req;

@@ -625,11 +625,11 @@ static void test_unparseable_allow_user(void **state)
     /* A user that would normally be denied access will be denied because
      * the access list can't be parsed
      */
-    run_simple_access_check(simple_test_ctx, "u2@simple_test", EOK, false);
+    run_simple_access_check(simple_test_ctx, "u2@simple_test", ERR_DOMAIN_NOT_FOUND, false);
     /* A user that would normally be allowed access will be denied because
      * the access list can't be parsed
      */
-    run_simple_access_check(simple_test_ctx, "u1@simple_test", EOK, false);
+    run_simple_access_check(simple_test_ctx, "u1@simple_test", ERR_DOMAIN_NOT_FOUND, false);
 }
 
 static void test_unparseable_deny_user(void **state)
@@ -653,11 +653,11 @@ static void test_unparseable_deny_user(void **state)
     /* A user that would normally be denied access will be denied because
      * the access list can't be parsed
      */
-    run_simple_access_check(simple_test_ctx, "u2@simple_test", EOK, false);
+    run_simple_access_check(simple_test_ctx, "u2@simple_test", ERR_DOMAIN_NOT_FOUND, false);
     /* A user that would normally be allowed access will be denied because
      * the access list can't be parsed
      */
-    run_simple_access_check(simple_test_ctx, "u1@simple_test", EOK, false);
+    run_simple_access_check(simple_test_ctx, "u1@simple_test", ERR_DOMAIN_NOT_FOUND, false);
 }
 
 static void test_unparseable_allow_group(void **state)
@@ -681,11 +681,11 @@ static void test_unparseable_allow_group(void **state)
     /* A group that would normally be denied access will be denied because
      * the access list can't be parsed
      */
-    run_simple_access_check(simple_test_ctx, "u2@simple_test", EOK, false);
+    run_simple_access_check(simple_test_ctx, "u2@simple_test", ERR_DOMAIN_NOT_FOUND, false);
     /* A group that would normally be allowed access will be denied because
      * the access list can't be parsed
      */
-    run_simple_access_check(simple_test_ctx, "u1@simple_test", EOK, false);
+    run_simple_access_check(simple_test_ctx, "u1@simple_test", ERR_DOMAIN_NOT_FOUND, false);
 }
 
 static void test_unparseable_deny_group(void **state)
@@ -709,11 +709,11 @@ static void test_unparseable_deny_group(void **state)
     /* A group that would normally be denied access will be denied because
      * the access list can't be parsed
      */
-    run_simple_access_check(simple_test_ctx, "u2@simple_test", EOK, false);
+    run_simple_access_check(simple_test_ctx, "u2@simple_test", ERR_DOMAIN_NOT_FOUND, false);
     /* A group that would normally be allowed access will be denied because
      * the access list can't be parsed
      */
-    run_simple_access_check(simple_test_ctx, "u1@simple_test", EOK, false);
+    run_simple_access_check(simple_test_ctx, "u1@simple_test", ERR_DOMAIN_NOT_FOUND, false);
 }
 
 static void test_group_space(void **state)
