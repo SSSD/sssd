@@ -35,6 +35,7 @@ jobs:
       - upstream
     targets: &copr_targets
       - fedora-44
+      - fedora-45
       - centos-stream-10
     sync_test_job_statuses_with_builds: False
 
@@ -81,6 +82,7 @@ jobs:
       - downstream
     dist_git_branches:
       - fedora-44
+      - fedora-45
 
   # Automatically build in Koji when PR is merged
   - job: koji_build
@@ -89,6 +91,7 @@ jobs:
       - downstream
     dist_git_branches:
       - fedora-44
+      - fedora-45
 
   # Automatically open Bodhi update when Koji build is available
   - job: bodhi_update
@@ -97,3 +100,4 @@ jobs:
       - downstream
     dist_git_branches:
       - fedora-44
+      - fedora-45
