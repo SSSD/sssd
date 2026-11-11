@@ -1,7 +1,7 @@
 """
 Rewrite of legacy IdM-CI / sssd-qe ``ad_forest`` suite
-(lookup, auth, simple access, ad_access_filter, join other DC) and from
-legacy multihost ``admultidomain`` (excluding multiforest).
+(lookup, auth, simple access, ad_access_filter, join other DC, shortnames)
+and from legacy multihost ``admultidomain`` (excluding multiforest).
 
 Note: These only run downstream, multiple AD are not supported in upstream.
 
@@ -164,6 +164,13 @@ def _rename_ad_group(group: ADGroup, new_name: str) -> None:
         """,
         raise_on_error=True,
     )
+
+
+def _configure_shortnames(client: Client, joined: AD, *resolution_order: AD) -> None:
+    """Apply forest defaults, then enable short-name domain_resolution_order."""
+    ad_forest_configure_sssd(client, joined)
+    client.sssd.dom(joined.domain)["use_fully_qualified_names"] = "False"
+    client.sssd.sssd["domain_resolution_order"] = ", ".join(d.domain for d in resolution_order)
 
 
 # =======================================================================
@@ -1904,3 +1911,241 @@ int main(int argc, char *argv[])
         "rm -f /tmp/test_initgroups.c /tmp/test_initgroups",
         raise_on_error=False,
     )
+
+
+# =======================================================================
+# Short names
+# =======================================================================
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("high")
+@pytest.mark.parametrize(
+    "first, second, third",
+    [
+        ("root", "child", "tree"),
+        ("child", "root", "tree"),
+        ("tree", "child", "root"),
+    ],
+    ids=["root_first", "child_first", "tree_first"],
+)
+def test_adforest__shortnames_resolution_order_determines_name_lookup(
+    client: Client,
+    join_ad_root: AD,
+    ad: AD,
+    ad_child: AD,
+    ad_tree: AD,
+    first: str,
+    second: str,
+    third: str,
+):
+    """
+    :title: Short-name lookup follows domain_resolution_order
+    :setup:
+        1. Join forest root
+        2. Create the same user in each forest domain
+        3. Configure short names with a parametrized resolution order and start SSSD
+    :steps:
+        1. Resolve the user with id and getent passwd
+    :expectedresults:
+        1. The user from the first domain in resolution order is returned
+    :customerscenario: False
+    """
+    domain_map: dict[str, AD] = {"root": ad, "child": ad_child, "tree": ad_tree}
+    first_domain = domain_map[first]
+    second_domain = domain_map[second]
+    third_domain = domain_map[third]
+
+    user = ad.user("user").add(password="Secret123")
+    child_user = ad_child.user("user").add(password="Secret123")
+    tree_user = ad_tree.user("user").add(password="Secret123")
+    created = {ad: user, ad_child: child_user, ad_tree: tree_user}
+
+    _wait_forest_gc(ad, (first_domain, created[first_domain].dn))
+    _wait_forest_gc(ad, (ad_child, child_user.dn), (ad_tree, tree_user.dn))
+
+    _configure_shortnames(client, join_ad_root, first_domain, second_domain, third_domain)
+    client.sssd.start()
+
+    result = client.tools.id("user")
+    assert result is not None, "id user returned nothing!"
+    assert (
+        result.user.name == f"user@{first_domain.domain}"
+    ), f"Expected user@{first_domain.domain}, got {result.user.name}!"
+
+    entry = client.tools.getent.passwd("user")
+    assert entry is not None, "getent passwd user returned nothing!"
+    assert (
+        entry.name == f"user@{first_domain.domain}"
+    ), f"getent returned {entry.name}, expected user@{first_domain.domain}!"
+    assert entry.home is not None, "getent passwd user has no home directory!"
+    assert (
+        first_domain.domain in entry.home
+    ), f"Home directory {entry.home!r} does not contain expected domain {first_domain.domain}!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("high")
+def test_adforest__shortnames_resolve_to_correct_domain(
+    client: Client,
+    join_ad_root: AD,
+    ad: AD,
+    ad_child: AD,
+    ad_tree: AD,
+):
+    """
+    :title: Short names resolve to the correct domain
+    :setup:
+        1. Join forest root
+        2. Iterate creating a user in each domain
+        3. Configure short names with root last in resolution order and start SSSD
+    :steps:
+        1. Resolve each user with id and getent passwd
+    :expectedresults:
+        1. Each user resolves to its own domain
+    :customerscenario: False
+    """
+    ad.user("user").add(password="Secret123")
+    child_user = ad_child.user("child_user").add(password="Secret123")
+    tree_user = ad_tree.user("tree_user").add(password="Secret123")
+
+    _wait_forest_gc(ad, (ad_child, child_user.dn), (ad_tree, tree_user.dn))
+    _configure_shortnames(client, join_ad_root, ad_tree, ad_child, ad)
+    client.sssd.start()
+
+    for username, expected_domain in (
+        ("user", ad.domain),
+        ("child_user", ad_child.domain),
+        ("tree_user", ad_tree.domain),
+    ):
+        result = client.tools.id(username)
+        assert result is not None, f"id {username} returned nothing!"
+        assert (
+            result.user.name == f"{username}@{expected_domain}"
+        ), f"Expected {username}@{expected_domain}, got {result.user.name}!"
+
+    for username, expected_domain in (
+        ("child_user", ad_child.domain),
+        ("tree_user", ad_tree.domain),
+    ):
+        entry = client.tools.getent.passwd(username)
+        assert entry is not None, f"getent passwd {username} returned nothing!"
+        assert (
+            entry.name == f"{username}@{expected_domain}"
+        ), f"getent returned {entry.name}, expected {username}@{expected_domain}!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("high")
+def test_adforest__shortnames_groups_from_all_domains_accessible(
+    client: Client,
+    join_ad_root: AD,
+    ad: AD,
+    ad_child: AD,
+    ad_tree: AD,
+):
+    """
+    :title: Groups from all forest domains are accessible by short name
+    :setup:
+        1. Join forest root
+        2. Iterate creating a user and group in each domain
+        3. Configure short names and start SSSD
+    :steps:
+        1. Resolve each group with getent group
+    :expectedresults:
+        1. Each group is found and lists its domain member
+    :customerscenario: False
+    """
+    user = ad.user("user").add(password="Secret123")
+    child_user = ad_child.user("child_user").add(password="Secret123")
+    tree_user = ad_tree.user("tree_user").add(password="Secret123")
+    ad.group("group").add(scope="Universal").add_member(user)
+    child_group = ad_child.group("child_group").add(scope="Universal").add_member(child_user)
+    tree_group = ad_tree.group("tree_group").add(scope="Universal").add_member(tree_user)
+
+    _wait_forest_gc(
+        ad,
+        (ad_child, child_user.dn),
+        (ad_child, child_group.dn),
+        (ad_tree, tree_user.dn),
+        (ad_tree, tree_group.dn),
+    )
+
+    _configure_shortnames(client, join_ad_root, ad, ad_child, ad_tree)
+    client.sssd.start()
+
+    for group_name, member_name, member_domain in (
+        ("group", "user", ad.domain),
+        ("child_group", "child_user", ad_child.domain),
+        ("tree_group", "tree_user", ad_tree.domain),
+    ):
+        entry = client.tools.getent.group(group_name)
+        assert entry is not None, f"getent group {group_name} returned nothing!"
+        expected_member = f"{member_name}@{member_domain}"
+        assert expected_member in (
+            entry.members or []
+        ), f"Expected member {expected_member!r} not in {group_name}: {entry.members}!"
+
+
+@pytest.mark.topology(KnownTopology.ADForest)
+@pytest.mark.importance("medium")
+def test_adforest__shortnames_cross_domain_group_membership(
+    client: Client,
+    join_ad_root: AD,
+    ad: AD,
+    ad_child: AD,
+    ad_tree: AD,
+):
+    """
+    :title: Cross-domain universal group membership is visible by short name
+    :setup:
+        1. Join forest root
+        2. Iterate creating a user in each domain
+        3. Create a universal group on the root with all three members
+        4. Configure short names and start SSSD
+    :steps:
+        1. Resolve the group with getent group
+        2. Resolve root and tree users with id and check group membership
+    :expectedresults:
+        1. Group lists all three cross-domain members
+        2. Users resolve and show membership in the shared group
+    :customerscenario: False
+    """
+    user = ad.user("user").add(password="Secret123")
+    child_user = ad_child.user("child_user").add(password="Secret123")
+    tree_user = ad_tree.user("tree_user").add(password="Secret123")
+
+    _wait_forest_gc(ad, (ad_child, child_user.dn), (ad_tree, tree_user.dn))
+
+    group = ad.group("group").add(scope="Universal").add_member(user).add_member(child_user).add_member(tree_user)
+
+    _wait_forest_gc(ad, (ad, group.dn))
+    _wait_gc_group_members(ad, group.dn, user.dn, child_user.dn, tree_user.dn)
+
+    _configure_shortnames(client, join_ad_root, ad, ad_child, ad_tree)
+    client.sssd.start()
+
+    group_entry = client.tools.getent.group("group")
+    assert group_entry is not None, "getent group group returned nothing!"
+
+    for member_name, member_domain in (
+        ("user", ad.domain),
+        ("child_user", ad_child.domain),
+        ("tree_user", ad_tree.domain),
+    ):
+        fqn = f"{member_name}@{member_domain}"
+        assert fqn in (
+            group_entry.members or []
+        ), f"Expected cross-domain member {fqn!r} missing from group: {group_entry.members}!"
+
+    root_id = client.tools.id("user")
+    assert root_id is not None, "id user returned nothing!"
+    assert any(
+        "group" in (g.name or "") for g in (root_id.groups or [])
+    ), f"group not in root user groups: {root_id.groups}!"
+
+    tree_id = client.tools.id("tree_user")
+    assert tree_id is not None, "id tree_user returned nothing!"
+    assert any(
+        "group" in (g.name or "") for g in (tree_id.groups or [])
+    ), f"group not in tree user groups: {tree_id.groups}!"
