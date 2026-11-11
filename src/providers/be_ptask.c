@@ -434,22 +434,30 @@ void be_ptask_postpone(struct be_ptask *task)
 
 void be_ptask_destroy(struct be_ptask **task)
 {
-    talloc_zfree(*task);
+    if (task != NULL) {
+        talloc_zfree(*task);
+    }
 }
 
 time_t be_ptask_get_period(struct be_ptask *task)
 {
+    if (task == NULL) {
+        return 0;
+    }
     return task->period;
 }
 
 time_t be_ptask_get_timeout(struct be_ptask *task)
 {
+    if (task == NULL) {
+        return 0;
+    }
     return task->timeout;
 }
 
 bool be_ptask_running(struct be_ptask *task)
 {
-    return task->req != NULL;
+    return ((task != NULL) && (task->req != NULL));
 }
 
 struct be_ptask_sync_ctx {
