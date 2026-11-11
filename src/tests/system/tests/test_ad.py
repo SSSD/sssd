@@ -228,6 +228,211 @@ if (-not $c) { Write-Error "CA not found"; exit 1 }
     assert f"ldaps://{ad.server}" in log, f"Logs should show LDAPS connection to {ad.server}"
 
 
+def configure_ad_tls(client: Client, ad: AD) -> None:
+    """
+    Prepare the client for secure LDAP communication with the AD domain controller.
+
+    Installs the AD CA certificate for TLS verification and configures OpenLDAP
+    with tls-endpoint channel binding, which is the binding compatible with
+    TLS 1.3 (tls-unique is not available in TLS 1.3).
+
+    :param client: Client role object.
+    :type client: Client
+    :param ad: AD role object.
+    :type ad: AD
+    """
+    # Remote CI labs may not resolve the DC; SSSD looks up ad_server via DNS.
+    ssh_target = ad.host.config.get("conn", {}).get("host", ad.server)
+    lookup = client.host.conn.run(f"getent ahostsv4 {ssh_target}", raise_on_error=False)
+    if lookup.rc == 0 and lookup.stdout.strip():
+        ad_ip = lookup.stdout.split()[0]
+        client.fs.write("/etc/resolv.conf", f"search {ad.domain}\nnameserver {ad_ip}\n")
+
+    try:
+        ca = ad.export_root_ca_certificate()
+    except RuntimeError:
+        pytest.skip("AD CA certificate not available; install AD Certificate Services on the DC")
+
+    client.fs.mkdir_p("/etc/openldap/certs")
+    client.fs.write("/etc/openldap/certs/cacert.pem", ca)
+    client.fs.write(
+        "/etc/openldap/ldap.conf",
+        "SASL_CBINDING tls-endpoint\nTLS_CACERT /etc/openldap/certs/cacert.pem\nSASL_NOCANON on\n",
+    )
+
+
+def skip_unless_windows_server_2025(ad: AD) -> None:
+    """
+    Skip the test unless the domain controller runs Windows Server 2025.
+
+    :param ad: AD role object.
+    :type ad: AD
+    """
+    result = ad.host.conn.run(
+        "Write-Host (Get-CimInstance Win32_OperatingSystem).Caption",
+        raise_on_error=False,
+    )
+    caption = result.stdout.strip()
+    if "2025" not in caption:
+        pytest.skip(f"Windows Server 2025 domain controller required, got: {caption or 'unknown version'}")
+
+
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.ticket(jira="IDM-6828")
+@pytest.mark.importance("high")
+def test_ad__starttls_with_sasl_sealing(client: Client, ad: AD):
+    """
+    :title: AD provider connects over StartTLS with SASL sealing
+    :description:
+        Windows Server 2025 domain controllers negotiate TLS 1.3 for StartTLS
+        on port 389. AD does not allow SASL sign/seal on a TLS-protected
+        connection, so the SASL security layer is disabled and StartTLS
+        provides the confidentiality. SSSD must connect, lookup and
+        authenticate users without TLS negotiation failures.
+    :setup:
+        1. Add AD user
+        2. Install the AD CA certificate and configure OpenLDAP channel binding
+        3. Configure ``ldap_id_use_start_tls`` and start SSSD
+    :steps:
+        1. Lookup AD user
+        2. Authenticate as the AD user
+        3. Check SSSD domain logs
+    :expectedresults:
+        1. User information is returned correctly
+        2. Authentication is successful
+        3. Logs show StartTLS was executed without TLS failures
+    :customerscenario: False
+    """
+    skip_unless_windows_server_2025(ad)
+
+    user = ad.user("starttlsuser").add()
+
+    configure_ad_tls(client, ad)
+
+    client.sssd.domain["ldap_id_use_start_tls"] = "True"
+    # AD rejects SASL sign/seal on a TLS-protected connection ("Cannot bind
+    # using sign/seal on a connection on which TLS or SSL is in effect",
+    # 00002029). StartTLS provides the confidentiality, so no SASL security
+    # layer is requested.
+    client.sssd.domain["ldap_sasl_minssf"] = "0"
+    client.sssd.domain["ldap_sasl_maxssf"] = "0"
+    client.sssd.domain["ldap_id_mapping"] = "true"
+    client.sssd.domain["debug_level"] = "9"
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.start()
+
+    result = client.tools.getent.passwd(f"{user.name}@{ad.domain}")
+    assert result is not None, "User lookup failed with StartTLS enabled"
+    assert result.name == user.name
+
+    assert client.auth.su.password(user.name, "Secret123"), "User login failed with StartTLS enabled"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert "Executing START TLS" in log, "Logs should show START TLS operation"
+    assert "Could not start TLS" not in log, "StartTLS negotiation failed"
+
+
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.ticket(jira="IDM-6828")
+@pytest.mark.importance("high")
+def test_ad__ldaps_with_sasl_sealing(client: Client, ad: AD):
+    """
+    :title: AD provider connects over LDAPS with SASL sealing
+    :description:
+        Windows Server 2025 domain controllers negotiate TLS 1.3 for LDAPS on
+        port 636 and seal SASL traffic for confidentiality. SSSD must connect,
+        lookup and authenticate users without TLS negotiation failures.
+    :setup:
+        1. Add AD user
+        2. Install the AD CA certificate and configure OpenLDAP channel binding
+        3. Configure ``ad_use_ldaps`` and start SSSD
+    :steps:
+        1. Lookup AD user
+        2. Authenticate as the AD user
+        3. Check SSSD domain logs
+    :expectedresults:
+        1. User information is returned correctly
+        2. Authentication is successful
+        3. Logs show LDAPS connection to the domain controller
+    :customerscenario: False
+    """
+    skip_unless_windows_server_2025(ad)
+
+    user = ad.user("ldapssealuser").add()
+
+    configure_ad_tls(client, ad)
+
+    client.sssd.domain["ad_use_ldaps"] = "True"
+    client.sssd.domain["ldap_id_mapping"] = "true"
+    client.sssd.domain["debug_level"] = "9"
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.start()
+
+    result = client.tools.getent.passwd(f"{user.name}@{ad.domain}")
+    assert result is not None, "User lookup failed over LDAPS"
+    assert result.name == user.name
+
+    assert client.auth.su.password(user.name, "Secret123"), "User login failed over LDAPS"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert f"ldaps://{ad.server}" in log, f"Logs should show LDAPS connection to {ad.server}"
+
+
+@pytest.mark.topology(KnownTopology.AD)
+@pytest.mark.ticket(jira="IDM-6828")
+@pytest.mark.importance("high")
+def test_ad__ldaps_tls13_negotiation(client: Client, ad: AD):
+    """
+    :title: SSSD uses TLS 1.3 for LDAPS connection to the domain controller
+    :description:
+        Windows Server 2025 enables TLS 1.3 by default. The domain controller
+        must negotiate TLS 1.3 on the LDAPS endpoint and SSSD must connect to
+        it with SASL sealing, without TLS negotiation failures or fallback to
+        lower TLS versions.
+    :setup:
+        1. Add AD user
+        2. Install the AD CA certificate and configure OpenLDAP channel binding
+        3. Check that the DC LDAPS endpoint negotiates TLS 1.3 with openssl
+        4. Configure ``ad_use_ldaps`` and start SSSD
+    :steps:
+        1. Lookup AD user
+        2. Authenticate as the AD user
+        3. Check SSSD domain logs
+    :expectedresults:
+        1. User information is returned correctly
+        2. Authentication is successful
+        3. Logs show LDAPS connection to the domain controller
+    :customerscenario: False
+    """
+    skip_unless_windows_server_2025(ad)
+
+    user = ad.user("tls13user").add()
+
+    configure_ad_tls(client, ad)
+
+    probe = client.host.conn.run(
+        f"openssl s_client -connect {ad.server}:636 -brief </dev/null",
+        raise_on_error=False,
+    )
+    if "Protocol version: TLSv1.3" not in (probe.stdout + probe.stderr):
+        pytest.skip(f"DC does not negotiate TLS 1.3 over LDAPS: {(probe.stderr or probe.stdout).strip()}")
+
+    client.sssd.domain["ad_use_ldaps"] = "True"
+    client.sssd.domain["ldap_id_mapping"] = "true"
+    client.sssd.domain["debug_level"] = "9"
+    client.sssd.clear(db=True, memcache=True, logs=True)
+    client.sssd.start()
+
+    result = client.tools.getent.passwd(f"{user.name}@{ad.domain}")
+    assert result is not None, "User lookup failed over LDAPS with TLS 1.3"
+    assert result.name == user.name
+
+    assert client.auth.su.password(user.name, "Secret123"), "User login failed over LDAPS with TLS 1.3"
+
+    log = client.fs.read(client.sssd.logs.domain())
+    assert f"ldaps://{ad.server}" in log, f"Logs should show LDAPS connection to {ad.server}"
+
+
 SMARTCARD_PIN = "123456"
 
 
