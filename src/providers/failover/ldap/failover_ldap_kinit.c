@@ -56,7 +56,6 @@ sss_failover_ldap_kinit_send(TALLOC_CTX *mem_ctx,
                              struct tevent_context *ev,
                              struct sss_failover_ctx *fctx,
                              struct sss_failover_server *server,
-                             bool addr_changed,
                              void *pvt)
 {
     struct sss_failover_ldap_kinit_state *state;

@@ -178,11 +178,18 @@ sss_failover_ping_recv(TALLOC_CTX *mem_ctx,
                        struct sss_failover_server **_server)
 {
     struct sss_failover_ping_state *state;
+    struct sss_failover_server *server;
 
     TEVENT_REQ_RETURN_ON_ERROR(req);
 
     state = tevent_req_data(req, struct sss_failover_ping_state);
-    *_server = talloc_reference(mem_ctx, state->server);
+    server = talloc_reference(mem_ctx, state->server);
+    if (server == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    *_server = server;
 
     return EOK;
 }

@@ -137,6 +137,7 @@ sss_failover_init(TALLOC_CTX *mem_ctx,
 
     /* We are not connected to any server yet. */
     fctx->active_server = NULL;
+    fctx->state = SSS_FAILOVER_STATE_DISCONNECTED;
 
     fctx->vtable = talloc_zero(fctx, struct sss_failover_vtable);
     if (fctx->vtable == NULL) {
@@ -165,7 +166,22 @@ done:
 }
 
 void
-sss_failover_set_active_server(struct sss_failover_ctx *fctx,
+sss_failover_mark_offline(struct sss_failover_ctx *fctx)
+{
+    sss_failover_active_server_set(fctx, NULL);
+
+    DEBUG(SSSDBG_OP_FAILURE, "Failover [%s] is going offline\n", fctx->name);
+    fctx->state = SSS_FAILOVER_STATE_OFFLINE;
+}
+
+bool
+sss_failover_is_offline(struct sss_failover_ctx *fctx)
+{
+    return fctx->state == SSS_FAILOVER_STATE_OFFLINE;
+}
+
+void
+sss_failover_active_server_set(struct sss_failover_ctx *fctx,
                                struct sss_failover_server *server)
 {
     if (fctx->active_server != NULL) {
@@ -178,37 +194,203 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
               fctx->active_server->name);
 
         talloc_unlink(fctx, fctx->active_server);
+
+        /* Also remove the connection associated with this server. */
+        sss_failover_connection_set(fctx, NULL);
+        fctx->active_server = NULL;
+    }
+
+    if (server == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC,
+              "Setting active server to NULL (we are not connected)\n");
+        sss_failover_connection_set(fctx, NULL);
+        fctx->active_server = NULL;
+        return;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Setting new active server %s\n", server->name);
     fctx->active_server = talloc_reference(fctx, server);
+    if (fctx->active_server == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        sss_failover_connection_set(fctx, NULL);
+        return;
+    }
 }
 
 void
-sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection)
+sss_failover_active_server_remove(struct sss_failover_ctx *fctx,
+                                  struct sss_failover_server *server)
 {
-    if (fctx->connection != NULL) {
-        if (connection == fctx->connection) {
-            /* it is the same connection, nothing to do */
-            return;
-        }
+    /* We want to only remove the server if it is still the active one. */
+    if (!sss_failover_active_server_cmp(fctx, server)) {
+        return;
+    }
 
+    sss_failover_active_server_set(fctx, NULL);
+}
+
+struct sss_failover_server *
+sss_failover_active_server_get_ref(TALLOC_CTX *mem_ctx,
+                                   struct sss_failover_ctx *fctx)
+{
+    void *srv;
+
+    if (fctx->active_server == NULL) {
+        return NULL;
+    }
+
+    srv = talloc_reference(mem_ctx, fctx->active_server);
+    if (srv == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    return srv;
+}
+
+bool
+sss_failover_active_server_cmp(struct sss_failover_ctx *fctx,
+                               struct sss_failover_server *server)
+{
+    return fctx->active_server == server;
+}
+
+bool
+sss_failover_active_server_is_working(struct sss_failover_ctx *fctx)
+{
+    if (fctx->active_server == NULL) {
+        return false;
+    }
+
+    return sss_failover_server_is_working(fctx->active_server);
+}
+
+bool
+sss_failover_active_server_maybe_working(struct sss_failover_ctx *fctx)
+{
+    if (fctx->active_server == NULL) {
+        return false;
+    }
+
+    return sss_failover_server_maybe_working(fctx->active_server);
+}
+
+void
+sss_failover_connection_set(struct sss_failover_ctx *fctx, void *connection)
+{
+    size_t ref_count;
+    void *ptr;
+
+    if (connection == fctx->connection) {
+        /* It is the same connection, nothing to do. This also covers the case
+         * where both are set to NULL. */
+        return;
+    }
+
+    ptr = fctx->connection;
+
+    if (fctx->connection != NULL) {
         DEBUG(SSSDBG_TRACE_FUNC, "Releasing old connection %p\n",
               fctx->connection);
 
-        talloc_unlink(fctx, fctx->connection);
+        ref_count = talloc_reference_count(fctx->connection);
+        if (ref_count == 0) {
+            DEBUG(SSSDBG_TRACE_FUNC, "The connection is no longer used, it "
+                                     "will be freed immediately\n");
+        } else {
+            DEBUG(SSSDBG_TRACE_FUNC,
+                  "The connection is still used at %zu places, it will be "
+                  "freed once it reaches 0\n",
+                  ref_count - 1);
+        }
+
+        /* Old connection is removed. At this point we are not connected. */
+        fctx->connection = NULL;
+        fctx->state = SSS_FAILOVER_STATE_DISCONNECTED;
+
+        /* Notify backend that this connection is dropped. */
+        if (fctx->vtable->disconnected.cb != NULL) {
+            fctx->vtable->disconnected.cb(fctx, ptr,
+                                          fctx->vtable->disconnected.data);
+        }
+
+        /* If this is the last parent, the connection will be gracefully
+         * terminated via talloc destructor. Otherwise it will wait until the
+         * refcount drops to zero. */
+        talloc_unlink(fctx, ptr);
+    }
+
+    if (connection == NULL) {
+        DEBUG(SSSDBG_TRACE_FUNC, "Connection %p was dropped\n", ptr);
+        return;
+    }
+
+    if (fctx->active_server == NULL) {
+        /* This may be a bug in the code or OOM scenario that we can't detect in
+         * caller to simplify the API. Let's be defensive here. */
+        DEBUG(SSSDBG_OP_FAILURE, "Trying to set connection without an active "
+                                 "server, connection was dropped\n");
+        return;
     }
 
     DEBUG(SSSDBG_TRACE_FUNC, "Setting new connection %p\n", connection);
     fctx->connection = talloc_steal(fctx, connection);
+    fctx->state = SSS_FAILOVER_STATE_CONNECTED;
+}
+
+void
+sss_failover_connection_remove(struct sss_failover_ctx *fctx,
+                               void *conn)
+{
+    /* We want to only remove the connection if it is still the active one. */
+    if (!sss_failover_connection_cmp(fctx, conn)) {
+        return;
+    }
+
+    sss_failover_connection_set(fctx, NULL);
 }
 
 void *
-sss_failover_get_connection(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fctx)
+sss_failover_connection_get_ref(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fctx)
 {
+    void *conn;
+
     if (fctx->connection == NULL) {
         return NULL;
     }
 
-    return talloc_reference(mem_ctx, fctx->connection);
+    conn = talloc_reference(mem_ctx, fctx->connection);
+    if (conn == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return NULL;
+    }
+
+    return conn;
+}
+
+bool
+sss_failover_connection_cmp(struct sss_failover_ctx *fctx,
+                            void *conn)
+{
+    return fctx->connection == conn;
+}
+
+void
+sss_failover_connection_op_start(struct sss_failover_ctx *fctx,
+                                 void *connection)
+{
+    if (fctx->vtable->conn_op_start.cb != NULL) {
+        fctx->vtable->conn_op_start.cb(fctx, connection,
+                                       fctx->vtable->conn_op_start.data);
+    }
+}
+
+void
+sss_failover_connection_op_done(struct sss_failover_ctx *fctx,
+                                void *connection)
+{
+    if (fctx->vtable->conn_op_done.cb != NULL) {
+        fctx->vtable->conn_op_done.cb(fctx, connection,
+                                      fctx->vtable->conn_op_done.data);
+    }
 }

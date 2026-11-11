@@ -24,6 +24,17 @@
 #include "util/util.h"
 
 void
+sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,
+                              sss_failover_vtable_kinit_send_t send_fn,
+                              sss_failover_vtable_kinit_recv_t recv_fn,
+                              void *data)
+{
+    fctx->vtable->kinit.send = send_fn;
+    fctx->vtable->kinit.recv = recv_fn;
+    fctx->vtable->kinit.data = data;
+}
+
+void
 sss_failover_vtable_set_connect(struct sss_failover_ctx *fctx,
                                 sss_failover_vtable_connect_send_t send_fn,
                                 sss_failover_vtable_connect_recv_t recv_fn,
@@ -35,12 +46,28 @@ sss_failover_vtable_set_connect(struct sss_failover_ctx *fctx,
 }
 
 void
-sss_failover_vtable_set_kinit(struct sss_failover_ctx *fctx,
-                              sss_failover_vtable_kinit_send_t send_fn,
-                              sss_failover_vtable_kinit_recv_t recv_fn,
-                              void *data)
+sss_failover_vtable_set_disconnected(struct sss_failover_ctx *fctx,
+                                      sss_failover_vtable_disconnected_t cb,
+                                      void *data)
 {
-    fctx->vtable->kinit.send = send_fn;
-    fctx->vtable->kinit.recv = recv_fn;
-    fctx->vtable->kinit.data = data;
+    fctx->vtable->disconnected.cb = cb;
+    fctx->vtable->disconnected.data = data;
+}
+
+void
+sss_failover_vtable_set_conn_op_start(struct sss_failover_ctx *fctx,
+                                      sss_failover_vtable_conn_op_start_t cb,
+                                      void *data)
+{
+    fctx->vtable->conn_op_start.cb = cb;
+    fctx->vtable->conn_op_start.data = data;
+}
+
+void
+sss_failover_vtable_set_conn_op_done(struct sss_failover_ctx *fctx,
+                                     sss_failover_vtable_conn_op_done_t cb,
+                                     void *data)
+{
+    fctx->vtable->conn_op_done.cb = cb;
+    fctx->vtable->conn_op_done.data = data;
 }
