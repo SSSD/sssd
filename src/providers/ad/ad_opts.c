@@ -168,6 +168,7 @@ struct dp_option ad_def_ldap_opts[] = {
     { "ldap_use_tokengroups", DP_OPT_BOOL, BOOL_TRUE, BOOL_TRUE},
     { "ldap_rfc2307_fallback_to_local_users", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
     { "ldap_disable_range_retrieval", DP_OPT_BOOL, BOOL_FALSE, BOOL_FALSE },
+    { "ldap_range_retrieval_max_steps", DP_OPT_NUMBER, { .number = 50 }, NULL_NUMBER },
     { "ldap_min_id", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER},
     { "ldap_max_id", DP_OPT_NUMBER, NULL_NUMBER, NULL_NUMBER},
     { "ldap_pwdlockout_dn", DP_OPT_STRING, NULL_STRING, NULL_STRING },

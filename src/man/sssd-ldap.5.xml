@@ -756,6 +756,27 @@
                 </varlistentry>
 
                 <varlistentry>
+                    <term>ldap_range_retrieval_max_steps (integer)</term>
+                    <listitem>
+                        <para>
+                            Maximum number of range retrieval steps SSSD
+                            will perform when fetching multi-valued attributes
+                            that exceed the Active Directory MaxValRange limit.
+                        </para>
+                        <para>
+                            Each step retrieves one additional batch of values.
+                            If the limit is reached before all values are
+                            retrieved, SSSD logs a critical error message
+                            suggesting to increase this value. Setting this
+                            option to 0 disables the limit.
+                        </para>
+                        <para>
+                            Default: 50
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
                     <term>ldap_sasl_minssf (integer)</term>
                     <listitem>
                         <para>

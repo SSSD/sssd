@@ -1569,6 +1569,8 @@ struct sdap_get_generic_ext_state {
     struct sdap_range_ctx *pending_ranges;
     size_t pending_count;
     bool range_retrieval_step;
+    int range_steps;
+    int range_max_steps;
     int timeout;
     int sizelimit;
 
@@ -1645,6 +1647,9 @@ sdap_get_generic_ext_send(TALLOC_CTX *memctx,
     state->range_count = 0;
     state->pending_ranges = NULL;
     state->pending_count = 0;
+    state->range_steps = 0;
+    state->range_max_steps = dp_opt_get_int(opts->basic,
+                                            SDAP_RANGE_RETRIEVAL_MAX_STEPS);
     state->op = NULL;
     state->sizelimit = sizelimit;
     state->timeout = timeout;
@@ -2172,6 +2177,8 @@ sdap_get_generic_ext_send_next_range(TALLOC_CTX *ctx,
         if (range_count > 1) {
             new_state = tevent_req_data(next_subreq,
                                         struct sdap_get_generic_ext_state);
+            new_state->range_steps = state->range_steps + 1;
+            new_state->range_max_steps = state->range_max_steps;
             new_state->pending_ranges = talloc_array(next_subreq,
                                                      struct sdap_range_ctx,
                                                      range_count - 1);
@@ -2237,12 +2244,29 @@ static void generic_ext_search_handler(struct tevent_req *subreq,
     }
 
     if (range_count > 0) {
+        struct sdap_get_generic_ext_state *ext_state;
+
         if (done_callback == NULL) {
             DEBUG(SSSDBG_MINOR_FAILURE,
                   "Range retrieval is not implemented "
                   "for this type of request.\n");
             goto done;
         }
+
+        ext_state = tevent_req_data(subreq,
+                                    struct sdap_get_generic_ext_state);
+        if (ext_state->range_max_steps > 0 &&
+            ext_state->range_steps >= ext_state->range_max_steps) {
+
+            DEBUG(SSSDBG_CRIT_FAILURE,
+                  "Range retrieval reached the maximum number of steps "
+                  "(%d). To retrieve more data, increase the value of "
+                  "ldap_range_retrieval_max_steps!\n",
+                  ext_state->range_max_steps);
+            ret = ERANGE;
+            goto done;
+        }
+
         DEBUG(SSSDBG_TRACE_FUNC,
               "Range retrieval: %zu entries pending\n", range_count);
         next_subreq = sdap_get_generic_ext_send_next_range(

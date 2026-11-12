@@ -399,6 +399,7 @@ class SSSDOptions(object):
 
         'ldap_disable_paging': _('Disable the LDAP paging control'),
         'ldap_disable_range_retrieval': _('Disable Active Directory range retrieval'),
+        'ldap_range_retrieval_max_steps': _('Maximum number of range retrieval steps (0 = unlimited)'),
         'ldap_use_ppolicy': _('Use the ppolicy extension'),
         'ldap_ppolicy_pwd_change_threshold': _('Force a password change when remaining grace logins reach or go below this threshold'),
 
