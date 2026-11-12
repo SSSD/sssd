@@ -63,6 +63,9 @@ struct pam_items {
     char *oauth2_url;
     char *oauth2_url_complete;
     char *oauth2_pin;
+    /* DARC: "<charset>:<length>:<delivery>" when the user must type the
+     * confirmation code the verification page shows, NULL otherwise. */
+    char *oauth2_confirmation;
     char *first_factor;
     char *passkey_key;
     char *passkey_prompt_pin;

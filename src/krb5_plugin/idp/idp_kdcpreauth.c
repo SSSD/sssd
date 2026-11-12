@@ -196,8 +196,44 @@ done:
     return ret;
 }
 
-/* Send Access-Request with password and state set to indicate that the user has
- * finished authentication against idp provider. We expect Access-Accept. */
+/* Access-Accept may name additional IdP indicators in its Reply-Message,
+ * e.g. "idp-confirmed" once the DARC confirmation code was verified or
+ * "idp-mfa" from the upstream authentication context. Only "idp-*" names are
+ * taken. The configured indicators are added by sss_radiuskdc_verify_done(). */
+static void
+sss_idpkdc_verify_done(krb5_error_code rret,
+                       const krad_packet *rreq,
+                       const krad_packet *rres,
+                       void *data)
+{
+    struct sss_radiuskdc_verify *state = data;
+    char **indicators = NULL;
+    char *rmsg = NULL;
+    size_t i;
+
+    if (rret == 0 && rres != NULL
+            && krad_packet_get_code(rres) == krad_code_name2num("Access-Accept")) {
+        rmsg = sss_radiuskdc_get_attr_as_string(rres, "Reply-Message");
+        indicators = sss_idp_oauth2_decode_accept_indicators(rmsg);
+        for (i = 0; indicators != NULL && indicators[i] != NULL; i++) {
+            if (state->cb->add_auth_indicator(state->kctx, state->rock,
+                                              indicators[i]) != 0) {
+                /* Fail closed: a ticket must not miss an indicator. */
+                rret = KRB5_PREAUTH_FAILED;
+                break;
+            }
+        }
+        sss_string_array_free(indicators);
+        free(rmsg);
+    }
+
+    sss_radiuskdc_verify_done(rret, rreq, rres, data);
+}
+
+/* Send Access-Request with state set to indicate that the user has finished
+ * authentication against idp provider, and with the DARC confirmation code
+ * the user typed as User-Password when there is one. We expect
+ * Access-Accept. */
 static krb5_error_code
 sss_idpkdc_verify_send(krb5_context kctx,
                        krb5_kdcpreauth_rock rock,
@@ -206,10 +242,12 @@ sss_idpkdc_verify_send(krb5_context kctx,
                        krb5_kdcpreauth_verify_respond_fn respond,
                        void *arg,
                        const krb5_data *rstate,
+                       const char *confirmation_code,
                        char **indicators,
                        struct sss_radiuskdc_config *config)
 {
     struct sss_radiuskdc_verify *state;
+    krb5_data password;
     krb5_error_code ret;
 
     state = sss_radiuskdc_verify_init(kctx, rock, cb, enc_tkt_reply, respond,
@@ -225,11 +263,22 @@ sss_idpkdc_verify_send(krb5_context kctx,
         goto done;
     }
 
+    if (confirmation_code != NULL) {
+        password.magic = 0;
+        password.data = discard_const(confirmation_code);
+        password.length = strlen(confirmation_code);
+        ret = krad_attrset_add(state->client->attrs,
+                               krad_attr_name2num("User-Password"), &password);
+        if (ret != 0) {
+            goto done;
+        }
+    }
+
     ret = krad_client_send(state->client->client,
                            krad_code_name2num("Access-Request"),
                            state->client->attrs, config->server,
                            config->secret, config->timeout, config->retries,
-                           sss_radiuskdc_verify_done, state);
+                           sss_idpkdc_verify_done, state);
 
 done:
     if (ret != 0) {
@@ -309,6 +358,7 @@ sss_idpkdc_verify(krb5_context kctx,
     struct sss_radiuskdc_state *state;
     struct sss_idpkdc_config *config = NULL;
     char *configstr = NULL;
+    char *confirmation_code = NULL;
     krb5_error_code ret;
     krb5_data rstate;
 
@@ -331,14 +381,28 @@ sss_idpkdc_verify(krb5_context kctx,
         goto done;
     }
 
-    if (pa->pa_type != SSSD_IDP_OAUTH2_PADATA || pa->length != 0) {
+    if (pa->pa_type != SSSD_IDP_OAUTH2_PADATA) {
         ret = KRB5_PREAUTH_BAD_TYPE;
         goto done;
     }
 
+    /* Version 1 clients send an empty PA-152. A DARC (version 2) client
+     * sends "oauth2-confirm <code>": the code the verification page showed
+     * after the user approved, which the RADIUS server passes to the IdP.
+     * An empty PA-152 simply carries no code; whether that is acceptable is
+     * decided by the IdP, so old clients fail closed there. */
+    if (pa->length != 0) {
+        confirmation_code = sss_idp_oauth2_decode_confirm_padata(pa);
+        if (confirmation_code == NULL) {
+            ret = KRB5_PREAUTH_BAD_TYPE;
+            goto done;
+        }
+    }
+
     /* config is freed by verify_done if ret == 0 */
     ret = sss_idpkdc_verify_send(kctx, rock, cb, enc_tkt_reply, respond, arg,
-            &rstate, config->idpcfg->indicators, config->radius);
+            &rstate, confirmation_code, config->idpcfg->indicators,
+            config->radius);
     if (ret != 0) {
         goto done;
     }
@@ -350,6 +414,10 @@ done:
         respond(arg, ret, NULL, NULL, NULL);
     }
 
+    if (confirmation_code != NULL) {
+        explicit_bzero(confirmation_code, strlen(confirmation_code));
+        free(confirmation_code);
+    }
     cb->free_string(kctx, rock, configstr);
     sss_idpkdc_config_free(config);
 }
@@ -367,9 +435,17 @@ sss_idpkdc_return_padata(krb5_context kctx,
                          krb5_kdcpreauth_moddata moddata,
                          krb5_kdcpreauth_modreq modreq)
 {
-    /* Unexpected padata. Return error. */
+    char *code;
+
+    /* Only an empty PA-152 (version 1) or a confirmation (DARC) is
+     * expected here. */
     if (padata->length != 0) {
-        return EINVAL;
+        code = sss_idp_oauth2_decode_confirm_padata(padata);
+        if (code == NULL) {
+            return EINVAL;
+        }
+        explicit_bzero(code, strlen(code));
+        free(code);
     }
 
     return sss_radiuskdc_return_padata(kctx, padata, req_pkt, request, reply,

@@ -162,8 +162,11 @@ sss_passkeycl_exec_child(struct sss_passkey_challenge *data,
     pid_t cpid;
     char *args[10] = {NULL};
     int arg_c = 0;
-    int size;
+    ssize_t size;
+    size_t len;
+    size_t alloc_len;
     uint8_t *buf;
+    uint8_t *tmp;
     int ret = 0;
     char *result_creds;
 
@@ -222,11 +225,36 @@ sss_passkeycl_exec_child(struct sss_passkey_challenge *data,
         write(pipe_to_child[1], pin, strlen(pin));
         close(pipe_to_child[1]);
 
-        size = read(pipe_to_parent[0], buf, PASSKEY_CHILD_MSG_CHUNK);
-        if (size == -1) {
-            ret = ENOMEM;
-            goto done;
-        }
+        /* Read until EOF: the reply grows with the signature size, e.g.
+         * ML-DSA signatures take several kilobytes. */
+        len = 0;
+        alloc_len = PASSKEY_CHILD_MSG_CHUNK;
+        do {
+            if (alloc_len - len < PASSKEY_CHILD_MSG_CHUNK) {
+                alloc_len *= 2;
+                tmp = realloc(buf, alloc_len + 1);
+                if (tmp == NULL) {
+                    close(pipe_to_parent[0]);
+                    wait(NULL);
+                    ret = ENOMEM;
+                    goto done;
+                }
+                buf = tmp;
+            }
+
+            size = read(pipe_to_parent[0], buf + len, alloc_len - len);
+            if (size == -1 && errno == EINTR) {
+                continue;
+            }
+            if (size == -1) {
+                close(pipe_to_parent[0]);
+                wait(NULL);
+                ret = EIO;
+                goto done;
+            }
+            len += size;
+        } while (size > 0);
+        buf[len] = '\0';
 
         close(pipe_to_parent[0]);
         wait(NULL);
