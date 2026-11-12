@@ -1020,22 +1020,26 @@
                         <para>
                             Please note that Active Directory does not
                             allow to have multiple encryption layers on a
-                            single connection. Since the AD provider uses
-                            SASL/GSSAPI or SASL/GSS-SPNEGO for
-                            authentication which typically request SASL
-                            sign or seal, the bind might fail with
-                            <quote>Server is unwilling to perform</quote>
-                            and a message like <quote>Cannot bind using
-                            sign/seal on a connection on which TLS or
-                            SSL is in effect</quote> if this option is
-                            used with the AD provider. In this case
-                            <emphasis>ldap_sasl_minssf</emphasis> and
-                            <emphasis>ldap_sasl_maxssf</emphasis> have to
-                            be set to 0 because the connection is
+                            single connection. Since SASL/GSSAPI or
+                            SASL/GSS-SPNEGO, which are used for
+                            authentication by the AD provider by default
+                            or by the LDAP provider if
+                            <emphasis>ldap_sasl_mech</emphasis> is set
+                            accordingly, typically request SASL sign or
+                            seal, the bind against Active Directory might
+                            fail with <quote>Server is unwilling to
+                            perform</quote> and a message like
+                            <quote>Cannot bind using sign/seal on a
+                            connection on which TLS or SSL is in
+                            effect</quote> if this option is used. In
+                            this case <emphasis>ldap_sasl_minssf</emphasis>
+                            and <emphasis>ldap_sasl_maxssf</emphasis>
+                            have to be set to 0 because the connection is
                             already protected by TLS.
                         </para>
                         <para>
-                            Default: true
+                            Default: true, false for the AD and IPA
+                            provider
                         </para>
                     </listitem>
                 </varlistentry>
