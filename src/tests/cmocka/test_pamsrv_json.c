@@ -42,18 +42,22 @@
 #define SC1_KEY_ID          "key_id1\0"
 #define SC1_LABEL           "label1\0"
 #define SC1_PROMPT_STR      "prompt1\0"
-#define SC1_PAM_CERT_USER   "pam_cert_user1"
+#define SC1_PAM_CERT_USER   "pam_cert_user1\0"
+#define SC1_HAS_PROTECTED_AUTH_PATH "false"
 #define SC1_STR             SC1_CERT_USER SC1_TOKEN_NAME SC1_MODULE_NAME SC1_KEY_ID \
-                            SC1_LABEL SC1_PROMPT_STR SC1_PAM_CERT_USER
+                            SC1_LABEL SC1_PROMPT_STR SC1_PAM_CERT_USER \
+                            SC1_HAS_PROTECTED_AUTH_PATH
 #define SC2_CERT_USER       "cert_user2\0"
 #define SC2_TOKEN_NAME      "token_name2\0"
 #define SC2_MODULE_NAME     "module_name2\0"
 #define SC2_KEY_ID          "key_id2\0"
 #define SC2_LABEL           "label2\0"
 #define SC2_PROMPT_STR      "prompt2\0"
-#define SC2_PAM_CERT_USER   "pam_cert_user2"
+#define SC2_PAM_CERT_USER   "pam_cert_user2\0"
+#define SC2_HAS_PROTECTED_AUTH_PATH "false"
 #define SC2_STR             SC2_CERT_USER SC2_TOKEN_NAME SC2_MODULE_NAME SC2_KEY_ID \
-                            SC2_LABEL SC2_PROMPT_STR SC2_PAM_CERT_USER
+                            SC2_LABEL SC2_PROMPT_STR SC2_PAM_CERT_USER \
+                            SC2_HAS_PROTECTED_AUTH_PATH
 
 #define BASIC_PASSWORD              "\"password\": {" \
                                     "\"name\": \"Password\", \"role\": \"password\", " \
@@ -151,6 +155,7 @@ struct cert_auth_info {
     char *label;
     char *prompt_str;
     char *pam_cert_user;
+    bool has_protected_authentication_path;
     char *choice_list_id;
     struct cert_auth_info *prev;
     struct cert_auth_info *next;
@@ -177,12 +182,16 @@ static int setup(void **state)
     assert_non_null(auth_data->sc->names);
     auth_data->sc->cert_instructions = talloc_array(auth_data->sc, char *, 3);
     assert_non_null(auth_data->sc->cert_instructions);
+    auth_data->sc->pin_prompts = talloc_array(auth_data->sc, char *, 3);
+    assert_non_null(auth_data->sc->pin_prompts);
     auth_data->sc->module_names = talloc_array(auth_data->sc, char *, 3);
     assert_non_null(auth_data->sc->module_names);
     auth_data->sc->key_ids = talloc_array(auth_data->sc, char *, 3);
     assert_non_null(auth_data->sc->key_ids);
     auth_data->sc->labels = talloc_array(auth_data->sc, char *, 3);
     assert_non_null(auth_data->sc->labels);
+    auth_data->sc->protected_auth_path = talloc_zero_array(auth_data->sc, bool, 3);
+    assert_non_null(auth_data->sc->protected_auth_path);
     auth_data->passkey = talloc_zero(auth_data, struct passkey_data);
     assert_non_null(auth_data->passkey);
 
@@ -255,12 +264,14 @@ void test_get_cert_list(void **state)
 
     len = strlen(SC1_CERT_USER)+1+strlen(SC1_TOKEN_NAME)+1+
           strlen(SC1_MODULE_NAME)+1+strlen(SC1_KEY_ID)+1+strlen(SC1_LABEL)+1+
-          strlen(SC1_PROMPT_STR)+1+strlen(SC1_PAM_CERT_USER)+1;
+          strlen(SC1_PROMPT_STR)+1+strlen(SC1_PAM_CERT_USER)+1+
+          strlen(SC1_HAS_PROTECTED_AUTH_PATH)+1;
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC1_STR));
     assert_int_equal(ret, EOK);
     len = strlen(SC2_CERT_USER)+1+strlen(SC2_TOKEN_NAME)+1+
           strlen(SC2_MODULE_NAME)+1+strlen(SC2_KEY_ID)+1+strlen(SC2_LABEL)+1+
-          strlen(SC2_PROMPT_STR)+1+strlen(SC2_PAM_CERT_USER)+1;
+          strlen(SC2_PROMPT_STR)+1+strlen(SC2_PAM_CERT_USER)+1+
+          strlen(SC2_HAS_PROTECTED_AUTH_PATH)+1;
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC2_STR));
     assert_int_equal(ret, EOK);
 
@@ -383,7 +394,7 @@ void test_json_format_mechanisms_sc1(void **state)
     auth_data->sc->labels[0] = talloc_strdup(auth_data->sc->labels, SC1_LABEL);
     assert_non_null(auth_data->sc->labels[0]);
     auth_data->sc->names[1] = NULL;
-    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
+    auth_data->sc->pin_prompts[0] = discard_const(SC_PIN_PROMPT);
 
     will_return(__wrap_json_array_append_new, false);
 
@@ -431,7 +442,8 @@ void test_json_format_mechanisms_sc2(void **state)
     auth_data->sc->labels[1] = talloc_strdup(auth_data->sc->labels, SC2_LABEL);
     assert_non_null(auth_data->sc->labels[1]);
     auth_data->sc->names[2] = NULL;
-    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
+    auth_data->sc->pin_prompts[0] = discard_const(SC_PIN_PROMPT);
+    auth_data->sc->pin_prompts[1] = discard_const(SC_PIN_PROMPT);
 
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
@@ -587,7 +599,8 @@ void test_json_format_auth_selection_sc(void **state)
     auth_data->sc->labels[1] = talloc_strdup(auth_data->sc->labels, SC2_LABEL);
     assert_non_null(auth_data->sc->labels[1]);
     auth_data->sc->names[2] = NULL;
-    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
+    auth_data->sc->pin_prompts[0] = discard_const(SC_PIN_PROMPT);
+    auth_data->sc->pin_prompts[1] = discard_const(SC_PIN_PROMPT);
 
     will_return(__wrap_json_array_append_new, false);
     will_return(__wrap_json_array_append_new, false);
@@ -674,7 +687,8 @@ void test_json_format_auth_selection_all(void **state)
     auth_data->sc->labels[1] = talloc_strdup(auth_data->sc->labels, SC2_LABEL);
     assert_non_null(auth_data->sc->labels[1]);
     auth_data->sc->names[2] = NULL;
-    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
+    auth_data->sc->pin_prompts[0] = discard_const(SC_PIN_PROMPT);
+    auth_data->sc->pin_prompts[1] = discard_const(SC_PIN_PROMPT);
     auth_data->passkey->enabled = true;
     auth_data->passkey->init_prompt = discard_const(PASSKEY_INIT_PROMPT);
     auth_data->passkey->key_connected = true;
@@ -741,7 +755,8 @@ void test_json_format_auth_selection_failure(void **state)
     auth_data->sc->labels[1] = talloc_strdup(auth_data->sc->labels, SC2_LABEL);
     assert_non_null(auth_data->sc->labels[1]);
     auth_data->sc->names[2] = NULL;
-    auth_data->sc->pin_prompt = discard_const(SC_PIN_PROMPT);
+    auth_data->sc->pin_prompts[0] = discard_const(SC_PIN_PROMPT);
+    auth_data->sc->pin_prompts[1] = discard_const(SC_PIN_PROMPT);
 
     will_return(__wrap_json_array_append_new, true);
     ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
@@ -783,12 +798,14 @@ void test_generate_json_message_integration(void **state)
     assert_int_equal(ret, EOK);
     len = strlen(SC1_CERT_USER)+1+strlen(SC1_TOKEN_NAME)+1+
           strlen(SC1_MODULE_NAME)+1+strlen(SC1_KEY_ID)+1+strlen(SC1_LABEL)+1+
-          strlen(SC1_PROMPT_STR)+1+strlen(SC1_PAM_CERT_USER)+1;
+          strlen(SC1_PROMPT_STR)+1+strlen(SC1_PAM_CERT_USER)+1+
+          strlen(SC1_HAS_PROTECTED_AUTH_PATH)+1;
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC1_STR));
     assert_int_equal(ret, EOK);
     len = strlen(SC2_CERT_USER)+1+strlen(SC2_TOKEN_NAME)+1+
           strlen(SC2_MODULE_NAME)+1+strlen(SC2_KEY_ID)+1+strlen(SC2_LABEL)+1+
-          strlen(SC2_PROMPT_STR)+1+strlen(SC2_PAM_CERT_USER)+1;
+          strlen(SC2_PROMPT_STR)+1+strlen(SC2_PAM_CERT_USER)+1+
+          strlen(SC2_HAS_PROTECTED_AUTH_PATH)+1;
     ret = pam_add_response(pd, SSS_PAM_CERT_INFO, len, discard_const(SC2_STR));
     assert_int_equal(ret, EOK);
     ret = pam_add_response(pd, SSS_CERT_AUTH_PROMPTING, 0, NULL);
