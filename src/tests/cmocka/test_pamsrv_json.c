@@ -92,6 +92,17 @@
                                     "\"moduleName\": \"module_name2\", " \
                                     "\"keyId\": \"key_id2\", " \
                                     "\"label\": \"label2\"}]}"
+#define KEYPAD_SC                   "\"smartcard\": {" \
+                                    "\"name\": \"Smartcard\", \"role\": \"smartcard\", " \
+                                    "\"certificates\": [{" \
+                                    "\"tokenName\": \"token_name1\", " \
+                                    "\"certInstruction\": \"prompt1\", " \
+                                    "\"pinPrompt\": \"Use external keypad to " \
+                                    "enter PIN\", " \
+                                    "\"moduleName\": \"module_name1\", " \
+                                    "\"keyId\": \"key_id1\", " \
+                                    "\"label\": \"label1\", " \
+                                    "\"usesKeypad\": true}]}"
 #define BASIC_PASSKEY               "\"passkey\": {" \
                                     "\"name\": \"Passkey\", \"role\": \"passkey\", " \
                                     "\"initInstruction\": \"" PASSKEY_INIT_PROMPT "\", " \
@@ -105,6 +116,7 @@
 #define MECHANISMS_OAUTH2           "{" BASIC_OAUTH2 "}"
 #define MECHANISMS_SC1              "{" BASIC_SC "}"
 #define MECHANISMS_SC2              "{" MULTIPLE_SC "}"
+#define MECHANISMS_SC_KEYPAD        "{" KEYPAD_SC "}"
 #define MECHANISMS_PASSKEY          "{" BASIC_PASSKEY "}"
 #define PRIORITY_ALL                "[\"smartcard\", \"passkey\", \"eidp\", \"password\"]"
 #define AUTH_SELECTION_PASSWORD     "{\"authSelection\": {\"mechanisms\": " \
@@ -127,7 +139,12 @@
                                     "\"priority\": " PRIORITY_ALL "}}"
 
 #define PASSWORD_CONTENT            "{\"password\": \"ThePassword\"}"
-#define SMARTCARD_CONTENT           "{\"pin\": \"ThePIN\", \"tokenName\": \"token_name1\", " \
+#define SMARTCARD_CONTENT           "{\"pin\": \"ThePIN\", " \
+                                    "\"tokenName\": \"token_name1\", " \
+                                    "\"moduleName\": \"module_name1\", \"keyId\": \"key_id1\", " \
+                                    "\"label\": \"label1\"}"
+#define SMARTCARD_KEYPAD_CONTENT    "{\"pin\": \"\", \"usesKeypad\": true, " \
+                                    "\"tokenName\": \"token_name1\", " \
                                     "\"moduleName\": \"module_name1\", \"keyId\": \"key_id1\", " \
                                     "\"label\": \"label1\"}"
 #define PASSKEY_CONTENT             "{\"pin\": \"ThePIN\", \"kerberos\": true, " \
@@ -140,6 +157,9 @@
 #define AUTH_MECH_REPLY_SMARTCARD   "{\"authSelection\": {" \
                                     "\"status\": \"Ok\", \"smartcard:1\": " \
                                     SMARTCARD_CONTENT "}}"
+#define AUTH_MECH_REPLY_SMARTCARD_KEYPAD "{\"authSelection\": {" \
+                                    "\"status\": \"Ok\", \"smartcard:1\": " \
+                                    SMARTCARD_KEYPAD_CONTENT "}}"
 #define AUTH_MECH_REPLY_PASSKEY     "{\"authSelection\": {" \
                                     "\"status\": \"Ok\", \"passkey\": " \
                                     PASSKEY_CONTENT "}}"
@@ -283,6 +303,7 @@ void test_get_cert_list(void **state)
         assert_string_equal(expected_key_id[i], item->key_id);
         assert_string_equal(expected_label[i], item->label);
         assert_string_equal(expected_prompt_str[i], item->prompt_str);
+        assert_false(item->has_protected_authentication_path);
         i++;
     }
 
@@ -314,6 +335,7 @@ void test_get_cert_data(void **state)
     cai->key_id = discard_const(SC2_KEY_ID);
     cai->label = discard_const(SC2_LABEL);
     cai->prompt_str = discard_const(SC2_PROMPT_STR);
+    cai->has_protected_authentication_path = true;
     DLIST_ADD(cert_list, cai);
 
     ret = get_cert_data(test_ctx, cert_list, auth_data);
@@ -323,11 +345,15 @@ void test_get_cert_data(void **state)
     assert_string_equal(auth_data->sc->key_ids[0], SC2_KEY_ID);
     assert_string_equal(auth_data->sc->labels[0], SC2_LABEL);
     assert_string_equal(auth_data->sc->cert_instructions[0], SC2_PROMPT_STR);
+    assert_string_equal(auth_data->sc->pin_prompts[0], SC_KEYPAD_PROMPT);
+    assert_true(auth_data->sc->protected_auth_path[0]);
     assert_string_equal(auth_data->sc->names[1], SC1_TOKEN_NAME);
     assert_string_equal(auth_data->sc->module_names[1], SC1_MODULE_NAME);
     assert_string_equal(auth_data->sc->key_ids[1], SC1_KEY_ID);
     assert_string_equal(auth_data->sc->labels[1], SC1_LABEL);
     assert_string_equal(auth_data->sc->cert_instructions[1], SC1_PROMPT_STR);
+    assert_string_equal(auth_data->sc->pin_prompts[1], SC_PIN_PROMPT);
+    assert_false(auth_data->sc->protected_auth_path[1]);
 
     talloc_free(test_ctx);
 }
@@ -403,6 +429,45 @@ void test_json_format_mechanisms_sc1(void **state)
 
     string = json_dumps(mechs, 0);
     assert_string_equal(string, MECHANISMS_SC1);
+
+    json_decref(mechs);
+    free(string);
+    talloc_free(auth_data->sc->names[0]);
+    talloc_free(auth_data->sc->cert_instructions[0]);
+    talloc_free(auth_data->sc->module_names[0]);
+    talloc_free(auth_data->sc->key_ids[0]);
+    talloc_free(auth_data->sc->labels[0]);
+}
+
+void test_json_format_mechanisms_sc_keypad(void **state)
+{
+    struct auth_data *auth_data = talloc_get_type_abort(*state, struct auth_data);
+    json_t *mechs = NULL;
+    char *string;
+    int ret;
+
+    auth_data->sc->enabled = true;
+    auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_TOKEN_NAME);
+    assert_non_null(auth_data->sc->names[0]);
+    auth_data->sc->cert_instructions[0] = talloc_strdup(auth_data->sc->cert_instructions, SC1_PROMPT_STR);
+    assert_non_null(auth_data->sc->cert_instructions[0]);
+    auth_data->sc->module_names[0] = talloc_strdup(auth_data->sc->module_names, SC1_MODULE_NAME);
+    assert_non_null(auth_data->sc->module_names[0]);
+    auth_data->sc->key_ids[0] = talloc_strdup(auth_data->sc->key_ids, SC1_KEY_ID);
+    assert_non_null(auth_data->sc->key_ids[0]);
+    auth_data->sc->labels[0] = talloc_strdup(auth_data->sc->labels, SC1_LABEL);
+    assert_non_null(auth_data->sc->labels[0]);
+    auth_data->sc->names[1] = NULL;
+    auth_data->sc->pin_prompts[0] = discard_const(SC_KEYPAD_PROMPT);
+    auth_data->sc->protected_auth_path[0] = true;
+
+    will_return(__wrap_json_array_append_new, false);
+
+    ret = json_format_mechanisms(auth_data, &mechs);
+    assert_int_equal(ret, EOK);
+
+    string = json_dumps(mechs, 0);
+    assert_string_equal(string, MECHANISMS_SC_KEYPAD);
 
     json_decref(mechs);
     free(string);
@@ -856,6 +921,34 @@ void test_json_unpack_smartcard_ok(void **state)
     ret = json_unpack_smartcard(test_ctx, jroot, &pin, &cai);
     assert_int_equal(ret, EOK);
     assert_string_equal(pin, "ThePIN");
+    assert_false(cai->has_protected_authentication_path);
+    assert_string_equal(cai->token_name, "token_name1");
+    assert_string_equal(cai->module_name, "module_name1");
+    assert_string_equal(cai->key_id, "key_id1");
+    assert_string_equal(cai->label, "label1");
+    json_decref(jroot);
+
+    talloc_free(test_ctx);
+}
+
+void test_json_unpack_smartcard_keypad_ok(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    json_t *jroot = NULL;
+    const char *pin = NULL;
+    struct cert_auth_info *cai = NULL;
+    json_error_t jret;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+    jroot = json_loads(SMARTCARD_KEYPAD_CONTENT, 0, &jret);
+    assert_non_null(jroot);
+
+    ret = json_unpack_smartcard(test_ctx, jroot, &pin, &cai);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(pin, "");
+    assert_true(cai->has_protected_authentication_path);
     assert_string_equal(cai->token_name, "token_name1");
     assert_string_equal(cai->module_name, "module_name1");
     assert_string_equal(cai->key_id, "key_id1");
@@ -1012,6 +1105,44 @@ void test_json_unpack_auth_reply_sc2(void **state)
     talloc_free(test_ctx);
 }
 
+void test_json_unpack_auth_reply_sc_keypad(void **state)
+{
+    TALLOC_CTX *test_ctx = NULL;
+    struct pam_data *pd = NULL;
+    const char *pin = NULL;
+    const char *token_name = NULL;
+    const char *module_name = NULL;
+    const char *key_id = NULL;
+    const char *label = NULL;
+    size_t pin_len, token_name_len, module_name_len, key_id_len, label_len;
+    int ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+    pd = talloc_zero(test_ctx, struct pam_data);
+    assert_non_null(pd);
+    pd->authtok = sss_authtok_new(pd);
+    assert_non_null(pd->authtok);
+    pd->json_auth_selected = discard_const(AUTH_MECH_REPLY_SMARTCARD_KEYPAD);
+
+    ret = json_unpack_auth_reply(pd);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(sss_authtok_get_type(pd->authtok), SSS_AUTHTOK_TYPE_SC_KEYPAD);
+    ret = sss_authtok_get_sc(pd->authtok, &pin, &pin_len,
+                             &token_name, &token_name_len,
+                             &module_name, &module_name_len,
+                             &key_id, &key_id_len,
+                             &label, &label_len);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(pin, "");
+    assert_string_equal(token_name, SC1_TOKEN_NAME);
+    assert_string_equal(module_name, SC1_MODULE_NAME);
+    assert_string_equal(key_id, SC1_KEY_ID);
+    assert_string_equal(label, SC1_LABEL);
+
+    talloc_free(test_ctx);
+}
+
 void test_json_unpack_auth_reply_passkey(void **state)
 {
     TALLOC_CTX *test_ctx = NULL;
@@ -1130,6 +1261,7 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_password, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_oauth2, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc1, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc_keypad, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_sc2, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_mechanisms_passkey, setup, teardown),
         cmocka_unit_test_setup_teardown(test_json_format_priority_all, setup, teardown),
@@ -1144,11 +1276,13 @@ int main(int argc, const char *argv[])
 #endif
         cmocka_unit_test(test_json_unpack_password_ok),
         cmocka_unit_test(test_json_unpack_smartcard_ok),
+        cmocka_unit_test(test_json_unpack_smartcard_keypad_ok),
         cmocka_unit_test(test_json_unpack_passkey_ok),
         cmocka_unit_test(test_json_unpack_auth_reply_password),
         cmocka_unit_test(test_json_unpack_auth_reply_oauth2),
         cmocka_unit_test(test_json_unpack_auth_reply_sc1),
         cmocka_unit_test(test_json_unpack_auth_reply_sc2),
+        cmocka_unit_test(test_json_unpack_auth_reply_sc_keypad),
         cmocka_unit_test(test_json_unpack_auth_reply_passkey),
         cmocka_unit_test(test_json_unpack_auth_reply_failure),
         cmocka_unit_test(test_json_unpack_oauth2_code),
