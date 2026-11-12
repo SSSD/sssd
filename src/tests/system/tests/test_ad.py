@@ -14,6 +14,80 @@ from sssd_test_framework.roles.client import Client
 from sssd_test_framework.roles.generic import GenericADProvider
 from sssd_test_framework.topology import KnownTopology, KnownTopologyGroup
 
+SMARTCARD_PIN = "123456"
+
+
+def configure_ad_tls(client: Client, ad: AD) -> None:
+    """
+    Prepare the client for secure LDAP communication with the AD domain controller.
+
+    Installs the AD CA certificate for TLS verification and configures OpenLDAP
+    with tls-endpoint channel binding, which is the binding compatible with
+    TLS 1.3 (tls-unique is not available in TLS 1.3).
+
+    :param client: Client role object.
+    :type client: Client
+    :param ad: AD role object.
+    :type ad: AD
+    """
+    # Remote CI labs may not resolve the DC; SSSD looks up ad_server via DNS.
+    ssh_target = ad.host.config.get("conn", {}).get("host", ad.server)
+    lookup = client.host.conn.run(f"getent ahostsv4 {ssh_target}", raise_on_error=False)
+    if lookup.rc == 0 and lookup.stdout.strip():
+        ad_ip = lookup.stdout.split()[0]
+        client.fs.write("/etc/resolv.conf", f"search {ad.domain}\nnameserver {ad_ip}\n")
+
+    try:
+        ca = ad.export_root_ca_certificate()
+    except RuntimeError:
+        pytest.skip("AD CA certificate not available; install AD Certificate Services on the DC")
+
+    client.fs.mkdir_p("/etc/openldap/certs")
+    client.fs.write("/etc/openldap/certs/cacert.pem", ca)
+    client.fs.write(
+        "/etc/openldap/ldap.conf",
+        "SASL_CBINDING tls-endpoint\nTLS_CACERT /etc/openldap/certs/cacert.pem\nSASL_NOCANON on\n",
+    )
+
+
+def skip_unless_windows_server_2025(ad: AD) -> None:
+    """
+    Skip the test unless the domain controller runs Windows Server 2025.
+
+    :param ad: AD role object.
+    :type ad: AD
+    """
+    result = ad.host.conn.run(
+        "Write-Host (Get-CimInstance Win32_OperatingSystem).Caption",
+        raise_on_error=False,
+    )
+    caption = result.stdout.strip()
+    if "2025" not in caption:
+        pytest.skip(f"Windows Server 2025 domain controller required, got: {caption or 'unknown version'}")
+
+
+def enroll_ad_smartcard(client: Client, ad: AD, username: str) -> None:
+    """
+    Request a certificate from the AD CA for *username* and enroll it onto the
+    client's virtual smart card.
+
+    :meth:`AD.ca.request` maps the certificate to the user in AD and returns the
+    certificate together with its private key, regardless of whether the
+    enrollment agent or the basic path is used.
+
+    :param client: Client role object.
+    :type client: Client
+    :param ad: AD role object whose CA issues the certificate.
+    :type ad: AD
+    :param username: AD user the certificate is issued for.
+    :type username: str
+    """
+    cert_path, key_path, _ = ad.ca.request("User", f"CN={username}")
+
+    client.fs.write("/etc/sssd/pki/sssd_auth_ca_db.pem", ad.ca.get_ca_cert())
+
+    client.smartcard.add_cert_key_by_path(cert_path, key_path, source=ad, name=username)
+
 
 @pytest.mark.topology(KnownTopologyGroup.AnyAD)
 @pytest.mark.ticket(jira="RHEL-65848", gh=7690)
@@ -228,55 +302,6 @@ if (-not $c) { Write-Error "CA not found"; exit 1 }
     assert f"ldaps://{ad.server}" in log, f"Logs should show LDAPS connection to {ad.server}"
 
 
-def configure_ad_tls(client: Client, ad: AD) -> None:
-    """
-    Prepare the client for secure LDAP communication with the AD domain controller.
-
-    Installs the AD CA certificate for TLS verification and configures OpenLDAP
-    with tls-endpoint channel binding, which is the binding compatible with
-    TLS 1.3 (tls-unique is not available in TLS 1.3).
-
-    :param client: Client role object.
-    :type client: Client
-    :param ad: AD role object.
-    :type ad: AD
-    """
-    # Remote CI labs may not resolve the DC; SSSD looks up ad_server via DNS.
-    ssh_target = ad.host.config.get("conn", {}).get("host", ad.server)
-    lookup = client.host.conn.run(f"getent ahostsv4 {ssh_target}", raise_on_error=False)
-    if lookup.rc == 0 and lookup.stdout.strip():
-        ad_ip = lookup.stdout.split()[0]
-        client.fs.write("/etc/resolv.conf", f"search {ad.domain}\nnameserver {ad_ip}\n")
-
-    try:
-        ca = ad.export_root_ca_certificate()
-    except RuntimeError:
-        pytest.skip("AD CA certificate not available; install AD Certificate Services on the DC")
-
-    client.fs.mkdir_p("/etc/openldap/certs")
-    client.fs.write("/etc/openldap/certs/cacert.pem", ca)
-    client.fs.write(
-        "/etc/openldap/ldap.conf",
-        "SASL_CBINDING tls-endpoint\nTLS_CACERT /etc/openldap/certs/cacert.pem\nSASL_NOCANON on\n",
-    )
-
-
-def skip_unless_windows_server_2025(ad: AD) -> None:
-    """
-    Skip the test unless the domain controller runs Windows Server 2025.
-
-    :param ad: AD role object.
-    :type ad: AD
-    """
-    result = ad.host.conn.run(
-        "Write-Host (Get-CimInstance Win32_OperatingSystem).Caption",
-        raise_on_error=False,
-    )
-    caption = result.stdout.strip()
-    if "2025" not in caption:
-        pytest.skip(f"Windows Server 2025 domain controller required, got: {caption or 'unknown version'}")
-
-
 @pytest.mark.topology(KnownTopology.AD)
 @pytest.mark.ticket(jira="IDM-6828")
 @pytest.mark.importance("high")
@@ -431,32 +456,6 @@ def test_ad__ldaps_tls13_negotiation(client: Client, ad: AD):
 
     log = client.fs.read(client.sssd.logs.domain())
     assert f"ldaps://{ad.server}" in log, f"Logs should show LDAPS connection to {ad.server}"
-
-
-SMARTCARD_PIN = "123456"
-
-
-def enroll_ad_smartcard(client: Client, ad: AD, username: str) -> None:
-    """
-    Request a certificate from the AD CA for *username* and enroll it onto the
-    client's virtual smart card.
-
-    :meth:`AD.ca.request` maps the certificate to the user in AD and returns the
-    certificate together with its private key, regardless of whether the
-    enrollment agent or the basic path is used.
-
-    :param client: Client role object.
-    :type client: Client
-    :param ad: AD role object whose CA issues the certificate.
-    :type ad: AD
-    :param username: AD user the certificate is issued for.
-    :type username: str
-    """
-    cert_path, key_path, _ = ad.ca.request("User", f"CN={username}")
-
-    client.fs.write("/etc/sssd/pki/sssd_auth_ca_db.pem", ad.ca.get_ca_cert())
-
-    client.smartcard.add_cert_key_by_path(cert_path, key_path, source=ad, name=username)
 
 
 @pytest.mark.importance("high")
