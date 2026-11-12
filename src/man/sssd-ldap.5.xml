@@ -764,6 +764,27 @@
                             option are defined by OpenLDAP.
                         </para>
                         <para>
+                            Please note that Active Directory does not
+                            allow to have multiple encryption layers on a
+                            single connection, i.e. SASL sign or seal as
+                            typically requested by SASL/GSSAPI or
+                            SASL/GSS-SPNEGO cannot be used if the
+                            connection is protected with TLS or SSL. If
+                            StartTLS is used (see
+                            <emphasis>ldap_id_use_start_tls</emphasis>),
+                            both <emphasis>ldap_sasl_minssf</emphasis>
+                            and <emphasis>ldap_sasl_maxssf</emphasis>
+                            have to be set to 0 to allow authentication
+                            against Active Directory. If LDAPS is used
+                            with the AD provider (see the
+                            <emphasis>ad_use_ldaps</emphasis> option in
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>), both options are set to 0
+                            automatically.
+                        </para>
+                        <para>
                             Default: Use the system default (usually specified
                             by ldap.conf)
                         </para>
@@ -778,6 +799,27 @@
                             specify the maximal security level necessary to
                             establish the connection. The values of this
                             option are defined by OpenLDAP.
+                        </para>
+                        <para>
+                            Please note that Active Directory does not
+                            allow to have multiple encryption layers on a
+                            single connection, i.e. SASL sign or seal as
+                            typically requested by SASL/GSSAPI or
+                            SASL/GSS-SPNEGO cannot be used if the
+                            connection is protected with TLS or SSL. If
+                            StartTLS is used (see
+                            <emphasis>ldap_id_use_start_tls</emphasis>),
+                            both <emphasis>ldap_sasl_minssf</emphasis>
+                            and <emphasis>ldap_sasl_maxssf</emphasis>
+                            have to be set to 0 to allow authentication
+                            against Active Directory. If LDAPS is used
+                            with the AD provider (see the
+                            <emphasis>ad_use_ldaps</emphasis> option in
+                            <citerefentry>
+                                <refentrytitle>sssd-ad</refentrytitle>
+                                <manvolnum>5</manvolnum>
+                            </citerefentry>), both options are set to 0
+                            automatically.
                         </para>
                         <para>
                             Default: Use the system default (usually specified
@@ -976,7 +1018,28 @@
                             <emphasis>true</emphasis> is strongly recommended for security reasons.
                         </para>
                         <para>
-                            Default: true
+                            Please note that Active Directory does not
+                            allow to have multiple encryption layers on a
+                            single connection. Since SASL/GSSAPI or
+                            SASL/GSS-SPNEGO, which are used for
+                            authentication by the AD provider by default
+                            or by the LDAP provider if
+                            <emphasis>ldap_sasl_mech</emphasis> is set
+                            accordingly, typically request SASL sign or
+                            seal, the bind against Active Directory might
+                            fail with <quote>Server is unwilling to
+                            perform</quote> and a message like
+                            <quote>Cannot bind using sign/seal on a
+                            connection on which TLS or SSL is in
+                            effect</quote> if this option is used. In
+                            this case <emphasis>ldap_sasl_minssf</emphasis>
+                            and <emphasis>ldap_sasl_maxssf</emphasis>
+                            have to be set to 0 because the connection is
+                            already protected by TLS.
+                        </para>
+                        <para>
+                            Default: true, false for the AD and IPA
+                            provider
                         </para>
                     </listitem>
                 </varlistentry>
