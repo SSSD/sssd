@@ -43,8 +43,8 @@ class TestDefaultDebugLevel(object):
         """
         client = multihost.client[0]
         tools = sssdTools(multihost.client[0])
-        ldap_uri = f'ldap://{multihost.master[0].ip}'
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_dn = f'uid=tempuser2,{ds_suffix}'
         user_info = {'cn': 'Temp user2'.encode('utf-8'),
                      'loginshell': '/bin/bash'.encode('utf-8'),
@@ -156,8 +156,8 @@ class TestDefaultDebugLevel(object):
         """
         client = multihost.client[0]
         tools = sssdTools(multihost.client[0])
-        ldap_uri = f'ldap://{multihost.master[0].ip}'
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_dn = f'uid=mid_cacheuser,{ds_suffix}'
         user_info = {'cn': 'Midcache'.encode('utf-8'),
                      'loginshell': '/bin/bash'.encode('utf-8'),
