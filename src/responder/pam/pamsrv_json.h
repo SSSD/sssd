@@ -35,6 +35,7 @@
 #define OAUTH2_LINK_PROMPT  "Log in online with another device"
 #define SC_INIT_PROMPT      "Insert smartcard"
 #define SC_PIN_PROMPT       "PIN"
+#define SC_KEYPAD_PROMPT    "Use external keypad to enter PIN"
 #define PASSKEY_INIT_PROMPT "Insert key"
 #define PASSKEY_PIN_PROMPT  "Security key PIN"
 #define PASSKEY_TOUCH_PROMPT "Touch security key"
@@ -65,10 +66,11 @@ struct sc_data {
     char **names;
     char *init_prompt;
     char **cert_instructions;
-    char *pin_prompt;
+    char **pin_prompts;
     char **module_names;
     char **key_ids;
     char **labels;
+    bool *protected_auth_path;
 };
 
 struct passkey_data {
