@@ -94,6 +94,9 @@ if HAVE_SYSTEMD_UNIT
 ifp_dbus_exec_comment = \# If system is configured to use systemd ifp service ("SystemdService=") then "Exec=" and "User=" options are not used
 ifp_dbus_exec_cmd = $(sssdlibexecdir)/sssd_ifp --socket-activated
 ifp_systemdservice = SystemdService=sssd-ifp.service
+# Let the logrotate postrotate script ask systemd to deliver SIGHUP, this way
+# the PID file isn't required and 'sssd_kcm' isn't signaled by name.
+logrotate_systemd = yes
 # SSSD requires a configuration file (either /etc/sssd/sssd.conf,
 # or some snippet under /etc/sssd/sssd.conf.d/) to be present.
 if HAVE_VENDORDIR
@@ -124,6 +127,7 @@ else
 ifp_dbus_exec_comment = \# "sss_signal" is used to force SSSD monitor to trigger "sssd_ifp" reconnection to dbus
 ifp_dbus_exec_cmd = $(sssdlibexecdir)/sss_signal
 ifp_systemdservice =
+logrotate_systemd = no
 endif # HAVE_SYSTEMD_UNIT
 
 secdbpath = @secdbpath@
@@ -5311,7 +5315,8 @@ edit_cmd = $(SED) \
         -e 's|@sssdconfdir[@]|$(sssdconfdir)|g' \
         -e 's|@secdbpath[@]|$(secdbpath)|g' \
         -e 's|@dbpath[@]|$(dbpath)|g' \
-        -e 's|@gpocachepath[@]|$(gpocachepath)|g'
+        -e 's|@gpocachepath[@]|$(gpocachepath)|g' \
+        -e 's|@logrotate_systemd[@]|$(logrotate_systemd)|g'
 
 replace_script = \
     @rm -f $@ $@.tmp; \
@@ -5321,6 +5326,7 @@ replace_script = \
     mv $@.tmp $@
 
 EXTRA_DIST += \
+    src/examples/logrotate.in \
     src/sysv/systemd/sssd.service.in \
     src/sysv/systemd/sssd-nss.socket.in \
     src/sysv/systemd/sssd-nss.service.in \
