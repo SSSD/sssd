@@ -222,9 +222,8 @@ class TestMisc(object):
         """
         multihost.client[0].service_sssd('restart')
         ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
-        ds_rootdn = 'cn=Directory Manager'
-        ds_rootpw = 'Secret123'
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_info = {'cn': 'user_exp4'.encode('utf-8'),
                      'objectClass': [b'top', b'person',
                                      b'inetOrgPerson',
@@ -274,9 +273,8 @@ class TestMisc(object):
         client.sssd_conf(f'domain/{domain_name}', domain_params)
         multihost.client[0].service_sssd('restart')
         ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
-        ds_rootdn = 'cn=Directory Manager'
-        ds_rootpw = 'Secret123'
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         user_info = {
             'ou': 'Unit1'.encode('utf-8'),
             'objectClass': [b'top', b'organizationalUnit']}
@@ -568,8 +566,8 @@ class TestMisc(object):
         client = multihost.client[0]
         multihost.client[0].run_command("modprobe sch_netem")
         log_nss = '/var/log/sssd/sssd_nss.log'
-        ldap_uri = 'ldap://%s' % (multihost.master[0].ip)
-        ldap_inst = LdapOperations(ldap_uri, ds_rootdn, ds_rootpw)
+        ldap_inst = LdapOperations.for_ds_host(multihost.master[0],
+                                            ds_rootdn, ds_rootpw)
         ldap_inst.org_unit("Netgroup", ds_suffix)
         user_dn = f'cn=netgrp_nowait,ou=Netgroup,{ds_suffix}'
         user_info = {'cn': 'netgrp_nowait'.encode('utf-8'),
