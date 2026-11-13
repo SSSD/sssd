@@ -395,7 +395,7 @@ def test_ldap__lookup_and_authenticate_as_user_with_different_object_search_base
 @pytest.mark.importance("critical")
 @pytest.mark.parametrize(
     "modify_mode, expected, err_msg",
-    [("exop", 3, "Expected login failure"), ("exop_force", 3, "Expected password change request")],
+    [("exop", 1, "Expected authentication failure"), ("exop_force", 3, "Expected password change request")],
 )
 @pytest.mark.topology(KnownTopology.LDAP)
 def test_ldap__user_cannot_login_when_no_remaining_grace_logins(
@@ -412,22 +412,22 @@ def test_ldap__user_cannot_login_when_no_remaining_grace_logins(
     'exop_force' SSSD will ask for new credentials and will try to run the password
     change extended operation.
     :setup:
-        1. Set "passwordMaxAge" to "1"
-        2. Set "passwordGraceLimit" to "0"
-        3. Add a user to LDAP
-        4. Wait until the password is expired
-        5. Set "ldap_pwmodify_mode"
-        6. Start SSSD
+        1. Set "passwordExp" to "on", "passwordMaxAge" to "1" and "passwordGraceLimit" to "0"
+        2. Add user "user1" to LDAP
+        3. Wait until the password is expired
+        4. Set "ldap_pwmodify_mode" to 'exop | exop_force'
+        5. Start SSSD
     :steps:
-        1. Authenticate as the user with 'exop_force' set
-        2. Authenticate as the user with 'exop' set
+        1. Authenticate as the user with 'exop' set
+        2. Authenticate as the user with 'exop_force' set
     :expectedresults:
-        1. With 'exop_force' expect a request to change the password
-        2. With 'exop' expect just a failed login
+        1. With 'exop' expect an authentication failure
+        2. With 'exop_force' expect a request to change the password
     :customerscenario: False
     """
-    ldap.ldap.modify("cn=config", replace={"passwordMaxAge": "1", "passwordGraceLimit": "0"})
-    ldap.user("user1").add(password="Secret123").password_change_at_logon(password="Secret123")
+    ldap.password_policy.expiration(max_age=1, grace_limit=0)
+    ldap.user("user1").add(password="Secret123")
+    time.sleep(2)
 
     client.sssd.domain["ldap_pwmodify_mode"] = modify_mode
     client.sssd.start()
@@ -1061,7 +1061,7 @@ def test_ldap__display_password_expiration_warning(client: Client, ldap: LDAP):
         3. Same results are expected for 'ssh' too
     :customerscenario: False
     """
-    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "86400", "passwordWarning": "86400"})
+    ldap.password_policy.expiration(max_age=86400, warning_time=86400)
     ldap.user("user1").add(password="Secret123")
     client.sssd.start()
 
@@ -1204,7 +1204,7 @@ def test_ldap__display_grace_logins_when_password_has_expired(client: Client, ld
         3. Results above are expected in every iteration
     :customerscenario: False
     """
-    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "2"})
+    ldap.password_policy.expiration(max_age=1, grace_limit=2)
     ldap.user("user1").add(password="Secret123")
     client.sssd.start()
     time.sleep(2)
@@ -1244,7 +1244,7 @@ def test_ldap__authentication_fails_once_password_max_age_is_reached(client: Cli
         3. Authentication succeeds using both methods with the original password
     :customerscenario: False
     """
-    ldap.ldap.modify("cn=config", replace={"passwordExp": "on", "passwordMaxAge": "1", "passwordGraceLimit": "0"})
+    ldap.password_policy.expiration(max_age=1, grace_limit=0)
     ldap.user("user1").add(password="Secret123")
     time.sleep(2)
     client.sssd.start()
@@ -1255,7 +1255,7 @@ def test_ldap__authentication_fails_once_password_max_age_is_reached(client: Cli
             rc == 1
         ), f"Expected authentication failure due to expired password and no grace logins! Method: {method}."
 
-    ldap.ldap.modify("cn=config", replace={"passwordExp": "off"})
+    ldap.password_policy.expiration(enable=False)
 
     for method in ["su", "ssh"]:
         assert client.auth.parametrize(method).password(
