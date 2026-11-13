@@ -758,7 +758,11 @@ done:
     return ret;
 }
 
-errno_t sysdb_attrs_copy(struct sysdb_attrs *src, struct sysdb_attrs *dst)
+static
+errno_t sysdb_attrs_copy_ext(struct sysdb_attrs *src,
+                             struct sysdb_attrs *dst,
+                             const char **exclude,
+                             bool check)
 {
     int ret;
     size_t c;
@@ -769,9 +773,14 @@ errno_t sysdb_attrs_copy(struct sysdb_attrs *src, struct sysdb_attrs *dst)
     }
 
     for (c = 0; c < src->num; c++) {
+        if (string_in_list(src->a[c].name, discard_const(exclude), false)) {
+            continue;
+        }
         for (d = 0; d < src->a[c].num_values; d++) {
-            ret = sysdb_attrs_add_val_safe(dst, src->a[c].name,
-                                           &src->a[c].values[d]);
+            ret = sysdb_attrs_add_val_int(dst,
+                                          src->a[c].name,
+                                          check,
+                                          &src->a[c].values[d]);
             if (ret != EOK) {
                 DEBUG(SSSDBG_OP_FAILURE, "sysdb_attrs_add_val failed.\n");
                 return ret;
@@ -780,6 +789,19 @@ errno_t sysdb_attrs_copy(struct sysdb_attrs *src, struct sysdb_attrs *dst)
     }
 
     return EOK;
+}
+
+errno_t sysdb_attrs_copy(struct sysdb_attrs *src,
+                         struct sysdb_attrs *dst)
+{
+    return sysdb_attrs_copy_ext(src, dst, NULL, true);
+}
+
+errno_t sysdb_attrs_join(struct sysdb_attrs *src,
+                         struct sysdb_attrs *dst,
+                         const char **exclude)
+{
+    return sysdb_attrs_copy_ext(src, dst, exclude, false);
 }
 
 int sysdb_attrs_users_from_str_list(struct sysdb_attrs *attrs,

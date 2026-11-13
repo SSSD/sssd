@@ -744,12 +744,34 @@
                             this option prevents SSSD from parsing the range
                             extension. As a result large groups will appear as they
                             have no members.
-                            This option does not enable SSSD to read subsequent
-                            ranges. To retrieve all members of a group, you must
-                            increase the MaxValRange setting in Active Directory.
+                        </para>
+                        <para>
+                            By default, SSSD performs additional queries to obtain
+                            subsequent ranges and to complete information.
                         </para>
                         <para>
                             Default: False
+                        </para>
+                    </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                    <term>ldap_range_retrieval_max_steps (integer)</term>
+                    <listitem>
+                        <para>
+                            Maximum number of range retrieval steps SSSD
+                            will perform when fetching multi-valued attributes
+                            that exceed the Active Directory MaxValRange limit.
+                        </para>
+                        <para>
+                            Each step retrieves one additional batch of values.
+                            If the limit is reached before all values are
+                            retrieved, SSSD logs a critical error message
+                            suggesting to increase this value. Setting this
+                            option to 0 disables the limit.
+                        </para>
+                        <para>
+                            Default: 50
                         </para>
                     </listitem>
                 </varlistentry>
