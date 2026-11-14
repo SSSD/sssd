@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.10.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2024-10-15 11:44+0200\n"
-"PO-Revision-Date: 2026-11-03 19:11+0000\n"
+"PO-Revision-Date: 2026-11-11 05:18+0000\n"
 "Last-Translator: hsu zangmen <chzang55@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-manpage-master/zh_TW/>\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 2026.11\n"
+"X-Generator: Weblate 2026.11.1\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -6808,7 +6808,7 @@ msgstr ""
 "若連線在到期前 <emphasis>ldap_opt_timeout</emphasis> 秒內處於閒置狀態（未積極"
 "執行任何操作），則該連線將被提前關閉，以確保新的查詢不會導致該連線在到期後仍"
 "保持開啟狀態。 這意味著，若 <emphasis>ldap_connection_expire_timeout &lt;= "
-"ldap_opt_timeout</emphasis>，則連線將始終立即關閉，且絕不會被重複使用。"
+"ldap_opt_timeout</emphasis>，則連線將始終立即關閉，且絕不會被重複使用"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:578

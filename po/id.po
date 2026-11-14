@@ -5,12 +5,14 @@
 # Translators:
 # Glenn Mandagi <s21710491@student.unklab.ac.id>, 2026.
 # Faiz Zulfikar <faizrzulfikar@proton.me>, 2026.
+# data informasi <mh1227330@gmail.com>, 2026.
+# Weblate Translation Memory <noreply-mt-weblate-translation-memory@weblate.org>, 2026.
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-29 07:31+0000\n"
-"PO-Revision-Date: 2026-11-03 18:32+0000\n"
+"PO-Revision-Date: 2026-11-14 17:18+0000\n"
 "Last-Translator: Faiz Zulfikar <faizrzulfikar@proton.me>\n"
 "Language-Team: Indonesian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/id/>\n"
@@ -19,7 +21,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 2026.11\n"
+"X-Generator: Weblate 2026.11.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -40,7 +42,7 @@ msgstr "Aktifkan/nonaktifkan debug backtrace"
 
 #: src/config/SSSDConfig/sssdoptions.py:21
 msgid "Watchdog timeout before restarting service"
-msgstr ""
+msgstr "Batas waktu watchdog terlampaui sebelum memulai ulang layanan"
 
 #: src/config/SSSDConfig/sssdoptions.py:22
 msgid "Command to start service"
@@ -48,19 +50,21 @@ msgstr "Perintah untuk memulai layanan"
 
 #: src/config/SSSDConfig/sssdoptions.py:23
 msgid "The number of file descriptors that may be opened by this responder"
-msgstr ""
+msgstr "Jumlah berkas descriptor yang dapat dibuka oleh layanan ini"
 
 #: src/config/SSSDConfig/sssdoptions.py:24
 msgid "Idle time before automatic disconnection of a client"
-msgstr ""
+msgstr "Waktu hening sebelum pemutusan hubungan klien secara otomatis"
 
 #: src/config/SSSDConfig/sssdoptions.py:25
+#, fuzzy
 msgid "Idle time before automatic shutdown of the responder"
-msgstr ""
+msgstr "Waktu tunggu sebelum penonaktifan otomatis responder"
 
 #: src/config/SSSDConfig/sssdoptions.py:26
+#, fuzzy
 msgid "Always query all the caches before querying the Data Providers"
-msgstr ""
+msgstr "Selalu periksa semua cache sebelum melakukan kueri ke Penyedia Data"
 
 #: src/config/SSSDConfig/sssdoptions.py:27
 msgid ""
@@ -69,6 +73,10 @@ msgid ""
 "is in seconds and calculated by the following: offline_timeout + "
 "random_offset."
 msgstr ""
+"Ketika SSSD beralih ke mode offline, lamanya waktu sebelum sistem mencoba "
+"kembali online akan bertambah sesuai dengan lamanya waktu yang dihabiskan "
+"dalam keadaan terputus. Nilai ini dinyatakan dalam detik dan dihitung dengan "
+"rumus: offline_timeout + random_offset."
 
 #: src/config/SSSDConfig/sssdoptions.py:32
 msgid "SSSD Services to start"
@@ -80,45 +88,58 @@ msgstr "Domain SSSD akan dijalankan"
 
 #: src/config/SSSDConfig/sssdoptions.py:34
 msgid "Regex to parse username and domain"
-msgstr ""
+msgstr "Regex untuk mengurai nama pengguna dan domain"
 
 #: src/config/SSSDConfig/sssdoptions.py:35
+#, fuzzy
 msgid "Printf-compatible format for displaying fully-qualified names"
 msgstr ""
+"Format yang kompatibel dengan printf untuk menampilkan nama berkualifikasi "
+"lengkap"
 
 #: src/config/SSSDConfig/sssdoptions.py:36
+#, fuzzy
 msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Direktori pada sistem berkas tempat SSSD harus menyimpan berkas tembolok "
+"pemutaran ulang Kerberos."
 
 #: src/config/SSSDConfig/sssdoptions.py:37
+#, fuzzy
 msgid "Domain to add to names without a domain component."
-msgstr ""
+msgstr "Domain yang ditambahkan ke nama yang tidak memiliki komponen domain."
 
 #: src/config/SSSDConfig/sssdoptions.py:38
+#, fuzzy
 msgid "The user to drop privileges to"
-msgstr ""
+msgstr "Pengguna untuk pengalihan hak akses"
 
 #: src/config/SSSDConfig/sssdoptions.py:39
+#, fuzzy
 msgid "Tune certificate verification"
-msgstr ""
+msgstr "Mengatur verifikasi sertifikat"
 
 #: src/config/SSSDConfig/sssdoptions.py:40
+#, fuzzy
 msgid "All spaces in group or user names will be replaced with this character"
 msgstr ""
+"Semua spasi pada nama grup atau pengguna akan diganti dengan karakter ini"
 
 #: src/config/SSSDConfig/sssdoptions.py:41
 msgid "Tune sssd to honor or ignore netlink state changes"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:42
+#, fuzzy
 msgid "Enable or disable the implicit files domain"
-msgstr ""
+msgstr "Mengaktifkan atau menonaktifkan domain file tersirat"
 
 #: src/config/SSSDConfig/sssdoptions.py:43
+#, fuzzy
 msgid "A specific order of the domains to be looked up"
-msgstr ""
+msgstr "Urutan tertentu dari domain yang akan dicari"
 
 #: src/config/SSSDConfig/sssdoptions.py:44
 msgid ""
@@ -135,16 +156,19 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:49
+#, fuzzy
 msgid "Run PAC responder automatically for AD and IPA provider"
 msgstr ""
+"Jalankan layanan PAC secara otomatis sebagai penyedia layanan AD dan IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:50
+#, fuzzy
 msgid "Enable or disable core dumps for all SSSD processes."
-msgstr ""
+msgstr "Mengaktifkan atau menonaktifkan core dump untuk semua proses SSSD."
 
 #: src/config/SSSDConfig/sssdoptions.py:51
 msgid "Tune passkey verification behavior"
-msgstr ""
+msgstr "Menyesuaikan perilaku verifikasi kata sandi"
 
 #: src/config/SSSDConfig/sssdoptions.py:54
 msgid "Enumeration cache timeout length (seconds)"
@@ -152,12 +176,13 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:55
 msgid "Entry cache background update timeout length (seconds)"
-msgstr ""
+msgstr "Durasi batas waktu pembaruan latar belakang cache entri (detik)"
 
 #: src/config/SSSDConfig/sssdoptions.py:56
 #: src/config/SSSDConfig/sssdoptions.py:126
+#, fuzzy
 msgid "Negative cache timeout length (seconds)"
-msgstr ""
+msgstr "Durasi batas waktu cache negatif (detik)"
 
 #: src/config/SSSDConfig/sssdoptions.py:57
 #, fuzzy
@@ -167,7 +192,7 @@ msgstr "Pengguna yang diabaikan secara eksplisit oleh SSSD"
 #: src/config/SSSDConfig/sssdoptions.py:58
 #, fuzzy
 msgid "GIDs or GID ranges that SSSD should explicitly ignore"
-msgstr "Pengguna yang diabaikan secara eksplisit oleh SSSD"
+msgstr "GID atau rentang GID yang harus diabaikan secara eksplisit oleh SSSD"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Users that SSSD should explicitly ignore"
@@ -195,8 +220,9 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:65
+#, fuzzy
 msgid "Override shell value from the identity provider with this value"
-msgstr ""
+msgstr "Timpa nilai shell dari penyedia identitas dengan nilai ini"
 
 #: src/config/SSSDConfig/sssdoptions.py:66
 msgid "The list of shells users are allowed to log in with"
@@ -208,10 +234,13 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:68
+#, fuzzy
 msgid ""
 "If a shell stored in central directory is allowed but not available, use "
 "this fallback"
 msgstr ""
+"Jika sebuah shell yang disimpan di direktori pusat diperbolehkan tetapi "
+"tidak tersedia, gunakan opsi cadangan ini"
 
 #: src/config/SSSDConfig/sssdoptions.py:69
 msgid "Shell to use if the provider does not list one"
@@ -432,8 +461,9 @@ msgid "Validate the PAC"
 msgstr "Verifikasi PAC"
 
 #: src/config/SSSDConfig/sssdoptions.py:143
+#, fuzzy
 msgid "List of user attributes the InfoPipe is allowed to publish"
-msgstr ""
+msgstr "Daftar atribut pengguna yang boleh dipublikasikan oleh InfoPipe"
 
 #: src/config/SSSDConfig/sssdoptions.py:146
 msgid ""
@@ -493,8 +523,9 @@ msgid "Autofs provider"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:165
+#, fuzzy
 msgid "Host identity provider"
-msgstr ""
+msgstr "Penyedia identitas inang"
 
 #: src/config/SSSDConfig/sssdoptions.py:166
 msgid "SELinux provider"
@@ -513,8 +544,9 @@ msgid "Whether the domain is usable by the OS or by applications"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:172
+#, fuzzy
 msgid "Enable or disable the domain"
-msgstr ""
+msgstr "Aktifkan atau nonaktifkan domain"
 
 #: src/config/SSSDConfig/sssdoptions.py:173
 msgid "Minimum user ID"
@@ -561,10 +593,13 @@ msgid "How long to keep cached entries after last successful login (days)"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:182
+#, fuzzy
 msgid ""
 "How long should SSSD talk to single DNS server before trying next server "
 "(miliseconds)"
 msgstr ""
+"Berapa lama SSSD harus berkomunikasi dengan satu server DNS sebelum mencoba "
+"server berikutnya (milidetik)"
 
 #: src/config/SSSDConfig/sssdoptions.py:184
 msgid "How long should keep trying to resolve single DNS query (seconds)"
@@ -698,10 +733,13 @@ msgid ""
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:224
+#, fuzzy
 msgid ""
 "The provider which should handle fetching of subdomains. This value should "
 "be always the same as id_provider."
 msgstr ""
+"Penyedia yang bertugas menangani pengambilan subdomain. Nilainya harus "
+"selalu sama dengan id_provider."
 
 #: src/config/SSSDConfig/sssdoptions.py:226
 msgid ""
@@ -729,8 +767,9 @@ msgid "IPA server address"
 msgstr "Alamat server IPA"
 
 #: src/config/SSSDConfig/sssdoptions.py:237
+#, fuzzy
 msgid "Address of backup IPA server"
-msgstr ""
+msgstr "Alamat server IPA cadangan"
 
 #: src/config/SSSDConfig/sssdoptions.py:238
 msgid "IPA client hostname"
@@ -776,16 +815,18 @@ msgid "Objectclass for view containers"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:249
+#, fuzzy
 msgid "Attribute with the name of the view"
-msgstr ""
+msgstr "Atribut yang berisi nama tampilan"
 
 #: src/config/SSSDConfig/sssdoptions.py:250
 msgid "Objectclass for override objects"
 msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:251
+#, fuzzy
 msgid "Attribute with the reference to the original object"
-msgstr ""
+msgstr "Atribut yang mengacu pada objek aslinya"
 
 #: src/config/SSSDConfig/sssdoptions.py:252
 msgid "Objectclass for user override objects"
@@ -1274,11 +1315,11 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:394
 msgid "entryUSN attribute"
-msgstr ""
+msgstr "atribut entryUSN"
 
 #: src/config/SSSDConfig/sssdoptions.py:395
 msgid "lastUSN attribute"
-msgstr ""
+msgstr "atribut lastUSN"
 
 #: src/config/SSSDConfig/sssdoptions.py:397
 msgid "How long to retain a connection to the LDAP server before disconnecting"
@@ -1294,7 +1335,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:402
 msgid "Use the ppolicy extension"
-msgstr ""
+msgstr "Menggunakan ekstensi ppolicy"
 
 #: src/config/SSSDConfig/sssdoptions.py:403
 msgid ""
@@ -1417,19 +1458,19 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:434
 msgid "shadowWarning attribute"
-msgstr ""
+msgstr "atribut shadowWarning"
 
 #: src/config/SSSDConfig/sssdoptions.py:435
 msgid "shadowInactive attribute"
-msgstr ""
+msgstr "atribut shadowInactive"
 
 #: src/config/SSSDConfig/sssdoptions.py:436
 msgid "shadowExpire attribute"
-msgstr ""
+msgstr "atribut shadowExpire"
 
 #: src/config/SSSDConfig/sssdoptions.py:437
 msgid "shadowFlag attribute"
-msgstr ""
+msgstr "atribut shadowFlag"
 
 #: src/config/SSSDConfig/sssdoptions.py:438
 msgid "Attribute listing authorized PAM services"
@@ -1836,7 +1877,7 @@ msgstr ""
 
 #: src/config/SSSDConfig/sssdoptions.py:560
 msgid "IP host number (address) attribute"
-msgstr ""
+msgstr "Atribut nomor host (alamat) IP"
 
 #: src/config/SSSDConfig/sssdoptions.py:561
 msgid "IP host entryUSN attribute"
@@ -2015,7 +2056,7 @@ msgstr ""
 
 #: src/sss_client/common.c:1217
 msgid "SSSD socket does not exist."
-msgstr ""
+msgstr "Soket SSSD tidak ada."
 
 #: src/sss_client/common.c:1220
 msgid "Cannot get stat of SSSD socket."
@@ -2143,7 +2184,7 @@ msgstr ""
 
 #: src/sss_client/pam_sss.c:2917 src/sss_client/pam_sss.c:3092
 msgid "Second Factor: "
-msgstr ""
+msgstr "Faktor Kedua: "
 
 #: src/sss_client/pam_sss.c:2921
 msgid "Insert your passkey device, then press ENTER."
@@ -2155,7 +2196,7 @@ msgstr "Kata sandi:"
 
 #: src/sss_client/pam_sss.c:3087 src/sss_client/pam_sss.c:3091
 msgid "First Factor (Current Password): "
-msgstr ""
+msgstr "Faktor Pertama (Kata Sandi Saat Ini): "
 
 #: src/sss_client/pam_sss.c:3111
 msgid "Current Password: "
@@ -2171,7 +2212,7 @@ msgstr ""
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:43
 msgid "The SSSD domain to use"
-msgstr ""
+msgstr "Domain SSSD yang akan digunakan"
 
 #: src/sss_client/ssh/sss_ssh_authorizedkeys.c:57 src/tools/sss_cache.c:753
 msgid "Error setting the locale\n"

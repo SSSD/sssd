@@ -8,8 +8,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.12.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-01-14 15:00+0000\n"
-"PO-Revision-Date: 2026-10-06 11:46+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"PO-Revision-Date: 2026-11-14 17:18+0000\n"
+"Last-Translator: Faiz Zulfikar <faizrzulfikar@proton.me>\n"
 "Language-Team: Indonesian <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/id/>\n"
 "Language: id\n"
@@ -17,7 +17,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 2026.10\n"
+"X-Generator: Weblate 2026.11.2\n"
 
 #. type: Content of: <reference><title>
 #: sssd.conf.5.xml:8 sssd-ldap.5.xml:5 pam_sss.8.xml:5 pam_sss_gss.8.xml:5
@@ -30,12 +30,12 @@ msgstr ""
 #: sssd-session-recording.5.xml:5 sssd-kcm.8.xml:5 sssd-systemtap.5.xml:5
 #: sssd-ldap-attributes.5.xml:5 sssd_krb5_localauth_plugin.8.xml:5
 msgid "SSSD Manual pages"
-msgstr ""
+msgstr "Halaman Panduan SSSD"
 
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd.conf.5.xml:13 sssd.conf.5.xml:19
 msgid "sssd.conf"
-msgstr ""
+msgstr "sssd.conf"
 
 #. type: Content of: <reference><refentry><refmeta><manvolnum>
 #: sssd.conf.5.xml:14 sssd-ldap.5.xml:11 sssd-simple.5.xml:11
@@ -44,7 +44,7 @@ msgstr ""
 #: sss_rpcidmapd.5.xml:27 sssd-session-recording.5.xml:11
 #: sssd-systemtap.5.xml:11 sssd-ldap-attributes.5.xml:11
 msgid "5"
-msgstr ""
+msgstr "5"
 
 #. type: Content of: <reference><refentry><refmeta><refmiscinfo>
 #: sssd.conf.5.xml:15 sssd-ldap.5.xml:12 sssd-simple.5.xml:12
@@ -423,7 +423,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:310 sssd.conf.5.xml:3551
 msgid "%3$s"
-msgstr ""
+msgstr "%3$s"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:313 sssd.conf.5.xml:3554
@@ -500,10 +500,13 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:371
+#, fuzzy
 msgid ""
 "Directory on the filesystem where SSSD should store Kerberos replay cache "
 "files."
 msgstr ""
+"Direktori pada sistem berkas tempat SSSD harus menyimpan berkas tembolok "
+"pemutaran ulang Kerberos."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:375
@@ -4441,7 +4444,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:3863
 msgid "%F"
-msgstr ""
+msgstr "%F"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:3864
@@ -4572,7 +4575,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:3967 sssd-ldap.5.xml:233
 msgid "AD"
-msgstr ""
+msgstr "AD"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><informaltable><tgroup><tbody><row><entry><para>
 #: sssd.conf.5.xml:3967 sssd.conf.5.xml:3970 sssd.conf.5.xml:3971
@@ -5409,7 +5412,7 @@ msgstr ""
 #: sssd-idp.5.xml:54 sssd-krb5.5.xml:63 sssd-ifp.5.xml:60
 #: sssd-session-recording.5.xml:58 sssd-kcm.8.xml:202
 msgid "CONFIGURATION OPTIONS"
-msgstr ""
+msgstr "OPSI KONFIGURASI"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><term>
 #: sssd-ldap.5.xml:67
@@ -5701,7 +5704,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:321
 msgid "The two mechanisms currently supported are:"
-msgstr ""
+msgstr "Dua mekanisme yang saat ini didukung adalah:"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:324
@@ -5711,7 +5714,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:327
 msgid "obfuscated_password"
-msgstr ""
+msgstr "obfuscated_password"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-ldap.5.xml:330
@@ -7825,7 +7828,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:289 pam_sss_gss.8.xml:111
 msgid "PAM_SUCCESS"
-msgstr ""
+msgstr "PAM_SUCCESS"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:292 pam_sss_gss.8.xml:114
@@ -7835,7 +7838,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:297 pam_sss_gss.8.xml:119
 msgid "PAM_USER_UNKNOWN"
-msgstr ""
+msgstr "PAM_USER_UNKNOWN"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:300
@@ -7847,7 +7850,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: pam_sss.8.xml:306 pam_sss_gss.8.xml:128
 msgid "PAM_AUTH_ERR"
-msgstr ""
+msgstr "PAM_AUTH_ERR"
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: pam_sss.8.xml:309
@@ -9470,6 +9473,7 @@ msgstr ""
 #: sss-certmap.5.xml:599
 msgid "{subject_directory_name[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
 msgstr ""
+"{subject_directory_name[!((ad|ad_x500)|ad_ldap|nss_x500|(nss|nss_ldap))]}"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><para><variablelist><varlistentry><listitem><para>
 #: sss-certmap.5.xml:602
@@ -15299,7 +15303,7 @@ msgstr ""
 #. type: Content of: <reference><refentry><refnamediv><refname>
 #: sssd-systemtap.5.xml:10 sssd-systemtap.5.xml:16
 msgid "sssd-systemtap"
-msgstr ""
+msgstr "sssd-systemtap"
 
 #. type: Content of: <reference><refentry><refnamediv><refpurpose>
 #: sssd-systemtap.5.xml:17

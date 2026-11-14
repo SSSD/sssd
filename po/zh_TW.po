@@ -11,9 +11,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-29 07:31+0000\n"
-"PO-Revision-Date: 2026-11-03 18:43+0000\n"
-"Last-Translator: Weblate Translation Memory <noreply-mt-weblate-translation-"
-"memory@weblate.org>\n"
+"PO-Revision-Date: 2026-11-11 05:18+0000\n"
+"Last-Translator: hsu zangmen <chzang55@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <https://translate.fedoraproject.org/"
 "projects/sssd/sssd-master/zh_TW/>\n"
 "Language: zh_TW\n"
@@ -21,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
-"X-Generator: Weblate 2026.11\n"
+"X-Generator: Weblate 2026.11.1\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -168,14 +167,12 @@ msgid "Negative cache timeout length (seconds)"
 msgstr "負面快取逾時長度（秒）"
 
 #: src/config/SSSDConfig/sssdoptions.py:57
-#, fuzzy
 msgid "UIDs or UID ranges that SSSD should explicitly ignore"
-msgstr "SSSD 應該明確忽略的使用者"
+msgstr "SSSD 應明確忽略的 UID 或 UID 範圍"
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "GIDs or GID ranges that SSSD should explicitly ignore"
-msgstr "SSSD 應該明確忽略的使用者"
+msgstr "SSSD 應明確忽略的 GID 或 GID 範圍"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Users that SSSD should explicitly ignore"
