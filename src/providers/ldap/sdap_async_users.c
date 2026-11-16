@@ -242,7 +242,7 @@ int sdap_save_user(TALLOC_CTX *memctx,
     }
 
     /* Always store UUID if available */
-    ret = sysdb_handle_original_uuid(opts->user_map[SDAP_AT_USER_UUID].def_name,
+    ret = sysdb_handle_original_uuid(opts->user_map[SDAP_AT_USER_UUID].name,
                                      attrs,
                                      opts->user_map[SDAP_AT_USER_UUID].sys_name,
                                      user_attrs, SYSDB_UUID);
