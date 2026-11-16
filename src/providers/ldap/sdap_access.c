@@ -67,6 +67,8 @@ static errno_t sdap_get_basedn_user_entry(struct ldb_message *user_entry,
                                           const char *username,
                                           const char **_basedn);
 
+static errno_t sdap_access_decide_offline(bool cached_ac);
+
 static struct tevent_req *
 sdap_access_ppolicy_send(TALLOC_CTX *mem_ctx,
                          struct tevent_context *ev,
@@ -333,6 +335,8 @@ static void sdap_access_done(struct tevent_req *subreq)
 {
     errno_t ret;
     struct tevent_req *req;
+    const char *access_attr;
+    bool cached_access;
     struct sdap_access_req_ctx *state;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -342,9 +346,11 @@ static void sdap_access_done(struct tevent_req *subreq)
     switch(state->ac_type) {
     case SDAP_ACCESS_CONTROL_FILTER:
         ret = sdap_access_filter_recv(subreq);
+        access_attr = SYSDB_LDAP_ACCESS_FILTER;
         break;
     case SDAP_ACCESS_CONTROL_PPOLICY_LOCK:
         ret = sdap_access_ppolicy_recv(subreq);
+        access_attr = SYSDB_LDAP_ACCESS_CACHED_LOCKOUT;
         break;
     default:
         ret = EINVAL;
@@ -354,6 +360,13 @@ static void sdap_access_done(struct tevent_req *subreq)
     }
 
     talloc_zfree(subreq);
+    if (ret == ERR_NO_MORE_SERVERS) {
+        cached_access = ldb_msg_find_attr_as_bool(state->user_entry,
+                                                  access_attr,
+                                                  false);
+        ret = sdap_access_decide_offline(cached_access);
+    }
+
     if (ret != EOK) {
         if (ret == ERR_ACCESS_DENIED) {
             DEBUG(SSSDBG_TRACE_FUNC, "Access was denied.\n");
@@ -829,7 +842,6 @@ struct sdap_access_filter_req_ctx {
     const char *basedn;
 };
 
-static errno_t sdap_access_decide_offline(bool cached_ac);
 static void sdap_access_ppolicy_connect_done(struct tevent_req *subreq);
 static errno_t sdap_access_ppolicy_get_lockout_step(struct tevent_req *req);
 static void sdap_access_filter_connect_done(struct tevent_req *subreq);
@@ -1827,9 +1839,7 @@ static void sdap_access_ppolicy_step_done(struct tevent_req *subreq)
     ret = sdap_get_generic_recv(subreq, state, &num_results, &results);
     talloc_zfree(subreq);
 
-    if (ret == ERR_NO_MORE_SERVERS) {
-        ret = sdap_access_decide_offline(state->cached_access);
-    } else if (ret == ERR_SERVER_FAILURE) {
+    if (ret == ERR_SERVER_FAILURE) {
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE,
