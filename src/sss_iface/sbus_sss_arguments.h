@@ -88,21 +88,6 @@ _sbus_sss_invoker_write_pam_data
    (DBusMessageIter *iter,
     struct _sbus_sss_invoker_args_pam_data *args);
 
-struct _sbus_sss_invoker_args_pam_response {
-    struct pam_data * arg0;
-};
-
-errno_t
-_sbus_sss_invoker_read_pam_response
-   (TALLOC_CTX *mem_ctx,
-    DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_pam_response *args);
-
-errno_t
-_sbus_sss_invoker_write_pam_response
-   (DBusMessageIter *iter,
-    struct _sbus_sss_invoker_args_pam_response *args);
-
 struct _sbus_sss_invoker_args_q {
     uint16_t arg0;
 };

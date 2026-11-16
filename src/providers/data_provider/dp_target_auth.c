@@ -257,15 +257,9 @@ static void dp_pam_handler_done(struct tevent_req *subreq)
 
 errno_t
 dp_pam_handler_recv(TALLOC_CTX *mem_ctx,
-                    struct tevent_req *req,
-                    struct pam_data **_pd)
+                    struct tevent_req *req)
 {
-    struct dp_pam_handler_state *state;
-    state = tevent_req_data(req, struct dp_pam_handler_state);
-
     TEVENT_REQ_RETURN_ON_ERROR(req);
-
-    *_pd = talloc_steal(mem_ctx, state->pd);
 
     return EOK;
 }

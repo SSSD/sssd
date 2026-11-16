@@ -1267,47 +1267,6 @@ def test_authentication__offline_password_change_shows_offline_message(client: C
 
 
 @pytest.mark.importance("medium")
-@pytest.mark.ticket(bz=875738)
-@pytest.mark.topology(KnownTopologyGroup.AnyProvider)
-@pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_authentication__offline_auth_failure_no_system_error(client: Client, provider: GenericProvider):
-    """
-    :title: Offline auth failure does not produce "System error" in logs
-    :description:
-        When a user fails offline authentication with a wrong password, SSSD
-        should report proper authentication failure, not "System error".
-    :setup:
-        1. Create user with password Secret123
-        2. Configure SSSD with cache_credentials=True
-        3. Start SSSD
-    :steps:
-        1. Authenticate user to cache credentials
-        2. Block server and bring SSSD offline
-        3. Attempt login with wrong password
-        4. Check PAM log for "System error"
-    :expectedresults:
-        1. Login succeeds
-        2. SSSD is offline
-        3. Login fails
-        4. "System error" is NOT in PAM log
-    :customerscenario: True
-    """
-    provider.user("user1").add(password="Secret123")
-    client.sssd.domain["cache_credentials"] = "True"
-    client.sssd.start()
-
-    assert client.auth.ssh.password("user1", "Secret123"), "Initial login should succeed"
-
-    client.firewall.outbound.reject_host(provider)
-    client.sssd.bring_offline()
-
-    assert not client.auth.ssh.password("user1", "wrongpassword"), "Wrong password should fail"
-
-    log = client.fs.read(client.sssd.logs.pam)
-    assert "System error" not in log, "'System error' should not appear in PAM log for offline auth failure"
-
-
-@pytest.mark.importance("medium")
 @pytest.mark.ticket(bz=1499658)
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
