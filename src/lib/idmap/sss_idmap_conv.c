@@ -51,10 +51,20 @@ enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
     size_t i = 0;
     size_t p = 0;
     uint32_t val;
+    uint8_t num_auths;
 
     CHECK_IDMAP_CTX(ctx, IDMAP_CONTEXT_INVALID);
 
-    if (length > sizeof(struct sss_dom_sid)) return IDMAP_SID_INVALID;
+    if (bin_sid == NULL || _dom_sid == NULL) {
+        return IDMAP_SID_INVALID;
+    }
+
+    /* A SID header is at least revision + num_auths (2 bytes).  Reject
+     * too-small buffers before reading the header and too-large buffers
+     * that cannot be a valid SID. */
+    if (length < 2 || length > sizeof(struct sss_dom_sid)) {
+        return IDMAP_SID_INVALID;
+    }
 
     dom_sid = ctx->alloc_func(sizeof(struct sss_dom_sid), ctx->alloc_pvt);
     if (dom_sid == NULL) {
@@ -66,14 +76,35 @@ enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
     dom_sid->sid_rev_num = (uint8_t) *(bin_sid + p);
     p++;
 
-    /* Safely copy in the number of sub auth values */
-    dom_sid->num_auths = (uint8_t) *(bin_sid + p);
+    /* Safely copy in the number of sub auth values.  Read into an
+     * unsigned local to avoid the signedness of dom_sid->num_auths
+     * (int8_t) causing comparison/overflow bypasses: a byte of 0xFF
+     * stored as int8_t becomes -1, which passes the > SID_SUB_AUTHS
+     * check (signed) and wraps the lower-bound multiplication. */
+    num_auths = (uint8_t) *(bin_sid + p);
+    dom_sid->num_auths = num_auths;
     p++;
 
-    /* Make sure we aren't being told to read more bin_sid
-     * than can fit in the structure
-     */
-    if (dom_sid->num_auths > SID_SUB_AUTHS) {
+    /* Only SID revision 1 is defined by MS-DTYP. */
+    if (dom_sid->sid_rev_num != 1) {
+        err = IDMAP_SID_INVALID;
+        goto done;
+    }
+
+    /* Upper bound: num_auths must fit in the struct's sub_auths array. */
+    if (num_auths > SID_SUB_AUTHS) {
+        err = IDMAP_SID_INVALID;
+        goto done;
+    }
+
+    /* Lower bound: the buffer must hold the full header (8 bytes:
+     * revision + num_auths + 6 id_auth bytes) plus num_auths 4-byte
+     * sub-authority values.  Without this check a truncated buffer
+     * (e.g. length == 8 but num_auths == 15) causes the
+     * SAFEALIGN_COPY_UINT32() loop below to read past the end of the
+     * caller's buffer. */
+    if (length < offsetof(struct sss_dom_sid, sub_auths) +
+                 (size_t)num_auths * sizeof(uint32_t)) {
         err = IDMAP_SID_INVALID;
         goto done;
     }
@@ -85,7 +116,7 @@ enum idmap_error_code sss_idmap_bin_sid_to_dom_sid(struct sss_idmap_ctx *ctx,
     }
 
     /* Safely copy in the sub_auths values */
-    for (i = 0; i < dom_sid->num_auths; i++) {
+    for (i = 0; i < num_auths; i++) {
         /* SID sub auth values in Active Directory are stored little-endian,
          * we store them in host order */
         SAFEALIGN_COPY_UINT32(&val, bin_sid + p, &p);
