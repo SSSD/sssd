@@ -453,3 +453,142 @@ def test_ldap_krb5__access_provider_krb5_enforces_k5login(client: Client, provid
         dedent=False,
     )
     assert client.auth.ssh.password("puser1", "Secret123"), "Login failed with principal listed in .k5login!"
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.authentication
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__access_provider_krb5_allows_cross_user_access_via_k5login(
+    client: Client, provider: GenericProvider, kdc: KDC
+):
+    """
+    :title: access_provider krb5 honors a second principal listed in another user's .k5login
+
+    With access_provider=krb5, a .k5login listing a second user's Kerberos principal lets that
+    user log into the file owner's account using their own ticket (GSSAPI). Here user1's .k5login
+    lists both user1 and user2, so user2 (holding user2's TGT) may access user1's account.
+
+    :setup:
+        1. Add users user1 and user2 to LDAP, each with a matching group
+        2. Add Kerberos principals for user1 and user2
+        3. Configure SSSD with LDAP+KRB5 and access_provider=krb5
+        4. Enable GSSAPI authentication in sshd and relax the strict acceptor check so a
+           host/<name> ticket is accepted even when the server's FQDN differs
+        5. Start SSSD
+        6. Create home directories for user1 and user2
+        7. Create user1's .k5login listing both principals
+    :steps:
+        1. Log in as user1 directly with user1's password
+        2. Log in as user2, then from that session use the cached ticket to SSH as user1 via GSSAPI
+    :expectedresults:
+        1. user1 login succeeds (own principal is listed)
+        2. user2 reaches user1's account because user2's principal is listed in user1's .k5login
+    :customerscenario: True
+    """
+    user1 = provider.user("user1").add(uid=2003, gid=2003)
+    provider.group("user1").add(gid=2003).add_member(user1)
+    user2 = provider.user("user2").add(uid=2004, gid=2004)
+    provider.group("user2").add(gid=2004).add_member(user2)
+    kdc.principal("user1").add()
+    kdc.principal("user2").add()
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["access_provider"] = "krb5"
+    client.sssd.domain["cache_credentials"] = "true"
+    client.sshd.config_set([{"GSSAPIAuthentication": "yes", "GSSAPIStrictAcceptorCheck": "no"}])
+    client.sshd.reload()
+    client.sssd.start()
+
+    assert client.tools.id("user1") is not None, "user1 should be resolvable via SSSD!"
+
+    client.fs.mkdir_p("/home/user1", mode="0700", user="user1", group="user1")
+    client.fs.mkdir_p("/home/user2", mode="0700", user="user2", group="user2")
+    client.fs.write(
+        "/home/user1/.k5login",
+        f"user1@{kdc.realm}\nuser2@{kdc.realm}\n",
+        user="user1",
+        group="user1",
+        mode="0640",
+        dedent=False,
+    )
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 direct login should succeed!"
+
+    with client.ssh("user2", "Secret123") as user2_ssh:
+        result = user2_ssh.run(
+            "export KRB5CCNAME=FILE:/tmp/user2.ccache; "
+            'echo "Secret123" | kinit user2 && '
+            "ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "
+            "-o PasswordAuthentication=no -o PreferredAuthentications=gssapi-with-mic "
+            "-o GSSAPIAuthentication=yes "
+            f"user1@{client.host.hostname} whoami",
+            raise_on_error=False,
+        )
+    assert result.rc == 0 and "user1" in result.stdout, (
+        "user2 should reach user1's account via .k5login (GSSAPI)! "
+        f"rc={result.rc}, out={result.stdout!r}, err={result.stderr!r}"
+    )
+
+
+@pytest.mark.importance("medium")
+@pytest.mark.authentication
+@pytest.mark.topology(KnownTopology.LDAP_KRB5)
+def test_ldap_krb5__access_provider_krb5_denies_deleted_user_with_k5login(
+    client: Client, provider: GenericProvider, kdc: KDC
+):
+    """
+    :title: access_provider krb5 denies a deleted LDAP user even if listed in a .k5login
+
+    When user1 is removed from LDAP, their account can no longer be resolved, so login is denied
+    regardless of the .k5login that still lists their principal, while an unrelated user (user2)
+    keeps its own access.
+
+    :setup:
+        1. Add users user1 and user2 to LDAP, each with a matching group
+        2. Add Kerberos principals for user1 and user2
+        3. Configure SSSD with LDAP+KRB5 and access_provider=krb5
+        4. Start SSSD
+        5. Create user1 home directory with a .k5login listing both principals
+    :steps:
+        1. Log in as user1 with user1's password
+        2. Delete user1 from LDAP and restart SSSD with a clean cache
+        3. Attempt to log in as user1
+        4. Log in as user2
+    :expectedresults:
+        1. user1 login succeeds before deletion
+        2. user1 is removed from LDAP
+        3. user1 login fails after deletion
+        4. user2 login still succeeds
+    :customerscenario: True
+    """
+    user1 = provider.user("user1").add(uid=2003, gid=2003)
+    provider.group("user1").add(gid=2003).add_member(user1)
+    user2 = provider.user("user2").add(uid=2004, gid=2004)
+    provider.group("user2").add(gid=2004).add_member(user2)
+    kdc.principal("user1").add()
+    kdc.principal("user2").add()
+
+    client.sssd.common.krb5_auth(kdc)
+    client.sssd.domain["access_provider"] = "krb5"
+    client.sssd.domain["cache_credentials"] = "true"
+    client.sssd.start()
+
+    assert client.tools.id("user1") is not None, "user1 should be resolvable via SSSD!"
+
+    client.fs.mkdir_p("/home/user1", mode="0700", user="user1", group="user1")
+    client.fs.write(
+        "/home/user1/.k5login",
+        f"user1@{kdc.realm}\nuser2@{kdc.realm}\n",
+        user="user1",
+        group="user1",
+        mode="0640",
+        dedent=False,
+    )
+
+    assert client.auth.ssh.password("user1", "Secret123"), "user1 login should succeed before deletion!"
+
+    user1.delete()
+    client.sssd.restart(clean=True)
+
+    assert not client.auth.ssh.password("user1", "Secret123"), "user1 login should fail after LDAP deletion!"
+    assert client.auth.ssh.password("user2", "Secret123"), "user2 login should still succeed!"
