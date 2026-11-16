@@ -238,6 +238,11 @@ static int extract_string(char **var, size_t size, uint8_t *body, size_t blen,
 
     if (*c+size > blen || SIZE_T_OVERFLOW(*c, size)) return EINVAL;
 
+    /* A zero-length string item has no NUL terminator to check; without
+     * this guard, str[size-1] below underflows size_t and reads far
+     * past the buffer. */
+    if (size == 0) return EINVAL;
+
     str = body+(*c);
 
     if (str[size-1]!='\0') return EINVAL;
