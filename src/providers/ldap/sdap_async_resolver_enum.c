@@ -125,11 +125,7 @@ static void sdap_dom_resolver_enum_iphost_done(struct tevent_req *subreq)
 
     ret = enum_iphosts_recv(subreq);
     talloc_zfree(subreq);
-    if (ret == ERR_OFFLINE) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
-        tevent_req_done(req);
-        return;
-    } else if (ret != EOK && ret != ENOENT) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "IP hosts enumeration failed: %d: %s\n", ret, sss_strerror(ret));
         tevent_req_error(req, ret);
@@ -187,11 +183,7 @@ static void sdap_dom_resolver_enum_ipnetwork_done(struct tevent_req *subreq)
 
     ret = enum_ipnetworks_recv(subreq);
     talloc_zfree(subreq);
-    if (ret == ERR_OFFLINE) {
-        DEBUG(SSSDBG_TRACE_FUNC, "Backend is offline, retrying later\n");
-        tevent_req_done(req);
-        return;
-    } else if (ret != EOK && ret != ENOENT) {
+    if (ret != EOK && ret != ENOENT) {
         DEBUG(SSSDBG_OP_FAILURE,
               "IP networks enumeration failed: %d: %s\n", ret, sss_strerror(ret));
         tevent_req_error(req, ret);
