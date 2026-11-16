@@ -48,6 +48,7 @@ struct cert_auth_info {
     char *label;
     char *prompt_str;
     char *pam_cert_user;
+    bool has_protected_authentication_path;
     char *choice_list_id;
     struct cert_auth_info *prev;
     struct cert_auth_info *next;
@@ -231,7 +232,6 @@ obtain_prompts(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
     char *oauth2_init_prompt = NULL;
     char *oauth2_link_prompt = NULL;
     char *sc_init_prompt = NULL;
-    char *sc_pin_prompt = NULL;
     char *passkey_init_prompt = NULL;
     char *passkey_pin_prompt = NULL;
     char *passkey_touch_prompt = NULL;
@@ -266,12 +266,6 @@ obtain_prompts(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
         goto done;
     }
 
-    sc_pin_prompt = talloc_strdup(tmp_ctx, SC_PIN_PROMPT);
-    if (sc_pin_prompt == NULL) {
-        ret = ENOMEM;
-        goto done;
-    }
-
     passkey_init_prompt = talloc_strdup(tmp_ctx, PASSKEY_INIT_PROMPT);
     if (passkey_init_prompt == NULL) {
         ret = ENOMEM;
@@ -294,7 +288,6 @@ obtain_prompts(struct confdb_ctx *cdb, TALLOC_CTX *mem_ctx,
     _auth_data->oauth2->init_prompt = talloc_steal(mem_ctx, oauth2_init_prompt);
     _auth_data->oauth2->link_prompt = talloc_steal(mem_ctx, oauth2_link_prompt);
     _auth_data->sc->init_prompt = talloc_steal(mem_ctx, sc_init_prompt);
-    _auth_data->sc->pin_prompt = talloc_steal(mem_ctx, sc_pin_prompt);
     _auth_data->passkey->init_prompt = talloc_steal(mem_ctx, passkey_init_prompt);
     _auth_data->passkey->pin_prompt = talloc_steal(mem_ctx, passkey_pin_prompt);
     _auth_data->passkey->touch_prompt = talloc_steal(mem_ctx, passkey_touch_prompt);
@@ -484,11 +477,42 @@ get_cert_list(TALLOC_CTX *mem_ctx, struct pam_data *pd,
         }
         offset += str_len + 1;
 
+        if (offset >= len[i]) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                "Trying to access data outside of the boundaries.\n");
+            ret = EPERM;
+            goto done;
+        }
+
+        str_len = strnlen((const char *)sc[i] + offset, len[i] - offset);
+        if (str_len >= (len[i] - offset)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "has_protected_authentication_path string is not "
+                  "null-terminated within buffer bounds.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        if (str_len == 4
+                && strncmp((const char *)sc[i] + offset, "true", 4) == 0) {
+            cai->has_protected_authentication_path = true;
+        } else if (str_len == 5
+                && strncmp((const char *)sc[i] + offset, "false", 5) == 0) {
+            cai->has_protected_authentication_path = false;
+        } else {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Unexpected value for has_protected_authentication_path.\n");
+            ret = EINVAL;
+            goto done;
+        }
+        offset += str_len + 1;
+
         DEBUG(SSSDBG_FUNC_DATA,
               "cert_user %s, token_name %s, module_name %s, key_id %s,"
-              "label %s, prompt_str %s, pam_cert_user %s.\n",
+              "label %s, prompt_str %s, pam_cert_user %s, "
+              "has_protected_authentication_path %s.\n",
               cai->cert_user, cai->token_name, cai->module_name, cai->key_id,
-              cai->label, cai->prompt_str, cai->pam_cert_user);
+              cai->label, cai->prompt_str, cai->pam_cert_user,
+              cai->has_protected_authentication_path ? "true" : "false");
 
         DLIST_ADD(cert_list, cai);
     }
@@ -612,9 +636,11 @@ get_cert_data(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
     struct cert_auth_info *item = NULL;
     char **names = NULL;
     char **cert_instructions = NULL;
+    char **pin_prompts = NULL;
     char **module_names = NULL;
     char **key_ids = NULL;
     char **labels = NULL;
+    bool *protected_auth_path = NULL;
     int i = 0;
     int ret;
 
@@ -643,6 +669,13 @@ get_cert_data(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
         goto done;
     }
 
+    pin_prompts = talloc_array(tmp_ctx, char *, i+1);
+    if (pin_prompts == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     module_names = talloc_array(tmp_ctx, char *, i+1);
     if (module_names == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
@@ -664,6 +697,13 @@ get_cert_data(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
         goto done;
     }
 
+    protected_auth_path = talloc_array(tmp_ctx, bool, i);
+    if (protected_auth_path == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "talloc_array failed.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
     i = 0;
     DLIST_FOR_EACH(item, cert_list) {
         names[i] = talloc_strdup(names, item->token_name);
@@ -675,6 +715,16 @@ get_cert_data(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
 
         cert_instructions[i] = talloc_strdup(names, item->prompt_str);
         if (cert_instructions[i] == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+
+        pin_prompts[i] = talloc_strdup(names,
+            item->has_protected_authentication_path
+                ? SC_KEYPAD_PROMPT
+                : SC_PIN_PROMPT);
+        if (pin_prompts[i] == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "talloc_strdup failed.\n");
             ret = ENOMEM;
             goto done;
@@ -700,19 +750,24 @@ get_cert_data(TALLOC_CTX *mem_ctx, struct cert_auth_info *cert_list,
             ret = ENOMEM;
             goto done;
         }
+
+        protected_auth_path[i] = item->has_protected_authentication_path;
         i++;
     }
     names[i] = NULL;
     cert_instructions[i] = NULL;
+    pin_prompts[i] = NULL;
     module_names[i] = NULL;
     key_ids[i] = NULL;
     labels[i] = NULL;
 
     _auth_data->sc->names = talloc_steal(mem_ctx, names);
     _auth_data->sc->cert_instructions = talloc_steal(mem_ctx, cert_instructions);
+    _auth_data->sc->pin_prompts = talloc_steal(mem_ctx, pin_prompts);
     _auth_data->sc->module_names = talloc_steal(mem_ctx, module_names);
     _auth_data->sc->key_ids = talloc_steal(mem_ctx, key_ids);
     _auth_data->sc->labels = talloc_steal(mem_ctx, labels);
+    _auth_data->sc->protected_auth_path = talloc_steal(mem_ctx, protected_auth_path);
     ret = EOK;
 
 done:
@@ -796,7 +851,7 @@ json_format_mechanisms(struct auth_data *auth_data, json_t **_list_mech)
             json_cert = json_pack("{s:s,s:s,s:s,s:s,s:s,s:s}",
                                   "tokenName", auth_data->sc->names[i],
                                   "certInstruction", auth_data->sc->cert_instructions[i],
-                                  "pinPrompt", auth_data->sc->pin_prompt,
+                                  "pinPrompt", auth_data->sc->pin_prompts[i],
                                   "moduleName", auth_data->sc->module_names[i],
                                   "keyId", auth_data->sc->key_ids[i],
                                   "label", auth_data->sc->labels[i]);
@@ -804,6 +859,16 @@ json_format_mechanisms(struct auth_data *auth_data, json_t **_list_mech)
                 DEBUG(SSSDBG_OP_FAILURE, "json_pack failed.\n");
                 ret = ENOMEM;
                 goto done;
+            }
+
+            if (auth_data->sc->protected_auth_path[i]) {
+                ret = json_object_set_new(json_cert, "usesKeypad", json_true());
+                if (ret == -1) {
+                    DEBUG(SSSDBG_OP_FAILURE, "json_object_set_new failed.\n");
+                    json_decref(json_cert);
+                    ret = ENOMEM;
+                    goto done;
+                }
             }
 
             ret = json_array_append_new(json_cert_array, json_cert);
@@ -1142,6 +1207,7 @@ json_unpack_smartcard(TALLOC_CTX *mem_ctx, json_t *jroot,
 {
     TALLOC_CTX *tmp_ctx = NULL;
     struct cert_auth_info *cai = NULL;
+    json_t *uses_keypad = NULL;
     char *pin = NULL;
     int ret = EOK;
 
@@ -1168,6 +1234,10 @@ json_unpack_smartcard(TALLOC_CTX *mem_ctx, json_t *jroot,
         ret = EINVAL;
         goto done;
     }
+
+    /* Absent when the certificate doesn't use a keypad */
+    uses_keypad = json_object_get(jroot, "usesKeypad");
+    cai->has_protected_authentication_path = json_boolean_value(uses_keypad);
 
     *_pin = pin;
     *_cai = talloc_steal(mem_ctx, cai);
@@ -1309,7 +1379,10 @@ json_unpack_auth_reply(struct pam_data *pd)
                 goto done;
             }
 
-            ret = sss_authtok_set_sc(pd->authtok, SSS_AUTHTOK_TYPE_SC_PIN,
+            ret = sss_authtok_set_sc(pd->authtok,
+                                     cai->has_protected_authentication_path
+                                         ? SSS_AUTHTOK_TYPE_SC_KEYPAD
+                                         : SSS_AUTHTOK_TYPE_SC_PIN,
                                      pin, strlen(pin),
                                      cai->token_name, strlen(cai->token_name),
                                      cai->module_name, strlen(cai->module_name),
