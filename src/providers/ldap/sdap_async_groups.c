@@ -512,7 +512,7 @@ static int sdap_save_group(TALLOC_CTX *memctx,
 
     /* Always store UUID if available */
     ret = sysdb_handle_original_uuid(
-                                   opts->group_map[SDAP_AT_GROUP_UUID].def_name,
+                                   opts->group_map[SDAP_AT_GROUP_UUID].name,
                                    attrs,
                                    opts->group_map[SDAP_AT_GROUP_UUID].sys_name,
                                    group_attrs, SYSDB_UUID);

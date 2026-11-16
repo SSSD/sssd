@@ -175,7 +175,7 @@ errno_t sdap_add_incomplete_groups(struct sysdb_ctx *sysdb,
         }
 
         ret = sysdb_handle_original_uuid(
-                           opts->group_map[SDAP_AT_GROUP_UUID].def_name,
+                           opts->group_map[SDAP_AT_GROUP_UUID].name,
                            ldap_groups[i],
                            opts->group_map[SDAP_AT_GROUP_UUID].sys_name,
                            ldap_groups[i], "uniqueIDstr");
