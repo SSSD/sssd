@@ -922,7 +922,8 @@ static krb5_error_code idp_oauth2_method_req(struct krb5_req *kr,
 {
     errno_t ret;
 
-    if (oauth2->verification_uri == NULL || oauth2->user_code == NULL) {
+    if (!sss_idp_oauth2_needs_confirmation(oauth2)
+            && (oauth2->verification_uri == NULL || oauth2->user_code == NULL)) {
         ret = EINVAL;
         goto done;
     }
@@ -1055,16 +1056,35 @@ static krb5_error_code answer_idp_oauth2(krb5_context kctx,
         goto done;
     }
 
-    if (data == NULL || data->user_code == NULL || token == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "OAuth2 data, user code, or token is missing!\n");
+    if (data == NULL || token == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "OAuth2 data or token is missing!\n");
         kerr = EINVAL;
         goto done;
     }
 
-    if (strlen(data->user_code) != token_len || strcmp(data->user_code, token) != 0) {
-        DEBUG(SSSDBG_OP_FAILURE, "User code does not match!\n");
-        kerr = EINVAL;
-        goto done;
+    if (sss_idp_oauth2_needs_confirmation(data)) {
+        /* DARC: the token is the confirmation code the user read from the
+         * verification page after approving. It is checked by the IdP, not
+         * here: the client plugin sends it to the KDC in PA-152. */
+        if (token_len == 0 || strlen(token) != token_len
+                || token_len > SSSD_IDP_OAUTH2_CONFIRM_MAX * 2) {
+            DEBUG(SSSDBG_OP_FAILURE, "Invalid confirmation code!\n");
+            kerr = EINVAL;
+            goto done;
+        }
+    } else {
+        if (data->user_code == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "OAuth2 user code is missing!\n");
+            kerr = EINVAL;
+            goto done;
+        }
+
+        if (strlen(data->user_code) != token_len
+                || strcmp(data->user_code, token) != 0) {
+            DEBUG(SSSDBG_OP_FAILURE, "User code does not match!\n");
+            kerr = EINVAL;
+            goto done;
+        }
     }
 
     /* Don't let SSSD cache the authtoken since it is single-use. */
@@ -1074,10 +1094,12 @@ static krb5_error_code answer_idp_oauth2(krb5_context kctx,
         goto done;
     }
 
-    /* The answer is arbitrary but we need to provide some since krb5 lib
-     * expects it. So we choose the pin. */
+    /* Version 1: the answer is arbitrary but krb5 lib expects one, so we
+     * choose the pin. DARC: the answer is the confirmation code, which the
+     * client plugin puts into PA-152. */
     kerr = krb5_responder_set_answer(kctx, rctx, SSSD_IDP_OAUTH2_QUESTION,
-                                     data->user_code);
+                                     sss_idp_oauth2_needs_confirmation(data)
+                                            ? token : data->user_code);
     if (kerr != 0) {
         DEBUG(SSSDBG_OP_FAILURE, "Unable to set IdP answer [%d]\n", kerr);
         goto done;
@@ -3725,7 +3747,9 @@ done:
 
 static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline)
 {
-    static const size_t IN_BUF_SIZE = 2048;
+    /* Large enough for a passkey assertion with an ML-DSA-87 signature
+     * (4627 bytes, base64-encoded in the reply). */
+    static const size_t IN_BUF_SIZE = 16384;
     uint8_t buf[IN_BUF_SIZE];
     ssize_t len;
     errno_t ret;
