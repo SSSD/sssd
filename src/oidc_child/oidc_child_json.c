@@ -41,19 +41,8 @@ static char *get_json_string(TALLOC_CTX *mem_ctx, const json_t *root,
 
     tmp = json_object_get(root, attr);
     if (!json_is_string(tmp)) {
-        if (json_is_integer(tmp)) {
-            char buffer[64];
-            json_int_t i_val = json_integer_value(tmp);
-            snprintf(buffer, sizeof(buffer), "%" JSON_INTEGER_FORMAT, i_val);
-            str = talloc_strdup(mem_ctx, buffer);
-            if (str == NULL) {
-                DEBUG(SSSDBG_OP_FAILURE, "Failed to copy '%s' string.\n", attr);
-                return NULL;
-            }
-            return str;
-        }
         DEBUG(SSSDBG_OP_FAILURE,
-              "Result does not contain the field '%s'.\n", attr);
+              "Result does not contain the '%s' string.\n", attr);
         return NULL;
     }
 
@@ -437,6 +426,86 @@ done:
     return ret;
 }
 
+/* Currently this reply is used by ipa-otpd as RADIUS Proxy-State and
+ * Reply-Message.
+ */
+errno_t get_devicecode_reply(struct devicecode_ctx *dc_ctx, char **_reply)
+{
+    json_t *tmp_json = NULL;
+    char *state_str = NULL;
+    char *msg_str = NULL;
+    char *reply = NULL;
+    errno_t ret;
+
+    if (dc_ctx == NULL || _reply == NULL) {
+        return EINVAL;
+    }
+
+    tmp_json = json_pack("{s:s, s:i, s:i}",
+                         "device_code", dc_ctx->device_code,
+                         "expires_in", dc_ctx->expires_in,
+                         "interval", dc_ctx->interval);
+    if (tmp_json == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to pack device code data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    state_str = json_dumps(tmp_json, JSON_COMPACT);
+    json_decref(tmp_json);
+    if (state_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to dump device code data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    tmp_json = json_pack("{s:s, s:s}",
+                         "verification_uri", dc_ctx->verification_uri,
+                         "user_code", dc_ctx->user_code);
+    if (tmp_json == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to pack verification data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    if (dc_ctx->verification_uri_complete != NULL) {
+        ret = json_object_set_new(tmp_json, "verification_uri_complete",
+                                  json_string(
+                                      dc_ctx->verification_uri_complete));
+        if (ret != 0) {
+            json_decref(tmp_json);
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to add verification_uri_complete.\n");
+            ret = ENOMEM;
+            goto done;
+        }
+    }
+
+    msg_str = json_dumps(tmp_json, JSON_COMPACT);
+    json_decref(tmp_json);
+    if (msg_str == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to dump verification data.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    reply = talloc_asprintf(dc_ctx, "%s\noauth2 %s\n", state_str, msg_str);
+    if (reply == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to generate device code reply.\n");
+        ret = ENOMEM;
+        goto done;
+    }
+
+    *_reply = reply;
+    ret = EOK;
+
+done:
+    free(state_str);
+    free(msg_str);
+
+    return ret;
+}
+
 static int token_destructor(void *p)
 {
     struct token_data *td = talloc_get_type(p, struct token_data);
@@ -543,16 +612,13 @@ const char *get_user_identifier(TALLOC_CTX *mem_ctx, json_t *userinfo,
 {
     json_t *id_object = NULL;
     const char *user_identifier = NULL;
-    const char *id_attr_list[4];
-    int id_attr_index = 0;
+    const char *id_attr_list[] = { "sub", "id", NULL };
     size_t c;
 
     if (user_identifier_attr != NULL) {
-        id_attr_list[id_attr_index++] = user_identifier_attr;
+        id_attr_list[0] = user_identifier_attr;
+        id_attr_list[1] = NULL;
     }
-    id_attr_list[id_attr_index++] = "sub";
-    id_attr_list[id_attr_index++] = "id";
-    id_attr_list[id_attr_index] = NULL;
 
     for (c = 0; id_attr_list[c] != NULL; c++) {
         id_object = json_object_get(userinfo, id_attr_list[c]);
@@ -624,8 +690,8 @@ int get_authentik_pagination(const char *json_str)
     result = json_loads(json_str, 0, &json_error);
     if (result == NULL) {
         DEBUG(SSSDBG_OP_FAILURE,
-            "Failed to parse json data on line [%d]: [%s].\n",
-            json_error.line, json_error.text);
+              "Failed to parse json data on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
         return ENOMEM;
     }
     pagination_data = json_object_get(result, "pagination");
@@ -701,6 +767,54 @@ const char *get_str_attr_from_embed_json_string(TALLOC_CTX *mem_ctx,
     attr = get_json_string(mem_ctx, json_array_get(embed, 0), attr_name);
     if (attr == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Failed to get [%s].\n", attr_name);
+    }
+
+done:
+    json_decref(result);
+
+    return attr;
+}
+
+const char *get_str_attr_from_embed_json_int(TALLOC_CTX *mem_ctx,
+                                             const char *json_str,
+                                             const char *embed_attr_name,
+                                             const char *attr_name)
+{
+    json_error_t json_error;
+    json_t *result = NULL;
+    json_t *embed = NULL;
+    const char *attr = NULL;
+    int val;
+
+    result = json_loads(json_str, 0, &json_error);
+    if (result == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE,
+              "Failed to parse json data on line [%d]: [%s].\n",
+              json_error.line, json_error.text);
+        return NULL;
+    }
+
+    embed = json_object_get(result, embed_attr_name);
+    if (embed == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get embedded object [%s].\n",
+                                 embed_attr_name);
+        goto done;
+    }
+
+    if (!json_is_array(embed)) {
+        DEBUG(SSSDBG_OP_FAILURE, "Json array expected.\n");
+        goto done;
+    }
+
+    val = get_json_integer(json_array_get(embed, 0), attr_name, false);
+    if (val == -1) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to get [%s].\n", attr_name);
+        goto done;
+    }
+
+    attr = talloc_asprintf(mem_ctx, "%d", val);
+    if (attr == NULL) {
+        DEBUG(SSSDBG_OP_FAILURE, "Failed to convert [%d] to string.\n", val);
     }
 
 done:
@@ -970,6 +1084,14 @@ static errno_t add_posix_to_json(json_t *item,
             goto done;
         }
 
+        if (json_object_get(item, "id") == NULL) {
+            ret = get_and_set_name(item, 0, map->user_identifier_attr, "id");
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to set 'id'.\n");
+                goto done;
+            }
+        }
+
         tmp = json_string("user");
         if (tmp == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "json_string() failed.\n");
@@ -982,6 +1104,14 @@ static errno_t add_posix_to_json(json_t *item,
         if (ret != EOK) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to set 'posixUsername'.\n");
             goto done;
+        }
+
+        if (json_object_get(item, "id") == NULL) {
+            ret = get_and_set_name(item, 0, map->group_identifier_attr, "id");
+            if (ret != EOK) {
+                DEBUG(SSSDBG_OP_FAILURE, "Failed to set 'id'.\n");
+                goto done;
+            }
         }
 
         tmp = json_string("group");

@@ -469,13 +469,13 @@ done:
  * REST API as described in
  * https://api.goauthentik.io/ */
 errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
-                        char *base_url,
-                        char *input, enum search_str_type input_type,
-                        bool libcurl_debug, const char *ca_db,
-                        const char *client_id, const char *client_secret,
-                        const char *token_endpoint, const char *scope,
-                        const char *bearer_token, struct rest_ctx *rest_ctx,
-                        char **out)
+                         char *base_url,
+                         char *input, enum search_str_type input_type,
+                         bool libcurl_debug, const char *ca_db,
+                         const char *client_id, const char *client_secret,
+                         const char *token_endpoint, const char *scope,
+                         const char *bearer_token, struct rest_ctx *rest_ctx,
+                         char **out)
 {
     errno_t ret;
     char *uri;
@@ -486,10 +486,15 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     char *tmp;
     int page_count;
     struct name_and_type_identifier authentik_name_and_type_identifier = {
-                            .user_identifier_attr = "username",
-                            .group_identifier_attr = "name",
+                            .user_identifier_attr = "uid",
+                            .group_identifier_attr = "pk",
                             .user_name_attr = "username",
                             .group_name_attr = "name" };
+
+    if (input_type == TYPE_OBJECT_ID) {
+        ret = ENOTSUP;
+        goto done;
+    }
 
     if (base_url == NULL) {
         DEBUG(SSSDBG_OP_FAILURE, "Missing base URL in IdP type [authentik].\n");
@@ -511,9 +516,11 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     case GET_GROUP_MEMBERS:
         sep = strrchr(input, '@');
         if (sep == NULL || sep == input) {
-            filter = talloc_asprintf(rest_ctx, "include_users=true&name=%s", input_enc);
+            filter = talloc_asprintf(rest_ctx, "include_users=true&name=%s",
+                                     input_enc);
         } else {
-            filter = talloc_asprintf(rest_ctx, "include_users=true&search=%s", input_enc);
+            filter = talloc_asprintf(rest_ctx, "include_users=true&search=%s",
+                                     input_enc);
         }
         break;
     default:
@@ -531,11 +538,11 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
     switch (oidc_cmd) {
     case GET_USER:
     case GET_USER_GROUPS:
-        uri = talloc_asprintf(rest_ctx, "%s/users/?%s" ,base_url, filter);
+        uri = talloc_asprintf(rest_ctx, "%s/users/?%s", base_url, filter);
         break;
     case GET_GROUP:
     case GET_GROUP_MEMBERS:
-        uri = talloc_asprintf(rest_ctx, "%s/groups/?%s" ,base_url, filter);
+        uri = talloc_asprintf(rest_ctx, "%s/groups/?%s", base_url, filter);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
@@ -561,26 +568,35 @@ errno_t authentik_lookup(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
         goto done;
     }
 
-    obj_id = get_str_attr_from_embed_json_string(
-        rest_ctx, get_http_data(rest_ctx), "results", "pk");
-
-    if (obj_id == NULL) {
-        DEBUG(SSSDBG_OP_FAILURE, "Failed to read mandatory object id.\n");
-        ret = EINVAL;
-        goto done;
-    }
-
+    talloc_free(uri);
     switch (oidc_cmd) {
     case GET_USER_GROUPS:
-        free(uri);
+        obj_id = get_str_attr_from_embed_json_int(rest_ctx,
+                                                  get_http_data(rest_ctx),
+                                                  "results", "pk");
+        if (obj_id == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to read mandatory object id.\n");
+            ret = EINVAL;
+            goto done;
+        }
         uri = talloc_asprintf(rest_ctx,
-            "%s/groups/?include_users=false&members_by_pk=%s&page=1&page_size=100",
-            base_url, obj_id);
+                              "%s/groups/?include_users=false"
+                              "&members_by_pk=%s&page=1&page_size=100",
+                              base_url, obj_id);
         break;
     case GET_GROUP_MEMBERS:
+        obj_id = get_str_attr_from_embed_json_string(rest_ctx,
+                                                     get_http_data(rest_ctx),
+                                                     "results", "pk");
+        if (obj_id == NULL) {
+            DEBUG(SSSDBG_OP_FAILURE, "Failed to read mandatory object id.\n");
+            ret = EINVAL;
+            goto done;
+        }
         uri = talloc_asprintf(rest_ctx,
-            "%s/users/?groups_by_pk=%s&include_groups=false&include_roles=false&page=1&page_size=100",
-            base_url, obj_id);
+                              "%s/users/?groups_by_pk=%s&include_groups=false"
+                              "&include_roles=false&page=1&page_size=100",
+                              base_url, obj_id);
         break;
     default:
         DEBUG(SSSDBG_OP_FAILURE, "Unknown command [%d].\n", oidc_cmd);
@@ -617,12 +633,14 @@ done:
     if (ret == EOK && out != NULL) {
         page_count = get_authentik_pagination(get_http_data(rest_ctx));
         if (page_count > 1) {
-            DEBUG(SSSDBG_MINOR_FAILURE, "WARNING: Authentik results have been "
-            "truncated. User or Group information might not be complete.\n");
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "WARNING: Authentik results have been truncated. "
+                  "User or Group information might not be complete.\n");
         }
 
-        tmp = get_json_string_array_from_json_string(
-            mem_ctx, get_http_data(rest_ctx), "results");
+        tmp = get_json_string_array_from_json_string(mem_ctx,
+                                                     get_http_data(rest_ctx),
+                                                     "results");
         if (tmp == NULL) {
             DEBUG(SSSDBG_OP_FAILURE, "Failed to copy output data.\n");
             return ENOMEM;
@@ -699,11 +717,12 @@ errno_t oidc_get_id(TALLOC_CTX *mem_ctx, enum oidc_cmd oidc_cmd,
                               libcurl_debug, ca_db, client_id, client_secret,
                               token_endpoint, scope, bearer_token, rest_ctx,
                               out);
-    } else if (idp_type != NULL && strncasecmp(idp_type, "authentik:", 10) == 0) {
+    } else if (idp_type != NULL
+               && strncasecmp(idp_type, "authentik:", 10) == 0) {
         ret = authentik_lookup(mem_ctx, oidc_cmd, base_url, input, input_type,
-                              libcurl_debug, ca_db, client_id, client_secret,
-                              token_endpoint, scope, bearer_token, rest_ctx,
-                              out);
+                               libcurl_debug, ca_db, client_id, client_secret,
+                               token_endpoint, scope, bearer_token, rest_ctx,
+                               out);
     } else if (idp_type == NULL
                || strcasecmp(idp_type, "entra_id") == 0
                || strncasecmp(idp_type, "entra_id:", 9) == 0) {
