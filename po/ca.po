@@ -16,8 +16,8 @@ msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: sssd-devel@lists.fedorahosted.org\n"
 "POT-Creation-Date: 2026-10-29 07:31+0000\n"
-"PO-Revision-Date: 2026-11-03 18:28+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"PO-Revision-Date: 2026-11-17 10:18+0000\n"
+"Last-Translator: David Medina <dmedinacpnl@gmail.com>\n"
 "Language-Team: Catalan <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-master/ca/>\n"
 "Language: ca\n"
@@ -25,7 +25,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 2026.11\n"
+"X-Generator: Weblate 2026.11.2\n"
 
 #: src/config/SSSDConfig/sssdoptions.py:16
 #: src/config/SSSDConfig/sssdoptions.py:17
@@ -192,14 +192,12 @@ msgstr ""
 "Període de temps per a l'expiració de la memòria cau negativa (en segons)"
 
 #: src/config/SSSDConfig/sssdoptions.py:57
-#, fuzzy
 msgid "UIDs or UID ranges that SSSD should explicitly ignore"
-msgstr "Els usuaris que l'SSSD hauria d'ignorar explícitament"
+msgstr "UID o intervals d'UID que l'SSSD hauria d'ignorar explícitament"
 
 #: src/config/SSSDConfig/sssdoptions.py:58
-#, fuzzy
 msgid "GIDs or GID ranges that SSSD should explicitly ignore"
-msgstr "Els usuaris que l'SSSD hauria d'ignorar explícitament"
+msgstr "GID o intervals de GID que l'SSSD hauria d'ignorar explícitament"
 
 #: src/config/SSSDConfig/sssdoptions.py:59
 msgid "Users that SSSD should explicitly ignore"
@@ -2164,6 +2162,9 @@ msgid ""
 "Invalid option %s: %s\n"
 "\n"
 msgstr ""
+"\n"
+"Opció no vàlida %s: %s\n"
+"\n"
 
 #: src/monitor/monitor.c:1794
 msgid "Option -i|--interactive is not allowed together with -D|--daemon\n"
@@ -2318,7 +2319,7 @@ msgstr "La vostra contrasenya vencerà en %1$d %2$s."
 #: src/sss_client/pam_sss.c:709
 #, c-format
 msgid "Your password has expired."
-msgstr ""
+msgstr "La contrasenya ha caducat."
 
 #: src/sss_client/pam_sss.c:760
 msgid "Authentication is denied until: "
@@ -3306,7 +3307,7 @@ msgstr "L'SSSD no s'està executant com a root.\n"
 #: src/tools/sssctl/sssctl_logs.c:231
 #, c-format
 msgid "%1$-25s %2$#.4x\n"
-msgstr ""
+msgstr "%1$-25s %2$#.4x\n"
 
 #: src/tools/sssctl/sssctl_logs.c:235
 #, c-format
