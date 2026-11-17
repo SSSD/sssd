@@ -115,8 +115,10 @@ set_oidc_auth_extra_args(TALLOC_CTX *mem_ctx, struct idp_auth_ctx *idp_auth_ctx,
     c++;
 
     if (idp_auth_ctx->idp_type != NULL
-            && strncasecmp(idp_auth_ctx->idp_type, "keycloak:", 9) == 0) {
-        /* Keycloak is using the 'id' attribute as 'sub' for OIDC */
+            && (strncasecmp(idp_auth_ctx->idp_type, "keycloak:", 9) == 0
+                || strncasecmp(idp_auth_ctx->idp_type,
+                               "authentik:", 10) == 0)) {
+        /* Keycloak and Authentik use 'sub' as user identifier for OIDC */
         extra_args[c] = talloc_strdup(extra_args,
                                       "--user-identifier-attribute=sub");
     } else {
