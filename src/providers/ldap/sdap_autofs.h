@@ -36,7 +36,6 @@ sdap_autofs_setautomntent_send(TALLOC_CTX *memctx,
                                struct sss_domain_info *dom,
                                struct sysdb_ctx *sysdb,
                                struct sdap_handle *sh,
-                               struct sdap_id_op *op,
                                struct sdap_options *opts,
                                const char *mapname);
 
