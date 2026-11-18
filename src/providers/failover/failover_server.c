@@ -278,6 +278,12 @@ done:
 }
 
 bool
+sss_failover_server_is_working(struct sss_failover_server *srv)
+{
+    return srv->state == SSS_FAILOVER_SERVER_STATE_WORKING;
+}
+
+bool
 sss_failover_server_maybe_working(struct sss_failover_server *srv)
 {
     switch (srv->state) {

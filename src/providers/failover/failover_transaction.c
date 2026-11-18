@@ -36,7 +36,7 @@ sss_failover_transaction_send(TALLOC_CTX *mem_ctx,
 }
 
 struct sss_failover_transaction_connected_state {
-    struct sss_failover_ctx *fctx;
+    void *connection;
 };
 
 struct sss_failover_transaction_state {
@@ -58,6 +58,7 @@ struct sss_failover_transaction_state {
      * connected_callback is fired. */
     struct tevent_req *connected_req;
     tevent_req_fn connected_callback;
+    void *connection;
 
     /* Single transaction attempt. If successful, the main transaction request
      * is finished. Otherwise, we try next server. */
@@ -69,8 +70,36 @@ struct sss_failover_transaction_state {
     /* Connection information. */
     struct sss_failover_server *current_server;
     time_t kinit_expiration_time;
-    void *connection;
 };
+
+static errno_t
+sss_failover_transaction_finish_connection(
+    struct sss_failover_transaction_state *state,
+    struct sss_failover_server *server,
+    void *connection)
+{
+    struct sss_failover_transaction_connected_state *connected_state;
+
+    connected_state = tevent_req_data(state->connected_req,
+                            struct sss_failover_transaction_connected_state);
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Connected to %s, connection %p\n", server->name,
+          connection);
+
+    connected_state->connection = talloc_reference(connected_state, connection);
+    if (connected_state->connection == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        return ENOMEM;
+    }
+
+    /* New operation starts once we call tevent_req_done. */
+    sss_failover_connection_op_start(state->fctx, connection);
+
+    /* We are connected. Now continue with connected_callback. */
+    tevent_req_done(state->connected_req);
+
+    return EOK;
+}
 
 static errno_t
 sss_failover_transaction_restart(struct tevent_req *req);
@@ -95,6 +124,22 @@ sss_failover_transaction_attempt_done(struct tevent_req *attempt_req);
 
 static void
 sss_failover_transaction_done(struct tevent_req *subreq);
+
+static void
+sss_failover_transaction_ex_cleanup(struct tevent_req *req,
+                                    enum tevent_req_state req_state)
+{
+    struct sss_failover_transaction_state *state;
+
+    state = tevent_req_data(req, struct sss_failover_transaction_state);
+
+    /* If the transaction is freed with ongoing attempt in progress, we need to
+     * make sure to notify the connection that it is no longer used by this
+     * operation. */
+    if (state->connection != NULL) {
+        sss_failover_connection_op_done(state->fctx, state->connection);
+    }
+}
 
 errno_t
 sss_failover_transaction_ex_send(TALLOC_CTX *mem_ctx,
@@ -125,15 +170,18 @@ sss_failover_transaction_ex_send(TALLOC_CTX *mem_ctx,
     state->reuse_connection = reuse_connection;
     state->authenticate_connection = authenticate_connection;
     state->read_rootdse = read_rootdse;
+    state->force_tls = force_tls;
 
     state->caller_req = caller_req;
     state->caller_data = _tevent_req_data(caller_req);
     state->caller_data_size = talloc_get_size(state->caller_data);
     state->caller_data_type = talloc_get_name(state->caller_data);
     state->connected_callback = connected_callback;
+    state->connection = NULL;
     state->attempts = 0;
 
     tevent_req_set_callback(req, sss_failover_transaction_done, caller_req);
+    tevent_req_set_cleanup_fn(req, sss_failover_transaction_ex_cleanup);
 
     ret = sss_failover_transaction_restart(req);
     if (ret != EOK) {
@@ -165,7 +213,6 @@ sss_failover_transaction_restart(struct tevent_req *req)
         ret = ENOMEM;
         goto done;
     }
-    connected_state->fctx = state->fctx;
 
     /* Create attempt req, this is used by the user as a replacement for
      * caller_req. The user will seamlessly call
@@ -221,6 +268,22 @@ sss_failover_transaction_next(struct tevent_req *req)
         state->current_server = NULL;
     }
 
+    /* We can reuse existing connection. Let's see if there is one. */
+    if (state->reuse_connection && sss_failover_active_server_is_working(state->fctx)) {
+        state->connection = sss_failover_connection_get_ref(state, state->fctx);
+        if (state->connection != NULL) {
+            DEBUG(SSSDBG_TRACE_FUNC, "Reusing active connection\n");
+            state->current_server = sss_failover_active_server_get_ref(state,
+                                                                   state->fctx);
+            if (state->current_server == NULL) {
+                return ENOMEM;
+            }
+
+            return sss_failover_transaction_finish_connection(
+                state, state->current_server, state->connection);
+        }
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Trying to find a working server\n");
     if (state->fctx->kinit_ctx != NULL && state->authenticate_connection) {
         ret = sss_failover_transaction_kinit(req);
@@ -269,6 +332,16 @@ sss_failover_transaction_kinit_done(struct tevent_req *subreq)
     if (ret == ERR_NO_MORE_SERVERS) {
         DEBUG(SSSDBG_OP_FAILURE,
               "There are no more servers to try, cancelling operation\n");
+
+        /* We need kinit to succeed to connect to the server. Let's mark the
+         * main (LDAP) connection as offline as well and reconnect when kinit is
+         * successful. */
+        sss_failover_mark_offline(state->fctx->kinit_ctx);
+        sss_failover_mark_offline(state->fctx);
+
+        /* Return ERR_OFFLINE to the caller. */
+        ret = ERR_OFFLINE;
+
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -304,7 +377,6 @@ sss_failover_transaction_connect(struct tevent_req *req)
     DEBUG(SSSDBG_TRACE_FUNC, "Trying to establish connection\n");
 
     subreq = sss_failover_vtable_op_connect_send(state, state->ev, state->fctx,
-                                                 state->reuse_connection,
                                                  state->authenticate_connection,
                                                  state->read_rootdse,
                                                  state->force_tls,
@@ -323,7 +395,6 @@ sss_failover_transaction_connect_done(struct tevent_req *subreq)
 {
     struct sss_failover_transaction_state *state;
     struct tevent_req *req;
-    void *connection;
     errno_t ret;
 
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -333,11 +404,15 @@ sss_failover_transaction_connect_done(struct tevent_req *subreq)
      * to an active, connected server. */
     ret = sss_failover_vtable_op_connect_recv(state, subreq,
                                               &state->current_server,
-                                              &connection);
+                                              &state->connection);
     talloc_zfree(subreq);
     if (ret == ERR_NO_MORE_SERVERS) {
         DEBUG(SSSDBG_OP_FAILURE,
               "There are no more servers to try, cancelling operation\n");
+        sss_failover_mark_offline(state->fctx);
+
+        /* Return ERR_OFFLINE to the caller. */
+        ret = ERR_OFFLINE;
         goto done;
     } else if (ret != EOK) {
         DEBUG(SSSDBG_OP_FAILURE,
@@ -346,14 +421,17 @@ sss_failover_transaction_connect_done(struct tevent_req *subreq)
         goto done;
     }
 
-    DEBUG(SSSDBG_TRACE_FUNC, "Connected to %s, connection %p\n",
-          state->current_server->name, connection);
+    /* Remember the server if we can reuse the connection. */
+    if (state->reuse_connection) {
+        sss_failover_active_server_set(state->fctx, state->current_server);
+        sss_failover_connection_set(state->fctx, state->connection);
+        state->connection = sss_failover_connection_get_ref(state, state->fctx);
+    }
 
-    sss_failover_set_active_server(state->fctx, state->current_server);
-    sss_failover_set_connection(state->fctx, connection);
-
-    /* We are connected. Now continue with connected_callback. */
-    tevent_req_done(state->connected_req);
+    /* We are done. Finish the connection callback. */
+    ret = sss_failover_transaction_finish_connection(state,
+                                                     state->current_server,
+                                                     state->connection);
 
 done:
     if (ret != EOK) {
@@ -376,6 +454,13 @@ static void sss_failover_transaction_attempt_done(struct tevent_req *attempt_req
     state = tevent_req_data(req, struct sss_failover_transaction_state);
     attempt_state = _tevent_req_data(attempt_req);
 
+    if (state->connection != NULL) {
+        /* The operation on this connection is over. */
+        sss_failover_connection_op_done(state->fctx, state->connection);
+        talloc_unlink(state, state->connection);
+        state->connection = NULL;
+    }
+
     /* Copy the transaction_req state back to the caller_req state. We can not
      * free the transaction state as there is no way to move possible new data
      * to the caller state context. If the transaction is restarted we will
@@ -390,6 +475,12 @@ static void sss_failover_transaction_attempt_done(struct tevent_req *attempt_req
             /* Try next server. */
             if (treq_error == ERR_SERVER_FAILURE) {
                 sss_failover_server_mark_offline(state->current_server);
+
+                /* Remove the active server as it is not working anymore. This
+                 * also drops the connection. */
+                sss_failover_active_server_remove(state->fctx,
+                                                  state->current_server);
+
                 sss_failover_transaction_restart(req);
                 return;
             }
@@ -453,15 +544,15 @@ _sss_failover_transaction_connected_recv(TALLOC_CTX *mem_ctx,
                                         struct tevent_req *req)
 {
     struct sss_failover_transaction_connected_state *state;
-    void *connection;
 
     state = tevent_req_data(req,
                             struct sss_failover_transaction_connected_state);
 
-    connection = sss_failover_get_connection(mem_ctx, state->fctx);
-    if (connection == NULL) {
+    if (state->connection == NULL) {
         DEBUG(SSSDBG_CRIT_FAILURE, "Bug: connection should not be NULL!\n");
+        return NULL;
     }
 
-    return connection;
+    /* It is a talloc_reference so we have to use reparent. */
+    return talloc_reparent(state, mem_ctx, state->connection);
 }

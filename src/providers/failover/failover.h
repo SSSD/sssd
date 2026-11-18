@@ -67,6 +67,20 @@ struct sss_failover_options {
     unsigned int negative_dns_srv_ttl;
 };
 
+enum sss_failover_state {
+    /* Not connected to any server, but this is not an error. There was no
+     * connection attempt yet or the active server was gracefully
+     * disconnected. */
+    SSS_FAILOVER_STATE_DISCONNECTED,
+
+    /* Connected and online. There is a working connection. */
+    SSS_FAILOVER_STATE_CONNECTED,
+
+    /* There is no working connection and no more servers to try. All servers
+     * are down. */
+    SSS_FAILOVER_STATE_OFFLINE
+};
+
 struct sss_failover_ctx {
     struct tevent_context *ev;
     char *name;
@@ -94,6 +108,9 @@ struct sss_failover_ctx {
     /* Currently active server. */
     struct sss_failover_server *active_server;
 
+    /* Current failover connection state. */
+    enum sss_failover_state state;
+
     /* Backend specific established connection. */
     void *connection;
 
@@ -120,13 +137,85 @@ sss_failover_init(TALLOC_CTX *mem_ctx,
                   enum restrict_family family_order);
 
 /**
+ * @brief Mark the failover as offline - there are no available servers.
+ *
+ * This will clear the active server and set fctx state to
+ * SSS_FAILOVER_STATE_OFFLINE.
+ *
+ * @param fctx
+ */
+void
+sss_failover_mark_offline(struct sss_failover_ctx *fctx);
+
+/**
+ * @brief Return true if failover is offline.
+ *
+ * @param fctx
+ */
+bool
+sss_failover_is_offline(struct sss_failover_ctx *fctx);
+
+/**
  * @brief Set active server.
  *
  * This is a noop if @server and @fctx->active_server is identical.
  */
 void
-sss_failover_set_active_server(struct sss_failover_ctx *fctx,
+sss_failover_active_server_set(struct sss_failover_ctx *fctx,
                                struct sss_failover_server *server);
+
+/**
+ * @brief Remove current active server if it is the same as @server.
+ *
+ * This compares active_server to @server and if they are identical,
+ * active_server is set to NULL. The current connection is also dropped and
+ * set to NULL.
+ *
+ * @param fctx
+ * @param server
+ */
+void
+sss_failover_active_server_remove(struct sss_failover_ctx *fctx,
+                                  struct sss_failover_server *server);
+
+/**
+ * @brief Get active server.
+ *
+ * The output is talloc_reference to the active server attached to mem_ctx.
+ *
+ * @param mem_ctx
+ * @param fctx
+ * @return struct sss_failover_server*
+ */
+struct sss_failover_server *
+sss_failover_active_server_get_ref(TALLOC_CTX *mem_ctx,
+                                   struct sss_failover_ctx *fctx);
+
+/**
+ * @brief Return true if the server is the same as currently active server.
+ *
+ * @param fctx
+ * @param server
+ */
+bool
+sss_failover_active_server_cmp(struct sss_failover_ctx *fctx,
+                               struct sss_failover_server *server);
+
+/**
+ * @brief Return true if active server is set and working.
+ *
+ * @param fctx
+ */
+bool
+sss_failover_active_server_is_working(struct sss_failover_ctx *fctx);
+
+/**
+ * @brief Return true if active server is set and in a non-error state.
+ *
+ * @param fctx
+ */
+bool
+sss_failover_active_server_maybe_working(struct sss_failover_ctx *fctx);
 
 /**
  * @brief Set new connection, release old one.
@@ -134,7 +223,20 @@ sss_failover_set_active_server(struct sss_failover_ctx *fctx,
  * This is a noop if @connection and @fctx->connection is identical.
  */
 void
-sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection);
+sss_failover_connection_set(struct sss_failover_ctx *fctx, void *connection);
+
+/**
+ * @brief Remove current connection if it is the same as @conn.
+ *
+ * This compares current connection to @conn and if they are identical,
+ * connection is set to NULL.
+ *
+ * @param fctx
+ * @param conn
+ */
+void
+sss_failover_connection_remove(struct sss_failover_ctx *fctx,
+                               void *conn);
 
 /**
  * @brief Get connection.
@@ -146,6 +248,36 @@ sss_failover_set_connection(struct sss_failover_ctx *fctx, void *connection);
  * @return void*
  */
 void *
-sss_failover_get_connection(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fctx);
+sss_failover_connection_get_ref(TALLOC_CTX *mem_ctx, struct sss_failover_ctx *fctx);
+
+/**
+ * @brief Return true if the connection is the same as the current connection.
+ *
+ * @param fctx
+ * @param conn
+ */
+bool
+sss_failover_connection_cmp(struct sss_failover_ctx *fctx,
+                            void *conn);
+
+/**
+ * @brief New operation is using the connection.
+ *
+ * @param fctx
+ * @param connection
+ */
+void
+sss_failover_connection_op_start(struct sss_failover_ctx *fctx,
+                                 void *connection);
+
+/**
+ * @brief Operation that used the connection is finished.
+ *
+ * @param fctx
+ * @param connection
+ */
+void
+sss_failover_connection_op_done(struct sss_failover_ctx *fctx,
+                                void *connection);
 
 #endif /* _FAILOVER_H_ */
