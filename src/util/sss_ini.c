@@ -347,7 +347,11 @@ int sss_confdb_create_ldif(TALLOC_CTX *mem_ctx,
         }
 
         if (only_section != NULL) {
-            if (strcasecmp(only_section, sections[i])) {
+            /* Never skip [sssd] section - it contains global configuration
+             * required by all services. Only filter non-sssd, non-matching sections.
+             */
+            if (strcasecmp(sections[i], "sssd") != 0 &&
+                strcasecmp(only_section, sections[i]) != 0) {
                 DEBUG(SSSDBG_TRACE_LDB, "Skipping section %s\n", sections[i]);
                 continue;
             }
