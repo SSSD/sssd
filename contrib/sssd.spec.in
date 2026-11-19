@@ -2,6 +2,15 @@
 
 %global verify_signature 0
 
+# Defer expansion of the verifier macro until it is used in the prep section.
+%if 0%{?fedora} >= 45 || 0%{?rhel} >= 11
+%global sigverify_package openpgpverify
+%global sigverify %%{openpgpverify}
+%else
+%global sigverify_package (gpgverify or /usr/lib/rpm/redhat/gpgverify)
+%global sigverify %%{gpgverify}
+%endif
+
 %if 0%{?fedora} >= 43 || 0%{?rhel} >= 10
 %global build_idp 1
 %else
@@ -142,9 +151,8 @@ BuildRequires: systemd-rpm-macros
 BuildRequires: gnutls-utils
 BuildRequires: openssh
 BuildRequires: softhsm >= 2.1.0
-# gpgverify was part of redhat-rpm-config prior to Fedora 43 and RHEL 11
-%if %{verify_signature} && (0%{?fedora} >= 43 || 0%{?rhel} >= 11)
-BuildRequires: openpgpverify
+%if %{verify_signature}
+BuildRequires: %{sigverify_package}
 %endif
 
 
@@ -492,7 +500,7 @@ enable authentication with passkey token.
 
 %prep
 %if %{verify_signature}
-%{openpgpverify} --keyring='%{SOURCE3}' --signature='%{SOURCE2}' --data='%{SOURCE0}'
+%{sigverify} --keyring='%{SOURCE3}' --signature='%{SOURCE2}' --data='%{SOURCE0}'
 %endif
 %autosetup -n %{name}-%{version_no_tilde} -p1
 
