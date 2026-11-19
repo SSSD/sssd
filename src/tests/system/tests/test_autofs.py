@@ -386,14 +386,14 @@ def test_autofs__autofs_provider_none_serves_maps_from_warm_cache(client: Client
 @pytest.mark.importance("high")
 @pytest.mark.topology(KnownTopologyGroup.AnyProvider)
 @pytest.mark.preferred_topology(KnownTopology.LDAP)
-def test_autofs__new_map_entries_added_to_provider_are_visible_after_reload(
+def test_autofs__new_map_entries_added_to_provider_are_visible_after_restart(
     client: Client, nfs: NFS, provider: GenericProvider
 ):
     """
-    :title: New automount map entries added to provider are visible after autofs reload
+    :title: New automount map entries added to provider are visible after autofs restart
     :description:
         Verifies that a map key added on the provider while SSSD is running is picked up after
-        an autofs reload, alongside the existing entries.
+        an autofs restart, alongside the existing entries.
     :setup:
         1. Create two NFS exports
         2. Create auto.master map
@@ -406,13 +406,13 @@ def test_autofs__new_map_entries_added_to_provider_are_visible_after_reload(
     :steps:
         1. Access /var/export/export1
         2. Add the second NFS export key to auto.export
-        3. Reload autofs daemon
+        3. Restart autofs daemon without restarting SSSD
         4. Access /var/export/export2
         5. Dump automount maps "automount -m"
     :expectedresults:
         1. First export is mounted successfully
         2. Second key is added to the provider
-        3. Autofs daemon reloads successfully
+        3. Autofs daemon restarts successfully
         4. Second export is mounted successfully
         5. /var/export contains both export1 and export2 keys
     :customerscenario: False
@@ -431,7 +431,9 @@ def test_autofs__new_map_entries_added_to_provider_are_visible_after_reload(
     assert client.automount.mount("/var/export/export1", nfs_export1), "Unable to mount /var/export/export1!"
 
     key2 = auto_export.key("export2").add(info=nfs_export2)
-    client.automount.reload()
+    # Reloading autofs after the first mount crashes the daemon on CentOS Stream 10.
+    # Restart only autofs so SSSD must discover the new key while it is still running.
+    client.svc.restart("autofs")
 
     assert client.automount.mount("/var/export/export2", nfs_export2), "Unable to mount /var/export/export2!"
 
