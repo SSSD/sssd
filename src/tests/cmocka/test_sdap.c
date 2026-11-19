@@ -407,7 +407,7 @@ void test_parse_with_map(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 4);
@@ -468,7 +468,7 @@ void test_parse_no_map(void **state)
     set_entry_parse(&test_nomap_entry);
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
-                           NULL, 0, &attrs, false);
+                           NULL, 0, &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 3);
@@ -513,7 +513,7 @@ void test_parse_no_attrs(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 1);
@@ -560,7 +560,7 @@ void test_parse_dups(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 3);
@@ -713,7 +713,7 @@ void test_parse_secondary_oc(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_GROUP,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     talloc_free(map);
@@ -747,7 +747,7 @@ void test_parse_bad_oc(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_not_equal(ret, ERR_OK);
 
     talloc_free(map);
@@ -780,7 +780,7 @@ void test_parse_no_oc(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_not_equal(ret, ERR_OK);
 
     talloc_free(map);
@@ -825,7 +825,7 @@ void test_parse_repeated_attr(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 3);
@@ -883,7 +883,7 @@ void test_parse_attr_no_values(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 2);
@@ -925,7 +925,7 @@ void test_parse_range_disabled(void **state)
     /* With range retrieval disabled the ranged attribute is skipped */
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_GROUP,
-                           &attrs, true);
+                           &attrs, true, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 2);
@@ -966,7 +966,7 @@ void test_parse_range_unmapped(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 2);
@@ -1004,7 +1004,7 @@ void test_parse_empty_dn(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 2);
@@ -1043,7 +1043,7 @@ void test_parse_objectclass_case(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 2);
@@ -1088,7 +1088,7 @@ void test_parse_objectclass_extra_attr(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, map_size,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_entry_has_attr(attrs, SYSDB_NAME, "tuser1");
@@ -1127,7 +1127,7 @@ void test_parse_oc_prefix(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_equal(ret, EINVAL);
 
     talloc_free(map);
@@ -1169,7 +1169,7 @@ void test_parse_zero_byte(void **state)
     mock_dn_override = &dn_with_zero;
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     mock_dn_override = NULL;
     assert_int_equal(ret, EINVAL);
 
@@ -1178,7 +1178,7 @@ void test_parse_zero_byte(void **state)
     mock_attr_override_idx = 1;
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     mock_attr_override = NULL;
     assert_int_equal(ret, EINVAL);
 
@@ -1219,7 +1219,7 @@ void test_parse_oc_zero_byte(void **state)
     mock_vals_override_idx = 0;
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     mock_vals_override = NULL;
     assert_int_equal(ret, EINVAL);
 
@@ -1263,7 +1263,7 @@ void test_parse_oc_zero_byte_padded_name(void **state)
     mock_vals_override_idx = 0;
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     mock_vals_override = NULL;
     assert_int_equal(ret, EINVAL);
 
@@ -1296,7 +1296,7 @@ void test_parse_no_dn(void **state)
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
                            map, SDAP_OPTS_USER,
-                           &attrs, false);
+                           &attrs, false, NULL, NULL);
     assert_int_not_equal(ret, ERR_OK);
 
     talloc_free(map);
@@ -1740,7 +1740,7 @@ static void test_sdap_get_primary_name(void **state)
     assert_int_equal(ret, ERR_OK);
 
     ret = sdap_parse_entry(test_ctx, &test_ctx->sh, &test_ctx->sm,
-                           map, SDAP_OPTS_IPHOST, &attrs, false);
+                           map, SDAP_OPTS_IPHOST, &attrs, false, NULL, NULL);
     assert_int_equal(ret, ERR_OK);
 
     assert_int_equal(attrs->num, 3);
