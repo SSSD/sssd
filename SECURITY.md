@@ -32,6 +32,38 @@ Direct all security questions and vulnerability reports to:
 
 Patches are provided for the supported latest versions listed on the [SSSD releases page](https://sssd.io/releases.html), which contain fixes for relevant security vulnerabilities and important bugs. Prior releases might receive critical security fixes on a best-effort basis. However, we cannot guarantee that security fixes will get back-ported to these unsupported versions.
 
+## **Incident Response Policy**
+
+### **Scope**
+
+The "Incident Response Policy" covers security incidents affecting this project, including its source code, infrastructure, release pipeline, maintainer accounts, and contributor trust.
+
+Security takes place in two places - before and after something goes wrong. Other processes and policy should be in place to be preventative and cover things like reviewing merge requests before they are accepted, and vetting new contributions and contributors to a project before they are trusted. This "Incident Response Policy", or IRP, is reactive and covers what happens if something has already gone wrong.
+
+### **What constitutes an incident**
+
+An incident can be many things.  In this context we are talking about hostile events that threaten the security of the product.
+- Unauthorized code changes (e.g. a malicious commit or compromised maintainer account)
+- Leaked secrets, credentials, or signing keys
+- A vulnerability being actively exploited in the wild
+- Compromised build or release infrastructure
+- A compromised endpoint belonging to someone with repository or release access
+
+### **Reporting an incident**
+
+- Report to: secalert@redhat.com
+- Never open a public issue for an active exploit or a leaked secret
+- We aim to acknowledge all reports within 3 business days
+
+### **Response process**
+
+1. **Triage** — Confirm the incident, assess its scope and severity.
+2. **Contain** — Revoke credentials, roll back affected commits, pull releases, rotate keys as needed.
+3. **Eradicate** — Fix the root cause and patch the vulnerability.
+4. **Recover** — Restore normal operations; re-issue a release on github if required an add it to the [SSSD releases page](https://sssd.io/releases.html).
+5. **Disclose** — Notify affected users and publish an advisory, following coordinated disclosure practices.
+6. **Review** — Conduct a post-incident review and document follow-up actions to prevent recurrence.
+
 ## **EU Cyber Resilience Act — Open Source Steward Statement**
 
 This project is stewarded by **Red Hat, Inc.**, an open source software steward as defined in Article 3(14) of the [EU Cyber Resilience Act (Regulation 2024/2847)](https://eur-lex.europa.eu/eli/reg/2024/2847/oj/eng).
