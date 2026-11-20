@@ -8,7 +8,15 @@
     delaycompress
     su @SSSD_USER@ @SSSD_USER@
     postrotate
-        /bin/kill -HUP `cat @pidpath@/sssd.pid 2>/dev/null` 2> /dev/null || true
-        /bin/pkill -HUP sssd_kcm 2> /dev/null || true
+        # A generic postrotate script that can be used with and without systemd.
+        # The decision whether systemd is supported is made at build time and
+        # hardcoded in the installed script.
+        SYSTEMD="@logrotate_systemd@"
+        if [ -z "$SYSTEMD" ]; then
+            /bin/kill -HUP $(cat @pidpath@/sssd.pid 2>/dev/null) 2> /dev/null || true
+            /bin/pkill -HUP sssd_kcm 2> /dev/null || true
+        else
+            /usr/bin/systemctl kill --signal=HUP --kill-whom=main sssd.service sssd-kcm.service 2>/dev/null || true
+        fi
     endscript
 }
