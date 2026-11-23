@@ -220,8 +220,6 @@ def test_autofs__works_with_some_offline_domains(client: Client, nfs: NFS, provi
     assert client.automount.dumpmaps() == {
         "/var/export": {"map": "auto.export", "keys": [str(key)]},
     }, "Automount maps do not match!"
-<<<<<<< HEAD
-=======
 
 
 @pytest.mark.importance("high")
@@ -718,4 +716,3 @@ def test_autofs__unknown_mount_point_error_is_immediate(client: Client, nfs: NFS
 
     elapsed_ms = int(next(line for line in result.stdout_lines if line.startswith("elapsed_ms=")).split("=")[1])
     assert elapsed_ms < 5000, f"Unknown mount point lookup was delayed ({elapsed_ms} ms), it should be immediate!"
->>>>>>> 51d19ef45 (tests: migrate multihost/alltests automount tests to system tests)
