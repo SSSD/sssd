@@ -628,6 +628,188 @@ START_TEST(idmap_test_bin_sid2dom_sid)
 }
 END_TEST
 
+/* Malformed binary SID tests — exercise the lower-bound length check
+ * added to sss_idmap_bin_sid_to_dom_sid().  All of these must be
+ * rejected with IDMAP_SID_INVALID rather than causing an OOB read. */
+
+/* Valid SID layout:  byte 0 = revision (0x01), byte 1 = num_auths,
+ * bytes 2-7 = 6-byte id_auth, then num_auths * 4 bytes of sub-auths
+ * (little-endian).  Minimum valid SID with 0 sub-auths = 8 bytes. */
+
+/* num_auths=15 but buffer is only 8 bytes (header only, no sub-auths).
+ * Without the fix the loop reads 15*4=60 bytes past the buffer. */
+START_TEST(idmap_test_bin_sid2dom_sid_truncated_no_subauths)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    uint8_t bin_sid[] = {0x01, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05};
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, bin_sid, sizeof(bin_sid),
+                                       &dom_sid);
+    ck_assert_msg(err == IDMAP_SID_INVALID,
+                "Truncated SID with num_auths=15 but no sub-auths was accepted.");
+    ck_assert_msg(dom_sid == NULL, "dom_sid should be NULL on error.");
+}
+END_TEST
+
+/* num_auths=2 but buffer has room for only 1 sub-auth (12 bytes instead
+ * of the required 16).  Without the fix the 2nd SAFEALIGN_COPY_UINT32
+ * reads 4 bytes past the buffer. */
+START_TEST(idmap_test_bin_sid2dom_sid_truncated_one_subauth_short)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    uint8_t bin_sid[] = {0x01, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+                         0x15, 0x00, 0x00, 0x00};  /* only 1 sub-auth, need 2 */
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, bin_sid, sizeof(bin_sid),
+                                       &dom_sid);
+    ck_assert_msg(err == IDMAP_SID_INVALID,
+                "Truncated SID with 1 sub-auth instead of 2 was accepted.");
+    ck_assert_msg(dom_sid == NULL, "dom_sid should be NULL on error.");
+}
+END_TEST
+
+/* num_auths=15 but buffer truncated to 10 bytes (header + 0.5 sub-auth).
+ * Without the fix the loop reads 15*4=60 bytes past the buffer. */
+START_TEST(idmap_test_bin_sid2dom_sid_truncated_max_subauths)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    uint8_t bin_sid[] = {0x01, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+                         0x15, 0x00};
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, bin_sid, sizeof(bin_sid),
+                                       &dom_sid);
+    ck_assert_msg(err == IDMAP_SID_INVALID,
+                "Truncated SID with num_auths=15 but 2-byte buffer was accepted.");
+    ck_assert_msg(dom_sid == NULL, "dom_sid should be NULL on error.");
+}
+END_TEST
+
+/* num_auths=0 and buffer is exactly 8 bytes (header only, valid).
+ * This should succeed — a SID with zero sub-authorities is valid per
+ * MS-DTYP and must not be rejected by the lower-bound check. */
+START_TEST(idmap_test_bin_sid2dom_sid_zero_subauths)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    char *sid_str = NULL;
+    uint8_t bin_sid[] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05};
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, bin_sid, sizeof(bin_sid),
+                                       &dom_sid);
+    ck_assert_msg(err == IDMAP_SUCCESS,
+                "Valid SID with num_auths=0 was rejected.");
+    ck_assert_msg(dom_sid != NULL, "dom_sid should not be NULL on success.");
+
+    /* Convert back to a SID string and compare — the struct layout is
+     * private to sss_idmap_conv.c so we cannot inspect members directly. */
+    err = sss_idmap_dom_sid_to_sid(idmap_ctx, dom_sid, &sid_str);
+    ck_assert_msg(err == IDMAP_SUCCESS,
+                "Failed to convert dom_sid back to SID string.");
+    ck_assert_msg(sid_str != NULL, "sid_str should not be NULL.");
+    ck_assert_msg(strcmp(sid_str, "S-1-5") == 0,
+                "Expected 'S-1-5', got '%s'.", sid_str);
+
+    sss_idmap_free_sid(idmap_ctx, sid_str);
+    sss_idmap_free_dom_sid(idmap_ctx, dom_sid);
+}
+END_TEST
+
+/* Buffer too short to even hold the 8-byte header (length=5).
+ * The function reads bytes 0 and 1 unconditionally; with length < 2
+ * this is an OOB read on its own, but more importantly the lower-bound
+ * check must reject it. */
+START_TEST(idmap_test_bin_sid2dom_sid_short_header)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    uint8_t bin_sid[] = {0x01, 0x05, 0x00, 0x00, 0x00};
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, bin_sid, sizeof(bin_sid),
+                                       &dom_sid);
+    ck_assert_msg(err == IDMAP_SID_INVALID,
+                "SID with truncated header (5 bytes) was accepted.");
+    ck_assert_msg(dom_sid == NULL, "dom_sid should be NULL on error.");
+}
+END_TEST
+
+/* NULL buffer must be rejected without crashing. */
+START_TEST(idmap_test_bin_sid2dom_sid_null_buffer)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, NULL, 8, &dom_sid);
+    ck_assert_msg(err == IDMAP_SID_INVALID,
+                "NULL bin_sid was accepted.");
+}
+END_TEST
+
+/* NULL output pointer must be rejected. */
+START_TEST(idmap_test_bin_sid2dom_sid_null_output)
+{
+    enum idmap_error_code err;
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, test_bin_sid,
+                                       test_bin_sid_length, NULL);
+    ck_assert_msg(err == IDMAP_SID_INVALID,
+                "NULL _dom_sid output was accepted.");
+}
+END_TEST
+
+/* Buffer shorter than 2 bytes cannot hold even the revision + num_auths
+ * header fields.  Must be rejected before any read from bin_sid. */
+START_TEST(idmap_test_bin_sid2dom_sid_empty_buffer)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    uint8_t bin_sid[] = {0x01};
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, bin_sid, sizeof(bin_sid),
+                                       &dom_sid);
+    ck_assert_msg(err == IDMAP_SID_INVALID,
+                "1-byte buffer was accepted.");
+    ck_assert_msg(dom_sid == NULL, "dom_sid should be NULL on error.");
+}
+END_TEST
+
+/* Revision 0 is not a valid SID revision (only revision 1 is defined
+ * by MS-DTYP).  Must be rejected. */
+START_TEST(idmap_test_bin_sid2dom_sid_bad_revision)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    uint8_t bin_sid[] = {0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+                         0x15, 0x00, 0x00, 0x00};
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, bin_sid, sizeof(bin_sid),
+                                       &dom_sid);
+    ck_assert_msg(err == IDMAP_SID_INVALID,
+                "SID with revision 0 was accepted.");
+    ck_assert_msg(dom_sid == NULL, "dom_sid should be NULL on error.");
+}
+END_TEST
+
+/* num_auths byte of 0xFF: when read into int8_t this becomes -1, which
+ * passes the > SID_SUB_AUTHS signed comparison and wraps the lower-bound
+ * multiplication.  Must be rejected. */
+START_TEST(idmap_test_bin_sid2dom_sid_num_auths_0xff)
+{
+    struct sss_dom_sid *dom_sid = NULL;
+    enum idmap_error_code err;
+    uint8_t bin_sid[] = {0x01, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+                         0x15, 0x00, 0x00, 0x00};
+
+    err = sss_idmap_bin_sid_to_dom_sid(idmap_ctx, bin_sid, sizeof(bin_sid),
+                                       &dom_sid);
+    ck_assert_msg(err == IDMAP_SID_INVALID,
+                "SID with num_auths=0xFF was accepted.");
+    ck_assert_msg(dom_sid == NULL, "dom_sid should be NULL on error.");
+}
+END_TEST
+
 START_TEST(idmap_test_sid2dom_sid)
 {
     struct sss_dom_sid *dom_sid = NULL;
@@ -851,6 +1033,16 @@ Suite *idmap_test_suite (void)
                               idmap_ctx_teardown);
 
     tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_truncated_no_subauths);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_truncated_one_subauth_short);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_truncated_max_subauths);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_zero_subauths);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_short_header);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_null_buffer);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_null_output);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_empty_buffer);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_bad_revision);
+    tcase_add_test(tc_conv, idmap_test_bin_sid2dom_sid_num_auths_0xff);
     tcase_add_test(tc_conv, idmap_test_sid2dom_sid);
     tcase_add_test(tc_conv, idmap_test_sid2bin_sid);
     tcase_add_test(tc_conv, idmap_test_bin_sid2sid);
