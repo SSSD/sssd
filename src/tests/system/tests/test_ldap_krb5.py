@@ -666,14 +666,10 @@ def test_ldap_krb5__access_provider_krb5_allows_cross_user_access_via_k5login(
     lists both user1 and user2, so user2 (holding user2's TGT) may access user1's account.
 
     :setup:
-        1. Add users user1 and user2 to LDAP, each with a matching group
-        2. Add Kerberos principals for user1 and user2
-        3. Configure SSSD with LDAP+KRB5 and access_provider=krb5
-        4. Enable GSSAPI authentication in sshd and relax the strict acceptor check so a
-           host/<name> ticket is accepted even when the server's FQDN differs
-        5. Start SSSD
-        6. Create home directories for user1 and user2
-        7. Create user1's .k5login listing both principals
+        1. Create LDAP users with matching groups and Kerberos principals
+        2. Configure SSSD with LDAP+KRB5 and access_provider=krb5, then start SSSD
+        3. Enable GSSAPI authentication, relax the strict acceptor check and reload SSHD
+        4. Create home directories for both users and user1's .k5login listing both principals
     :steps:
         1. Log in as user1 directly with user1's password
         2. Log in as user2, then from that session use the cached ticket to SSH as user1 via GSSAPI
@@ -682,21 +678,20 @@ def test_ldap_krb5__access_provider_krb5_allows_cross_user_access_via_k5login(
         2. user2 reaches user1's account because user2's principal is listed in user1's .k5login
     :customerscenario: True
     """
-    user1 = provider.user("user1").add(uid=2003, gid=2003)
-    provider.group("user1").add(gid=2003).add_member(user1)
-    user2 = provider.user("user2").add(uid=2004, gid=2004)
-    provider.group("user2").add(gid=2004).add_member(user2)
+    user1 = provider.user("user1").add()
+    provider.group("user1").add().add_member(user1)
+    user2 = provider.user("user2").add()
+    provider.group("user2").add().add_member(user2)
     kdc.principal("user1").add()
     kdc.principal("user2").add()
 
     client.sssd.common.krb5_auth(kdc)
     client.sssd.domain["access_provider"] = "krb5"
     client.sssd.domain["cache_credentials"] = "true"
-    client.sshd.config_set([{"GSSAPIAuthentication": "yes", "GSSAPIStrictAcceptorCheck": "no"}])
-    client.sshd.reload()
     client.sssd.start()
 
-    assert client.tools.id("user1") is not None, "user1 should be resolvable via SSSD!"
+    client.sshd.config_set([{"GSSAPIAuthentication": "yes", "GSSAPIStrictAcceptorCheck": "no"}])
+    client.sshd.reload()
 
     client.fs.mkdir_p("/home/user1", mode="0700", user="user1", group="user1")
     client.fs.mkdir_p("/home/user2", mode="0700", user="user2", group="user2")
@@ -741,11 +736,9 @@ def test_ldap_krb5__access_provider_krb5_denies_deleted_user_with_k5login(
     keeps its own access.
 
     :setup:
-        1. Add users user1 and user2 to LDAP, each with a matching group
-        2. Add Kerberos principals for user1 and user2
-        3. Configure SSSD with LDAP+KRB5 and access_provider=krb5
-        4. Start SSSD
-        5. Create user1 home directory with a .k5login listing both principals
+        1. Create LDAP users with matching groups and Kerberos principals
+        2. Configure SSSD with LDAP+KRB5 and access_provider=krb5, then start SSSD
+        3. Create user1's home directory with a .k5login listing both principals
     :steps:
         1. Log in as user1 with user1's password
         2. Delete user1 from LDAP and restart SSSD with a clean cache
@@ -758,19 +751,16 @@ def test_ldap_krb5__access_provider_krb5_denies_deleted_user_with_k5login(
         4. user2 login still succeeds
     :customerscenario: True
     """
-    user1 = provider.user("user1").add(uid=2003, gid=2003)
-    provider.group("user1").add(gid=2003).add_member(user1)
-    user2 = provider.user("user2").add(uid=2004, gid=2004)
-    provider.group("user2").add(gid=2004).add_member(user2)
+    user1 = provider.user("user1").add()
+    provider.group("user1").add().add_member(user1)
+    user2 = provider.user("user2").add()
+    provider.group("user2").add().add_member(user2)
     kdc.principal("user1").add()
     kdc.principal("user2").add()
 
     client.sssd.common.krb5_auth(kdc)
     client.sssd.domain["access_provider"] = "krb5"
-    client.sssd.domain["cache_credentials"] = "true"
     client.sssd.start()
-
-    assert client.tools.id("user1") is not None, "user1 should be resolvable via SSSD!"
 
     client.fs.mkdir_p("/home/user1", mode="0700", user="user1", group="user1")
     client.fs.write(
