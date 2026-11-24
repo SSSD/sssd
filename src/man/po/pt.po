@@ -9,8 +9,8 @@ msgstr ""
 "Project-Id-Version: sssd-docs 2.3.0\n"
 "Report-Msgid-Bugs-To: sssd-devel@redhat.com\n"
 "POT-Creation-Date: 2026-11-04 08:05+0000\n"
-"PO-Revision-Date: 2026-11-03 18:56+0000\n"
-"Last-Translator: Anonymous <noreply@weblate.org>\n"
+"PO-Revision-Date: 2026-11-04 22:27+0000\n"
+"Last-Translator: Américo Monteiro <a_monteiro@gmx.com>\n"
 "Language-Team: Portuguese <https://translate.fedoraproject.org/projects/sssd/"
 "sssd-manpage-master/pt/>\n"
 "Language: pt\n"
@@ -1451,13 +1451,15 @@ msgid ""
 "the UID or GID, you have to set <quote>filter_uids</quote> or "
 "<quote>filter_gids</quote> too."
 msgstr ""
+"NOTA: Por favor tenha atenção que essas opções vão apenas filtrar pedidos no "
+"nome de utilizador ou grupo, mas não no UID ou GID. Se também precisar de "
+"filtrar o UID ou GID, tem de definir <quote>filter_uids</quote> ou <quote>"
+"filter_gids</quote> também."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:927 sssd.conf.5.xml:975
-#, fuzzy
-#| msgid "Default: Not set"
 msgid "Default: Not set."
-msgstr "Predefinição: Não definida"
+msgstr "Predefinição: Não definida."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:930
@@ -1465,13 +1467,13 @@ msgid ""
 "NOTE: The root user and group are always filtered out regardless of this "
 "option."
 msgstr ""
+"NOTA: O utilizador e grupo root é sempre filtrado independentemente desta "
+"opção."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:936
-#, fuzzy
-#| msgid "filter_users, filter_groups (string)"
 msgid "filter_uids, filter_gids (string)"
-msgstr "filter_users, filter_groups (string)"
+msgstr "filter_uids, filter_gids (string)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:939
@@ -1482,6 +1484,11 @@ msgid ""
 "directory server load caused by lookups for IDs known never to exist there, "
 "such as the ones of local system accounts."
 msgstr ""
+"Exclui certos UIDs ou GIDs de serem recuperados da base de dados sss NSS. Os "
+"pedidos por um ID filtrado são respondidos imediatamente com \"não "
+"encontrado\", sem sequer se consultar o backend, o que evita a latência e a "
+"carga no servidor de diretório causada por consultas a IDs conhecidos por "
+"nunca existirem lá, tais como aqueles das contas do sistema local."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:948
@@ -1490,24 +1497,21 @@ msgid ""
 "MAX</quote> (spaces not allowed around the '-'). This option can also be set "
 "per-domain, in which case it applies to that domain and its sub-domains only."
 msgstr ""
+"Cada valor é ou um ID singular ou uma gama inclusiva escrita como <quote>MIN-"
+"MAX</quote> (espaços não permitidos em redor de '-'). Esta opção também pode "
+"ser definida por-domínio, que no caso aplica-se apenas a esse domínio e aos "
+"seus sub-domínios."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:955
-#, fuzzy
-#| msgid ""
-#| "NOTE: The filter_groups option doesn't affect inheritance of nested group "
-#| "members, since filtering happens after they are propagated for returning "
-#| "via NSS. E.g. a group having a member group filtered out will still have "
-#| "the member users of the latter listed."
 msgid ""
 "NOTE: As with <quote>filter_groups</quote>, filtering a GID doesn't affect "
 "inheritance of nested group members, since filtering happens after they are "
 "propagated for returning via NSS."
 msgstr ""
-"NOTA: A opção filter_groups não afeta a herança de membros de grupo "
-"aninhados, pois a filtragem acontece após eles serem propagados para "
-"retornar via NSS. Ex. um grupo a ter um membro do grupo filtrado irão ainda "
-"ter os utilizadores membros na listagem posterior."
+"NOTA: Como com <quote>filter_groups</quote>, filtrar um GID não afeta a "
+"herança de membros de grupo aninhados, pois a filtragem acontece após eles "
+"serem propagados para retornar via NSS."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:961
@@ -1516,6 +1520,9 @@ msgid ""
 "the name. If you also need to filter the name, you have to set "
 "<quote>filter_users</quote> or <quote>filter_groups</quote> too."
 msgstr ""
+"NOTA: Esta opções vão filtrar apenas pedidos em UID ou GID, mas não no nome. "
+"Se também precisa de filtrar o nome, tem de definir <quote>filter_users</"
+"quote> ou <quote>filter_groups</quote> também."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><programlisting>
 #: sssd.conf.5.xml:970
@@ -1525,6 +1532,9 @@ msgid ""
 "filter_gids = 0-999, 65534\n"
 "                            "
 msgstr ""
+"filter_uids = 0-999, 65534\n"
+"filter_gids = 0-999, 65534\n"
+"                            "
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:968 sssd.conf.5.xml:1940 sssd.conf.5.xml:2087
@@ -1537,6 +1547,7 @@ msgstr "Exemplo: <placeholder type=\"programlisting\" id=\"0\"/>"
 msgid ""
 "NOTE: The 0 user and group are always filtered out regardless of this option."
 msgstr ""
+"NOTA: O utilizador e grupo 0 é sempre filtrado independentemente desta opção."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:984
@@ -2716,7 +2727,7 @@ msgstr "polkit-1"
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para><itemizedlist><listitem><para>
 #: sssd.conf.5.xml:1835
 msgid "vlock"
-msgstr ""
+msgstr "vlock"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
 #: sssd.conf.5.xml:1843
@@ -3236,39 +3247,25 @@ msgstr "allowed_uids (string)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2176
-#, fuzzy
-#| msgid ""
-#| "Specifies the comma-separated list of UID values or user names that are "
-#| "allowed to access the PAC responder. User names are resolved to UIDs at "
-#| "startup."
 msgid ""
 "Specifies the comma-separated list of UID values or user names that are "
 "allowed to access the autofs responder. User names are resolved to UIDs at "
 "startup."
 msgstr ""
 "Especifica a lista de valores UID ou nomes de utilizador separados por "
-"vírgulas que têm permissão de acesso ao respondedor PAC. Os nomes de "
+"vírgulas que têm permissão de acesso ao respondedor autofs. Os nomes de "
 "utilizadores são resolvidos em UIDs no arranque."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2182
-#, fuzzy
-#| msgid ""
-#| "Default: 0 (only the root user is allowed to access the PAC responder)"
 msgid ""
 "Default: 0 (only the root user is allowed to access the autofs responder)"
 msgstr ""
 "Predefinição: 0 (apenas o utilizador root ter permissão de acesso ao "
-"respondedor do PAC)"
+"respondedor do autofs)"
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><listitem><para>
 #: sssd.conf.5.xml:2186
-#, fuzzy
-#| msgid ""
-#| "Please note that although the UID 0 is used as the default it will be "
-#| "overwritten with this option. If you still want to allow the root user to "
-#| "access the PAC responder, which would be the typical case, you have to "
-#| "add 0 to the list of allowed UIDs as well."
 msgid ""
 "Please note that although the UID 0 is used as the default it will be "
 "overwritten with this option. If you still want to allow the root user to "
@@ -3276,8 +3273,8 @@ msgid ""
 "add 0 to the list of allowed UIDs as well."
 msgstr ""
 "Por favor note que apesar do UID 0 ser usado como predefinição irá ser "
-"sobreposto por esta opção. Se você ainda quiser permitir ao utilizador root "
-"ter acesso ao respondedor PAC, o que será um caso típico, você também tem de "
+"sobreposto por esta opção. Se ainda quiser permitir ao utilizador root ter "
+"acesso ao respondedor autofs, o que será um caso típico, você também tem de "
 "adicionar 0 à lista de UIDs permitidos."
 
 #. type: Content of: <reference><refentry><refsect1><refsect2><variablelist><varlistentry><term>
@@ -16906,15 +16903,11 @@ msgstr "ofusca uma palavra passe em texto simples"
 
 #. type: Content of: <reference><refentry><refsynopsisdiv><cmdsynopsis>
 #: sss_obfuscate.8.xml:21
-#, fuzzy
-#| msgid ""
-#| "<command>sss_cache</command> <arg choice='opt'> <replaceable>options</"
-#| "replaceable> </arg>"
 msgid ""
 "<command>sss_obfuscate</command> <arg choice='opt'> <replaceable>options</"
 "replaceable> </arg>"
 msgstr ""
-"<command>sss_cache</command> <arg choice='opt'> <replaceable>opções</"
+"<command>sss_obfuscate</command> <arg choice='opt'> <replaceable>opções</"
 "replaceable> </arg>"
 
 #. type: Content of: <reference><refentry><refsect1><para>
@@ -16984,14 +16977,8 @@ msgstr ""
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><listitem><para>
 #: sss_obfuscate.8.xml:78
-#, fuzzy
-#| msgid ""
-#| "The SSSD domain to use the password in. The default name is "
-#| "<quote>default</quote>."
 msgid "The SSSD domain to use the password in. This option is mandatory."
-msgstr ""
-"O domínio SSSD a onde usar a palavra passe. O nome predefinido é "
-"<quote>default</quote>."
+msgstr "O domínio SSSD a onde usar a palavra passe. Esta opção é obrigatória."
 
 #. type: Content of: <reference><refentry><refsect1><variablelist><varlistentry><term>
 #: sss_obfuscate.8.xml:85
@@ -17500,12 +17487,6 @@ msgstr "krb5_ccachedir (string)"
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:138
-#, fuzzy
-#| msgid ""
-#| "Directory to store credential caches. All the substitution sequences of "
-#| "krb5_ccname_template can be used here, too, except %d and %P.  The "
-#| "directory is created as private and owned by the user, with permissions "
-#| "set to 0700."
 msgid ""
 "Directory to store credential caches. All the substitution sequences of "
 "krb5_ccname_template can be used here, too, except %d and %P. This option is "
@@ -17514,8 +17495,8 @@ msgid ""
 msgstr ""
 "Directório para guardar as caches de credenciais. Todas as sequências de "
 "substituição de krb5_ccname_template podem ser usadas aqui também, excepto "
-"%d e %P.  O directório é criado como privado e com o utilizador como dono, "
-"com as permissões definidas para 0700."
+"%d e %P. Esta opção só é consultada quando krb5_ccname_template a refere com "
+"%d; caso contrário é ignorada."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:145
@@ -17525,6 +17506,11 @@ msgid ""
 "<citerefentry> <refentrytitle>kinit</refentrytitle> <manvolnum>1</manvolnum> "
 "</citerefentry>.  Authentication fails if the directory is missing."
 msgstr ""
+"O SSSD não cria este diretório. Ele tem de já existir e o utilizador com "
+"sessão iniciada tem de ter acesso 'rwx' a ele, o que corresponde ao "
+"comportamento de <citerefentry> <refentrytitle>kinit</refentrytitle> "
+"<manvolnum>1</manvolnum> </citerefentry>.  A autenticação falha se o "
+"diretório estiver em falta."
 
 #. type: Content of: <reference><refentry><refsect1><para><variablelist><varlistentry><listitem><para>
 #: sssd-krb5.5.xml:155
@@ -23501,44 +23487,6 @@ msgstr ""
 
 #. type: Content of: <refsect1><para>
 #: include/seealso.xml:4
-#, fuzzy
-#| msgid ""
-#| "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ldap-attributes</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-simple</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sssd-ad</"
-#| "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
-#| "condition=\"with_idp_provider\"> <citerefentry> <refentrytitle>sssd-idp</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-#| "<phrase condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
-#| "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
-#| "<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-#| "citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
-#| "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> "
-#| "<citerefentry> <refentrytitle>sss_ssh_authorizedkeys</refentrytitle> "
-#| "<manvolnum>1</manvolnum> </citerefentry>, <citerefentry> "
-#| "<refentrytitle>sss_ssh_knownhosts</refentrytitle> <manvolnum>1</"
-#| "manvolnum> </citerefentry>, </phrase> <citerefentry> <refentrytitle>sssd-"
-#| "ifp</refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, "
-#| "<citerefentry> <refentrytitle>pam_sss</refentrytitle><manvolnum>8</"
-#| "manvolnum> </citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> <phrase "
-#| "condition=\"with_stap\"> <citerefentry> <refentrytitle>sssd-systemtap</"
-#| "refentrytitle> <manvolnum>5</manvolnum> </citerefentry> </phrase>"
 msgid ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
 "citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
@@ -23578,41 +23526,40 @@ msgid ""
 "manvolnum> </citerefentry> </phrase>."
 msgstr ""
 "<citerefentry> <refentrytitle>sssd</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ldap</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-ldap-attributes</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-krb5</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-simple</"
-"refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sssd-ad</"
+"citerefentry>, <citerefentry> <refentrytitle>sssd.conf</refentrytitle>"
+"<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"ldap</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
+"<refentrytitle>sssd-ldap-attributes</refentrytitle><manvolnum>5</manvolnum> "
+"</citerefentry>, <citerefentry> <refentrytitle>sssd-krb5</refentrytitle>"
+"<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-"
+"simple</refentrytitle><manvolnum>5</manvolnum> </citerefentry>, "
+"<citerefentry> <refentrytitle>sssd-ipa</refentrytitle><manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sssd-ad</"
 "refentrytitle><manvolnum>5</manvolnum> </citerefentry>, <phrase "
 "condition=\"with_idp_provider\"> <citerefentry> <refentrytitle>sssd-idp</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> <phrase "
 "condition=\"with_sudo\"> <citerefentry> <refentrytitle>sssd-sudo</"
 "refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, </phrase> "
 "<citerefentry> <refentrytitle>sssd-session-recording</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_cache</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_debuglevel</"
+"<manvolnum>5</manvolnum> </citerefentry>, <citerefentry> <refentrytitle>"
+"sss_cache</refentrytitle><manvolnum>8</manvolnum> </citerefentry>, "
+"<citerefentry> <refentrytitle>sss_debuglevel</refentrytitle><manvolnum>8</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>sss_obfuscate</"
 "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_obfuscate</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>, <citerefentry> <refentrytitle>sss_seed</"
+"<refentrytitle>sss_seed</refentrytitle><manvolnum>8</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sssd_krb5_locator_plugin</"
+"refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <phrase "
+"condition=\"with_ssh\"> <citerefentry> <refentrytitle>"
+"sss_ssh_authorizedkeys</refentrytitle> <manvolnum>1</manvolnum> </"
+"citerefentry>, <citerefentry> <refentrytitle>sss_ssh_knownhosts</"
+"refentrytitle> <manvolnum>1</manvolnum> </citerefentry>, </phrase> "
+"<citerefentry> <refentrytitle>sssd-ifp</refentrytitle> <manvolnum>5</"
+"manvolnum> </citerefentry>, <citerefentry> <refentrytitle>pam_sss</"
 "refentrytitle><manvolnum>8</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sssd_krb5_locator_plugin</refentrytitle><manvolnum>8</"
-"manvolnum> </citerefentry>, <phrase condition=\"with_ssh\"> <citerefentry> "
-"<refentrytitle>sss_ssh_authorizedkeys</refentrytitle> <manvolnum>1</"
-"manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>sss_ssh_knownhosts</refentrytitle> <manvolnum>1</manvolnum> </"
-"citerefentry>, </phrase> <citerefentry> <refentrytitle>sssd-ifp</"
-"refentrytitle> <manvolnum>5</manvolnum> </citerefentry>, <citerefentry> "
-"<refentrytitle>pam_sss</refentrytitle><manvolnum>8</manvolnum> </"
-"citerefentry>.  <citerefentry> <refentrytitle>sss_rpcidmapd</refentrytitle> "
-"<manvolnum>5</manvolnum> </citerefentry> <phrase condition=\"with_stap\"> "
-"<citerefentry> <refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</"
-"manvolnum> </citerefentry> </phrase>"
+"<refentrytitle>sss_rpcidmapd</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry>, <phrase condition=\"with_stap\"> <citerefentry> "
+"<refentrytitle>sssd-systemtap</refentrytitle> <manvolnum>5</manvolnum> </"
+"citerefentry> </phrase>."
 
 #. type: Content of: <listitem><para>
 #: include/ldap_search_bases.xml:3
@@ -24135,6 +24082,9 @@ msgid ""
 "are filtered because often AD does not issue service tickets for those "
 "principals. Only if is is the only entry it is tried."
 msgstr ""
+"Entradas onde o nome de principal termina com um '$', isto é, contas de "
+"máquina AD, são filtradas porque geralmente o AD não emite bilhetes de "
+"serviço para esses principais. Apenas se for a única entrada a ser tentada."
 
 #. type: Content of: <variablelist><varlistentry><listitem><para>
 #: include/krb5_options.xml:35
