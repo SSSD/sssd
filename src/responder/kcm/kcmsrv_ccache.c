@@ -237,6 +237,7 @@ static struct kcm_cred *kcm_cred_dup(TALLOC_CTX *mem_ctx,
                                      struct kcm_cred *crd)
 {
     struct kcm_cred *dup;
+    size_t len;
 
     dup = talloc_zero(mem_ctx, struct kcm_cred);
     if (dup == NULL) {
@@ -244,7 +245,23 @@ static struct kcm_cred *kcm_cred_dup(TALLOC_CTX *mem_ctx,
     }
 
     uuid_copy(dup->uuid, crd->uuid);
-    dup->cred_blob = crd->cred_blob;
+
+    /* Deep-copy the cred_blob so the duplicate does not share the
+     * underlying talloc buffer with the original ccache.  The memory
+     * backend returns ccache copies built with kcm_cc_dup(); if the
+     * caller later destroys the original (e.g. via KCM OP DESTROY),
+     * a shallow pointer copy would dangle and trigger a use-after-free
+     * when the per-connection credential cache is reused by a
+     * subsequent GET_CRED_BY_UUID request. */
+    len = sss_iobuf_get_size(crd->cred_blob);
+    dup->cred_blob = sss_iobuf_init_readonly(dup,
+                                             sss_iobuf_get_data(crd->cred_blob),
+                                             len,
+                                             sss_iobuf_get_secure(crd->cred_blob));
+    if (dup->cred_blob == NULL) {
+        talloc_free(dup);
+        return NULL;
+    }
 
     return dup;
 }
