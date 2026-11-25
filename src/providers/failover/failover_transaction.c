@@ -37,6 +37,10 @@ sss_failover_transaction_send(TALLOC_CTX *mem_ctx,
 
 struct sss_failover_transaction_connected_state {
     struct sss_failover_ctx *fctx;
+    /* Connection captured and referenced at connect time so that
+     * _sss_failover_transaction_connected_recv() can never fail and never
+     * returns NULL. */
+    void *connection;
 };
 
 struct sss_failover_transaction_state {
@@ -321,6 +325,7 @@ sss_failover_transaction_connect(struct tevent_req *req)
 static void
 sss_failover_transaction_connect_done(struct tevent_req *subreq)
 {
+    struct sss_failover_transaction_connected_state *connected_state;
     struct sss_failover_transaction_state *state;
     struct tevent_req *req;
     void *connection;
@@ -346,11 +351,34 @@ sss_failover_transaction_connect_done(struct tevent_req *subreq)
         goto done;
     }
 
+    if (connection == NULL) {
+        /* The backend connect operation must never report success without
+         * providing a connection. Treat this as a fatal error instead of
+         * propagating a NULL connection to the connected callback. */
+        DEBUG(SSSDBG_CRIT_FAILURE,
+              "Bug: connect operation succeeded but returned no connection\n");
+        ret = EINVAL;
+        goto done;
+    }
+
     DEBUG(SSSDBG_TRACE_FUNC, "Connected to %s, connection %p\n",
           state->current_server->name, connection);
 
     sss_failover_set_active_server(state->fctx, state->current_server);
     sss_failover_set_connection(state->fctx, connection);
+
+    /* Capture the connection for the connected callback now, while we can still
+     * turn a failure into an error on the main request. This guarantees that
+     * _sss_failover_transaction_connected_recv() always returns a valid,
+     * non-NULL connection, so callers never have to NULL-check it. */
+    connected_state = tevent_req_data(state->connected_req,
+                              struct sss_failover_transaction_connected_state);
+    connected_state->connection = talloc_reference(connected_state, connection);
+    if (connected_state->connection == NULL) {
+        DEBUG(SSSDBG_CRIT_FAILURE, "Out of memory!\n");
+        ret = ENOMEM;
+        goto done;
+    }
 
     /* We are connected. Now continue with connected_callback. */
     tevent_req_done(state->connected_req);
@@ -447,21 +475,27 @@ static void sss_failover_transaction_done(struct tevent_req *req)
     tevent_req_done(caller_req);
 }
 
-/* Return connection. This is only called if we have a successful connection. */
+/* Return connection. This is only called after a successful connection.
+ *
+ * The connection was referenced onto the connected state in
+ * sss_failover_transaction_connect_done() before this callback was fired. Any
+ * connect-time failure (including OOM) was already turned into an error on the
+ * main request and this callback was never invoked. The connected state lives
+ * for the whole caller request, so the returned connection stays valid for the
+ * caller's lifetime and is guaranteed to be non-NULL. Callers therefore never
+ * need to check the result for NULL.
+ *
+ * @mem_ctx is intentionally unused: the connection is owned by the connected
+ * state (a descendant of the caller's request) rather than re-referenced here,
+ * which keeps this function allocation-free and unable to fail. */
 void *
 _sss_failover_transaction_connected_recv(TALLOC_CTX *mem_ctx,
                                         struct tevent_req *req)
 {
     struct sss_failover_transaction_connected_state *state;
-    void *connection;
 
     state = tevent_req_data(req,
                             struct sss_failover_transaction_connected_state);
 
-    connection = sss_failover_get_connection(mem_ctx, state->fctx);
-    if (connection == NULL) {
-        DEBUG(SSSDBG_CRIT_FAILURE, "Bug: connection should not be NULL!\n");
-    }
-
-    return connection;
+    return state->connection;
 }
