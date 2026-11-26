@@ -700,6 +700,15 @@
                                 procctl:PROC_TRACE_CTL on FreeBSD for details.
                             </para>
                             <para>
+                                This option can be set globally in the [sssd]
+                                section or overridden per-service in individual
+                                service sections ([nss], [kcm], etc.).
+                                When set in a service section, it overrides the
+                                global [sssd] setting for that specific service.
+                                Note: 'sssd_kcm' is an exception and only reads
+                                its own [kcm] section, ignoring the [sssd] setting.
+                            </para>
+                            <para>
                                 Take a note that this setting has no effect
                                 for 'ldap_child', 'krb5_child' and 'sssd_pam'
                                 as those privileged binaries can have a copy

@@ -714,10 +714,28 @@ int server_setup(const char *name, bool is_responder,
      * when "the process executes a program that has file capabilities".
      */
     if (strcmp(name, "pam") != 0) {
+        /* Read core_dumpable from [sssd] section first to get baseline value.
+         * Then read from service-specific section (e.g., [kcm]) using the
+         * [sssd] value as default, allowing per-service override.
+         */
         ret = confdb_get_bool(ctx->confdb_ctx,
                               CONFDB_MONITOR_CONF_ENTRY,
                               CONFDB_MONITOR_DUMPABLE,
-                              true, /* default value */
+                              true, /* hardcoded default */
+                              &dumpable);
+        if (ret != EOK) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "Failed to read "CONFDB_MONITOR_DUMPABLE" from [sssd]\n");
+            return ret;
+        }
+
+        /* Try to read from service-specific section.
+         * Use the [sssd] value as default so service can override.
+         */
+        ret = confdb_get_bool(ctx->confdb_ctx,
+                              conf_entry,
+                              CONFDB_MONITOR_DUMPABLE,
+                              dumpable, /* use [sssd] value as default */
                               &dumpable);
         if (ret != EOK) {
             DEBUG(SSSDBG_FATAL_FAILURE,
