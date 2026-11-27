@@ -31,7 +31,7 @@
 #include "src/responder/pam/pamsrv_json.h"
 
 #define OAUTH2_URI          "short.url.com/tmp\0"
-#define OAUTH2_URI_COMP     "\0"
+#define OAUTH2_URI_COMP     "short.url.com/tmp?code=1234-5678\0"
 #define OAUTH2_CODE         "1234-5678"
 #define OAUTH2_STR          OAUTH2_URI OAUTH2_URI_COMP OAUTH2_CODE
 #define PASSKEY_CRYPTO_CHAL "6uDMvRKj3W5xJV3HaQjZrtXMNmUUAjRGklFG2MIhN5s="
@@ -62,6 +62,7 @@
                                     "\"name\": \"Web Login\", \"role\": \"eidp\", " \
                                     "\"initPrompt\": \"" OAUTH2_INIT_PROMPT "\", " \
                                     "\"linkPrompt\": \"" OAUTH2_LINK_PROMPT "\", " \
+                                    "\"completeUri\": \"short.url.com/tmp?code=1234-5678\", " \
                                     "\"uri\": \"short.url.com/tmp\", \"code\": \"1234-5678\", " \
                                     "\"timeout\": 300}"
 #define BASIC_SC                    "\"smartcard\": {" \
@@ -353,6 +354,7 @@ void test_json_format_mechanisms_oauth2(void **state)
     auth_data->oauth2->code = discard_const(OAUTH2_CODE);
     auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
     auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
+    auth_data->oauth2->complete_uri = discard_const(OAUTH2_URI_COMP);
 
     ret = json_format_mechanisms(auth_data, &mechs);
     assert_int_equal(ret, EOK);
@@ -547,6 +549,7 @@ void test_json_format_auth_selection_oauth2(void **state)
     auth_data->oauth2->code = discard_const(OAUTH2_CODE);
     auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
     auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
+    auth_data->oauth2->complete_uri = discard_const(OAUTH2_URI_COMP);
 
     will_return(__wrap_json_array_append_new, false);
     ret = json_format_auth_selection(test_ctx, auth_data, &json_msg);
@@ -652,6 +655,7 @@ void test_json_format_auth_selection_all(void **state)
     auth_data->oauth2->code = discard_const(OAUTH2_CODE);
     auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
     auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
+    auth_data->oauth2->complete_uri = discard_const(OAUTH2_URI_COMP);
     auth_data->sc->enabled = true;
     auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[0]);
@@ -719,6 +723,7 @@ void test_json_format_auth_selection_failure(void **state)
     auth_data->oauth2->code = discard_const(OAUTH2_CODE);
     auth_data->oauth2->init_prompt = discard_const(OAUTH2_INIT_PROMPT);
     auth_data->oauth2->link_prompt = discard_const(OAUTH2_LINK_PROMPT);
+    auth_data->oauth2->complete_uri = discard_const(OAUTH2_URI_COMP);
     auth_data->sc->enabled = true;
     auth_data->sc->names[0] = talloc_strdup(auth_data->sc->names, SC1_TOKEN_NAME);
     assert_non_null(auth_data->sc->names[0]);
