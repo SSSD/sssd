@@ -295,6 +295,7 @@ static errno_t select_obj_type(json_t *data, const char *type,
     json_t *selected = NULL;
     json_t *obj;
     json_t *obj_type;
+    char *tmp = NULL;
     size_t index;
     errno_t ret;
 
@@ -306,8 +307,12 @@ static errno_t select_obj_type(json_t *data, const char *type,
     json_array_foreach(data, index, obj) {
         obj_type = json_object_get(obj, "posixObjectType");
         if (!json_is_string(obj_type)) {
-            ret = EINVAL;
-            goto done;
+            tmp = json_dumps(obj, 0);
+            DEBUG(SSSDBG_MINOR_FAILURE,
+                  "Object without a 'posixObjectType' string [%s]. Skipping.\n",
+                  tmp);
+            free(tmp);
+            continue;
         }
 
         if (strcmp(json_string_value(obj_type), type) != 0) {
@@ -567,10 +572,9 @@ static errno_t store_obj_array(struct idp_id_ctx *idp_id_ctx,
         ret = store_func(idp_id_ctx, obj, name);
         if (ret != EOK) {
             tmp = json_dumps(obj, 0);
-            DEBUG(SSSDBG_OP_FAILURE, "Failed to store JSON %s [%s].\n", type,
-                                                                        tmp);
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "Failed to store JSON %s [%s]. Skipping.\n", type, tmp);
             free(tmp);
-            return ret;
         }
     }
 
