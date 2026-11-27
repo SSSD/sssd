@@ -429,7 +429,13 @@ static errno_t update_group_members(struct idp_id_ctx *idp_id_ctx,
     }
 
     ret = sysdb_search_group_by_name(tmp_ctx, dom, group_name, NULL, &msg);
-    if (ret != EOK) {
+    if (ret == ENOENT) {
+        /* The group no longer exists, e.g. it was removed upstream and
+         * deleted during the preceding group lookup. There is no cached
+         * membership left to reconcile. */
+        ret = EOK;
+        goto done;
+    } else if (ret != EOK) {
         goto done;
     }
 
