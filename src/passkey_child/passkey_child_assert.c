@@ -25,9 +25,6 @@
 #include <jansson.h>
 #include <termios.h>
 #include <stdio.h>
-#include <fido/es256.h>
-#include <fido/rs256.h>
-#include <fido/eddsa.h>
 
 #include "util/crypto/sss_crypto.h"
 #include "util/debug.h"
@@ -318,13 +315,7 @@ done:
 errno_t
 reset_public_key(struct pk_data_t *_pk_data)
 {
-    if (_pk_data->type == COSE_ES256) {
-        es256_pk_free((es256_pk_t **) &_pk_data->public_key);
-    } else if (_pk_data->type == COSE_RS256) {
-        rs256_pk_free((rs256_pk_t **) &_pk_data->public_key);
-    } else if (_pk_data->type == COSE_EDDSA) {
-        eddsa_pk_free((eddsa_pk_t **) &_pk_data->public_key);
-    }
+    cose_pubkey_free(_pk_data->type, &_pk_data->public_key);
 
     return EOK;
 }
@@ -406,6 +397,9 @@ verify_assert(struct pk_data_t *pk_data, fido_assert_t *assert)
               ret, fido_strerr(ret));
         goto done;
     }
+
+    DEBUG(SSSDBG_TRACE_FUNC, "Assertion verified with %s key.\n",
+          cose_type_name(pk_data->type));
 
 done:
     return ret;

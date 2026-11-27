@@ -24,11 +24,15 @@
 
 #include <fido/es256.h>
 #include <fido/param.h>
+#include <openssl/core_names.h>
+#include <openssl/evp.h>
+#include <openssl/x509.h>
 #include <popt.h>
 #include <termios.h>
 
 #include "tests/cmocka/common_mock.h"
 
+#include "util/crypto/sss_crypto.h"
 #include "passkey_child/passkey_child.h"
 
 #define TEST_PATH "/test/path"
@@ -603,6 +607,39 @@ void test_parse_all_args(void **state)
     talloc_free(test_ctx);
 }
 
+void test_cose_str_to_int(void **state)
+{
+    struct {
+        const char *name;
+        int type;
+    } types[] = {
+        { "es256", COSE_ES256 },
+        { "RS256", COSE_RS256 },
+        { "eddsa", COSE_EDDSA },
+#ifdef HAVE_FIDO_ES384
+        { "es384", COSE_ES384 },
+#endif
+#ifdef HAVE_FIDO_MLDSA
+        { "mldsa44", COSE_MLDSA44 },
+        { "mldsa65", COSE_MLDSA65 },
+        { "MLDSA87", COSE_MLDSA87 },
+#endif
+        { NULL, 0 }
+    };
+    int type;
+    errno_t ret;
+
+    for (int i = 0; types[i].name != NULL; i++) {
+        ret = cose_str_to_int(types[i].name, &type);
+        assert_int_equal(ret, EOK);
+        assert_int_equal(type, types[i].type);
+    }
+
+    ret = cose_str_to_int("es512", &type);
+    assert_int_equal(ret, ERR_INVALID_CRED_TYPE);
+    assert_int_equal(type, 0);
+}
+
 void test_prepare_credentials_ok(void **state)
 {
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
@@ -1024,6 +1061,122 @@ void test_encode_public_keys(void **state)
     reset_public_key(&pk_data);
 }
 
+#if defined(HAVE_FIDO_ES384) || defined(HAVE_FIDO_MLDSA)
+/* Generate a key with OpenSSL, convert its raw public key (as returned by
+ * fido_cred_pubkey_ptr()) to the base64 DER form stored for the user and
+ * back to the libfido2 public key structure. */
+static void
+check_public_key_roundtrip(int type, const char *alg, const char *param)
+{
+    TALLOC_CTX *test_ctx;
+    struct passkey_data data;
+    struct pk_data_t pk_data = { 0 };
+    EVP_PKEY *pkey;
+    unsigned char raw[4096];
+    const unsigned char *raw_key = raw;
+    size_t raw_len;
+    unsigned char *der = NULL;
+    int der_len;
+    char *expected_pem;
+    char *pem_key = NULL;
+    errno_t ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+
+    if (param != NULL) {
+        pkey = EVP_PKEY_Q_keygen(NULL, NULL, alg, param);
+    } else {
+        pkey = EVP_PKEY_Q_keygen(NULL, NULL, alg);
+    }
+    assert_non_null(pkey);
+
+    if (strcmp(alg, "EC") == 0) {
+        /* libfido2 uses the uncompressed point without the 0x04 prefix */
+        assert_int_equal(EVP_PKEY_get_octet_string_param(pkey,
+                             OSSL_PKEY_PARAM_ENCODED_PUBLIC_KEY,
+                             raw, sizeof(raw), &raw_len), 1);
+        assert_int_equal(raw[0], 0x04);
+        raw_key++;
+        raw_len--;
+    } else {
+        raw_len = sizeof(raw);
+        assert_int_equal(EVP_PKEY_get_raw_public_key(pkey, raw, &raw_len), 1);
+    }
+
+    der_len = i2d_PUBKEY(pkey, &der);
+    assert_true(der_len > 0);
+    expected_pem = sss_base64_encode(test_ctx, der, der_len);
+    assert_non_null(expected_pem);
+
+    data.type = type;
+    ret = public_key_to_base64(test_ctx, &data, raw_key, raw_len, &pem_key);
+    assert_int_equal(ret, EOK);
+    assert_string_equal(pem_key, expected_pem);
+
+    ret = public_key_to_libfido2(pem_key, &pk_data);
+    assert_int_equal(ret, EOK);
+    assert_int_equal(pk_data.type, type);
+    assert_memory_equal(pk_data.public_key, raw_key, raw_len);
+    reset_public_key(&pk_data);
+    assert_null(pk_data.public_key);
+
+    OPENSSL_free(der);
+    EVP_PKEY_free(pkey);
+    talloc_free(test_ctx);
+}
+#endif
+
+void test_public_key_roundtrip_es384(void **state)
+{
+#ifdef HAVE_FIDO_ES384
+    check_public_key_roundtrip(COSE_ES384, "EC", "P-384");
+#else
+    skip();
+#endif
+}
+
+void test_public_key_roundtrip_mldsa(void **state)
+{
+#ifdef HAVE_FIDO_MLDSA
+    check_public_key_roundtrip(COSE_MLDSA44, "ML-DSA-44", NULL);
+    check_public_key_roundtrip(COSE_MLDSA65, "ML-DSA-65", NULL);
+    check_public_key_roundtrip(COSE_MLDSA87, "ML-DSA-87", NULL);
+#else
+    skip();
+#endif
+}
+
+void test_encode_public_key_unsupported(void **state)
+{
+    TALLOC_CTX *test_ctx;
+    struct pk_data_t pk_data = { 0 };
+    EVP_PKEY *pkey;
+    unsigned char *der = NULL;
+    int der_len;
+    char *pem_key;
+    errno_t ret;
+
+    test_ctx = talloc_new(NULL);
+    assert_non_null(test_ctx);
+
+    /* No COSE algorithm is mapped to P-521 */
+    pkey = EVP_PKEY_Q_keygen(NULL, NULL, "EC", "P-521");
+    assert_non_null(pkey);
+    der_len = i2d_PUBKEY(pkey, &der);
+    assert_true(der_len > 0);
+    pem_key = sss_base64_encode(test_ctx, der, der_len);
+    assert_non_null(pem_key);
+
+    ret = public_key_to_libfido2(pem_key, &pk_data);
+    assert_int_equal(ret, EINVAL);
+    assert_null(pk_data.public_key);
+
+    OPENSSL_free(der);
+    EVP_PKEY_free(pkey);
+    talloc_free(test_ctx);
+}
+
 void test_get_authenticator_data_one_key(void **state)
 {
     struct test_state *ts = talloc_get_type_abort(*state, struct test_state);
@@ -1362,6 +1515,7 @@ int main(int argc, const char *argv[])
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_parse_required_args),
         cmocka_unit_test(test_parse_all_args),
+        cmocka_unit_test(test_cose_str_to_int),
         cmocka_unit_test_setup_teardown(test_prepare_credentials_ok, setup, teardown),
         cmocka_unit_test_setup_teardown(test_prepare_credentials_user_verification_missing, setup, teardown),
         cmocka_unit_test_setup_teardown(test_prepare_credentials_error, setup, teardown),
@@ -1384,6 +1538,9 @@ int main(int argc, const char *argv[])
         cmocka_unit_test_setup_teardown(test_prepare_assert_error, setup, teardown),
         cmocka_unit_test(test_reset_public_key),
         cmocka_unit_test(test_encode_public_keys),
+        cmocka_unit_test(test_public_key_roundtrip_es384),
+        cmocka_unit_test(test_public_key_roundtrip_mldsa),
+        cmocka_unit_test(test_encode_public_key_unsupported),
         cmocka_unit_test_setup_teardown(test_get_authenticator_data_one_key, setup, teardown),
         cmocka_unit_test_setup_teardown(test_get_authenticator_data_multiple_keys_assert_found, setup, teardown),
         cmocka_unit_test_setup_teardown(test_get_authenticator_data_multiple_keys_assert_not_found, setup, teardown),
