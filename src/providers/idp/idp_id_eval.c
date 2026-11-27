@@ -379,6 +379,46 @@ done:
     return ret;
 }
 
+static errno_t json_array_to_fqname_list(TALLOC_CTX *mem_ctx,
+                                         struct sss_domain_info *dom,
+                                         const char *name_attr,
+                                         json_t *data,
+                                         char ***_names)
+{
+    json_t *obj;
+    json_t *name;
+    char **names;
+    size_t index;
+    size_t count;
+
+    count = json_array_size(data);
+    names = talloc_zero_array(mem_ctx, char *, count + 1);
+    if (names == NULL) {
+        return ENOMEM;
+    }
+
+    json_array_foreach(data, index, obj) {
+        name = json_object_get(obj, name_attr);
+        if (!json_is_string(name)) {
+            DEBUG(SSSDBG_OP_FAILURE,
+                  "JSON object does not contain '%s' string.\n", name_attr);
+            talloc_free(names);
+            return EINVAL;
+        }
+
+        names[index] = sss_create_internal_fqname(names,
+                                                  json_string_value(name),
+                                                  dom->name);
+        if (names[index] == NULL) {
+            talloc_free(names);
+            return ENOMEM;
+        }
+    }
+
+    *_names = names;
+    return EOK;
+}
+
 static errno_t update_group_members(struct idp_id_ctx *idp_id_ctx,
                                     const char *group_name,
                                     json_t *data)
@@ -388,8 +428,6 @@ static errno_t update_group_members(struct idp_id_ctx *idp_id_ctx,
     const char *attrs[] = { SYSDB_NAME, NULL };
     struct ldb_message *msg = NULL;
     struct ldb_message **members = NULL;
-    json_t *obj;
-    json_t *user_name;
     char **idp_users = NULL;
     char **sysdb_users = NULL;
     char **add_users = NULL;
@@ -404,28 +442,10 @@ static errno_t update_group_members(struct idp_id_ctx *idp_id_ctx,
         return ENOMEM;
     }
 
-    count = json_array_size(data);
-    idp_users = talloc_zero_array(tmp_ctx, char *, count + 1);
-    if (idp_users == NULL) {
-        ret = ENOMEM;
+    ret = json_array_to_fqname_list(tmp_ctx, dom, "posixUsername", data,
+                                    &idp_users);
+    if (ret != EOK) {
         goto done;
-    }
-
-    json_array_foreach(data, index, obj) {
-        user_name = json_object_get(obj, "posixUsername");
-        if (!json_is_string(user_name)) {
-            ret = EINVAL;
-            goto done;
-        }
-
-        idp_users[index] = sss_create_internal_fqname(
-                                            idp_users,
-                                            json_string_value(user_name),
-                                            dom->name);
-        if (idp_users[index] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
     ret = sysdb_search_group_by_name(tmp_ctx, dom, group_name, NULL, &msg);
@@ -503,14 +523,10 @@ static errno_t update_user_groups(struct idp_id_ctx *idp_id_ctx,
 {
     struct sss_domain_info *dom = idp_id_ctx->be_ctx->domain;
     TALLOC_CTX *tmp_ctx = NULL;
-    json_t *obj;
-    json_t *group_name;
     char **idp_groups = NULL;
     char **sysdb_groups = NULL;
     char **add_groups = NULL;
     char **del_groups = NULL;
-    size_t index;
-    size_t count;
     errno_t ret;
 
     tmp_ctx = talloc_new(NULL);
@@ -518,28 +534,10 @@ static errno_t update_user_groups(struct idp_id_ctx *idp_id_ctx,
         return ENOMEM;
     }
 
-    count = json_array_size(data);
-    idp_groups = talloc_zero_array(tmp_ctx, char *, count + 1);
-    if (idp_groups == NULL) {
-        ret = ENOMEM;
+    ret = json_array_to_fqname_list(tmp_ctx, dom, "posixGroupname", data,
+                                    &idp_groups);
+    if (ret != EOK) {
         goto done;
-    }
-
-    json_array_foreach(data, index, obj) {
-        group_name = json_object_get(obj, "posixGroupname");
-        if (!json_is_string(group_name)) {
-            ret = EINVAL;
-            goto done;
-        }
-
-        idp_groups[index] = sss_create_internal_fqname(
-                                            idp_groups,
-                                            json_string_value(group_name),
-                                            dom->name);
-        if (idp_groups[index] == NULL) {
-            ret = ENOMEM;
-            goto done;
-        }
     }
 
     ret = sysdb_get_direct_parents(tmp_ctx, dom, dom, SYSDB_MEMBER_USER,
