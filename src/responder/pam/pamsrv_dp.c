@@ -57,41 +57,52 @@ pam_dp_send_req(struct pam_auth_req *preq)
 static void
 pam_dp_send_req_done(struct tevent_req *subreq)
 {
-    struct pam_data *pam_response;
     struct response_data *resp;
     struct pam_auth_req *preq;
     errno_t ret;
 
     preq = tevent_req_callback_data(subreq, struct pam_auth_req);
 
-    ret = sbus_call_dp_dp_pamHandler_recv(preq, subreq, &pam_response);
+    ret = sbus_call_dp_dp_pamHandler_recv(subreq);
     talloc_zfree(subreq);
-    if (ret != EOK) {
+    DEBUG(SSSDBG_FUNC_DATA, "received: pamHandler ret: (%s)\n", ret);
+
+    if (ret == EOK) {
+        preq->pd->pam_status = PAM_SUCCESS;
+    } else if (ret != EOK) {
         DEBUG(SSSDBG_CRIT_FAILURE, "PAM handler failed [%d]: %s\n",
               ret, sss_strerror(ret));
-        preq->pd->pam_status = PAM_SYSTEM_ERR;
-        goto done;
+            switch (ret) {
+            case ERR_ACCESS_DENIED:
+            case ERR_AUTH_DENIED:
+                preq->pd->pam_status = PAM_PERM_DENIED;
+                break;
+            case ERR_AUTH_FAILED:
+                preq->pd->pam_status = PAM_AUTH_ERR;
+                break;
+            case ERR_SERVER_FAILURE:
+                preq->pd->pam_status = PAM_AUTHINFO_UNAVAIL;
+                break;
+            case ERR_ACCOUNT_EXPIRED:
+                preq->pd->pam_status = PAM_ACCT_EXPIRED;
+                break;
+            case ERR_PASSWORD_EXPIRED:
+                preq->pd->pam_status = PAM_NEW_AUTHTOK_REQD;
+                break;
+            case ERR_ACCOUNT_LOCKED:
+                preq->pd->account_locked = true;
+                preq->pd->pam_status = PAM_PERM_DENIED;
+                break;
+            case ERR_SC_AUTH_NOT_SUPPORTED:
+                preq->pd->pam_status = PAM_BAD_ITEM;
+                break;
+            default:
+                preq->pd->pam_status = PAM_SYSTEM_ERR;
+                break;
+            }
+
+            goto done;
     }
-
-    preq->pd->pam_status = pam_response->pam_status;
-    preq->pd->account_locked = pam_response->account_locked;
-
-    DEBUG(SSSDBG_FUNC_DATA, "received: [%d (%s)][%s]\n",
-          pam_response->pam_status,
-          pam_strerror(NULL, pam_response->pam_status),
-          preq->pd->domain);
-
-    for (resp = pam_response->resp_list; resp != NULL; resp = resp->next) {
-        talloc_steal(preq->pd, resp);
-
-        if (resp->next == NULL) {
-            resp->next = preq->pd->resp_list;
-            preq->pd->resp_list = pam_response->resp_list;
-            break;
-        }
-    }
-
-    talloc_zfree(pam_response);
 
 done:
     preq->callback(preq);
