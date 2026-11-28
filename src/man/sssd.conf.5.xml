@@ -112,7 +112,7 @@
           <filename>&sssd_vendor_dir;/sssd.conf</filename>, but this file must
           not be directly edited. It can be completely masked by creating the
           system specific configuration file
-          <filename>&sssd_conf_dir;/sssd.conf</filename>, or partly overriden
+          <filename>&sssd_conf_dir;/sssd.conf</filename>, or partly overridden
           by creating config snippets in
           <filename>&sssd_conf_dir;/conf.d</filename> directory.
         </para>
@@ -646,7 +646,7 @@
                                 in a random order for each parent domain.
                             </para>
                             <para>
-                                Please, note that when this option is set the
+                                Please note that when this option is set the
                                 output format of all commands is always
                                 fully-qualified even when using short names
                                 for input.
@@ -1061,7 +1061,7 @@ fallback_homedir = /home/%u
                             shell_fallback in case that user's shell is not
                             in <quote>/etc/shells</quote> and maintaining list
                             of all allowed shells in allowed_shells would be
-                            to much overhead.
+                            too much overhead.
                         </para>
                         <para>
                             An empty string for shell is passed as-is to libc.
@@ -1270,7 +1270,7 @@ fallback_homedir = /home/%u
                             for details) but with no default values.
                         </para>
                         <para>
-                            To make configuration more easy the NSS responder
+                            To make configuration easier the NSS responder
                             will check the InfoPipe option if it is not set for
                             the NSS responder.
                         </para>
@@ -1373,7 +1373,7 @@ fallback_homedir = /home/%u
                     <listitem>
                         <para>
                             Controls what kind of messages are shown to the user
-                            during authentication. The higher the number to more
+                            during authentication. The higher the number, the more
                             messages are displayed.
                         </para>
                         <para>
@@ -1558,7 +1558,7 @@ fallback_homedir = /home/%u
                         </para>
                         <para>
                             none (Untrusted users are not allowed to access
-                            any domains PAM in responder.)
+                            any domains in PAM responder.)
                         </para>
                         <para>
                             Default: none
@@ -2720,7 +2720,7 @@ pam_json_services = gdm-switchable-auth
                         <para>
                             Determines if a domain can be enumerated,
                             that is, whether the domain can list all the
-                            users and group it contains. Note that it is
+                            users and groups it contains. Note that it is
                             not required to enable enumeration in order
                             for secondary groups to be displayed. This
                             parameter can have one of the following values:
@@ -4226,7 +4226,7 @@ subdomain_inherit = ldap_purge_cache_timeout
                             match, only, enable. <quote>match</quote> is
                             used to match offline and online states for Kerberos
                             methods. <quote>only</quote> ignores the online methods
-                            and only offer the local ones. enable allows explicitly
+                            and only offers the local ones. enable allows explicitly
                             defining the methods for local authentication. As an
                             example, <quote>enable:passkey</quote>, only enables
                             passkey for local authentication. Multiple enable values
@@ -4491,7 +4491,7 @@ auto_private_groups = false
                 <quote>[application/<replaceable>NAME</replaceable>]</quote>
                 section that internally represents a domain with type
                 <quote>application</quote> optionally inherits settings
-                from a tradition SSSD domain.
+                from a traditional SSSD domain.
             </para>
             <para>
                 Please note that the application domain must still be
@@ -4877,7 +4877,7 @@ ldap_user_extra_attrs = phone:telephoneNumber
         </para>
         <para>
             It is possible to add a subsection for specific PAM services,
-            e.g. <quote>[prompting/password/sshd]</quote> to individual change
+            e.g. <quote>[prompting/password/sshd]</quote> to individually change
             the prompting for this service.
         </para>
     </refsect1>
@@ -4917,7 +4917,7 @@ enumerate = False
         <para>
             2. The following example shows configuration of IPA AD trust where
             the AD forest consists of two domains in a parent-child structure.
-            Suppose IPA domain (ipa.com) has trust with AD domain(ad.com).
+            Suppose IPA domain (ipa.com) has trust with AD domain (ad.com).
             ad.com has child domain (child.ad.com). To enable shortnames in
             the child domain the following configuration should be used.
 <programlisting>
